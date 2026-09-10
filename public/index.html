@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0a0d16">
+<title>JUNJA GAME CLUB</title>
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<div id="app">
+  <div id="authScreen" class="auth-screen">
+    <div class="auth-card glass">
+      <div class="brand-mark">J</div>
+      <div class="eyebrow">FRIENDS-ONLY MULTIPLAYER</div>
+      <h1>JUNJA<br>GAME CLUB</h1>
+      <p class="auth-copy">친구들과 링크 하나로 접속하는 온라인 게임장. 게임머니는 현금 가치가 없는 가상 재화입니다.</p>
+      <div class="tabs"><button class="tab active" data-auth-tab="login">로그인</button><button class="tab" data-auth-tab="register">회원가입</button></div>
+      <form id="loginForm" class="auth-form">
+        <label>아이디<input name="username" autocomplete="username" placeholder="아이디"></label>
+        <label>비밀번호<input name="password" type="password" autocomplete="current-password" placeholder="비밀번호"></label>
+        <button class="primary big" type="submit">클럽 입장</button>
+      </form>
+      <form id="registerForm" class="auth-form hidden">
+        <label>아이디<input name="username" autocomplete="username" placeholder="영문/숫자 4~20자"></label>
+        <label>닉네임<input name="nickname" placeholder="게임에서 보일 이름"></label>
+        <label>비밀번호<input name="password" type="password" autocomplete="new-password" placeholder="6자 이상"></label>
+        <button class="primary big" type="submit">100만 G 받고 시작</button>
+      </form>
+      <div id="authMsg" class="msg"></div>
+    </div>
+  </div>
+
+  <div id="mainApp" class="main-app hidden">
+    <header class="topbar glass">
+      <div class="brand-inline" data-go="lobby"><span class="mini-mark">J</span><strong>JUNJA CLUB</strong></div>
+      <div class="wallet-pill"><span>보유머니</span><b id="walletBalance">0 G</b></div>
+      <button id="profileBtn" class="profile-pill"><span id="avatarEmoji">😎</span><span><b id="nickName">-</b><small id="onlineCount">ONLINE 0</small></span></button>
+    </header>
+
+    <main>
+      <section id="view-lobby" class="view active">
+        <div class="hero panel">
+          <div>
+            <div class="eyebrow">PRIVATE GAME NIGHT</div>
+            <h2>오늘 뭐 할래?</h2>
+            <p>방 만들고 코드만 친구한테 보내면 바로 같이 플레이.</p>
+          </div>
+          <button id="dailyBtn" class="daily-btn">🎁 출석 +50,000 G</button>
+        </div>
+
+        <div class="game-grid">
+          <button class="game-card poker" data-go="holdem">
+            <div class="game-icon">♠</div><span class="live-badge">MULTI</span>
+            <div><small>TEXAS HOLD'EM</small><h3>텍사스 홀덤</h3><p>2~6인 실시간 · 방별 바이인</p></div>
+          </button>
+          <button class="game-card slot" data-go="slot">
+            <div class="game-icon">7</div><span class="solo-badge">SOLO</span>
+            <div><small>LUCKY REELS</small><h3>슬롯 머신</h3><p>1천~5만 G · 서버 판정</p></div>
+          </button>
+          <button class="game-card yut" data-go="yut">
+            <div class="game-icon">윷</div><span class="live-badge">MULTI</span>
+            <div><small>KOREAN CLASSIC</small><h3>윷놀이</h3><p>2~4인 · 승자 독식</p></div>
+          </button>
+          <button class="game-card gostop disabled-card" id="gostopCard">
+            <div class="game-icon">광</div><span class="soon-badge">NEXT</span>
+            <div><small>GO-STOP</small><h3>고스톱</h3><p>화투패 엔진 제작 예정</p></div>
+          </button>
+        </div>
+
+        <div class="dashboard-grid">
+          <div class="panel section-card">
+            <div class="section-head"><div><small>CLUB RANKING</small><h3>게임머니 랭킹</h3></div><button class="ghost" id="refreshRank">새로고침</button></div>
+            <div id="leaderboard" class="rank-list"></div>
+          </div>
+          <div class="panel section-card">
+            <div class="section-head"><div><small>MY RECORD</small><h3>내 기록</h3></div></div>
+            <div id="myStats" class="stat-grid"></div>
+            <button class="secondary full" data-go="ledger">게임머니 내역 보기</button>
+          </div>
+        </div>
+      </section>
+
+      <section id="view-slot" class="view">
+        <div class="view-head"><button class="back" data-go="lobby">←</button><div><small>LUCKY REELS</small><h2>슬롯 머신</h2></div></div>
+        <div class="slot-stage panel">
+          <div class="slot-machine">
+            <div class="slot-top"><span>JUNJA</span><strong>777</strong><span>CLUB</span></div>
+            <div id="reels" class="reels"><div>🍒</div><div>⭐</div><div>7️⃣</div></div>
+            <div id="slotResult" class="slot-result">베팅 금액을 고르고 SPIN</div>
+            <div class="bet-row" id="betRow"></div>
+            <button id="spinBtn" class="spin-btn">SPIN</button>
+          </div>
+          <div class="paytable">
+            <h3>PAY TABLE</h3>
+            <div><span>7️⃣ 7️⃣ 7️⃣</span><b>x120</b></div><div><span>💎 💎 💎</span><b>x50</b></div><div><span>⭐ ⭐ ⭐</span><b>x20</b></div><div><span>🔔 🔔 🔔</span><b>x12</b></div><div><span>같은 심볼 2개</span><b>x0.5</b></div>
+          </div>
+        </div>
+      </section>
+
+      <section id="view-holdem" class="view">
+        <div class="view-head"><button class="back" data-go="lobby">←</button><div><small>MULTIPLAYER</small><h2>텍사스 홀덤</h2></div></div>
+        <div id="holdemBrowser" class="room-browser">
+          <div class="panel create-room">
+            <h3>홀덤방 만들기</h3>
+            <div class="form-grid">
+              <label>방 이름<input id="holdemRoomName" value="준자의 홀덤방"></label>
+              <label>바이인<select id="holdemBuyIn"><option value="50000">50,000 G</option><option value="100000" selected>100,000 G</option><option value="200000">200,000 G</option><option value="500000">500,000 G</option></select></label>
+              <label>인원<select id="holdemMax"><option>2</option><option>3</option><option>4</option><option selected>6</option></select></label>
+            </div>
+            <button id="createHoldem" class="primary">방 만들기</button>
+          </div>
+          <div class="panel room-list-card"><div class="section-head"><div><small>OPEN TABLES</small><h3>열린 홀덤방</h3></div><button class="ghost" id="refreshHoldem">새로고침</button></div><div id="holdemRooms" class="room-list"></div></div>
+        </div>
+        <div id="holdemRoom" class="hidden"></div>
+      </section>
+
+      <section id="view-yut" class="view">
+        <div class="view-head"><button class="back" data-go="lobby">←</button><div><small>MULTIPLAYER</small><h2>윷놀이</h2></div></div>
+        <div id="yutBrowser" class="room-browser">
+          <div class="panel create-room"><h3>윷놀이방 만들기</h3><div class="form-grid">
+            <label>방 이름<input id="yutRoomName" value="윷 한 판"></label>
+            <label>참가금<select id="yutBuyIn"><option value="10000">10,000 G</option><option value="50000" selected>50,000 G</option><option value="100000">100,000 G</option></select></label>
+            <label>인원<select id="yutMax"><option>2</option><option>3</option><option selected>4</option></select></label>
+          </div><button id="createYut" class="primary">방 만들기</button></div>
+          <div class="panel room-list-card"><div class="section-head"><div><small>OPEN ROOMS</small><h3>열린 윷놀이방</h3></div><button class="ghost" id="refreshYut">새로고침</button></div><div id="yutRooms" class="room-list"></div></div>
+        </div>
+        <div id="yutRoom" class="hidden"></div>
+      </section>
+
+      <section id="view-ledger" class="view">
+        <div class="view-head"><button class="back" data-go="lobby">←</button><div><small>WALLET HISTORY</small><h2>게임머니 내역</h2></div></div>
+        <div class="panel section-card"><div id="ledgerList" class="ledger-list"></div></div>
+      </section>
+    </main>
+
+    <div id="profileSheet" class="sheet hidden"><div class="sheet-card panel"><button id="closeProfile" class="sheet-close">×</button><div id="profileContent"></div><button id="logoutBtn" class="danger full">로그아웃</button></div></div>
+    <div id="toast" class="toast"></div>
+  </div>
+</div>
+<script src="/app.js"></script>
+</body>
+</html>
