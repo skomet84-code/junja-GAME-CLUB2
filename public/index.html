@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#090b15">
 <title>JUNJA GAME CLUB</title>
-<link rel="manifest" href="/manifest.webmanifest?v=050">
-<link rel="stylesheet" href="/style.css?v=050">
+<link rel="manifest" href="/manifest.webmanifest?v=060">
+<link rel="stylesheet" href="/style.css?v=060">
 </head>
 <body>
 <div id="app">
@@ -27,6 +27,7 @@
     <header class="topbar glass">
       <div class="brand-inline" data-go="lobby"><span class="mini-mark">J</span><strong>JUNJA CLUB</strong></div>
       <button id="helpBtn" class="help-pill" type="button">? 게임방법</button>
+      <button id="adminBtn" class="admin-pill hidden" data-go="admin" type="button">⚙ ADMIN</button>
       <div class="wallet-pill"><span>보유머니</span><b id="walletBalance">0 G</b></div>
       <button id="profileBtn" class="profile-pill" type="button"><span id="avatarEmoji">😎</span><span><b id="nickName">-</b><small id="onlineCount">ONLINE 0</small></span></button>
     </header>
@@ -34,7 +35,7 @@
     <main>
       <section id="view-lobby" class="view active">
         <div class="hero panel hero-upgraded">
-          <div class="hero-copy"><div class="eyebrow">JUNJA ARCADE · VERSION 0.5</div><h2>친구 대전도, 혼자 AI전도.</h2><p>슬롯 3×3 · 홀덤 · 윷놀이 · 섯다 · 고스톱까지 한 계정으로 플레이. 채팅은 없고 게임 정보만 공유돼.</p><div class="hero-actions"><button id="dailyBtn" class="daily-btn" type="button">🎁 출석 +50,000 G</button><button class="secondary hero-guide" data-open-help="lobby" type="button">게임 가이드</button></div></div>
+          <div class="hero-copy"><div class="eyebrow">JUNJA ARCADE · VERSION 0.6</div><h2>친구 대전도, 혼자 AI전도.</h2><p>슬롯 3×3 · 홀덤 · 윷놀이 · 섯다 · 고스톱까지 한 계정으로 플레이. 채팅은 없고 게임 정보만 공유돼.</p><div class="hero-actions"><button id="dailyBtn" class="daily-btn" type="button">🎁 출석 +50,000 G</button><button class="secondary hero-guide" data-open-help="lobby" type="button">게임 가이드</button></div></div>
           <div class="hero-character"><img src="/art/club-host.svg" alt="게임 클럽 호스트"><div class="character-caption"><b>CLUB HOST J</b><span>오늘의 게임을 선택하세요</span></div></div>
         </div>
 
@@ -89,6 +90,24 @@
         <div id="gostopStart" class="solo-start panel gostop-start"><img src="/art/gostop-mascot.svg" alt="고스톱"><div><small>VS J-BOT</small><h3>AI 맞고 한 판</h3><p>손패에서 같은 월의 바닥패를 맞춰 먹고 광·열끗·띠·피 점수를 모아. 7점 이상이면 GO 또는 STOP 선택.</p><div class="solo-bet-row"><select id="gostopBet"><option value="5000">5,000 G</option><option value="10000">10,000 G</option><option value="25000" selected>25,000 G</option><option value="50000">50,000 G</option><option value="100000">100,000 G</option></select><button id="startGostop" class="primary" type="button">맞고 시작</button></div></div></div><div id="gostopTable" class="hidden"></div>
       </section>
 
+
+      <section id="view-admin" class="view">
+        <div class="view-head admin-head"><button class="back" data-go="lobby" type="button">←</button><div><small>OWNER CONTROL CENTER</small><h2>관리자 센터</h2></div><span class="admin-badge">SERVER ADMIN</span></div>
+        <div class="admin-summary-grid">
+          <div class="panel admin-summary"><span>회원 수</span><b id="adminUserCount">0</b><small>등록 계정</small></div>
+          <div class="panel admin-summary"><span>전체 게임머니</span><b id="adminTotalMoney">0 G</b><small>회원 잔액 합계</small></div>
+          <div class="panel admin-summary"><span>이용중지</span><b id="adminDisabledCount">0</b><small>중지 계정</small></div>
+        </div>
+        <div class="panel admin-toolbar-panel">
+          <div class="admin-search"><input id="adminSearch" placeholder="아이디 또는 닉네임 검색"><button id="adminSearchBtn" class="secondary" type="button">검색</button><button id="adminRefreshBtn" class="ghost" type="button">전체보기</button></div>
+          <p>게임머니 지급·차감은 서버 장부와 관리자 감사기록에 모두 남습니다. 관리자 비밀번호는 Render 환경변수에만 저장됩니다.</p>
+        </div>
+        <div class="admin-layout">
+          <div class="panel admin-users-panel"><div class="section-head"><div><small>MEMBER CONTROL</small><h3>회원 관리</h3></div></div><div id="adminUsers" class="admin-user-list"></div></div>
+          <div class="panel admin-audit-panel"><div class="section-head"><div><small>ADMIN AUDIT</small><h3>최근 관리자 작업</h3></div></div><div id="adminAudit" class="admin-audit-list"></div></div>
+        </div>
+      </section>
+
       <section id="view-ledger" class="view"><div class="view-head"><button class="back" data-go="lobby" type="button">←</button><div><small>WALLET HISTORY</small><h2>게임머니 내역</h2></div></div><div class="panel section-card premium-panel"><div id="ledgerList" class="ledger-list"></div></div></section>
     </main>
 
@@ -105,6 +124,6 @@
     <div id="toast" class="toast"></div>
   </div>
 </div>
-<script src="/app.js?v=050"></script>
+<script src="/app.js?v=060"></script>
 </body>
 </html>

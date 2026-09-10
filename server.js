@@ -8,6 +8,9 @@ const { DatabaseSync } = require('node:sqlite');
 
 const PORT = Number(process.env.PORT || 10000);
 const HOST = '0.0.0.0';
+const ADMIN_USERNAME = String(process.env.ADMIN_USERNAME || '').trim().toLowerCase();
+const ADMIN_PASSWORD = String(process.env.ADMIN_PASSWORD || '');
+const ADMIN_NICKNAME = String(process.env.ADMIN_NICKNAME || '관리자').trim().slice(0,14) || '관리자';
 const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, 'data');
 fs.mkdirSync(DATA_DIR, { recursive: true });
 const db = new DatabaseSync(path.join(DATA_DIR, 'club.db'));
@@ -49,6 +52,15 @@ CREATE TABLE IF NOT EXISTS stats (
   yut_games INTEGER NOT NULL DEFAULT 0,
   yut_wins INTEGER NOT NULL DEFAULT 0
 );
+CREATE TABLE IF NOT EXISTS admin_audit (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  admin_user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  target_user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  action TEXT NOT NULL,
+  amount INTEGER NOT NULL DEFAULT 0,
+  memo TEXT NOT NULL,
+  created_at INTEGER NOT NULL
+);
 CREATE TABLE IF NOT EXISTS room_escrow (
   room_id TEXT NOT NULL,
   user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -69,6 +81,8 @@ ensureColumn('stats','gostop_games','INTEGER NOT NULL DEFAULT 0');
 ensureColumn('stats','gostop_wins','INTEGER NOT NULL DEFAULT 0');
 ensureColumn('stats','solo_poker_wins','INTEGER NOT NULL DEFAULT 0');
 ensureColumn('stats','solo_yut_wins','INTEGER NOT NULL DEFAULT 0');
+ensureColumn('users','is_admin','INTEGER NOT NULL DEFAULT 0');
+ensureColumn('users','is_disabled','INTEGER NOT NULL DEFAULT 0');
 
 // If the server restarted while rooms were active, return virtual chips safely.
 const staleEscrows = db.prepare('SELECT room_id,user_id,amount,game FROM room_escrow').all();
@@ -115,6 +129,27 @@ function containsContactInfo(s){
 }
 function formatMoney(n){ return new Intl.NumberFormat('ko-KR').format(n); }
 
+function ensureAdminAccount(){
+  if(!ADMIN_USERNAME || !ADMIN_PASSWORD) return;
+  if(!/^[a-z0-9_]{4,20}$/.test(ADMIN_USERNAME)) throw new Error('ADMIN_USERNAME 형식이 올바르지 않습니다.');
+  if(ADMIN_PASSWORD.length<8 || ADMIN_PASSWORD.length>72) throw new Error('ADMIN_PASSWORD는 8~72자로 설정하세요.');
+  const existing=db.prepare('SELECT * FROM users WHERE username=?').get(ADMIN_USERNAME);
+  const salt=randomToken(16),hash=hashPassword(ADMIN_PASSWORD,salt),t=now();
+  if(existing){
+    db.prepare('UPDATE users SET pass_salt=?,pass_hash=?,is_admin=1,is_disabled=0 WHERE id=?').run(salt,hash,existing.id);
+    console.log(`Admin account ready: ${ADMIN_USERNAME}`);
+    return;
+  }
+  let nickname=ADMIN_NICKNAME;
+  if(db.prepare('SELECT id FROM users WHERE nickname=?').get(nickname)) nickname=(nickname+'J').slice(0,14);
+  const r=db.prepare('INSERT INTO users(username,pass_salt,pass_hash,nickname,balance,created_at,avatar,is_admin,is_disabled) VALUES(?,?,?,?,?,?,?,?,?)').run(ADMIN_USERNAME,salt,hash,nickname,1000000,t,3,1,0);
+  const uid=Number(r.lastInsertRowid);
+  db.prepare('INSERT INTO stats(user_id) VALUES(?)').run(uid);
+  db.prepare('INSERT INTO ledger(user_id,amount,balance_after,type,memo,created_at) VALUES(?,?,?,?,?,?)').run(uid,1000000,1000000,'admin_seed','관리자 계정 초기 게임머니',t);
+  console.log(`Admin account created: ${ADMIN_USERNAME}`);
+}
+ensureAdminAccount();
+
 function walletChange(userId, amount, type, memo){
   const tx = db.transaction ? db.transaction : null;
   db.exec('BEGIN IMMEDIATE');
@@ -132,7 +167,7 @@ function walletChange(userId, amount, type, memo){
 }
 
 function userPublic(userId){
-  const u=db.prepare(`SELECT u.id,u.username,u.nickname,u.balance,u.avatar,u.created_at,u.last_daily,
+  const u=db.prepare(`SELECT u.id,u.username,u.nickname,u.balance,u.avatar,u.created_at,u.last_daily,u.is_admin,u.is_disabled,
     s.slot_spins,s.slot_wins,s.slot_profit,s.poker_hands,s.poker_wins,s.yut_games,s.yut_wins,
     s.seotda_games,s.seotda_wins,s.gostop_games,s.gostop_wins,s.solo_poker_wins,s.solo_yut_wins
     FROM users u JOIN stats s ON s.user_id=u.id WHERE u.id=?`).get(userId);
@@ -150,9 +185,12 @@ function authUser(req){
   if(!token) return null;
   const s=db.prepare('SELECT user_id,expires_at FROM sessions WHERE token=?').get(token);
   if(!s || s.expires_at<now()) return null;
-  return userPublic(s.user_id);
+  const u=userPublic(s.user_id);
+  if(!u || u.is_disabled) return null;
+  return u;
 }
 function requireAuth(req,res){ const u=authUser(req); if(!u){json(res,401,{error:'로그인이 필요합니다.'});return null;} return u; }
+function requireAdmin(req,res){ const u=requireAuth(req,res); if(!u)return null; if(!u.is_admin){json(res,403,{error:'관리자 권한이 필요합니다.'});return null;} return u; }
 
 function json(res,status,data,extra={}){
   const body=JSON.stringify(data);
@@ -521,6 +559,7 @@ const server=http.createServer(async(req,res)=>{
       const b=await readBody(req),username=escText(b.username,20).toLowerCase(),password=String(b.password||'');
       const u=db.prepare('SELECT * FROM users WHERE username=?').get(username);
       if(!u||!safeEqualHex(hashPassword(password,u.pass_salt),u.pass_hash))return json(res,401,{error:'아이디 또는 비밀번호가 올바르지 않습니다.'});
+      if(u.is_disabled)return json(res,403,{error:'이 계정은 관리자에 의해 이용이 중지되었습니다.'});
       const token=randomToken();db.prepare('INSERT INTO sessions(token,user_id,expires_at) VALUES(?,?,?)').run(token,u.id,now()+14*86400000);
       return json(res,200,{user:userPublic(u.id)},{'Set-Cookie':setSessionCookie(res,token,req)});
     }
@@ -545,6 +584,44 @@ const server=http.createServer(async(req,res)=>{
     if(url.pathname==='/api/leaderboard'&&req.method==='GET'){
       const u=requireAuth(req,res);if(!u)return;const rows=db.prepare(`SELECT u.nickname,u.balance,u.avatar,s.poker_wins,s.yut_wins,s.slot_profit,s.seotda_wins,s.gostop_wins FROM users u JOIN stats s ON s.user_id=u.id ORDER BY u.balance DESC LIMIT 20`).all().map(x=>({...x,avatarEmoji:AVATARS[x.avatar%AVATARS.length]}));return json(res,200,{rows});
     }
+    if(url.pathname==='/api/admin/users'&&req.method==='GET'){
+      const admin=requireAdmin(req,res);if(!admin)return;
+      const q=escText(url.searchParams.get('q')||'',30);
+      const like=`%${q}%`;
+      const rows=db.prepare(`SELECT u.id,u.username,u.nickname,u.balance,u.created_at,u.is_admin,u.is_disabled,u.avatar,
+        s.slot_spins,s.slot_profit,s.poker_hands,s.poker_wins,s.yut_games,s.yut_wins,s.seotda_games,s.seotda_wins,s.gostop_games,s.gostop_wins
+        FROM users u JOIN stats s ON s.user_id=u.id
+        WHERE (?='' OR u.username LIKE ? OR u.nickname LIKE ?)
+        ORDER BY u.is_admin DESC,u.id DESC LIMIT 100`).all(q,like,like).map(x=>({...x,avatarEmoji:AVATARS[x.avatar%AVATARS.length]}));
+      return json(res,200,{rows});
+    }
+    if(url.pathname==='/api/admin/audit'&&req.method==='GET'){
+      const admin=requireAdmin(req,res);if(!admin)return;
+      const rows=db.prepare(`SELECT a.id,a.action,a.amount,a.memo,a.created_at,au.nickname admin_nickname,tu.nickname target_nickname,tu.username target_username
+        FROM admin_audit a JOIN users au ON au.id=a.admin_user_id JOIN users tu ON tu.id=a.target_user_id ORDER BY a.id DESC LIMIT 80`).all();
+      return json(res,200,{rows});
+    }
+    if(url.pathname==='/api/admin/wallet'&&req.method==='POST'){
+      const admin=requireAdmin(req,res);if(!admin)return;
+      const b=await readBody(req);const targetId=Number(b.userId),amount=Number(b.amount),memo=escText(b.memo,60)||'관리자 조정';
+      if(!Number.isInteger(targetId)||!db.prepare('SELECT id FROM users WHERE id=?').get(targetId))return json(res,404,{error:'대상 회원을 찾을 수 없습니다.'});
+      if(!Number.isInteger(amount)||amount===0||Math.abs(amount)>1000000000)return json(res,400,{error:'조정 금액은 1~1,000,000,000 G 범위의 정수로 입력하세요.'});
+      let balance;
+      try{balance=walletChange(targetId,amount,amount>0?'admin_credit':'admin_debit',`관리자 조정 · ${memo}`);}catch(e){return json(res,400,{error:e.message});}
+      db.prepare('INSERT INTO admin_audit(admin_user_id,target_user_id,action,amount,memo,created_at) VALUES(?,?,?,?,?,?)').run(admin.id,targetId,amount>0?'credit':'debit',amount,memo,now());
+      pushRefresh();return json(res,200,{ok:true,balance,user:userPublic(targetId)});
+    }
+    if(url.pathname==='/api/admin/status'&&req.method==='POST'){
+      const admin=requireAdmin(req,res);if(!admin)return;
+      const b=await readBody(req);const targetId=Number(b.userId),disabled=b.disabled?1:0;
+      const target=db.prepare('SELECT id,is_admin FROM users WHERE id=?').get(targetId);if(!target)return json(res,404,{error:'대상 회원을 찾을 수 없습니다.'});
+      if(target.is_admin)return json(res,400,{error:'관리자 계정은 중지할 수 없습니다.'});
+      db.prepare('UPDATE users SET is_disabled=? WHERE id=?').run(disabled,targetId);
+      if(disabled)db.prepare('DELETE FROM sessions WHERE user_id=?').run(targetId);
+      db.prepare('INSERT INTO admin_audit(admin_user_id,target_user_id,action,amount,memo,created_at) VALUES(?,?,?,?,?,?)').run(admin.id,targetId,disabled?'disable':'enable',0,disabled?'계정 이용중지':'계정 이용재개',now());
+      pushRefresh();return json(res,200,{ok:true,user:userPublic(targetId)});
+    }
+
     if(url.pathname==='/api/slot/spin'&&req.method==='POST'){
       const u=requireAuth(req,res);if(!u)return;const b=await readBody(req),bet=clampInt(b.bet,1000,50000);if(![1000,5000,10000,25000,50000].includes(bet))return json(res,400,{error:'지원하지 않는 베팅 금액입니다.'});
       if(u.balance<bet)return json(res,400,{error:'게임머니가 부족합니다.'});

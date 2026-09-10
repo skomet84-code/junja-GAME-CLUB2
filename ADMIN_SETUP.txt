@@ -1,0 +1,24 @@
+JUNJA GAME CLUB v0.6 관리자 설정
+
+Render에서 관리자 계정 비밀번호를 코드에 공개하지 않고 만드는 방법:
+
+1. Render 대시보드 → JUNJA GAME CLUB → junja-GAME-CLUB 서비스 클릭
+2. 왼쪽/상단 Environment 메뉴 또는 Settings → Environment로 이동
+3. Environment Variables에 아래 3개 추가
+
+ADMIN_USERNAME = junja_admin
+ADMIN_PASSWORD = 본인만 아는 8자 이상의 강한 비밀번호
+ADMIN_NICKNAME = 관리자준자
+
+4. Save Changes 저장
+5. Render가 자동 재배포되지 않으면 Manual Deploy → Deploy latest commit 또는 Restart service
+6. 게임 접속 후
+   아이디: junja_admin
+   비밀번호: ADMIN_PASSWORD에 설정한 값
+   으로 로그인
+7. 상단에 ⚙ ADMIN 버튼이 관리자에게만 표시됨
+
+주의:
+- ADMIN_PASSWORD를 GitHub 코드, README, 카톡방 등에 적지 마세요.
+- GitHub 저장소가 Public이어도 관리자 비밀번호는 Render Environment에만 두면 코드에는 노출되지 않습니다.
+- 관리자 지급/차감은 관리자 작업 기록에 남습니다.

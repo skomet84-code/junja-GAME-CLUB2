@@ -21,8 +21,8 @@ async function boot(){try{const d=await api('/api/me');me=d.user;bootMain();}cat
 function bootMain(){
   $('#authScreen').classList.add('hidden');$('#mainApp').classList.remove('hidden');updateHeader();bindMain();connectEvents();
   const q=new URLSearchParams(location.search),rid=q.get('room'),game=q.get('game');if(rid&&['holdem','yut'].includes(game)){go(game).then(()=>joinRoom(game,rid));}else go('lobby');
-  if('serviceWorker' in navigator)navigator.serviceWorker.register('/sw.js?v=050').catch(()=>{});
-  if(!localStorage.getItem('jgc_help_seen_05'))setTimeout(()=>openHelp('lobby'),550);
+  if('serviceWorker' in navigator)navigator.serviceWorker.register('/sw.js?v=060').catch(()=>{});
+  if(!localStorage.getItem('jgc_help_seen_06'))setTimeout(()=>openHelp('lobby'),550);
 }
 let mainBound=false;
 function bindMain(){if(mainBound)return;mainBound=true;
@@ -31,28 +31,77 @@ function bindMain(){if(mainBound)return;mainBound=true;
   $('#refreshHoldem').onclick=()=>loadRooms('holdem');$('#refreshYut').onclick=()=>loadRooms('yut');$('#createHoldem').onclick=()=>createRoom('holdem');$('#createYut').onclick=()=>createRoom('yut');
   $('#spinBtn').addEventListener('click',spin);$('#tourneyCard').onclick=()=>toast('토너먼트는 다음 업데이트에서 오픈 예정이야.');
   const betRoot=$('#betRow');if(betRoot&&!betRoot.children.length)for(const b of [1000,5000,10000,25000,50000]){const el=document.createElement('button');el.type='button';el.className='bet-chip'+(b===selectedBet?' active':'');el.textContent=money(b);el.onclick=()=>{selectedBet=b;$$('.bet-chip').forEach(x=>x.classList.remove('active'));el.classList.add('active');updateCurrentBetLabel();fx()};betRoot.appendChild(el)}
-  $('#helpBtn').onclick=()=>openHelp(currentView);$('#closeHelp').onclick=closeHelp;$('#helpDone').onclick=()=>{localStorage.setItem('jgc_help_seen_05','1');closeHelp()};$('.help-backdrop').onclick=closeHelp;$$('[data-open-help]').forEach(b=>b.onclick=e=>{e.stopPropagation();openHelp(b.dataset.openHelp)});$$('[data-help-tab]').forEach(b=>b.onclick=()=>setHelpTab(b.dataset.helpTab));
+  $('#helpBtn').onclick=()=>openHelp(currentView);$('#closeHelp').onclick=closeHelp;$('#helpDone').onclick=()=>{localStorage.setItem('jgc_help_seen_06','1');closeHelp()};$('.help-backdrop').onclick=closeHelp;$$('[data-open-help]').forEach(b=>b.onclick=e=>{e.stopPropagation();openHelp(b.dataset.openHelp)});$$('[data-help-tab]').forEach(b=>b.onclick=()=>setHelpTab(b.dataset.helpTab));
   $$('[data-mode-game]').forEach(b=>b.onclick=()=>switchMode(b.dataset.modeGame,b.dataset.mode));
   $('#startSoloHoldem').onclick=startSoloHoldem;$('#startSoloYut').onclick=startSoloYut;$('#startSeotda').onclick=startSeotda;$('#startGostop').onclick=startGostop;
+  if($('#adminSearchBtn'))$('#adminSearchBtn').onclick=()=>loadAdmin($('#adminSearch').value.trim());
+  if($('#adminRefreshBtn'))$('#adminRefreshBtn').onclick=()=>{if($('#adminSearch'))$('#adminSearch').value='';loadAdmin('')};
+  if($('#adminSearch'))$('#adminSearch').addEventListener('keydown',e=>{if(e.key==='Enter')loadAdmin(e.currentTarget.value.trim())});
   initSlotMachine(true);
 }
 function setHelpTab(tab='lobby'){const ok=['lobby','slot','holdem','yut','seotda','gostop'];if(!ok.includes(tab))tab='lobby';$$('[data-help-tab]').forEach(b=>b.classList.toggle('active',b.dataset.helpTab===tab));$$('[data-help-page]').forEach(p=>p.classList.toggle('active',p.dataset.helpPage===tab))}
 function openHelp(tab=currentView){setHelpTab(tab);$('#helpModal').classList.remove('hidden');document.body.classList.add('modal-open')}
 function closeHelp(){$('#helpModal').classList.add('hidden');document.body.classList.remove('modal-open')}
 function switchMode(game,mode){$$(`[data-mode-game="${game}"]`).forEach(b=>b.classList.toggle('active',b.dataset.mode===mode));$(`#${game}MultiArea`).classList.toggle('hidden',mode!=='multi');$(`#${game}SoloArea`).classList.toggle('hidden',mode!=='solo');if(mode==='solo'){if(game==='holdem')loadSoloHoldem();else loadSoloYut()}else loadRooms(game)}
-function connectEvents(){if(events)events.close();events=new EventSource('/api/events');events.addEventListener('refresh',()=>{clearTimeout(refreshTimer);refreshTimer=setTimeout(async()=>{try{const d=await api('/api/me');me=d.user;updateHeader();if(currentRoomId)await loadCurrentRoom();else if(currentView==='lobby')await loadLobby(false);else if(currentView==='holdem'&&!$('#holdemMultiArea').classList.contains('hidden'))await loadRooms('holdem');else if(currentView==='yut'&&!$('#yutMultiArea').classList.contains('hidden'))await loadRooms('yut')}catch{}},180)})}
-function updateHeader(){if(!me)return;$('#walletBalance').textContent=money(me.balance);$('#avatarEmoji').textContent=me.avatarEmoji;$('#nickName').textContent=me.nickname;$('#dailyBtn').disabled=!me.dailyAvailable;$('#dailyBtn').textContent=me.dailyAvailable?'🎁 출석 +50,000 G':'✓ 오늘 출석 완료'}
+function connectEvents(){if(events)events.close();events=new EventSource('/api/events');events.addEventListener('refresh',()=>{clearTimeout(refreshTimer);refreshTimer=setTimeout(async()=>{try{const d=await api('/api/me');me=d.user;updateHeader();if(currentRoomId)await loadCurrentRoom();else if(currentView==='lobby')await loadLobby(false);else if(currentView==='holdem'&&!$('#holdemMultiArea').classList.contains('hidden'))await loadRooms('holdem');else if(currentView==='yut'&&!$('#yutMultiArea').classList.contains('hidden'))await loadRooms('yut');else if(currentView==='admin'&&me?.is_admin)await loadAdmin($('#adminSearch')?.value.trim()||'',false)}catch{}},180)})}
+function updateHeader(){if(!me)return;$('#walletBalance').textContent=money(me.balance);$('#avatarEmoji').textContent=me.avatarEmoji;$('#nickName').textContent=me.nickname;$('#dailyBtn').disabled=!me.dailyAvailable;$('#dailyBtn').textContent=me.dailyAvailable?'🎁 출석 +50,000 G':'✓ 오늘 출석 완료';$('#adminBtn')?.classList.toggle('hidden',!me.is_admin)}
 async function refreshMe(){const d=await api('/api/me');me=d.user;updateHeader();$('#onlineCount').textContent='ONLINE '+d.online;return d}
 async function go(view){
+  if(view==='admin'&&!me?.is_admin){toast('관리자 권한이 필요합니다.');return}
   if(currentRoomId&&!['holdem','yut'].includes(view)){toast('먼저 멀티 게임방에서 나가기를 눌러줘.');return}
   currentView=view;$$('.view').forEach(v=>v.classList.remove('active'));$('#view-'+view)?.classList.add('active');window.scrollTo({top:0,behavior:'smooth'});
-  if(view==='lobby')await loadLobby();if(view==='slot')initSlotMachine();if(view==='holdem')await loadRooms('holdem');if(view==='yut')await loadRooms('yut');if(view==='ledger')await loadLedger();if(view==='seotda')await loadSeotda();if(view==='gostop')await loadGostop();
+  if(view==='lobby')await loadLobby();if(view==='slot')initSlotMachine();if(view==='holdem')await loadRooms('holdem');if(view==='yut')await loadRooms('yut');if(view==='ledger')await loadLedger();if(view==='seotda')await loadSeotda();if(view==='gostop')await loadGostop();if(view==='admin')await loadAdmin('');
 }
 async function loadLobby(full=true){try{await refreshMe();const d=await api('/api/leaderboard');$('#leaderboard').innerHTML=d.rows.map((r,i)=>`<div class="rank-row"><div class="rank-no">${i+1}</div><div class="rank-name"><span>${r.avatarEmoji}</span><span>${html(r.nickname)}</span></div><div class="rank-money">${money(r.balance)}</div></div>`).join('')||'<div class="empty">아직 랭킹이 없습니다.</div>';$('#myStats').innerHTML=`<div class="stat"><span>홀덤 승리</span><b>${me.poker_wins}</b></div><div class="stat"><span>윷놀이 승리</span><b>${me.yut_wins}</b></div><div class="stat"><span>섯다 승리</span><b>${me.seotda_wins||0}</b></div><div class="stat"><span>고스톱 승리</span><b>${me.gostop_wins||0}</b></div><div class="stat"><span>슬롯 스핀</span><b>${me.slot_spins}</b></div><div class="stat"><span>슬롯 손익</span><b>${signedMoney(me.slot_profit)}</b></div>`}catch(e){if(full)toast(e.message)}}
 async function claimDaily(){try{const d=await api('/api/daily',{method:'POST',body:'{}'});toast(`출석 보너스 +${money(d.amount)}`);await refreshMe()}catch(e){toast(e.message)}}
-async function openProfile(){await refreshMe();$('#profileContent').innerHTML=`<div class="profile-big"><div class="emoji">${me.avatarEmoji}</div><h3>${html(me.nickname)}</h3><p>@${html(me.username)} · 가입 ${new Date(me.created_at).toLocaleDateString('ko-KR')}</p></div><div class="stat-grid"><div class="stat"><span>보유머니</span><b>${money(me.balance)}</b></div><div class="stat"><span>홀덤 승리</span><b>${me.poker_wins}</b></div><div class="stat"><span>윷 승리</span><b>${me.yut_wins}</b></div><div class="stat"><span>섯다/고스톱</span><b>${me.seotda_wins||0}/${me.gostop_wins||0}</b></div></div><p class="privacy-note">게임머니는 현금 가치가 없고, 게임 내 채팅 기능은 제공하지 않습니다.</p>`;$('#profileSheet').classList.remove('hidden')}
+async function openProfile(){await refreshMe();$('#profileContent').innerHTML=`<div class="profile-big"><div class="emoji">${me.avatarEmoji}</div><h3>${html(me.nickname)} ${me.is_admin?'<span class="profile-admin-badge">ADMIN</span>':''}</h3><p>@${html(me.username)} · 가입 ${new Date(me.created_at).toLocaleDateString('ko-KR')}</p></div><div class="stat-grid"><div class="stat"><span>보유머니</span><b>${money(me.balance)}</b></div><div class="stat"><span>홀덤 승리</span><b>${me.poker_wins}</b></div><div class="stat"><span>윷 승리</span><b>${me.yut_wins}</b></div><div class="stat"><span>섯다/고스톱</span><b>${me.seotda_wins||0}/${me.gostop_wins||0}</b></div></div><p class="privacy-note">게임머니는 현금 가치가 없고, 게임 내 채팅 기능은 제공하지 않습니다.</p>`;$('#profileSheet').classList.remove('hidden')}
 async function logout(){await api('/api/logout',{method:'POST',body:'{}'}).catch(()=>{});location.reload()}
 async function loadLedger(){try{const d=await api('/api/ledger');$('#ledgerList').innerHTML=d.rows.map(r=>`<div class="ledger-row"><div><b>${html(r.memo)}</b><small>${timeText(r.created_at)} · 잔액 ${money(r.balance_after)}</small></div><b class="${r.amount>=0?'plus':'minus'}">${r.amount>=0?'+':''}${money(r.amount)}</b></div>`).join('')||'<div class="empty">내역이 없습니다.</div>'}catch(e){toast(e.message)}}
+
+
+// ADMIN CONTROL CENTER
+async function loadAdmin(query='',notify=true){
+  if(!me?.is_admin)return;
+  try{
+    const [u,a]=await Promise.all([api('/api/admin/users?q='+encodeURIComponent(query)),api('/api/admin/audit')]);
+    const rows=u.rows||[];
+    $('#adminUserCount').textContent=rows.length;
+    $('#adminTotalMoney').textContent=money(rows.reduce((s,x)=>s+Number(x.balance||0),0));
+    $('#adminDisabledCount').textContent=rows.filter(x=>x.is_disabled).length;
+    $('#adminUsers').innerHTML=rows.map(adminUserHtml).join('')||'<div class="empty">검색 결과가 없습니다.</div>';
+    $('#adminAudit').innerHTML=(a.rows||[]).map(x=>`<div class="admin-audit-row"><div><b>${x.action==='credit'?'💰 지급':x.action==='debit'?'💸 차감':x.action==='disable'?'⛔ 이용중지':'✅ 이용재개'}</b><span>${html(x.target_nickname)} <small>@${html(x.target_username)}</small></span></div><strong class="${x.amount>0?'plus':x.amount<0?'minus':''}">${x.amount?((x.amount>0?'+':'')+money(x.amount)):'-'}</strong><p>${html(x.memo)} · ${timeText(x.created_at)}</p></div>`).join('')||'<div class="empty">관리자 작업 기록이 없습니다.</div>';
+    bindAdminRows();
+  }catch(e){if(notify)toast(e.message)}
+}
+function adminUserHtml(u){
+  const totalGames=(u.poker_hands||0)+(u.yut_games||0)+(u.seotda_games||0)+(u.gostop_games||0)+(u.slot_spins||0);
+  return `<div class="admin-user-card ${u.is_disabled?'disabled-user':''}" data-admin-user="${u.id}">
+    <div class="admin-user-main"><div class="admin-avatar">${u.avatarEmoji}</div><div class="admin-identity"><div><b>${html(u.nickname)}</b>${u.is_admin?'<span class="admin-mini-badge">ADMIN</span>':''}${u.is_disabled?'<span class="disabled-mini-badge">STOP</span>':''}</div><small>@${html(u.username)} · 가입 ${new Date(u.created_at).toLocaleDateString('ko-KR')}</small></div><div class="admin-balance"><span>보유머니</span><b>${money(u.balance)}</b></div></div>
+    <div class="admin-user-stats"><span>플레이 <b>${totalGames}</b></span><span>홀덤승 <b>${u.poker_wins||0}</b></span><span>윷승 <b>${u.yut_wins||0}</b></span><span>슬롯손익 <b>${signedMoney(u.slot_profit||0)}</b></span></div>
+    <div class="admin-quick-money"><button type="button" data-admin-add="100000">+10만</button><button type="button" data-admin-add="1000000">+100만</button><button type="button" data-admin-add="10000000">+1,000만</button></div>
+    <div class="admin-custom-control"><input class="admin-amount" type="number" min="1" max="1000000000" step="1000" placeholder="직접 금액 입력"><input class="admin-memo" maxlength="60" placeholder="사유 예: 이벤트 보너스"><button class="admin-credit-btn" type="button">지급</button><button class="admin-debit-btn" type="button">차감</button>${u.is_admin?'':`<button class="${u.is_disabled?'admin-enable-btn':'admin-disable-btn'}" type="button">${u.is_disabled?'이용재개':'이용중지'}</button>`}</div>
+  </div>`;
+}
+function bindAdminRows(){
+  $$('.admin-user-card').forEach(card=>{
+    const userId=Number(card.dataset.adminUser),amountInput=$('.admin-amount',card),memoInput=$('.admin-memo',card);
+    $$('[data-admin-add]',card).forEach(b=>b.onclick=()=>adminAdjustMoney(userId,Number(b.dataset.adminAdd),memoInput.value||'관리자 보너스'));
+    $('.admin-credit-btn',card)?.addEventListener('click',()=>{const n=Math.floor(Number(amountInput.value));if(n>0)adminAdjustMoney(userId,n,memoInput.value||'관리자 지급')});
+    $('.admin-debit-btn',card)?.addEventListener('click',()=>{const n=Math.floor(Number(amountInput.value));if(n>0)adminAdjustMoney(userId,-n,memoInput.value||'관리자 차감')});
+    $('.admin-disable-btn',card)?.addEventListener('click',()=>adminSetStatus(userId,true));
+    $('.admin-enable-btn',card)?.addEventListener('click',()=>adminSetStatus(userId,false));
+  });
+}
+async function adminAdjustMoney(userId,amount,memo){
+  if(!Number.isInteger(amount)||amount===0){toast('금액을 입력해줘.');return}
+  const action=amount>0?'지급':'차감';
+  if(Math.abs(amount)>=10000000&&!confirm(`${money(Math.abs(amount))}을 ${action}할까?`))return;
+  try{const d=await api('/api/admin/wallet',{method:'POST',body:JSON.stringify({userId,amount,memo})});toast(`${action} 완료 · 잔액 ${money(d.balance)}`);await loadAdmin($('#adminSearch')?.value.trim()||'');await refreshMe()}catch(e){toast(e.message)}
+}
+async function adminSetStatus(userId,disabled){
+  if(!confirm(disabled?'이 회원의 로그인을 즉시 중지할까?':'이 회원의 이용을 다시 허용할까?'))return;
+  try{await api('/api/admin/status',{method:'POST',body:JSON.stringify({userId,disabled})});toast(disabled?'계정 이용중지 완료':'계정 이용재개 완료');await loadAdmin($('#adminSearch')?.value.trim()||'')}catch(e){toast(e.message)}
+}
 
 // SLOT 3x3
 function updateCurrentBetLabel(){if($('#currentBetLabel'))$('#currentBetLabel').textContent=money(selectedBet)}

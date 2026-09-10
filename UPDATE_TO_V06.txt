@@ -1,0 +1,12 @@
+JUNJA GAME CLUB v0.6 업데이트 순서
+
+1) 이 폴더 안의 파일 전체를 GitHub junja-GAME-CLUB2 저장소 루트에 업로드
+2) Commit changes
+3) Render 자동 배포 완료 확인
+4) Render 서비스 → Environment에서 아래 값 추가
+   ADMIN_USERNAME=junja_admin
+   ADMIN_PASSWORD=본인만 아는 8자 이상 비밀번호
+   ADMIN_NICKNAME=관리자준자
+5) Save Changes 후 재배포/재시작
+6) 게임에서 junja_admin으로 로그인
+7) 상단 ⚙ ADMIN 메뉴에서 회원/게임머니 관리
