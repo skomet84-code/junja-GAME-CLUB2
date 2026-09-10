@@ -1,0 +1,4 @@
+JUNJA GAME CLUB v0.6.0
+Built 2026-09-10
+Core: Auth / Wallet Ledger / 3x3 Slot / Multiplayer & AI Holdem / Multiplayer & AI Yut / Seotda / Gostop / PWA
+Upgrade: Admin account / Admin control center / Wallet grants & deductions / User suspension / Admin audit log

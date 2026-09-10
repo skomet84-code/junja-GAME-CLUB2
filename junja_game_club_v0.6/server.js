@@ -81,9 +81,6 @@ ensureColumn('stats','gostop_games','INTEGER NOT NULL DEFAULT 0');
 ensureColumn('stats','gostop_wins','INTEGER NOT NULL DEFAULT 0');
 ensureColumn('stats','solo_poker_wins','INTEGER NOT NULL DEFAULT 0');
 ensureColumn('stats','solo_yut_wins','INTEGER NOT NULL DEFAULT 0');
-ensureColumn('stats','horse_races','INTEGER NOT NULL DEFAULT 0');
-ensureColumn('stats','horse_wins','INTEGER NOT NULL DEFAULT 0');
-ensureColumn('stats','horse_profit','INTEGER NOT NULL DEFAULT 0');
 ensureColumn('users','is_admin','INTEGER NOT NULL DEFAULT 0');
 ensureColumn('users','is_disabled','INTEGER NOT NULL DEFAULT 0');
 
@@ -101,7 +98,6 @@ const soloHoldem = new Map();
 const soloYut = new Map();
 const soloSeotda = new Map();
 const soloGostop = new Map();
-const raceCards = new Map();
 const sseClients = new Map();
 const authAttempts = new Map();
 
@@ -173,8 +169,7 @@ function walletChange(userId, amount, type, memo){
 function userPublic(userId){
   const u=db.prepare(`SELECT u.id,u.username,u.nickname,u.balance,u.avatar,u.created_at,u.last_daily,u.is_admin,u.is_disabled,
     s.slot_spins,s.slot_wins,s.slot_profit,s.poker_hands,s.poker_wins,s.yut_games,s.yut_wins,
-    s.seotda_games,s.seotda_wins,s.gostop_games,s.gostop_wins,s.solo_poker_wins,s.solo_yut_wins,
-    s.horse_races,s.horse_wins,s.horse_profit
+    s.seotda_games,s.seotda_wins,s.gostop_games,s.gostop_wins,s.solo_poker_wins,s.solo_yut_wins
     FROM users u JOIN stats s ON s.user_id=u.id WHERE u.id=?`).get(userId);
   if(!u) return null;
   return {...u, avatarEmoji:AVATARS[u.avatar%AVATARS.length], dailyAvailable:u.last_daily!==kstDate()};
@@ -227,7 +222,7 @@ function pushRefresh(roomId=null){
 }
 function onlineCount(){ return sseClients.size; }
 
-function roomSummary(r){return {id:r.id,name:r.name,game:r.game,buyIn:r.buyIn,maxPlayers:r.maxPlayers,players:r.players.length,hostNickname:r.players.find(p=>p.userId===r.hostId)?.nickname||'호스트',status:roomStatus(r),smallBlind:r.smallBlind,bigBlind:r.bigBlind,yutMode:r.yutMode||'individual',yutModeLabel:yutModeLabel(r.yutMode||'individual')};}
+function roomSummary(r){return {id:r.id,name:r.name,game:r.game,buyIn:r.buyIn,maxPlayers:r.maxPlayers,players:r.players.length,hostNickname:r.players.find(p=>p.userId===r.hostId)?.nickname||'호스트',status:roomStatus(r),smallBlind:r.smallBlind,bigBlind:r.bigBlind};}
 function roomStatus(r){ if(r.game==='holdem') return r.hand && r.hand.phase!=='complete'?'PLAYING':'WAITING'; if(r.game==='yut') return r.yut?.phase==='playing'?'PLAYING':'WAITING'; return 'WAITING'; }
 function findRoom(id){ return rooms.get(String(id)); }
 function roomPlayer(r,userId){ return r.players.find(p=>p.userId===userId); }
@@ -379,105 +374,36 @@ function pokerView(r,userId){
   return {phase:h.phase,board:h.board,players,currentBet:h.currentBet,minRaise:h.minRaise,turnUserId:h.turnUserId,pot:pokerPot(h),dealerSeat:h.dealerSeat,result:h.result,legal:me&&h.turnUserId===userId?{toCall:Math.max(0,h.currentBet-me.roundBet),minRaiseTo:h.currentBet+h.minRaise,maxRaiseTo:(roomPlayer(r,userId)?.stack||0)+me.roundBet}:null};
 }
 
-// ---------- Yut engine v0.7: stacking / shortcuts / teams ----------
-const YUT_SIDE_COLORS=['#f5cb58','#5ba8ff','#ff6f8e','#65d49a','#b784ff','#ff9b57'];
-function yutModeLabel(mode){return ({individual:'개인전','2v2':'2:2 팀전','3v3':'3:3 팀전'})[mode]||'개인전';}
-function yutNewPiece(){return {node:'START',route:'outer'};}
-function yutClonePiece(p){return {node:p.node,route:p.route||'outer'};}
-function yutPhysical(p){if(!p)return'START';if(p.node==='CA'||p.node==='CB')return'C';return p.node;}
-function yutFinished(p){return p?.node==='FINISH';}
-function yutNextStep(p,firstStep){
-  const node=p.node,route=p.route||'outer';
-  if(node==='FINISH')return yutClonePiece(p);
-  if(node==='START')return {node:'O1',route:'outer'};
-  if(node==='O5')return firstStep?{node:'A1',route:'A'}:{node:'O6',route:'outer'};
-  if(node==='O10')return firstStep?{node:'B1',route:'B'}:{node:'O11',route:'outer'};
-  if(/^O\d+$/.test(node)){
-    const n=Number(node.slice(1));
-    if(n<20)return {node:`O${n+1}`,route:'outer'};
-    return {node:'FINISH',route:'outer'};
-  }
-  const map={A1:['A2','A'],A2:['CA','A'],CA:['A4','A'],A4:['A5','A'],A5:['O15','outer'],B1:['B2','B'],B2:['CB','B'],CB:['B4','B'],B4:['B5','B'],B5:['FINISH','B']};
-  if(map[node])return {node:map[node][0],route:map[node][1]};
-  return {node:'START',route:'outer'};
-}
-function yutAdvance(piece,move){
-  let p=yutClonePiece(piece);const trace=[];
-  for(let i=0;i<move;i++){p=yutNextStep(p,i===0);trace.push(yutPhysical(p));if(p.node==='FINISH')break;}
-  return {piece:p,trace};
-}
-function throwYut(){
-  const sticks=[0,0,0,0].map(()=>crypto.randomInt(2));const backs=sticks.filter(x=>x===0).length;
-  if(backs===1)return {move:1,name:'도',extra:false,sticks};
-  if(backs===2)return {move:2,name:'개',extra:false,sticks};
-  if(backs===3)return {move:3,name:'걸',extra:false,sticks};
-  if(backs===4)return {move:4,name:'윷',extra:true,sticks};
-  return {move:5,name:'모',extra:true,sticks};
-}
-function yutMakeSides(r){
-  const ps=orderedPlayers(r);
-  if(r.yutMode==='2v2'||r.yutMode==='3v3'){
-    const a=ps.filter((_,i)=>i%2===0),b=ps.filter((_,i)=>i%2===1);
-    return [
-      {id:'A',label:'청룡팀',color:YUT_SIDE_COLORS[0],playerIds:a.map(p=>p.userId),pieces:Array.from({length:4},yutNewPiece)},
-      {id:'B',label:'백호팀',color:YUT_SIDE_COLORS[1],playerIds:b.map(p=>p.userId),pieces:Array.from({length:4},yutNewPiece)}
-    ];
-  }
-  return ps.map((p,i)=>({id:`U${p.userId}`,label:p.nickname,color:YUT_SIDE_COLORS[i%YUT_SIDE_COLORS.length],playerIds:[p.userId],pieces:Array.from({length:4},yutNewPiece)}));
-}
-function yutSideForUser(y,userId){return y.sides.find(s=>s.playerIds.includes(userId));}
-function yutCurrentPlayer(r,y){return orderedPlayers(r)[y.turnIndex%orderedPlayers(r).length];}
+// ---------- Yut engine ----------
 function yutStart(r){
   if(r.players.length<2)throw new Error('2명 이상 필요합니다.');
-  if((r.yutMode==='2v2'||r.yutMode==='3v3')&&r.players.length!==r.maxPlayers)throw new Error(`${yutModeLabel(r.yutMode)}은 ${r.maxPlayers}명이 모두 입장해야 시작할 수 있습니다.`);
-  r.yut={phase:'playing',turnIndex:0,sides:yutMakeSides(r),pending:[],awaitingThrow:true,captureBonus:0,last:null,winnerSideId:null,startedAt:now(),ruleSet:'club-standard-v07'};
+  r.yut={phase:'playing',turnIndex:0,positions:Object.fromEntries(r.players.map(p=>[p.userId,[-1,-1,-1,-1]])),pending:null,last:null,winner:null,startedAt:now()};
 }
 function yutThrow(r,userId){
   const y=r.yut;if(!y||y.phase!=='playing')throw new Error('게임이 진행 중이 아닙니다.');
-  const cur=yutCurrentPlayer(r,y);if(!cur||cur.userId!==userId)throw new Error('지금은 당신 차례가 아닙니다.');
-  if(!y.awaitingThrow)throw new Error('먼저 나온 윷 결과로 말을 이동하세요.');
-  const result=throwYut();y.pending.push(result);y.awaitingThrow=!!result.extra;
-  y.last={type:'throw',userId,sideId:yutSideForUser(y,userId)?.id,name:result.name,move:result.move,sticks:result.sticks,at:now()};
-  return result;
+  const cur=r.players[y.turnIndex];if(cur.userId!==userId)throw new Error('지금은 당신 차례가 아닙니다.');if(y.pending)throw new Error('먼저 움직일 말을 선택하세요.');
+  const sticks=[0,0,0,0].map(()=>crypto.randomInt(2)); const backs=sticks.filter(x=>x===0).length;
+  let move,name,extra=false;
+  if(backs===1){move=1;name='도';}else if(backs===2){move=2;name='개';}else if(backs===3){move=3;name='걸';}else if(backs===4){move=4;name='윷';extra=true;}else{move=5;name='모';extra=true;}
+  y.pending={move,name,extra,sticks};y.last={userId,name,move,sticks,at:now()};return y.pending;
 }
-function yutSettle(r,y,winnerSide){
-  y.phase='complete';y.winnerSideId=winnerSide.id;y.awaitingThrow=false;y.pending=[];
-  const total=r.buyIn*r.players.length,winners=winnerSide.playerIds,base=Math.floor(total/winners.length),rem=total-base*winners.length;
-  for(const p of r.players){
-    escrowDelete(r.id,p.userId);
-    db.prepare('UPDATE stats SET yut_games=yut_games+1, yut_wins=yut_wins+? WHERE user_id=?').run(winners.includes(p.userId)?1:0,p.userId);
-  }
-  winners.forEach((uid,i)=>walletChange(uid,base+(i===0?rem:0),'yut_win',`${r.name} ${winnerSide.label} 우승 상금`));
+function yutMove(r,userId,pieceIndex){
+  const y=r.yut;if(!y||y.phase!=='playing'||!y.pending)throw new Error('던지기부터 하세요.');
+  const cur=r.players[y.turnIndex];if(cur.userId!==userId)throw new Error('당신 차례가 아닙니다.');
+  pieceIndex=clampInt(pieceIndex,0,3);let pos=y.positions[userId][pieceIndex];if(pos===20)throw new Error('이미 완주한 말입니다.');
+  const next=Math.min(20,(pos<0?0:pos)+y.pending.move); y.positions[userId][pieceIndex]=next;
+  let captured=[];
+  if(next>0&&next<20){for(const p of r.players){if(p.userId===userId)continue;y.positions[p.userId].forEach((v,i)=>{if(v===next){y.positions[p.userId][i]=-1;captured.push({userId:p.userId,piece:i});}});}}
+  const won=y.positions[userId].every(v=>v===20); const wasExtra=y.pending.extra||captured.length>0; const lastName=y.pending.name; y.pending=null;
+  if(won){
+    y.phase='complete';y.winner=userId; const prize=r.buyIn*r.players.length;
+    for(const p of r.players){escrowDelete(r.id,p.userId);db.prepare('UPDATE stats SET yut_games=yut_games+1, yut_wins=yut_wins+? WHERE user_id=?').run(p.userId===userId?1:0,p.userId);}
+    walletChange(userId,prize,'yut_win',`${r.name} 윷놀이 우승 상금`);
+  } else if(!wasExtra){ y.turnIndex=(y.turnIndex+1)%r.players.length; }
+  y.last={userId,name:lastName,move:next,captured,sticks:y.last?.sticks||null,at:now()};
 }
-function yutMove(r,userId,pieceIndex,moveIndex=0){
-  const y=r.yut;if(!y||y.phase!=='playing'||!y.pending.length)throw new Error('던지기부터 하세요.');
-  if(y.awaitingThrow)throw new Error('윷/모 보너스 던지기를 먼저 진행하세요.');
-  const cur=yutCurrentPlayer(r,y);if(!cur||cur.userId!==userId)throw new Error('당신 차례가 아닙니다.');
-  const side=yutSideForUser(y,userId);if(!side)throw new Error('말을 찾을 수 없습니다.');
-  pieceIndex=clampInt(pieceIndex,0,3);moveIndex=clampInt(moveIndex,0,y.pending.length-1);
-  const selected=side.pieces[pieceIndex];if(yutFinished(selected))throw new Error('이미 완주한 말입니다.');
-  const moveResult=y.pending[moveIndex],fromPhysical=yutPhysical(selected);
-  const stackIndexes=fromPhysical==='START'? [pieceIndex] : side.pieces.map((p,i)=>yutPhysical(p)===fromPhysical&&!yutFinished(p)?i:-1).filter(i=>i>=0);
-  const advanced=yutAdvance(selected,moveResult.move),dest=advanced.piece,destPhysical=yutPhysical(dest);
-  stackIndexes.forEach(i=>side.pieces[i]=yutClonePiece(dest));
-  // If the moving stack lands on friendly pieces, all pieces become one stack and inherit the incoming route.
-  if(destPhysical!=='START'&&destPhysical!=='FINISH') side.pieces.forEach((p,i)=>{if(yutPhysical(p)===destPhysical)side.pieces[i]=yutClonePiece(dest);});
-  const captured=[];
-  if(destPhysical!=='START'&&destPhysical!=='FINISH'){
-    for(const other of y.sides){
-      if(other.id===side.id)continue;
-      other.pieces.forEach((p,i)=>{if(yutPhysical(p)===destPhysical){captured.push({sideId:other.id,pieceIndex:i});other.pieces[i]=yutNewPiece();}});
-    }
-  }
-  y.pending.splice(moveIndex,1);
-  if(captured.length)y.captureBonus++;
-  const stacked=destPhysical!=='START'&&destPhysical!=='FINISH'?side.pieces.filter(p=>yutPhysical(p)===destPhysical).length:stackIndexes.length;
-  y.last={type:'move',userId,sideId:side.id,name:moveResult.name,move:moveResult.move,sticks:moveResult.sticks,from:fromPhysical,to:destPhysical,trace:advanced.trace,captured,stacked,at:now()};
-  if(side.pieces.every(yutFinished)){yutSettle(r,y,side);return;}
-  if(y.pending.length){y.awaitingThrow=false;return;}
-  if(y.captureBonus>0){y.captureBonus--;y.awaitingThrow=true;return;}
-  y.turnIndex=(y.turnIndex+1)%orderedPlayers(r).length;y.awaitingThrow=true;
-}
+
+
 // ---------- Solo Hold'em AI ----------
 function soloPokerBotId(userId){ return -100000-userId; }
 function pokerBotDrive(r,userId){
@@ -533,96 +459,33 @@ function soloPokerCashout(userId){
   soloHoldem.delete(userId);return amt;
 }
 
-// ---------- Solo Yut AI v0.7 ----------
+// ---------- Solo Yut AI ----------
+function throwYut(){
+  const sticks=[0,0,0,0].map(()=>crypto.randomInt(2));const backs=sticks.filter(x=>x===0).length;
+  if(backs===1)return {move:1,name:'도',extra:false,sticks};if(backs===2)return {move:2,name:'개',extra:false,sticks};if(backs===3)return {move:3,name:'걸',extra:false,sticks};if(backs===4)return {move:4,name:'윷',extra:true,sticks};return {move:5,name:'모',extra:true,sticks};
+}
 function soloYutStartGame(user,bet){
   bet=clampInt(bet,10000,200000);if(![10000,50000,100000,200000].includes(bet))throw new Error('지원하지 않는 참가금입니다.');
   if(soloYut.has(user.id))throw new Error('이미 AI 윷놀이가 진행 중입니다.');if(user.balance<bet)throw new Error('게임머니가 부족합니다.');
   walletChange(user.id,-bet,'solo_yut_bet',`AI 윷놀이 참가금 ${formatMoney(bet)}G`);
-  const s={bet,phase:'playing',turn:'user',sides:{user:Array.from({length:4},yutNewPiece),bot:Array.from({length:4},yutNewPiece)},pending:[],awaitingThrow:true,captureBonus:0,last:null,winner:null,startedAt:now()};
-  soloYut.set(user.id,s);escrowSet(`SOLOY${user.id}`,user.id,bet,'solo_yut');return s;
+  const s={bet,phase:'playing',turn:'user',positions:{user:[-1,-1,-1,-1],bot:[-1,-1,-1,-1]},pending:null,last:null,winner:null,startedAt:now()};soloYut.set(user.id,s);escrowSet(`SOLOY${user.id}`,user.id,bet,'solo_yut');return s;
 }
-function soloYutPhysicalPieces(s,side,physical){return s.sides[side].map((p,i)=>yutPhysical(p)===physical?i:-1).filter(i=>i>=0);}
-function soloYutMoveSide(s,side,pieceIndex,moveIndex=0){
-  if(!s.pending.length)throw new Error('먼저 윷을 던져야 합니다.');if(s.awaitingThrow)throw new Error('윷/모 보너스 던지기를 먼저 진행하세요.');
-  pieceIndex=clampInt(pieceIndex,0,3);moveIndex=clampInt(moveIndex,0,s.pending.length-1);const piece=s.sides[side][pieceIndex];if(yutFinished(piece))throw new Error('이미 완주한 말입니다.');
-  const moveResult=s.pending[moveIndex],from=yutPhysical(piece),stack=from==='START'?[pieceIndex]:soloYutPhysicalPieces(s,side,from),adv=yutAdvance(piece,moveResult.move),dest=adv.piece,to=yutPhysical(dest);
-  stack.forEach(i=>s.sides[side][i]=yutClonePiece(dest));
-  if(to!=='START'&&to!=='FINISH')s.sides[side].forEach((p,i)=>{if(yutPhysical(p)===to)s.sides[side][i]=yutClonePiece(dest)});
-  const other=side==='user'?'bot':'user',captured=[];
-  if(to!=='START'&&to!=='FINISH')s.sides[other].forEach((p,i)=>{if(yutPhysical(p)===to){s.sides[other][i]=yutNewPiece();captured.push(i)}});
-  s.pending.splice(moveIndex,1);if(captured.length)s.captureBonus++;
-  s.last={type:'move',side,name:moveResult.name,move:moveResult.move,sticks:moveResult.sticks,from,to,trace:adv.trace,captured,stacked:soloYutPhysicalPieces(s,side,to).length};
-  if(s.sides[side].every(yutFinished)){s.phase='complete';s.winner=side;s.pending=[];s.awaitingThrow=false;return;}
-  if(s.pending.length){s.awaitingThrow=false;return;}
-  if(s.captureBonus>0){s.captureBonus--;s.awaitingThrow=true;return;}
-  s.turn=other;s.awaitingThrow=true;
-}
-function soloYutThrowFor(s,side){
-  if(!s.awaitingThrow)throw new Error('먼저 말을 이동하세요.');const r=throwYut();s.pending.push(r);s.awaitingThrow=!!r.extra;s.last={type:'throw',side,...r};return r;
-}
-function soloYutBestMove(s,side){
-  const other=side==='user'?'bot':'user';let best={pieceIndex:0,moveIndex:0,score:-1e9};
-  s.pending.forEach((mv,mi)=>s.sides[side].forEach((p,pi)=>{
-    if(yutFinished(p))return;const adv=yutAdvance(p,mv.move),to=yutPhysical(adv.piece);let score=adv.trace.length*2;
-    if(to==='FINISH')score+=80;
-    if(['O5','O10'].includes(to))score+=22;
-    if(['A1','A2','CA','A4','A5','B1','B2','CB','B4','B5'].includes(adv.piece.node))score+=12;
-    const enemy=s.sides[other].filter(op=>yutPhysical(op)===to).length;if(enemy)score+=55+enemy*8;
-    const friendly=s.sides[side].filter((op,i)=>i!==pi&&yutPhysical(op)===to&&to!=='START').length;if(friendly)score+=20+friendly*5;
-    // approximate progress preference
-    const prog={'START':0,'O1':1,'O2':2,'O3':3,'O4':4,'O5':5,'A1':7,'A2':9,'CA':11,'A4':13,'A5':15,'O6':6,'O7':7,'O8':8,'O9':9,'O10':10,'B1':12,'B2':14,'CB':16,'B4':18,'B5':20,'O11':11,'O12':12,'O13':13,'O14':14,'O15':15,'O16':16,'O17':17,'O18':18,'O19':19,'O20':20,'FINISH':30}[adv.piece.node]||0;score+=prog;
-    if(score>best.score)best={pieceIndex:pi,moveIndex:mi,score};
-  }));return best;
+function soloYutCapture(s,side,next){const other=side==='user'?'bot':'user',captured=[];if(next>0&&next<20)s.positions[other].forEach((v,i)=>{if(v===next){s.positions[other][i]=-1;captured.push(i)}});return captured;}
+function soloYutMoveSide(s,side,pieceIndex){
+  if(!s.pending)throw new Error('먼저 윷을 던져야 합니다.');pieceIndex=clampInt(pieceIndex,0,3);let pos=s.positions[side][pieceIndex];if(pos===20)throw new Error('이미 완주한 말입니다.');
+  const next=Math.min(20,(pos<0?0:pos)+s.pending.move);s.positions[side][pieceIndex]=next;const captured=soloYutCapture(s,side,next);const extra=s.pending.extra||captured.length>0;const result={...s.pending,captured,side,pieceIndex,to:next};s.pending=null;s.last=result;
+  if(s.positions[side].every(v=>v===20)){s.phase='complete';s.winner=side;return result;}if(!extra)s.turn=side==='user'?'bot':'user';return result;
 }
 function soloYutBotDrive(userId){
-  const s=soloYut.get(userId);let guard=0;
-  while(s&&s.phase==='playing'&&s.turn==='bot'&&guard++<30){
-    while(s.awaitingThrow&&guard++<30){const r=soloYutThrowFor(s,'bot');if(!r.extra)break;}
-    if(s.phase!=='playing'||s.turn!=='bot')break;
-    if(!s.pending.length){s.awaitingThrow=true;continue;}
-    const b=soloYutBestMove(s,'bot');soloYutMoveSide(s,'bot',b.pieceIndex,b.moveIndex);
+  const s=soloYut.get(userId);let guard=0;while(s&&s.phase==='playing'&&s.turn==='bot'&&guard++<12){
+    s.pending=throwYut();const move=s.pending.move;let best=0,bestScore=-999;
+    s.positions.bot.forEach((pos,i)=>{if(pos===20)return;const next=Math.min(20,(pos<0?0:pos)+move);let score=next+(pos<0?2:0);if(s.positions.user.includes(next)&&next>0&&next<20)score+=40;if(next===20)score+=25;if(score>bestScore){bestScore=score;best=i}});
+    soloYutMoveSide(s,'bot',best);
   }
   return s;
 }
 function settleSoloYut(userId){const s=soloYut.get(userId);if(!s||s.phase!=='complete'||s.settled)return;s.settled=true;escrowDelete(`SOLOY${userId}`,userId);db.prepare('UPDATE stats SET yut_games=yut_games+1, yut_wins=yut_wins+?, solo_yut_wins=solo_yut_wins+? WHERE user_id=?').run(s.winner==='user'?1:0,s.winner==='user'?1:0,userId);if(s.winner==='user')walletChange(userId,s.bet*2,'solo_yut_win','AI 윷놀이 승리 상금');}
 
-// ---------- Horse Racing v0.7 ----------
-const HORSES=[
-  {id:1,name:'번개제왕',emoji:'🐎',speed:94,stamina:82,finish:91,color:'#ffd166'},
-  {id:2,name:'블루문',emoji:'🐎',speed:88,stamina:92,finish:84,color:'#67b7ff'},
-  {id:3,name:'레드폭스',emoji:'🐎',speed:91,stamina:80,finish:95,color:'#ff6f7d'},
-  {id:4,name:'골든윈드',emoji:'🐎',speed:85,stamina:96,finish:86,color:'#f7c85a'},
-  {id:5,name:'나이트킹',emoji:'🐎',speed:90,stamina:88,finish:89,color:'#a98cff'},
-  {id:6,name:'실버스타',emoji:'🐎',speed:84,stamina:90,finish:93,color:'#d5dde9'},
-  {id:7,name:'썬더J',emoji:'🐎',speed:93,stamina:86,finish:90,color:'#56e3b4'}
-];
-function horseCard(){
-  const entries=HORSES.map(h=>{const power=h.speed*.45+h.stamina*.25+h.finish*.30;return {...h,power,form:(crypto.randomInt(91,111)/100)}});
-  const total=entries.reduce((a,h)=>a+h.power*h.form,0);
-  const horses=entries.map(h=>({...h,winOdds:Number(Math.max(1.6,total/(h.power*h.form)*.78).toFixed(1))}));
-  return {id:randomToken(6),horses,createdAt:now()};
-}
-function horseRun(card){
-  return card.horses.map(h=>{let score=h.power*h.form+(crypto.randomInt(0,2200)/100)-11;score+=h.finish*(crypto.randomInt(0,100)/100)*.09;return {...h,raceScore:score};}).sort((a,b)=>b.raceScore-a.raceScore);
-}
-function raceMultiplier(type,picks,card){
-  const hs=card.horses;const by=id=>hs.find(h=>h.id===Number(id));
-  if(type==='win'){const h=by(picks[0]);return h?h.winOdds:0;}
-  const a=by(picks[0]),b=by(picks[1]);if(!a||!b||a.id===b.id)return 0;
-  const base=(a.winOdds*b.winOdds);
-  if(type==='quinella')return Number(Math.max(3.0,base*.72).toFixed(1));
-  if(type==='exacta')return Number(Math.max(5.0,base*1.15).toFixed(1));
-  return 0;
-}
-function settleRace(userId,bet,type,picks,card,order){
-  let won=false;if(type==='win')won=order[0].id===Number(picks[0]);
-  else if(type==='quinella'){const top=[order[0].id,order[1].id].sort().join(',');won=top===[Number(picks[0]),Number(picks[1])].sort().join(',');}
-  else if(type==='exacta')won=order[0].id===Number(picks[0])&&order[1].id===Number(picks[1]);
-  const mult=raceMultiplier(type,picks,card),payout=won?Math.floor(bet*mult):0;
-  if(payout>0)walletChange(userId,payout,'horse_win',`경마 ${type} 적중 x${mult}`);
-  db.prepare('UPDATE stats SET horse_races=horse_races+1, horse_wins=horse_wins+?, horse_profit=horse_profit+? WHERE user_id=?').run(won?1:0,payout-bet,userId);
-  return {won,mult,payout};
-}
 // ---------- Seotda ----------
 function seotdaDeck(){const d=[];for(let m=1;m<=10;m++){d.push({m,g:[1,3,8].includes(m),id:`${m}G`});d.push({m,g:false,id:`${m}N`});}return shuffle(d);}
 function seotdaRank(cards){
@@ -654,7 +517,7 @@ function publicGostop(s){if(!s)return null;const {deck,...rest}=s;return {...res
 
 function personalizedRoom(r,userId){
   return {
-    id:r.id,name:r.name,game:r.game,buyIn:r.buyIn,maxPlayers:r.maxPlayers,hostId:r.hostId,status:roomStatus(r),smallBlind:r.smallBlind,bigBlind:r.bigBlind,yutMode:r.yutMode||'individual',yutModeLabel:yutModeLabel(r.yutMode||'individual'),
+    id:r.id,name:r.name,game:r.game,buyIn:r.buyIn,maxPlayers:r.maxPlayers,hostId:r.hostId,status:roomStatus(r),smallBlind:r.smallBlind,bigBlind:r.bigBlind,
     players:orderedPlayers(r).map(p=>({...p,avatarEmoji:AVATARS[p.avatar%AVATARS.length]})),
     hand:r.game==='holdem'?pokerView(r,userId):null,yut:r.game==='yut'?r.yut:null
   };
@@ -726,7 +589,7 @@ const server=http.createServer(async(req,res)=>{
       const q=escText(url.searchParams.get('q')||'',30);
       const like=`%${q}%`;
       const rows=db.prepare(`SELECT u.id,u.username,u.nickname,u.balance,u.created_at,u.is_admin,u.is_disabled,u.avatar,
-        s.slot_spins,s.slot_profit,s.poker_hands,s.poker_wins,s.yut_games,s.yut_wins,s.seotda_games,s.seotda_wins,s.gostop_games,s.gostop_wins,s.horse_races,s.horse_wins,s.horse_profit
+        s.slot_spins,s.slot_profit,s.poker_hands,s.poker_wins,s.yut_games,s.yut_wins,s.seotda_games,s.seotda_wins,s.gostop_games,s.gostop_wins
         FROM users u JOIN stats s ON s.user_id=u.id
         WHERE (?='' OR u.username LIKE ? OR u.nickname LIKE ?)
         ORDER BY u.is_admin DESC,u.id DESC LIMIT 100`).all(q,like,like).map(x=>({...x,avatarEmoji:AVATARS[x.avatar%AVATARS.length]}));
@@ -793,8 +656,8 @@ const server=http.createServer(async(req,res)=>{
 
     if(url.pathname==='/api/solo/yut/start'&&req.method==='POST'){const u=requireAuth(req,res);if(!u)return;const b=await readBody(req);const game=soloYutStartGame(u,Number(b.bet));return json(res,200,{game,user:userPublic(u.id)});}
     if(url.pathname==='/api/solo/yut'&&req.method==='GET'){const u=requireAuth(req,res);if(!u)return;const game=soloYut.get(u.id);return json(res,200,{game});}
-    if(url.pathname==='/api/solo/yut/throw'&&req.method==='POST'){const u=requireAuth(req,res);if(!u)return;const s=soloYut.get(u.id);if(!s||s.phase!=='playing')return json(res,404,{error:'진행 중인 AI 윷놀이가 없습니다.'});if(s.turn!=='user')return json(res,409,{error:'지금은 J-BOT 차례입니다.'});if(!s.awaitingThrow)return json(res,409,{error:'먼저 움직일 말을 선택하세요.'});soloYutThrowFor(s,'user');return json(res,200,{game:s});}
-    if(url.pathname==='/api/solo/yut/move'&&req.method==='POST'){const u=requireAuth(req,res);if(!u)return;const s=soloYut.get(u.id);if(!s)return json(res,404,{error:'AI 윷놀이가 없습니다.'});const b=await readBody(req);soloYutMoveSide(s,'user',Number(b.pieceIndex),Number(b.moveIndex||0));if(s.phase==='complete'){settleSoloYut(u.id);}else{soloYutBotDrive(u.id);settleSoloYut(u.id);}return json(res,200,{game:s,user:userPublic(u.id)});}
+    if(url.pathname==='/api/solo/yut/throw'&&req.method==='POST'){const u=requireAuth(req,res);if(!u)return;const s=soloYut.get(u.id);if(!s||s.phase!=='playing')return json(res,404,{error:'진행 중인 AI 윷놀이가 없습니다.'});if(s.turn!=='user')return json(res,409,{error:'지금은 J-BOT 차례입니다.'});if(s.pending)return json(res,409,{error:'먼저 움직일 말을 선택하세요.'});s.pending=throwYut();return json(res,200,{game:s});}
+    if(url.pathname==='/api/solo/yut/move'&&req.method==='POST'){const u=requireAuth(req,res);if(!u)return;const s=soloYut.get(u.id);if(!s)return json(res,404,{error:'AI 윷놀이가 없습니다.'});const b=await readBody(req);soloYutMoveSide(s,'user',Number(b.pieceIndex));if(s.phase==='complete'){settleSoloYut(u.id);}else{soloYutBotDrive(u.id);settleSoloYut(u.id);}return json(res,200,{game:s,user:userPublic(u.id)});}
     if(url.pathname==='/api/solo/yut/quit'&&req.method==='POST'){const u=requireAuth(req,res);if(!u)return;const s=soloYut.get(u.id);if(s&&!s.settled)escrowDelete(`SOLOY${u.id}`,u.id);soloYut.delete(u.id);if(s&&!s.settled)db.prepare('UPDATE stats SET yut_games=yut_games+1 WHERE user_id=?').run(u.id);return json(res,200,{ok:true,user:userPublic(u.id)});}
 
     if(url.pathname==='/api/solo/seotda/start'&&req.method==='POST'){const u=requireAuth(req,res);if(!u)return;const b=await readBody(req);const game=soloSeotdaStart(u,Number(b.bet));return json(res,200,{game,user:userPublic(u.id)});}
@@ -808,27 +671,15 @@ const server=http.createServer(async(req,res)=>{
     if(url.pathname==='/api/solo/gostop/decision'&&req.method==='POST'){const u=requireAuth(req,res);if(!u)return;const b=await readBody(req);const game=soloGostopDecision(u.id,b.decision);return json(res,200,{game:publicGostop(game),user:userPublic(u.id)});}
     if(url.pathname==='/api/solo/gostop/reset'&&req.method==='POST'){const u=requireAuth(req,res);if(!u)return;const s=soloGostop.get(u.id);if(s&&s.phase!=='complete')return json(res,409,{error:'진행 중인 판은 초기화할 수 없습니다.'});soloGostop.delete(u.id);return json(res,200,{ok:true});}
 
-
-    if(url.pathname==='/api/horse/card'&&req.method==='GET'){
-      const u=requireAuth(req,res);if(!u)return;const card=horseCard();raceCards.set(u.id,card);return json(res,200,{card});
-    }
-    if(url.pathname==='/api/horse/race'&&req.method==='POST'){
-      const u=requireAuth(req,res);if(!u)return;const b=await readBody(req),card=raceCards.get(u.id);if(!card)return json(res,409,{error:'먼저 새 경주표를 받아주세요.'});
-      const bet=clampInt(b.bet,1000,200000);if(![1000,5000,10000,25000,50000,100000,200000].includes(bet))return json(res,400,{error:'지원하지 않는 베팅 금액입니다.'});
-      if(u.balance<bet)return json(res,400,{error:'게임머니가 부족합니다.'});const type=['win','quinella','exacta'].includes(b.type)?b.type:'win';const picks=Array.isArray(b.picks)?b.picks.map(Number):[];
-      if((type==='win'&&picks.length<1)||(type!=='win'&&picks.length<2)||new Set(picks).size!==picks.length)return json(res,400,{error:'말 선택을 확인해주세요.'});
-      walletChange(u.id,-bet,'horse_bet',`경마 ${type} 베팅 ${formatMoney(bet)}G`);const order=horseRun(card);const result=settleRace(u.id,bet,type,picks,card,order);raceCards.delete(u.id);pushRefresh();
-      return json(res,200,{order:order.map((h,i)=>({id:h.id,name:h.name,color:h.color,finish:i+1})),result,user:userPublic(u.id)});
-    }
     if(url.pathname==='/api/rooms'&&req.method==='GET'){
       const u=requireAuth(req,res);if(!u)return;const game=url.searchParams.get('game');const list=[...rooms.values()].filter(r=>!game||r.game===game).map(roomSummary).sort((a,b)=>a.status.localeCompare(b.status));return json(res,200,{rooms:list});
     }
     if(url.pathname==='/api/rooms'&&req.method==='POST'){
       const u=requireAuth(req,res);if(!u)return;if(findUserRoom(u.id))return json(res,409,{error:'이미 다른 게임방에 참가 중입니다. 먼저 그 방에서 나와주세요.'});const b=await readBody(req),game=b.game==='yut'?'yut':'holdem';
-      const yutMode=game==='yut'&&['individual','2v2','3v3'].includes(b.yutMode)?b.yutMode:'individual';const maxPlayers=game==='holdem'?clampInt(b.maxPlayers,2,6):(yutMode==='2v2'?4:yutMode==='3v3'?6:clampInt(b.maxPlayers,2,6));const buyIn=clampInt(b.buyIn,10000,500000);
+      const maxPlayers=game==='holdem'?clampInt(b.maxPlayers,2,6):clampInt(b.maxPlayers,2,4);const buyIn=clampInt(b.buyIn,10000,500000);
       if(u.balance<buyIn)return json(res,400,{error:'방 참가금보다 보유 게임머니가 적습니다.'});
       const id=makeRoomId();const name=game==='holdem'?`홀덤 테이블 ${id}`:`윷놀이 방 ${id}`;walletChange(u.id,-buyIn,`${game}_buyin`,`${name} 참가금`);
-      const r={id,name,game,buyIn,maxPlayers,hostId:u.id,smallBlind:game==='holdem'?Math.max(100,Math.floor(buyIn/100)):0,bigBlind:game==='holdem'?Math.max(200,Math.floor(buyIn/50)):0,players:[{userId:u.id,nickname:u.nickname,avatar:u.avatar,seat:0,stack:game==='holdem'?buyIn:0}],createdAt:now(),hand:null,yut:null,yutMode,dealerSeat:null};
+      const r={id,name,game,buyIn,maxPlayers,hostId:u.id,smallBlind:game==='holdem'?Math.max(100,Math.floor(buyIn/100)):0,bigBlind:game==='holdem'?Math.max(200,Math.floor(buyIn/50)):0,players:[{userId:u.id,nickname:u.nickname,avatar:u.avatar,seat:0,stack:game==='holdem'?buyIn:0}],createdAt:now(),hand:null,yut:null,dealerSeat:null};
       rooms.set(id,r);escrowSet(id,u.id,buyIn,game);pushRefresh(id);return json(res,201,{room:personalizedRoom(r,u.id)});
     }
     const roomMatch=url.pathname.match(/^\/api\/rooms\/([A-F0-9]+)(?:\/(.*))?$/);
@@ -854,7 +705,7 @@ const server=http.createServer(async(req,res)=>{
         if(r.game!=='yut')return json(res,400,{error:'윷놀이 방이 아닙니다.'});const result=yutThrow(r,u.id);pushRefresh(r.id);return json(res,200,{result,room:personalizedRoom(r,u.id)});
       }
       if(op==='yut/move'&&req.method==='POST'){
-        if(r.game!=='yut')return json(res,400,{error:'윷놀이 방이 아닙니다.'});const b=await readBody(req);yutMove(r,u.id,b.pieceIndex,b.moveIndex||0);pushRefresh(r.id);return json(res,200,{room:personalizedRoom(r,u.id)});
+        if(r.game!=='yut')return json(res,400,{error:'윷놀이 방이 아닙니다.'});const b=await readBody(req);yutMove(r,u.id,b.pieceIndex);pushRefresh(r.id);return json(res,200,{room:personalizedRoom(r,u.id)});
       }
     }
 

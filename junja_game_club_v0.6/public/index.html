@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#090b15">
 <title>JUNJA GAME CLUB</title>
-<link rel="manifest" href="/manifest.webmanifest?v=070">
-<link rel="stylesheet" href="/style.css?v=070">
+<link rel="manifest" href="/manifest.webmanifest?v=060">
+<link rel="stylesheet" href="/style.css?v=060">
 </head>
 <body>
 <div id="app">
@@ -35,7 +35,7 @@
     <main>
       <section id="view-lobby" class="view active">
         <div class="hero panel hero-upgraded">
-          <div class="hero-copy"><div class="eyebrow">JUNJA ARCADE · VERSION 0.7</div><h2>친구 대전도, 혼자 AI전도.</h2><p>슬롯 3×3 · 홀덤 · 정통 윷놀이 · 섯다 · 고스톱 · 경마까지 한 계정으로 플레이. 채팅 없이 게임 정보만 공유돼.</p><div class="hero-actions"><button id="dailyBtn" class="daily-btn" type="button">🎁 출석 +50,000 G</button><button class="secondary hero-guide" data-open-help="lobby" type="button">게임 가이드</button></div></div>
+          <div class="hero-copy"><div class="eyebrow">JUNJA ARCADE · VERSION 0.6</div><h2>친구 대전도, 혼자 AI전도.</h2><p>슬롯 3×3 · 홀덤 · 윷놀이 · 섯다 · 고스톱까지 한 계정으로 플레이. 채팅은 없고 게임 정보만 공유돼.</p><div class="hero-actions"><button id="dailyBtn" class="daily-btn" type="button">🎁 출석 +50,000 G</button><button class="secondary hero-guide" data-open-help="lobby" type="button">게임 가이드</button></div></div>
           <div class="hero-character"><img src="/art/club-host.svg" alt="게임 클럽 호스트"><div class="character-caption"><b>CLUB HOST J</b><span>오늘의 게임을 선택하세요</span></div></div>
         </div>
 
@@ -45,7 +45,7 @@
           <button class="game-card yut" data-go="yut" type="button"><img class="game-art" src="/art/yut-mascot.svg" alt="윷놀이"><div class="game-icon">윷</div><span class="dual-badge">MULTI + AI</span><div><small>KOREAN CLASSIC</small><h3>윷놀이</h3><p>친구 2~4인 또는 J-BOT 1:1</p></div></button>
           <button class="game-card seotda" data-go="seotda" type="button"><img class="game-art" src="/art/seotda-mascot.svg" alt="섯다"><div class="game-icon">花</div><span class="ai-badge">AI 1P</span><div><small>KOREAN CARD DUEL</small><h3>섯다</h3><p>38광땡부터 망통까지 빠른 승부</p></div></button>
           <button class="game-card gostop" data-go="gostop" type="button"><img class="game-art" src="/art/gostop-mascot.svg" alt="고스톱"><div class="game-icon">광</div><span class="ai-badge">AI 1P</span><div><small>MATGO</small><h3>고스톱</h3><p>48장 화투 · 고/스톱 · J-BOT 대전</p></div></button>
-          <button class="game-card horse" data-go="horse" type="button"><div class="game-art horse-card-art">🏇</div><div class="game-icon">🏇</div><span class="ai-badge">RACE</span><div><small>GRAND RACE</small><h3>경마</h3><p>단승 · 복승 · 쌍승 · 생동감 있는 7마리 레이스</p></div></button>
+          <button class="game-card coming" type="button" id="tourneyCard"><div class="game-icon">🏆</div><span class="soon-badge">NEXT</span><div><small>CLUB TOURNAMENT</small><h3>토너먼트</h3><p>주간 랭킹전 · 시즌 보상 준비 중</p></div></button>
         </div>
 
         <div class="dashboard-grid"><div class="panel section-card"><div class="section-head"><div><small>CLUB RANKING</small><h3>게임머니 랭킹</h3></div><button class="ghost" id="refreshRank" type="button">새로고침</button></div><div id="leaderboard" class="rank-list"></div></div><div class="panel section-card accent-card"><div class="section-head"><div><small>MY RECORD</small><h3>내 기록</h3></div></div><div id="myStats" class="stat-grid"></div><button class="secondary full" data-go="ledger" type="button">게임머니 내역 보기</button></div></div>
@@ -76,7 +76,7 @@
       <section id="view-yut" class="view">
         <div class="view-head"><button class="back" data-go="lobby" type="button">←</button><div><small>YUT ARENA</small><h2>윷놀이</h2></div><button class="secondary view-guide" data-open-help="yut" type="button">? 사용법</button></div>
         <div class="mode-switch"><button class="mode-btn active" data-mode-game="yut" data-mode="multi" type="button">👥 친구 멀티</button><button class="mode-btn" data-mode-game="yut" data-mode="solo" type="button">🤖 AI 1인전</button></div>
-        <div id="yutMultiArea"><div id="yutBrowser" class="room-browser"><div class="panel create-room premium-panel"><h3>정통 윷놀이방 만들기</h3><div class="form-grid"><label>경기 방식<select id="yutMode"><option value="individual">개인전 2~6인</option><option value="2v2">2:2 팀전</option><option value="3v3">3:3 팀전</option></select></label><label>참가금<select id="yutBuyIn"><option value="10000">10,000 G</option><option value="50000" selected>50,000 G</option><option value="100000">100,000 G</option><option value="200000">200,000 G</option></select></label><label id="yutMaxLabel">인원<select id="yutMax"><option>2</option><option>3</option><option selected>4</option><option>5</option><option>6</option></select></label></div><div class="rule-chip-row"><span>✓ 업기</span><span>✓ 잡기 추가턴</span><span>✓ 윷/모 추가턴</span><span>✓ 대각선 지름길</span></div><button id="createYut" class="primary full" type="button">친구방 만들기</button></div><div class="panel room-list-card premium-panel"><div class="section-head"><div><small>OPEN ROOMS</small><h3>열린 윷놀이방</h3></div><button class="ghost" id="refreshYut" type="button">새로고침</button></div><div id="yutRooms" class="room-list"></div></div></div><div id="yutRoom" class="hidden"></div></div>
+        <div id="yutMultiArea"><div id="yutBrowser" class="room-browser"><div class="panel create-room premium-panel"><h3>윷놀이방 만들기</h3><div class="form-grid"><label>참가금<select id="yutBuyIn"><option value="10000">10,000 G</option><option value="50000" selected>50,000 G</option><option value="100000">100,000 G</option><option value="200000">200,000 G</option></select></label><label>인원<select id="yutMax"><option>2</option><option>3</option><option selected>4</option></select></label></div><button id="createYut" class="primary full" type="button">친구방 만들기</button></div><div class="panel room-list-card premium-panel"><div class="section-head"><div><small>OPEN ROOMS</small><h3>열린 윷놀이방</h3></div><button class="ghost" id="refreshYut" type="button">새로고침</button></div><div id="yutRooms" class="room-list"></div></div></div><div id="yutRoom" class="hidden"></div></div>
         <div id="yutSoloArea" class="hidden"><div id="yutSoloStart" class="solo-start panel"><img src="/art/yut-mascot.svg" alt="윷 AI"><div><small>1 VS 1 YUT</small><h3>J-BOT 윷놀이</h3><p>윷가락을 던지고 말을 직접 선택해 이동. 잡기와 윷·모 추가턴까지 AI와 빠르게 즐길 수 있어.</p><div class="solo-bet-row"><select id="soloYutBet"><option value="10000">10,000 G</option><option value="50000" selected>50,000 G</option><option value="100000">100,000 G</option><option value="200000">200,000 G</option></select><button id="startSoloYut" class="primary" type="button">AI 대전 시작</button></div></div></div><div id="yutSoloRoom" class="hidden"></div></div>
       </section>
 
@@ -90,18 +90,6 @@
         <div id="gostopStart" class="solo-start panel gostop-start"><img src="/art/gostop-mascot.svg" alt="고스톱"><div><small>VS J-BOT</small><h3>AI 맞고 한 판</h3><p>손패에서 같은 월의 바닥패를 맞춰 먹고 광·열끗·띠·피 점수를 모아. 7점 이상이면 GO 또는 STOP 선택.</p><div class="solo-bet-row"><select id="gostopBet"><option value="5000">5,000 G</option><option value="10000">10,000 G</option><option value="25000" selected>25,000 G</option><option value="50000">50,000 G</option><option value="100000">100,000 G</option></select><button id="startGostop" class="primary" type="button">맞고 시작</button></div></div></div><div id="gostopTable" class="hidden"></div>
       </section>
 
-
-      <section id="view-horse" class="view">
-        <div class="view-head"><button class="back" data-go="lobby" type="button">←</button><div><small>JUNJA GRAND RACE</small><h2>경마</h2></div><button class="secondary view-guide" data-open-help="horse" type="button">? 사용법</button></div>
-        <div class="horse-arena panel">
-          <div class="horse-stand"><div><small>SEOUL NIGHT CUP · 1200M</small><h3>7 HORSES · LIVE SIMULATION</h3></div><div class="race-lights"><i></i><i></i><i></i></div></div>
-          <div id="horseTrack" class="horse-track"><div class="finish-line"></div><div class="race-overlay" id="raceOverlay"><b>BET & START</b><span>승부를 예측하고 레이스를 시작해.</span></div></div>
-          <div class="horse-control-grid">
-            <div class="premium-panel horse-bet-panel"><h3>BETTING</h3><div class="form-grid"><label>승식<select id="horseBetType"><option value="win">단승 · 1등 맞히기</option><option value="quinella">복승 · 1·2등 순서 무관</option><option value="exacta">쌍승 · 1·2등 순서 정확히</option></select></label><label>1번 선택<select id="horsePick1"></select></label><label id="horsePick2Label" class="hidden">2번 선택<select id="horsePick2"></select></label><label>베팅<select id="horseBet"><option value="1000">1,000 G</option><option value="5000">5,000 G</option><option value="10000" selected>10,000 G</option><option value="25000">25,000 G</option><option value="50000">50,000 G</option><option value="100000">100,000 G</option><option value="200000">200,000 G</option></select></label></div><div id="horseOdds" class="horse-odds">경주표 불러오는 중...</div><button id="horseStartBtn" class="primary full" type="button">🏁 경주 시작</button></div>
-            <div class="premium-panel horse-result-panel"><h3>RACE RESULT</h3><div id="horseResult" class="horse-result"><p>아직 경주 전이야.</p></div></div>
-          </div>
-        </div>
-      </section>
 
       <section id="view-admin" class="view">
         <div class="view-head admin-head"><button class="back" data-go="lobby" type="button">←</button><div><small>OWNER CONTROL CENTER</small><h2>관리자 센터</h2></div><span class="admin-badge">SERVER ADMIN</span></div>
@@ -123,20 +111,19 @@
       <section id="view-ledger" class="view"><div class="view-head"><button class="back" data-go="lobby" type="button">←</button><div><small>WALLET HISTORY</small><h2>게임머니 내역</h2></div></div><div class="panel section-card premium-panel"><div id="ledgerList" class="ledger-list"></div></div></section>
     </main>
 
-    <div id="helpModal" class="help-modal hidden"><div class="help-backdrop"></div><div class="help-card panel"><button id="closeHelp" class="sheet-close" type="button">×</button><div class="help-head"><div><small>JUNJA GAME CLUB GUIDE</small><h2>게임방법</h2><p>게임별 핵심만 빠르게 확인해.</p></div><div class="help-emoji">🎮</div></div><div class="help-tabs"><button data-help-tab="lobby" class="active" type="button">전체</button><button data-help-tab="slot" type="button">슬롯</button><button data-help-tab="holdem" type="button">홀덤</button><button data-help-tab="yut" type="button">윷</button><button data-help-tab="seotda" type="button">섯다</button><button data-help-tab="gostop" type="button">고스톱</button><button data-help-tab="horse" type="button">경마</button></div><div class="help-pages">
+    <div id="helpModal" class="help-modal hidden"><div class="help-backdrop"></div><div class="help-card panel"><button id="closeHelp" class="sheet-close" type="button">×</button><div class="help-head"><div><small>JUNJA GAME CLUB GUIDE</small><h2>게임방법</h2><p>게임별 핵심만 빠르게 확인해.</p></div><div class="help-emoji">🎮</div></div><div class="help-tabs"><button data-help-tab="lobby" class="active" type="button">전체</button><button data-help-tab="slot" type="button">슬롯</button><button data-help-tab="holdem" type="button">홀덤</button><button data-help-tab="yut" type="button">윷</button><button data-help-tab="seotda" type="button">섯다</button><button data-help-tab="gostop" type="button">고스톱</button></div><div class="help-pages">
       <article data-help-page="lobby" class="active"><div class="guide-grid"><div class="guide-step"><b>01</b><h3>가입</h3><p>100만 G로 시작. 연락처·실명 대신 게임 별명만 사용.</p></div><div class="guide-step"><b>02</b><h3>모드</h3><p>홀덤·윷은 친구 멀티와 AI 1인전을 모두 지원.</p></div><div class="guide-step"><b>03</b><h3>개인정보</h3><p>채팅 기능은 없고 닉네임과 게임 진행 정보만 표시.</p></div><div class="guide-step"><b>04</b><h3>게임머니</h3><p>현금 가치가 없고 충전·환전·상품 교환 기능도 없음.</p></div></div></article>
       <article data-help-page="slot"><div class="guide-hero"><span>🎰</span><div><h3>3×3 로열 릴</h3><p>3행×3열 고정. 가로 3줄과 대각선 2줄에서 같은 심볼 3개를 맞춰.</p></div></div><div class="guide-list"><p><b>777</b> 한 페이라인 완성 시 x1000</p><p><b>다중 라인</b> 여러 줄이 맞으면 배당 합산</p><p><b>SPIN</b> 세 릴이 순차적으로 멈추며 당첨선을 표시</p></div></article>
       <article data-help-page="holdem"><div class="guide-hero"><span>♠️</span><div><h3>텍사스 홀덤</h3><p>친구방 2~6인 또는 AI 헤즈업. 체크·콜·레이즈·폴드로 진행.</p></div></div><div class="guide-list"><p><b>AI 모드</b> 바이인 후 J-BOT과 연속 핸드 가능</p><p><b>나가기</b> 남은 테이블 칩을 게임머니로 정산</p><p><b>승리</b> 마지막까지 남거나 가장 높은 5장 족보</p></div></article>
-      <article data-help-page="yut"><div class="guide-hero"><span>🪵</span><div><h3>정통 윷놀이</h3><p>도1·개2·걸3·윷4·모5. 윷/모 또는 상대말 잡기 시 추가 던지기.</p></div></div><div class="guide-list"><p><b>업기</b> 같은 팀 말이 같은 지점에 만나면 한 묶음이 되어 함께 이동</p><p><b>지름길</b> 코너에 정확히 도착하면 다음 이동부터 대각선 경로 사용</p><p><b>팀전</b> 2:2 / 3:3에서 팀 공동 말 4개를 번갈아 운용</p><p><b>승리</b> 팀의 말 4개를 모두 FINISH</p></div></article>
+      <article data-help-page="yut"><div class="guide-hero"><span>🪵</span><div><h3>윷놀이</h3><p>도1·개2·걸3·윷4·모5. 윷/모 또는 상대말 잡기 시 추가턴.</p></div></div><div class="guide-list"><p><b>친구 모드</b> 2~4인</p><p><b>AI 모드</b> J-BOT과 1:1</p><p><b>승리</b> 말 4개를 모두 FINISH</p></div></article>
       <article data-help-page="seotda"><div class="guide-hero"><span>🎴</span><div><h3>섯다</h3><p>두 장의 월패로 족보를 만들어 J-BOT과 승부.</p></div></div><div class="guide-list"><p><b>상위</b> 38광땡 &gt; 18광땡 &gt; 13광땡 &gt; 땡</p><p><b>특수</b> 알리·독사·구삥·장삥·장사·세륙</p><p><b>두 배 승부</b> 판돈을 한 번 더 걸고 보상도 두 배 규모</p></div></article>
       <article data-help-page="gostop"><div class="guide-hero"><span>🌸</span><div><h3>고스톱 / 맞고</h3><p>같은 월끼리 맞춰 먹고 광·열끗·띠·피를 모아 점수를 올려.</p></div></div><div class="guide-list"><p><b>플레이</b> 손패 한 장 선택 → 같은 월 바닥패 획득 → 덱 한 장 자동 뒤집기</p><p><b>7점+</b> 점수가 새로 올라가면 GO 또는 STOP 선택</p><p><b>GO</b> 계속 진행하며 최종 배당 증가</p></div></article>
-      <article data-help-page="horse"><div class="guide-hero"><span>🏇</span><div><h3>경마</h3><p>경주 전에 말과 승식을 선택한 뒤 레이스를 관전해.</p></div></div><div class="guide-list"><p><b>단승</b> 1등 말 한 마리 적중</p><p><b>복승</b> 1·2등 두 마리를 순서 상관없이 적중</p><p><b>쌍승</b> 1등과 2등 순서까지 정확히 적중</p><p><b>배당</b> 말의 능력치와 당일 컨디션에 따라 매 경주 변동</p></div></article>
     </div><button id="helpDone" class="primary full help-done" type="button">확인했어</button></div></div>
 
     <div id="profileSheet" class="sheet hidden"><div class="sheet-card panel"><button id="closeProfile" class="sheet-close" type="button">×</button><div id="profileContent"></div><button id="logoutBtn" class="danger full" type="button">로그아웃</button></div></div>
     <div id="toast" class="toast"></div>
   </div>
 </div>
-<script src="/app.js?v=070"></script>
+<script src="/app.js?v=060"></script>
 </body>
 </html>

@@ -1,16 +1,13 @@
-# JUNJA GAME CLUB v0.6 테스트 결과
+# TEST REPORT v0.7
 
-2026-09-10 로컬 통합 테스트 완료.
+- Node syntax check: server.js PASS
+- Node syntax check: public/app.js PASS
+- Local server boot: PASS
+- Account registration: PASS
+- Horse race card generation: PASS (7 horses + variable win odds)
+- Horse race server settlement: PASS
+- Solo Yut v0.7 state creation: PASS (route-aware piece objects)
+- Solo Yut throw result: PASS (pending throw list + cinematic-compatible stick state)
+- Existing login/wallet/admin schema preserved
 
-- 관리자 환경변수 계정 자동 생성: PASS
-- 관리자 로그인 및 is_admin 권한 반환: PASS
-- 일반 회원 생성/로그인: PASS
-- 관리자 회원 목록 조회: PASS
-- 관리자 게임머니 +1,000,000 G 지급: PASS
-- 지급 후 지갑 잔액/ledger 반영: PASS
-- 관리자 감사기록(admin_audit) 저장: PASS
-- 회원 이용중지: PASS
-- 이용중지 회원의 기존 세션 차단: PASS
-- 관리자 API에 서버측 권한 검사 적용: PASS
-
-관리자 비밀번호는 소스에 저장하지 않고 Render Environment Variables의 ADMIN_PASSWORD로 설정하도록 구성함.
+주의: Render Free의 SQLite 파일은 재배포/재시작 시 영구 보존되지 않을 수 있습니다. 장기 운영 전 PostgreSQL 전환 권장.

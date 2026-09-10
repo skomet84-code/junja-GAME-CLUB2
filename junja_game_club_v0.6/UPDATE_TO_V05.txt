@@ -1,0 +1,11 @@
+JUNJA GAME CLUB v0.5 업데이트
+
+1) junja_game_club_v0.5.zip 압축 해제
+2) GitHub > junja-GAME-CLUB2 > Add file > Upload files
+3) 압축 푼 폴더 안 내용 전체 업로드
+4) Commit changes
+5) Render > junja-GAME-CLUB > Manual Deploy > Deploy latest commit (자동 배포가 안 될 때만)
+6) Live 확인
+7) 기존 주소 그대로 접속
+
+v0.5는 app.js/style.css에 ?v=050을 붙이고 Service Worker 캐시를 v05로 변경했으므로 구버전 캐시 문제를 크게 줄였습니다.

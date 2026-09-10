@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 300">
+  <defs>
+    <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1"><stop stop-color="#552d2f"/><stop offset="1" stop-color="#161326"/></linearGradient>
+    <linearGradient id="coat" x1="0" x2="1"><stop stop-color="#171d2c"/><stop offset="1" stop-color="#313b59"/></linearGradient>
+    <filter id="glow"><feGaussianBlur stdDeviation="8" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  </defs>
+  <rect width="420" height="300" rx="34" fill="url(#bg)"/>
+  <circle cx="315" cy="70" r="75" fill="#ffbd6d" opacity=".12" filter="url(#glow)"/>
+  <g transform="translate(36 32)">
+    <circle cx="118" cy="76" r="48" fill="#f2c39f"/>
+    <path d="M73 78c4-47 88-58 96-5-21-8-52-8-96 5z" fill="#171923"/>
+    <path d="M85 133c20-18 70-18 91 0l30 92H54z" fill="url(#coat)"/>
+    <path d="M102 82q14 10 29 0" stroke="#35211d" stroke-width="5" fill="none" stroke-linecap="round"/>
+    <circle cx="101" cy="70" r="4" fill="#1c1c24"/><circle cx="137" cy="70" r="4" fill="#1c1c24"/>
+    <path d="M117 93q10 8 20 0" stroke="#9b4c44" stroke-width="4" fill="none" stroke-linecap="round"/>
+    <g transform="translate(204 82) rotate(-8)"><rect x="0" y="0" width="82" height="120" rx="10" fill="#fff5df" stroke="#d6c9a8" stroke-width="4"/><text x="41" y="35" text-anchor="middle" font-size="18" font-weight="800" fill="#5a4635">3월</text><text x="41" y="77" text-anchor="middle" font-size="42">🌸</text><text x="41" y="104" text-anchor="middle" font-size="15" font-weight="800" fill="#b33b46">광</text></g>
+    <g transform="translate(274 74) rotate(10)"><rect x="0" y="0" width="82" height="120" rx="10" fill="#fff5df" stroke="#d6c9a8" stroke-width="4"/><text x="41" y="35" text-anchor="middle" font-size="18" font-weight="800" fill="#5a4635">8월</text><text x="41" y="77" text-anchor="middle" font-size="42">🌕</text><text x="41" y="104" text-anchor="middle" font-size="15" font-weight="800" fill="#b33b46">광</text></g>
+  </g>
+  <text x="286" y="248" text-anchor="middle" font-family="Arial,sans-serif" font-size="28" font-weight="900" fill="#ffe28e">SEOTDA</text>
+  <text x="286" y="270" text-anchor="middle" font-family="Arial,sans-serif" font-size="11" font-weight="700" fill="#f0c8ae">KOREAN CARD DUEL</text>
+</svg>

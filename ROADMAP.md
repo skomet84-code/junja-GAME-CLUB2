@@ -1,25 +1,9 @@
-# JUNJA GAME CLUB 개발 로드맵
+# ROADMAP
 
-## v0.5 - POWER UPDATE (현재)
-- 3×3 슬롯 / 5 paylines / 777 x1000
-- 홀덤 AI 1인전 + 기존 2~6인 멀티
-- 윷놀이 AI 1인전 + 기존 2~4인 멀티
-- 섯다 AI 1인전
-- 고스톱(맞고) AI 1인전
-- 게임별 사용법 / 캐릭터 UI / 개인정보 보호형 무채팅 구조
-- 캐시 버전 강제 갱신
-
-## 다음 우선순위
-- 섯다 2~4인 멀티 방
-- 고스톱 2~3인 멀티 방
-- 윷놀이 정식 지름길/업기 규칙 고도화
-- 홀덤 AI 난이도 3단계와 행동 타이머
-- 카드 딜링/칩 이동/승리 연출 강화
-- PostgreSQL 영구 DB 이전 및 재접속 복구
-- 시즌 랭킹 / 토너먼트
-
-## 품질 원칙
-- 승패와 게임머니는 서버가 최종 판정
-- 게임머니는 현금 가치가 없고 충전·환전·상품교환 기능 없음
-- 채팅 기능 없음
-- 개인정보형 닉네임 패턴 차단 유지
+## Next quality pass
+- Horse sound FX / photo-finish replay
+- Multiplayer horse race room / spectator mode
+- Yut optional house rules (Back-do, exact finish variants)
+- Go-stop multiplayer
+- Seotda multiplayer
+- PostgreSQL permanent storage
