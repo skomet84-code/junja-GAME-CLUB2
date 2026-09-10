@@ -1,0 +1,22 @@
+JUNJA GAME CLUB v0.3 업데이트 순서
+
+1) 이 압축파일을 PC에 다운로드하고 압축을 풉니다.
+2) GitHub에서 skomet84-code / junja-GAME-CLUB2 저장소를 엽니다.
+3) Add file → Upload files 를 누릅니다.
+4) 압축을 푼 junja_game_club_v0.3 폴더 '안의 내용물 전체'를 업로드합니다.
+   - public 폴더
+   - Dockerfile
+   - package.json
+   - server.js
+   - render.yaml
+   - README.md
+   - VERSION.txt
+   - 기타 파일
+5) 같은 이름의 기존 파일은 수정 파일로 인식됩니다. 그대로 진행합니다.
+6) 아래 Commit changes 버튼을 누릅니다.
+7) Render가 자동 배포를 시작합니다.
+8) Render에서 Deploy succeeded / Live 가 뜨면 완료입니다.
+9) 기존 주소 https://junja-game-club.onrender.com 로 접속합니다.
+10) 예전 화면이 보이면 새로고침합니다. PWA 캐시 버전도 v0.3으로 갱신해 두었습니다.
+
+중요: 압축파일 자체를 GitHub에 올리는 것이 아니라 압축을 푼 폴더 안의 파일과 폴더를 올려야 합니다.

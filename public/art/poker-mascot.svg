@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 260">
+ <defs><linearGradient id="a" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#29478e"/><stop offset="1" stop-color="#0e1835"/></linearGradient></defs>
+ <rect width="360" height="260" rx="34" fill="url(#a)"/>
+ <circle cx="280" cy="40" r="72" fill="#6d82ff" opacity=".25"/>
+ <g transform="translate(80 38)"><circle cx="95" cy="68" r="48" fill="#e8b08c"/><path d="M48 65c6-42 29-62 51-62 32 0 52 21 52 60-20-20-48-23-72-13-9 4-19 9-31 15z" fill="#11151f"/><rect x="58" y="60" width="30" height="21" rx="8" fill="#121b2e" stroke="#9fc0ff" stroke-width="3"/><rect x="103" y="60" width="30" height="21" rx="8" fill="#121b2e" stroke="#9fc0ff" stroke-width="3"/><path d="M88 70h15" stroke="#9fc0ff" stroke-width="3"/><path d="M75 93c13 9 27 9 40 0" fill="none" stroke="#995a50" stroke-width="4" stroke-linecap="round"/><path d="M44 185c7-59 29-88 51-88 23 0 45 29 52 88z" fill="#171d2a"/><path d="M75 105l20 23 20-23 13 80H62z" fill="#28344b"/></g>
+ <g transform="rotate(-12 265 154)"><rect x="230" y="120" width="58" height="82" rx="8" fill="#f7f4ec"/><text x="243" y="149" font-size="24" font-family="Arial" font-weight="900" fill="#222">A</text><text x="260" y="182" font-size="32" text-anchor="middle" fill="#111">♠</text></g>
+ <g transform="rotate(10 300 154)"><rect x="270" y="116" width="58" height="82" rx="8" fill="#f7f4ec"/><text x="282" y="145" font-size="24" font-family="Arial" font-weight="900" fill="#cf2641">K</text><text x="300" y="180" font-size="32" text-anchor="middle" fill="#cf2641">♥</text></g>
+</svg>

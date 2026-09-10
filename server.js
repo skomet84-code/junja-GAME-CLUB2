@@ -76,7 +76,14 @@ const AVATARS = ['🧑‍💼','😎','🧢','👑','🐯','🐻','🦊','🐼',
 const SLOT_SYMBOLS = [
   {s:'🍒',w:28},{s:'🍋',w:24},{s:'🍊',w:20},{s:'🔔',w:13},{s:'⭐',w:9},{s:'💎',w:5},{s:'7️⃣',w:3}
 ];
-const SLOT_MULT = {'🍒':4,'🍋':5,'🍊':7,'🔔':12,'⭐':20,'💎':50,'7️⃣':120};
+const SLOT_MULT = {'🍒':6,'🍋':8,'🍊':10,'🔔':18,'⭐':35,'💎':80,'7️⃣':180};
+const SLOT_LINES = [
+  { key:'top', label:'TOP', cssClass:'top', cells:[[0,0],[0,1],[0,2]] },
+  { key:'mid', label:'MIDDLE', cssClass:'mid', cells:[[1,0],[1,1],[1,2]] },
+  { key:'bot', label:'BOTTOM', cssClass:'bot', cells:[[2,0],[2,1],[2,2]] },
+  { key:'diag1', label:'DIAGONAL ↘', cssClass:'diag1', cells:[[0,0],[1,1],[2,2]] },
+  { key:'diag2', label:'DIAGONAL ↗', cssClass:'diag2', cells:[[2,0],[1,1],[0,2]] }
+];
 
 function now(){ return Date.now(); }
 function kstDate(){ return new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Seoul',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date()); }
@@ -85,6 +92,12 @@ function hashPassword(password,salt){ return crypto.scryptSync(password,salt,64)
 function safeEqualHex(a,b){ try { const A=Buffer.from(a,'hex'),B=Buffer.from(b,'hex'); return A.length===B.length && crypto.timingSafeEqual(A,B); } catch { return false; } }
 function clampInt(v,min,max){ v=Math.floor(Number(v)); return Number.isFinite(v)?Math.max(min,Math.min(max,v)):min; }
 function escText(s,max=80){ return String(s||'').trim().replace(/[\u0000-\u001f]/g,'').slice(0,max); }
+function containsContactInfo(s){
+  const v=String(s||'').trim();
+  if(/(?:https?:\/\/|www\.|[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}|카톡|카카오톡|오픈채팅|telegram|텔레그램|instagram|인스타|discord|디스코드|line\s*id|라인\s*id)/i.test(v)) return true;
+  const digits=v.replace(/\D/g,'');
+  return digits.length>=9;
+}
 function formatMoney(n){ return new Intl.NumberFormat('ko-KR').format(n); }
 
 function walletChange(userId, amount, type, memo){
@@ -316,7 +329,7 @@ function yutThrow(r,userId){
   const sticks=[0,0,0,0].map(()=>crypto.randomInt(2)); const backs=sticks.filter(x=>x===0).length;
   let move,name,extra=false;
   if(backs===1){move=1;name='도';}else if(backs===2){move=2;name='개';}else if(backs===3){move=3;name='걸';}else if(backs===4){move=4;name='윷';extra=true;}else{move=5;name='모';extra=true;}
-  y.pending={move,name,extra};y.last={userId,name,move,at:now()};return y.pending;
+  y.pending={move,name,extra,sticks};y.last={userId,name,move,sticks,at:now()};return y.pending;
 }
 function yutMove(r,userId,pieceIndex){
   const y=r.yut;if(!y||y.phase!=='playing'||!y.pending)throw new Error('던지기부터 하세요.');
@@ -331,13 +344,13 @@ function yutMove(r,userId,pieceIndex){
     for(const p of r.players){escrowDelete(r.id,p.userId);db.prepare('UPDATE stats SET yut_games=yut_games+1, yut_wins=yut_wins+? WHERE user_id=?').run(p.userId===userId?1:0,p.userId);}
     walletChange(userId,prize,'yut_win',`${r.name} 윷놀이 우승 상금`);
   } else if(!wasExtra){ y.turnIndex=(y.turnIndex+1)%r.players.length; }
-  y.last={userId,name:lastName,move:next,captured,at:now()};
+  y.last={userId,name:lastName,move:next,captured,sticks:y.last?.sticks||null,at:now()};
 }
 
 function personalizedRoom(r,userId){
   return {
     id:r.id,name:r.name,game:r.game,buyIn:r.buyIn,maxPlayers:r.maxPlayers,hostId:r.hostId,status:roomStatus(r),smallBlind:r.smallBlind,bigBlind:r.bigBlind,
-    players:orderedPlayers(r).map(p=>({...p,avatarEmoji:AVATARS[p.avatar%AVATARS.length]})),chat:r.chat.slice(-40),
+    players:orderedPlayers(r).map(p=>({...p,avatarEmoji:AVATARS[p.avatar%AVATARS.length]})),
     hand:r.game==='holdem'?pokerView(r,userId):null,yut:r.game==='yut'?r.yut:null
   };
 }
@@ -362,6 +375,7 @@ const server=http.createServer(async(req,res)=>{
       const b=await readBody(req);const username=escText(b.username,20).toLowerCase(),nickname=escText(b.nickname,14),password=String(b.password||'');
       if(!/^[a-z0-9_]{4,20}$/.test(username))return json(res,400,{error:'아이디는 영문 소문자/숫자/_ 4~20자로 입력하세요.'});
       if(nickname.length<2)return json(res,400,{error:'닉네임은 2자 이상 입력하세요.'});
+      if(containsContactInfo(nickname))return json(res,400,{error:'닉네임에는 전화번호, 이메일, SNS ID, 링크 같은 개인정보를 사용할 수 없습니다.'});
       if(password.length<6||password.length>72)return json(res,400,{error:'비밀번호는 6~72자로 입력하세요.'});
       const salt=randomToken(16),hash=hashPassword(password,salt),avatar=crypto.randomInt(AVATARS.length),t=now();
       try{
@@ -406,23 +420,34 @@ const server=http.createServer(async(req,res)=>{
       if(u.balance<bet)return json(res,400,{error:'게임머니가 부족합니다.'});
       walletChange(u.id,-bet,'slot_bet',`슬롯 베팅 ${formatMoney(bet)}G`);
       const pick=()=>{const total=SLOT_SYMBOLS.reduce((s,x)=>s+x.w,0);let n=crypto.randomInt(total);for(const x of SLOT_SYMBOLS){if(n<x.w)return x.s;n-=x.w;}return '🍒';};
-      const reels=[pick(),pick(),pick()];let mult=0;
-      if(reels[0]===reels[1]&&reels[1]===reels[2])mult=SLOT_MULT[reels[0]];
-      else if(new Set(reels).size===2)mult=.5;
-      else if(reels.filter(x=>x==='🍒').length===2)mult=1;
-      const payout=Math.floor(bet*mult);if(payout>0)walletChange(u.id,payout,'slot_win',`슬롯 당첨 x${mult}`);
+      const grid=Array.from({length:3},()=>Array.from({length:3},()=>pick()));
+      const winLines=[];
+      let totalMultiplier=0;
+      for(const line of SLOT_LINES){
+        const symbols=line.cells.map(([r,c])=>grid[r][c]);
+        if(symbols.every(s=>s===symbols[0])){
+          const mult=SLOT_MULT[symbols[0]]||0;
+          if(mult>0){
+            totalMultiplier+=mult;
+            winLines.push({label:line.label,cssClass:line.cssClass,cells:line.cells,symbols,mult});
+          }
+        }
+      }
+      if(winLines.length>=3) totalMultiplier+=15;
+      const payout=Math.floor(bet*totalMultiplier);
+      if(payout>0)walletChange(u.id,payout,'slot_win',`슬롯 당첨 x${totalMultiplier}`);
       const profit=payout-bet;db.prepare('UPDATE stats SET slot_spins=slot_spins+1, slot_wins=slot_wins+?, slot_profit=slot_profit+? WHERE user_id=?').run(payout>bet?1:0,profit,u.id);pushRefresh();
-      return json(res,200,{reels,bet,payout,profit,user:userPublic(u.id),jackpot:mult>=50});
+      return json(res,200,{grid,bet,payout,profit,totalMultiplier,winLines,user:userPublic(u.id),jackpot:totalMultiplier>=80});
     }
     if(url.pathname==='/api/rooms'&&req.method==='GET'){
       const u=requireAuth(req,res);if(!u)return;const game=url.searchParams.get('game');const list=[...rooms.values()].filter(r=>!game||r.game===game).map(roomSummary).sort((a,b)=>a.status.localeCompare(b.status));return json(res,200,{rooms:list});
     }
     if(url.pathname==='/api/rooms'&&req.method==='POST'){
-      const u=requireAuth(req,res);if(!u)return;if(findUserRoom(u.id))return json(res,409,{error:'이미 다른 게임방에 참가 중입니다. 먼저 그 방에서 나와주세요.'});const b=await readBody(req),game=b.game==='yut'?'yut':'holdem',name=escText(b.name,24)||`${u.nickname}의 방`;
+      const u=requireAuth(req,res);if(!u)return;if(findUserRoom(u.id))return json(res,409,{error:'이미 다른 게임방에 참가 중입니다. 먼저 그 방에서 나와주세요.'});const b=await readBody(req),game=b.game==='yut'?'yut':'holdem';
       const maxPlayers=game==='holdem'?clampInt(b.maxPlayers,2,6):clampInt(b.maxPlayers,2,4);const buyIn=clampInt(b.buyIn,10000,500000);
       if(u.balance<buyIn)return json(res,400,{error:'방 참가금보다 보유 게임머니가 적습니다.'});
-      const id=makeRoomId();walletChange(u.id,-buyIn,`${game}_buyin`,`${name} 참가금`);
-      const r={id,name,game,buyIn,maxPlayers,hostId:u.id,smallBlind:game==='holdem'?Math.max(100,Math.floor(buyIn/100)):0,bigBlind:game==='holdem'?Math.max(200,Math.floor(buyIn/50)):0,players:[{userId:u.id,nickname:u.nickname,avatar:u.avatar,seat:0,stack:game==='holdem'?buyIn:0}],chat:[],createdAt:now(),hand:null,yut:null,dealerSeat:null};
+      const id=makeRoomId();const name=game==='holdem'?`홀덤 테이블 ${id}`:`윷놀이 방 ${id}`;walletChange(u.id,-buyIn,`${game}_buyin`,`${name} 참가금`);
+      const r={id,name,game,buyIn,maxPlayers,hostId:u.id,smallBlind:game==='holdem'?Math.max(100,Math.floor(buyIn/100)):0,bigBlind:game==='holdem'?Math.max(200,Math.floor(buyIn/50)):0,players:[{userId:u.id,nickname:u.nickname,avatar:u.avatar,seat:0,stack:game==='holdem'?buyIn:0}],createdAt:now(),hand:null,yut:null,dealerSeat:null};
       rooms.set(id,r);escrowSet(id,u.id,buyIn,game);pushRefresh(id);return json(res,201,{room:personalizedRoom(r,u.id)});
     }
     const roomMatch=url.pathname.match(/^\/api\/rooms\/([A-F0-9]+)(?:\/(.*))?$/);
@@ -437,9 +462,6 @@ const server=http.createServer(async(req,res)=>{
         const p=roomPlayer(r,u.id);if(!p)return json(res,200,{ok:true});if(roomStatus(r)==='PLAYING')return json(res,409,{error:'게임 진행 중에는 나갈 수 없습니다.'});
         const refund=r.game==='holdem'?p.stack:(r.yut?.phase==='complete'?0:r.buyIn); if(refund>0)walletChange(u.id,refund,`${r.game}_cashout`,`${r.name} 퇴장 환급`);escrowDelete(r.id,u.id);r.players=r.players.filter(x=>x.userId!==u.id);
         if(!r.players.length)rooms.delete(r.id);else if(r.hostId===u.id)r.hostId=r.players[0].userId;pushRefresh(r.id);return json(res,200,{ok:true});
-      }
-      if(op==='chat'&&req.method==='POST'){
-        if(!roomPlayer(r,u.id))return json(res,403,{error:'방 참가자만 채팅할 수 있습니다.'});const b=await readBody(req),message=escText(b.message,120);if(!message)return json(res,400,{error:'메시지를 입력하세요.'});r.chat.push({id:randomToken(4),userId:u.id,nickname:u.nickname,message,at:now()});r.chat=r.chat.slice(-50);pushRefresh(r.id);return json(res,200,{ok:true});
       }
       if(op==='start'&&req.method==='POST'){
         if(r.hostId!==u.id)return json(res,403,{error:'방장만 시작할 수 있습니다.'});if(r.game==='holdem'){if(r.hand&&r.hand.phase!=='complete')return json(res,409,{error:'이미 핸드가 진행 중입니다.'});pokerStart(r);}else{if(r.yut?.phase==='playing')return json(res,409,{error:'이미 게임 중입니다.'});if(r.yut?.phase==='complete')return json(res,409,{error:'윷놀이는 한 판이 끝났습니다. 새 방을 만들어 다시 참가해주세요.'});yutStart(r);}pushRefresh(r.id);return json(res,200,{room:personalizedRoom(r,u.id)});
