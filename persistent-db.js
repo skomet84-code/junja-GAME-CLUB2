@@ -17,7 +17,13 @@ const EXTRA_COLUMNS = {
     ['solo_yut_wins','INTEGER NOT NULL DEFAULT 0'],
     ['horse_races','INTEGER NOT NULL DEFAULT 0'],
     ['horse_wins','INTEGER NOT NULL DEFAULT 0'],
-    ['horse_profit','INTEGER NOT NULL DEFAULT 0']
+    ['horse_profit','INTEGER NOT NULL DEFAULT 0'],
+    ['bigwheel_plays','INTEGER NOT NULL DEFAULT 0'],
+    ['bigwheel_wins','INTEGER NOT NULL DEFAULT 0'],
+    ['bigwheel_profit','INTEGER NOT NULL DEFAULT 0'],
+    ['sicbo_plays','INTEGER NOT NULL DEFAULT 0'],
+    ['sicbo_wins','INTEGER NOT NULL DEFAULT 0'],
+    ['sicbo_profit','INTEGER NOT NULL DEFAULT 0']
   ],
   users: [
     ['is_admin','INTEGER NOT NULL DEFAULT 0'],
@@ -119,7 +125,7 @@ class DatabaseSync {
         console.error('[PERSIST] Snapshot restore failed:',e);
       }
     }else{
-      console.log('[PERSIST] Neon connected but no previous snapshot exists yet.');
+      console.log(hasRemote()?'[PERSIST] Neon connected but no previous snapshot exists yet.':'[PERSIST] DATABASE_URL not set; local SQLite mode.');
     }
     this._restored=true;
     this._enabled=true;

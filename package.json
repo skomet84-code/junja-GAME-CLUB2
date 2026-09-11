@@ -1,8 +1,8 @@
 {
   "name": "junja-game-club",
-  "version": "1.2.0",
+  "version": "1.5.0",
   "private": true,
-  "description": "JUNJA GAME CLUB v1.2 - reactions, admin debit fixes, poker/slot/seotda impact effects, character UI, Neon persistence.",
+  "description": "JUNJA GAME CLUB v1.5 - One-touch horse and wager controls, persistent race result board, mobile UX refinements, and Neon persistence.",
   "type": "commonjs",
   "scripts": {
     "start": "node server.js"

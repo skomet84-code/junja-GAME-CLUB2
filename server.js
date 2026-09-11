@@ -84,6 +84,12 @@ ensureColumn('stats','solo_yut_wins','INTEGER NOT NULL DEFAULT 0');
 ensureColumn('stats','horse_races','INTEGER NOT NULL DEFAULT 0');
 ensureColumn('stats','horse_wins','INTEGER NOT NULL DEFAULT 0');
 ensureColumn('stats','horse_profit','INTEGER NOT NULL DEFAULT 0');
+ensureColumn('stats','bigwheel_plays','INTEGER NOT NULL DEFAULT 0');
+ensureColumn('stats','bigwheel_wins','INTEGER NOT NULL DEFAULT 0');
+ensureColumn('stats','bigwheel_profit','INTEGER NOT NULL DEFAULT 0');
+ensureColumn('stats','sicbo_plays','INTEGER NOT NULL DEFAULT 0');
+ensureColumn('stats','sicbo_wins','INTEGER NOT NULL DEFAULT 0');
+ensureColumn('stats','sicbo_profit','INTEGER NOT NULL DEFAULT 0');
 ensureColumn('users','is_admin','INTEGER NOT NULL DEFAULT 0');
 ensureColumn('users','is_disabled','INTEGER NOT NULL DEFAULT 0');
 
@@ -117,7 +123,7 @@ const ROOM_REACTIONS = {
 const SLOT_SYMBOLS = [
   {s:'🍒',w:140},{s:'🍋',w:120},{s:'🍊',w:100},{s:'🔔',w:65},{s:'⭐',w:45},{s:'💎',w:25},{s:'7️⃣',w:7},{s:'J',w:1}
 ];
-const SLOT_MULT = {'🍒':6,'🍋':8,'🍊':10,'🔔':18,'⭐':35,'💎':80,'7️⃣':1000,'J':500};
+const SLOT_MULT = {'🍒':2,'🍋':2,'🍊':3,'🔔':5,'⭐':8,'💎':15,'7️⃣':1000,'J':500};
 const SLOT_LINES = [
   { key:'top', label:'TOP', cssClass:'top', cells:[[0,0],[0,1],[0,2]] },
   { key:'mid', label:'MIDDLE', cssClass:'mid', cells:[[1,0],[1,1],[1,2]] },
@@ -187,7 +193,7 @@ function userPublic(userId){
   const u=db.prepare(`SELECT u.id,u.username,u.nickname,u.balance,u.avatar,u.created_at,u.last_daily,u.is_admin,u.is_disabled,
     s.slot_spins,s.slot_wins,s.slot_profit,s.poker_hands,s.poker_wins,s.yut_games,s.yut_wins,
     s.seotda_games,s.seotda_wins,s.gostop_games,s.gostop_wins,s.solo_poker_wins,s.solo_yut_wins,
-    s.horse_races,s.horse_wins,s.horse_profit
+    s.horse_races,s.horse_wins,s.horse_profit,s.bigwheel_plays,s.bigwheel_wins,s.bigwheel_profit,s.sicbo_plays,s.sicbo_wins,s.sicbo_profit
     FROM users u JOIN stats s ON s.user_id=u.id WHERE u.id=?`).get(userId);
   if(!u) return null;
   return {...u, avatarEmoji:AVATARS[u.avatar%AVATARS.length], dailyAvailable:u.last_daily!==kstDate()};
@@ -680,6 +686,52 @@ function settleRace(userId,bet,type,picks,card,order){
   db.prepare('UPDATE stats SET horse_races=horse_races+1, horse_wins=horse_wins+?, horse_profit=horse_profit+? WHERE user_id=?').run(won?1:0,payout-bet,userId);
   return {won,placeBonus,finishRank,mult,payout,winMult};
 }
+// ---------- Big Wheel & Sic Bo v1.3 ----------
+const BIG_WHEEL_SEGMENTS = [
+  ...Array(10).fill({key:'x2',label:'×2',mult:2}),
+  ...Array(6).fill({key:'x3',label:'×3',mult:3}),
+  ...Array(4).fill({key:'x5',label:'×5',mult:5}),
+  ...Array(2).fill({key:'x10',label:'×10',mult:10}),
+  {key:'x15',label:'×15',mult:15},
+  {key:'junja',label:'JUNJA',mult:20}
+];
+const BIG_WHEEL_BETS = [...new Map(BIG_WHEEL_SEGMENTS.map(x=>[x.key,x])).values()];
+function bigWheelSpin(userId,bet,key){
+  bet=gameWager(bet,1000,100000,1000);
+  const u=userPublic(userId);if(!u||u.balance<bet)throw new Error('게임머니가 부족합니다.');
+  const target=BIG_WHEEL_BETS.find(x=>x.key===key);if(!target)throw new Error('배당 선택을 확인해주세요.');
+  walletChange(userId,-bet,'bigwheel_bet',`빅휠 ${target.label} 베팅 ${formatMoney(bet)}G`);
+  const index=crypto.randomInt(BIG_WHEEL_SEGMENTS.length),landed=BIG_WHEEL_SEGMENTS[index],won=landed.key===target.key,payout=won?bet*target.mult:0;
+  if(payout)walletChange(userId,payout,'bigwheel_win',`빅휠 ${target.label} 적중 x${target.mult}`);
+  db.prepare('UPDATE stats SET bigwheel_plays=bigwheel_plays+1, bigwheel_wins=bigwheel_wins+?, bigwheel_profit=bigwheel_profit+? WHERE user_id=?').run(won?1:0,payout-bet,userId);
+  return {index,landed,target,won,payout,profit:payout-bet,segments:BIG_WHEEL_SEGMENTS.length};
+}
+const SICBO_TOTAL_GROSS={4:51,5:19,6:15,7:13,8:9,9:7,10:6,11:6,12:7,13:9,14:13,15:15,16:19,17:51};
+function sicboBetMeta(key){
+  if(['small','big','odd','even','any-triple'].includes(key))return {key,label:{small:'SMALL 4–10',big:'BIG 11–17',odd:'ODD',even:'EVEN','any-triple':'ANY TRIPLE'}[key],mult:key==='any-triple'?31:2};
+  const m=String(key||'').match(/^total-(\d{1,2})$/);if(m){const n=Number(m[1]);if(SICBO_TOTAL_GROSS[n])return {key:`total-${n}`,label:`TOTAL ${n}`,mult:SICBO_TOTAL_GROSS[n],total:n};}
+  return null;
+}
+function sicboWon(meta,dice){
+  const total=dice.reduce((a,b)=>a+b,0),triple=dice[0]===dice[1]&&dice[1]===dice[2];
+  if(meta.key==='small')return !triple&&total>=4&&total<=10;
+  if(meta.key==='big')return !triple&&total>=11&&total<=17;
+  if(meta.key==='odd')return !triple&&total%2===1;
+  if(meta.key==='even')return !triple&&total%2===0;
+  if(meta.key==='any-triple')return triple;
+  if(meta.total)return total===meta.total;
+  return false;
+}
+function sicboRoll(userId,bet,key){
+  bet=gameWager(bet,1000,100000,1000);const u=userPublic(userId);if(!u||u.balance<bet)throw new Error('게임머니가 부족합니다.');
+  const meta=sicboBetMeta(key);if(!meta)throw new Error('다이사이 베팅 항목을 선택해주세요.');
+  walletChange(userId,-bet,'sicbo_bet',`다이사이 ${meta.label} ${formatMoney(bet)}G`);
+  const dice=[crypto.randomInt(1,7),crypto.randomInt(1,7),crypto.randomInt(1,7)],total=dice.reduce((a,b)=>a+b,0),triple=dice[0]===dice[1]&&dice[1]===dice[2],won=sicboWon(meta,dice),payout=won?bet*meta.mult:0;
+  if(payout)walletChange(userId,payout,'sicbo_win',`다이사이 ${meta.label} 적중 x${meta.mult}`);
+  db.prepare('UPDATE stats SET sicbo_plays=sicbo_plays+1, sicbo_wins=sicbo_wins+?, sicbo_profit=sicbo_profit+? WHERE user_id=?').run(won?1:0,payout-bet,userId);
+  return {dice,total,triple,bet:meta,won,payout,profit:payout-bet};
+}
+
 // ---------- Seotda ----------
 function seotdaDeck(){const d=[];for(let m=1;m<=10;m++){d.push({m,g:[1,3,8].includes(m),id:`${m}G`});d.push({m,g:false,id:`${m}N`});}return shuffle(d);}
 function seotdaRank(cards){
@@ -794,7 +846,7 @@ const server=http.createServer(async(req,res)=>{
       const q=escText(url.searchParams.get('q')||'',30);
       const like=`%${q}%`;
       const rows=db.prepare(`SELECT u.id,u.username,u.nickname,u.balance,u.created_at,u.is_admin,u.is_disabled,u.avatar,
-        s.slot_spins,s.slot_profit,s.poker_hands,s.poker_wins,s.yut_games,s.yut_wins,s.seotda_games,s.seotda_wins,s.gostop_games,s.gostop_wins,s.horse_races,s.horse_wins,s.horse_profit
+        s.slot_spins,s.slot_profit,s.poker_hands,s.poker_wins,s.yut_games,s.yut_wins,s.seotda_games,s.seotda_wins,s.gostop_games,s.gostop_wins,s.horse_races,s.horse_wins,s.horse_profit,s.bigwheel_plays,s.bigwheel_wins,s.bigwheel_profit,s.sicbo_plays,s.sicbo_wins,s.sicbo_profit
         FROM users u JOIN stats s ON s.user_id=u.id
         WHERE (?='' OR u.username LIKE ? OR u.nickname LIKE ?)
         ORDER BY u.is_admin DESC,u.id DESC LIMIT 100`).all(q,like,like).map(x=>({...x,avatarEmoji:AVATARS[x.avatar%AVATARS.length]}));
@@ -875,7 +927,8 @@ const server=http.createServer(async(req,res)=>{
       const payout=Math.floor(bet*totalMultiplier);
       if(payout>0)walletChange(u.id,payout,'slot_win',`슬롯 당첨 x${totalMultiplier}`);
       const profit=payout-bet;db.prepare('UPDATE stats SET slot_spins=slot_spins+1, slot_wins=slot_wins+?, slot_profit=slot_profit+? WHERE user_id=?').run(payout>bet?1:0,profit,u.id);pushRefresh();
-      return json(res,200,{grid,bet,payout,profit,totalMultiplier,winLines,user:userPublic(u.id),jackpot:winLines.some(w=>!w.scatter&&(w.symbols?.[0]==='7️⃣'||w.symbols?.[0]==='J'))});
+      const jackpotLine=winLines.find(w=>!w.scatter&&(w.symbols?.[0]==='7️⃣'||w.symbols?.[0]==='J'));
+      return json(res,200,{grid,bet,payout,profit,totalMultiplier,winLines,user:userPublic(u.id),jackpot:!!jackpotLine,jackpotSymbol:jackpotLine?.symbols?.[0]||null});
     }
 
     // ---- Solo game routes ----
@@ -891,17 +944,28 @@ const server=http.createServer(async(req,res)=>{
     if(url.pathname==='/api/solo/yut/move'&&req.method==='POST'){const u=requireAuth(req,res);if(!u)return;const s=soloYut.get(u.id);if(!s)return json(res,404,{error:'AI 윷놀이가 없습니다.'});const b=await readBody(req);soloYutMoveSide(s,'user',Number(b.pieceIndex),Number(b.moveIndex||0));if(s.phase==='complete'){settleSoloYut(u.id);}else{soloYutBotDrive(u.id);settleSoloYut(u.id);}return json(res,200,{game:s,user:userPublic(u.id)});}
     if(url.pathname==='/api/solo/yut/quit'&&req.method==='POST'){const u=requireAuth(req,res);if(!u)return;const s=soloYut.get(u.id);if(s&&!s.settled)escrowDelete(`SOLOY${u.id}`,u.id);soloYut.delete(u.id);if(s&&!s.settled)db.prepare('UPDATE stats SET yut_games=yut_games+1 WHERE user_id=?').run(u.id);return json(res,200,{ok:true,user:userPublic(u.id)});}
 
-    if(url.pathname==='/api/solo/seotda/start'&&req.method==='POST'){const u=requireAuth(req,res);if(!u)return;const b=await readBody(req);const game=soloSeotdaStart(u,Number(b.bet));return json(res,200,{game,user:userPublic(u.id)});}
+    if(url.pathname==='/api/solo/seotda/start'&&req.method==='POST'){const u=requireAuth(req,res);if(!u)return;const b=await readBody(req);let game;try{game=soloSeotdaStart(u,Number(b.bet))}catch(e){return json(res,400,{error:e.message})}return json(res,200,{game,user:userPublic(u.id)});}
     if(url.pathname==='/api/solo/seotda'&&req.method==='GET'){const u=requireAuth(req,res);if(!u)return;return json(res,200,{game:soloSeotda.get(u.id)||null});}
     if(url.pathname==='/api/solo/seotda/action'&&req.method==='POST'){const u=requireAuth(req,res);if(!u)return;const b=await readBody(req);const game=soloSeotdaResolve(u.id,b.action);return json(res,200,{game,user:userPublic(u.id)});}
     if(url.pathname==='/api/solo/seotda/reset'&&req.method==='POST'){const u=requireAuth(req,res);if(!u)return;const s=soloSeotda.get(u.id);if(s&&s.phase!=='complete')return json(res,409,{error:'진행 중인 판은 초기화할 수 없습니다.'});soloSeotda.delete(u.id);return json(res,200,{ok:true});}
 
-    if(url.pathname==='/api/solo/gostop/start'&&req.method==='POST'){const u=requireAuth(req,res);if(!u)return;const b=await readBody(req);const game=soloGostopStart(u,Number(b.bet));return json(res,200,{game:publicGostop(game),user:userPublic(u.id)});}
+    if(url.pathname==='/api/solo/gostop/start'&&req.method==='POST'){const u=requireAuth(req,res);if(!u)return;const b=await readBody(req);let game;try{game=soloGostopStart(u,Number(b.bet))}catch(e){return json(res,400,{error:e.message})}return json(res,200,{game:publicGostop(game),user:userPublic(u.id)});}
     if(url.pathname==='/api/solo/gostop'&&req.method==='GET'){const u=requireAuth(req,res);if(!u)return;return json(res,200,{game:publicGostop(soloGostop.get(u.id)||null)});}
     if(url.pathname==='/api/solo/gostop/play'&&req.method==='POST'){const u=requireAuth(req,res);if(!u)return;const b=await readBody(req);const game=soloGostopPlay(u.id,String(b.cardId||''));return json(res,200,{game:publicGostop(game),user:userPublic(u.id)});}
     if(url.pathname==='/api/solo/gostop/decision'&&req.method==='POST'){const u=requireAuth(req,res);if(!u)return;const b=await readBody(req);const game=soloGostopDecision(u.id,b.decision);return json(res,200,{game:publicGostop(game),user:userPublic(u.id)});}
     if(url.pathname==='/api/solo/gostop/reset'&&req.method==='POST'){const u=requireAuth(req,res);if(!u)return;const s=soloGostop.get(u.id);if(s&&s.phase!=='complete')return json(res,409,{error:'진행 중인 판은 초기화할 수 없습니다.'});soloGostop.delete(u.id);return json(res,200,{ok:true});}
 
+
+    if(url.pathname==='/api/bigwheel/spin'&&req.method==='POST'){
+      const u=requireAuth(req,res);if(!u)return;const b=await readBody(req);let result;
+      try{result=bigWheelSpin(u.id,Number(b.bet),String(b.key||''));}catch(e){return json(res,400,{error:e.message});}
+      pushRefresh();return json(res,200,{result,user:userPublic(u.id)});
+    }
+    if(url.pathname==='/api/sicbo/roll'&&req.method==='POST'){
+      const u=requireAuth(req,res);if(!u)return;const b=await readBody(req);let result;
+      try{result=sicboRoll(u.id,Number(b.bet),String(b.key||''));}catch(e){return json(res,400,{error:e.message});}
+      pushRefresh();return json(res,200,{result,user:userPublic(u.id)});
+    }
 
     if(url.pathname==='/api/horse/card'&&req.method==='GET'){
       const u=requireAuth(req,res);if(!u)return;const card=horseCard();raceCards.set(u.id,card);return json(res,200,{card});
