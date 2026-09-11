@@ -1,3 +1,4 @@
-JUNJA GAME CLUB v0.7.0
-Built 2026-09-10
-Power Update: Authentic Yut rules / stacking / shortcuts / 2v2 & 3v3 teams / cinematic Yut toss / horse racing with WIN-QUINELLA-EXACTA / admin center retained
+JUNJA GAME CLUB v0.8.0
+Built 2026-09-11
+Persistence update: Neon PostgreSQL snapshot persistence for accounts, wallet, stats, admin audit and sessions.
+Existing v0.7 games/features retained.

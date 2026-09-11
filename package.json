@@ -1,13 +1,16 @@
 {
   "name": "junja-game-club",
-  "version": "0.5.0",
+  "version": "0.8.0",
   "private": true,
-  "description": "JUNJA GAME CLUB v0.5 - privacy-first virtual-currency game club with multiplayer and AI modes.",
+  "description": "JUNJA GAME CLUB v0.8 - Neon-backed persistent account and wallet storage.",
   "type": "commonjs",
   "scripts": {
     "start": "node server.js"
   },
   "engines": {
     "node": ">=22.5.0"
+  },
+  "dependencies": {
+    "pg": "^8.13.1"
   }
 }

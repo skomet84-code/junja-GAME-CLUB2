@@ -4,7 +4,7 @@ const http = require('node:http');
 const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
-const { DatabaseSync } = require('node:sqlite');
+const { DatabaseSync } = require('./persistent-db');
 
 const PORT = Number(process.env.PORT || 10000);
 const HOST = '0.0.0.0';
