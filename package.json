@@ -1,8 +1,8 @@
 {
   "name": "junja-game-club",
-  "version": "1.9.0",
+  "version": "2.0.0",
   "private": true,
-  "description": "JUNJA GAME CLUB v1.9 - Avatar, inventory, boutique shop, cosmetic loadouts, collection tiers, table skins and premium speech bubble packs.",
+  "description": "JUNJA GAME CLUB v2.0 - Luxury Boutique, purchasable animated profile borders, high-value economy and 1B prestige collection.",
   "type": "commonjs",
   "scripts": {
     "start": "node server.js"

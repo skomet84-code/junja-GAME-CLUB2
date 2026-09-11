@@ -158,53 +158,99 @@ const ROOM_REACTIONS = {
   crown:{emoji:'👑',label:'품격 있게~',pack:'bubble_royal'},
   sparkle:{emoji:'✨',label:'클래스가 다르지',pack:'bubble_royal'},
   salute:{emoji:'🫡',label:'인정!',pack:'bubble_royal'},
-  throne:{emoji:'🪑',label:'왕좌는 내 자리',pack:'bubble_royal'}
+  throne:{emoji:'🪑',label:'왕좌는 내 자리',pack:'bubble_royal'},
+  bigbet:{emoji:'💸',label:'큰 판 간다!',pack:'bubble_highroller'},
+  chips:{emoji:'🪙',label:'칩 쌓아!',pack:'bubble_highroller'},
+  allin:{emoji:'🔥',label:'올인 감성!',pack:'bubble_highroller'},
+  myday:{emoji:'😎',label:'오늘은 내 날',pack:'bubble_highroller'},
+  legend:{emoji:'⚡',label:'전설 등장!',pack:'bubble_legend'},
+  classup:{emoji:'👑',label:'이게 클래스',pack:'bubble_legend'},
+  mood:{emoji:'✨',label:'분위기 잡았다',pack:'bubble_legend'},
+  finish:{emoji:'🏆',label:'끝내자!',pack:'bubble_legend'}
 };
 
 const SHOP_ITEMS = [
-  {id:'costume_dealer',category:'costume',name:'VIP 딜러',icon:'🎩',rarity:'rare',price:250000,desc:'카지노 딜러 느낌의 골드 햇 장식'},
-  {id:'costume_rabbit',category:'costume',name:'럭키 래빗',icon:'🐰',rarity:'rare',price:650000,desc:'행운을 부르는 토끼 코스튬'},
-  {id:'costume_royal',category:'costume',name:'로열 크라운',icon:'👑',rarity:'epic',price:1500000,desc:'입장부터 티 나는 왕관 코스튬'},
-  {id:'costume_angel',category:'costume',name:'헤븐 윙',icon:'😇',rarity:'epic',price:2500000,desc:'은은하게 빛나는 천사 코스튬'},
-  {id:'costume_devil',category:'costume',name:'레드 데빌',icon:'😈',rarity:'epic',price:2500000,desc:'승부욕 넘치는 레드 데빌'},
-  {id:'costume_robot',category:'costume',name:'J-ROBOT',icon:'🤖',rarity:'legendary',price:5000000,desc:'메탈릭 미래형 코스튬'},
-  {id:'costume_dragon',category:'costume',name:'골든 드래곤',icon:'🐲',rarity:'legendary',price:15000000,desc:'고액 플레이어를 위한 드래곤 오라'},
-  {id:'costume_junja',category:'costume',name:'JUNJA SIGNATURE',icon:'J',rarity:'mythic',price:50000000,desc:'최상위 시그니처 J 코스튬'},
+  // COSTUMES · 보여지는 존재감 중심
+  {id:'costume_dealer',category:'costume',name:'VIP 딜러',icon:'🎩',rarity:'rare',price:2000000,desc:'골드 딜러 햇과 하이롤러 무드'},
+  {id:'costume_rabbit',category:'costume',name:'럭키 래빗',icon:'🐰',rarity:'rare',price:5000000,desc:'행운을 부르는 럭키 래빗 코스튬'},
+  {id:'costume_tuxedo',category:'costume',name:'블랙 타이',icon:'🕴️',rarity:'rare',price:12000000,desc:'클래식 카지노 블랙 타이 스타일'},
+  {id:'costume_royal',category:'costume',name:'로열 크라운',icon:'👑',rarity:'epic',price:25000000,desc:'입장 순간 시선이 모이는 왕관'},
+  {id:'costume_angel',category:'costume',name:'헤븐 윙',icon:'😇',rarity:'epic',price:40000000,desc:'은은한 천상 오라의 화이트 윙'},
+  {id:'costume_devil',category:'costume',name:'레드 데빌',icon:'😈',rarity:'epic',price:40000000,desc:'승부욕을 드러내는 레드 데빌'},
+  {id:'costume_robot',category:'costume',name:'J-ROBOT MK.II',icon:'🤖',rarity:'legendary',price:80000000,desc:'메탈릭 JUNJA 미래형 코스튬'},
+  {id:'costume_phantom',category:'costume',name:'팬텀 킹',icon:'🦹',rarity:'legendary',price:120000000,desc:'블랙 망토와 미스터리 하이롤러 무드'},
+  {id:'costume_dragon',category:'costume',name:'골든 드래곤',icon:'🐲',rarity:'legendary',price:250000000,desc:'황금 용의 기운을 두른 상위 컬렉터 코스튬'},
+  {id:'costume_emperor',category:'costume',name:'다이아 엠퍼러',icon:'💠',rarity:'mythic',price:500000000,desc:'다이아 광채가 흐르는 황제급 코스튬'},
+  {id:'costume_junja',category:'costume',name:'JUNJA SIGNATURE',icon:'J',rarity:'mythic',price:750000000,desc:'클럽 최상위 시그니처 J 코스튬'},
+  {id:'costume_imperator',category:'costume',name:'JUNJA IMPERATOR',icon:'♛',rarity:'prestige',price:1000000000,desc:'10억 G 프레스티지. JUNJA CLUB 최상위 황제 코스튬',featured:true},
 
-  {id:'frame_bronze',category:'frame',name:'브론즈 링',icon:'◉',rarity:'common',price:100000,desc:'깔끔한 브론즈 프로필 링'},
-  {id:'frame_neon',category:'frame',name:'네온 베가스',icon:'✦',rarity:'rare',price:400000,desc:'네온이 흐르는 프로필 프레임'},
-  {id:'frame_royal',category:'frame',name:'로열 골드',icon:'♛',rarity:'epic',price:1000000,desc:'금빛 왕실 프레임'},
-  {id:'frame_diamond',category:'frame',name:'다이아몬드',icon:'💎',rarity:'legendary',price:10000000,desc:'다이아 빛이 도는 최고급 프레임'},
-  {id:'frame_inferno',category:'frame',name:'인페르노',icon:'🔥',rarity:'mythic',price:25000000,desc:'불꽃이 살아있는 최상위 프레임'},
+  // PROFILE BORDERS · 실제 구매/장착 가능한 프로필 테두리
+  {id:'frame_silver',category:'frame',name:'실버 라인',icon:'◌',rarity:'common',price:1000000,desc:'깔끔한 실버 메탈 프로필 테두리'},
+  {id:'frame_bronze',category:'frame',name:'브론즈 링',icon:'◉',rarity:'common',price:2000000,desc:'클래식 브론즈 카지노 링'},
+  {id:'frame_neon',category:'frame',name:'네온 베가스',icon:'✦',rarity:'rare',price:5000000,desc:'보라·블루 네온이 살아 움직이는 테두리'},
+  {id:'frame_ruby',category:'frame',name:'루비 블레이즈',icon:'♦',rarity:'rare',price:10000000,desc:'붉은 루비광이 흐르는 프로필 테두리'},
+  {id:'frame_sapphire',category:'frame',name:'사파이어 링',icon:'🔷',rarity:'rare',price:15000000,desc:'차가운 블루 사파이어 글로우'},
+  {id:'frame_royal',category:'frame',name:'로열 골드',icon:'♛',rarity:'epic',price:30000000,desc:'왕실 골드 라인이 겹쳐지는 고급 테두리'},
+  {id:'frame_blackcrown',category:'frame',name:'블랙 크라운',icon:'♚',rarity:'epic',price:50000000,desc:'블랙·골드 하이롤러 전용 테두리'},
+  {id:'frame_aurora',category:'frame',name:'오로라',icon:'🌌',rarity:'epic',price:80000000,desc:'오로라 컬러가 순환하는 프레임'},
+  {id:'frame_diamond',category:'frame',name:'다이아몬드',icon:'💎',rarity:'legendary',price:150000000,desc:'다이아 입자가 반짝이는 최고급 프로필 링'},
+  {id:'frame_inferno',category:'frame',name:'인페르노',icon:'🔥',rarity:'legendary',price:200000000,desc:'불꽃이 맥동하는 강렬한 테두리'},
+  {id:'frame_galaxy',category:'frame',name:'갤럭시 크라운',icon:'🌠',rarity:'legendary',price:300000000,desc:'은하빛과 별가루가 흐르는 프레임'},
+  {id:'frame_emperor',category:'frame',name:'엠퍼러 골드',icon:'🏛️',rarity:'mythic',price:500000000,desc:'황제급 골드 레이어와 왕관 광채'},
+  {id:'frame_junjaroyal',category:'frame',name:'JUNJA ROYAL',icon:'J',rarity:'mythic',price:750000000,desc:'J 시그니처 광채가 흐르는 최상급 테두리'},
+  {id:'frame_legend',category:'frame',name:'LEGEND 1B',icon:'👑',rarity:'prestige',price:1000000000,desc:'10억 G 프레스티지. 소유 자체가 랭크인 전설 테두리',featured:true},
 
-  {id:'title_vip',category:'title',name:'VIP',icon:'VIP',rarity:'common',price:250000,desc:'닉네임 아래 VIP 칭호'},
-  {id:'title_highroller',category:'title',name:'HIGH ROLLER',icon:'HR',rarity:'rare',price:1000000,desc:'큰 판을 즐기는 플레이어 칭호'},
-  {id:'title_pokerace',category:'title',name:'POKER ACE',icon:'A♠',rarity:'epic',price:3000000,desc:'카드 테이블 전용 감성 칭호'},
-  {id:'title_jackpot',category:'title',name:'JACKPOT KING',icon:'777',rarity:'epic',price:5000000,desc:'잭팟을 노리는 플레이어 칭호'},
-  {id:'title_grandmaster',category:'title',name:'GRAND MASTER',icon:'GM',rarity:'legendary',price:10000000,desc:'클럽 상위 컬렉터 칭호'},
-  {id:'title_legend',category:'title',name:'JUNJA LEGEND',icon:'J★',rarity:'mythic',price:50000000,desc:'최상위 명예 칭호'},
+  // TITLES
+  {id:'title_vip',category:'title',name:'VIP',icon:'VIP',rarity:'common',price:2000000,desc:'닉네임 아래 표시되는 VIP 칭호'},
+  {id:'title_highroller',category:'title',name:'HIGH ROLLER',icon:'HR',rarity:'rare',price:8000000,desc:'큰 판을 즐기는 플레이어 칭호'},
+  {id:'title_pokerace',category:'title',name:'POKER ACE',icon:'A♠',rarity:'epic',price:15000000,desc:'카드 테이블에 어울리는 에이스 칭호'},
+  {id:'title_raceboss',category:'title',name:'RACE BOSS',icon:'🏁',rarity:'epic',price:20000000,desc:'그랜드 레이스 전용 감성 칭호'},
+  {id:'title_jackpot',category:'title',name:'JACKPOT KING',icon:'777',rarity:'epic',price:30000000,desc:'잭팟 헌터의 존재감을 드러내는 칭호'},
+  {id:'title_casinoking',category:'title',name:'CASINO KING',icon:'♛',rarity:'legendary',price:80000000,desc:'클럽 전체를 지배하는 카지노 킹'},
+  {id:'title_grandmaster',category:'title',name:'GRAND MASTER',icon:'GM',rarity:'legendary',price:150000000,desc:'상위 컬렉터를 위한 그랜드 마스터'},
+  {id:'title_legend',category:'title',name:'JUNJA LEGEND',icon:'J★',rarity:'mythic',price:300000000,desc:'JUNJA CLUB 레전드 칭호'},
+  {id:'title_royalone',category:'title',name:'THE ROYAL ONE',icon:'♔',rarity:'mythic',price:600000000,desc:'단 한 명의 왕처럼 보이는 로열 칭호'},
+  {id:'title_thejunja',category:'title',name:'THE JUNJA',icon:'J∞',rarity:'prestige',price:1000000000,desc:'10억 G 프레스티지. 최상위 명예 칭호',featured:true},
 
-  {id:'pet_cat',category:'pet',name:'카지노 캣',icon:'🐈',rarity:'common',price:300000,desc:'옆에서 응원하는 작은 고양이'},
-  {id:'pet_shiba',category:'pet',name:'럭키 시바',icon:'🐕',rarity:'rare',price:800000,desc:'승부를 지켜보는 시바'},
-  {id:'pet_robot',category:'pet',name:'칩봇',icon:'🤖',rarity:'epic',price:3000000,desc:'칩을 지키는 미니 로봇'},
-  {id:'pet_dragon',category:'pet',name:'베이비 드래곤',icon:'🐉',rarity:'legendary',price:8000000,desc:'테이블 옆을 지키는 작은 용'},
-  {id:'pet_phoenix',category:'pet',name:'골든 피닉스',icon:'🦅',rarity:'mythic',price:20000000,desc:'황금 불꽃 오라를 가진 전설 펫'},
+  // PETS
+  {id:'pet_cat',category:'pet',name:'카지노 캣',icon:'🐈',rarity:'common',price:2000000,desc:'옆에서 조용히 응원하는 카지노 고양이'},
+  {id:'pet_shiba',category:'pet',name:'럭키 시바',icon:'🐕',rarity:'rare',price:5000000,desc:'행운을 지켜보는 럭키 시바'},
+  {id:'pet_fox',category:'pet',name:'루비 폭스',icon:'🦊',rarity:'rare',price:10000000,desc:'붉은 보석빛 여우 펫'},
+  {id:'pet_robot',category:'pet',name:'칩봇 X',icon:'🤖',rarity:'epic',price:20000000,desc:'칩을 지키는 미니 카지노 로봇'},
+  {id:'pet_panda',category:'pet',name:'VIP 판다',icon:'🐼',rarity:'epic',price:30000000,desc:'블랙&화이트 VIP 판다'},
+  {id:'pet_dragon',category:'pet',name:'베이비 드래곤',icon:'🐉',rarity:'legendary',price:80000000,desc:'테이블 옆을 지키는 작은 용'},
+  {id:'pet_tiger',category:'pet',name:'골든 타이거',icon:'🐅',rarity:'legendary',price:120000000,desc:'황금빛 승부사의 수호 호랑이'},
+  {id:'pet_phoenix',category:'pet',name:'골든 피닉스',icon:'🦅',rarity:'legendary',price:250000000,desc:'황금 불꽃 오라를 가진 전설 펫'},
+  {id:'pet_whale',category:'pet',name:'셀레스티얼 웨일',icon:'🐋',rarity:'mythic',price:500000000,desc:'별빛을 머금은 신화급 수호 펫'},
+  {id:'pet_guardian',category:'pet',name:'JUNJA GUARDIAN',icon:'🦁',rarity:'prestige',price:1000000000,desc:'10억 G 프레스티지. 최상위 수호자 펫',featured:true},
 
-  {id:'table_emerald',category:'table_skin',name:'에메랄드 클래식',icon:'♣',rarity:'common',price:500000,desc:'정통 카지노 녹색 펠트'},
-  {id:'table_royalred',category:'table_skin',name:'로열 레드',icon:'♥',rarity:'rare',price:1500000,desc:'고급 레드 벨벳 테이블'},
-  {id:'table_midnight',category:'table_skin',name:'미드나잇 블랙',icon:'♠',rarity:'epic',price:2000000,desc:'블랙 & 실버 하이롤러 룸'},
-  {id:'table_neon',category:'table_skin',name:'네온 베가스',icon:'✦',rarity:'legendary',price:5000000,desc:'보라·블루 네온 카지노 테이블'},
-  {id:'table_diamond',category:'table_skin',name:'다이아 살롱',icon:'♦',rarity:'mythic',price:15000000,desc:'다이아 광택이 흐르는 프리미엄 살롱'},
+  // TABLE SKINS
+  {id:'table_emerald',category:'table_skin',name:'에메랄드 클래식',icon:'♣',rarity:'common',price:5000000,desc:'정통 카지노 에메랄드 펠트'},
+  {id:'table_royalred',category:'table_skin',name:'로열 레드',icon:'♥',rarity:'rare',price:12000000,desc:'고급 레드 벨벳 테이블'},
+  {id:'table_midnight',category:'table_skin',name:'미드나잇 블랙',icon:'♠',rarity:'epic',price:25000000,desc:'블랙&실버 하이롤러 룸'},
+  {id:'table_neon',category:'table_skin',name:'네온 베가스',icon:'✦',rarity:'epic',price:50000000,desc:'보라·블루 네온 카지노 테이블'},
+  {id:'table_diamond',category:'table_skin',name:'다이아 살롱',icon:'♦',rarity:'legendary',price:120000000,desc:'다이아 광택이 흐르는 프리미엄 살롱'},
+  {id:'table_marble',category:'table_skin',name:'블랙 마블',icon:'⬢',rarity:'legendary',price:200000000,desc:'검은 대리석과 골드 인레이 테이블'},
+  {id:'table_emperor',category:'table_skin',name:'엠퍼러 룸',icon:'🏛️',rarity:'mythic',price:500000000,desc:'황제 전용 프라이빗 카지노 룸'},
+  {id:'table_palace',category:'table_skin',name:'JUNJA PALACE',icon:'👑',rarity:'prestige',price:1000000000,desc:'10억 G 프레스티지. JUNJA CLUB 최상위 테이블',featured:true},
 
-  {id:'card_obsidian',category:'card_back',name:'옵시디언 백',icon:'🂠',rarity:'common',price:200000,desc:'검정 카드 뒷면'},
-  {id:'card_ruby',category:'card_back',name:'루비 백',icon:'♦',rarity:'rare',price:500000,desc:'붉은 보석 카드 뒷면'},
-  {id:'card_gold',category:'card_back',name:'24K 골드 백',icon:'♛',rarity:'epic',price:2000000,desc:'골드 패턴 카드 뒷면'},
-  {id:'card_cosmic',category:'card_back',name:'코스믹 J 백',icon:'J',rarity:'legendary',price:5000000,desc:'J 로고가 빛나는 우주 테마'},
+  // CARD BACKS
+  {id:'card_obsidian',category:'card_back',name:'옵시디언 백',icon:'🂠',rarity:'common',price:2000000,desc:'딥 블랙 옵시디언 카드 뒷면'},
+  {id:'card_ruby',category:'card_back',name:'루비 백',icon:'♦',rarity:'rare',price:5000000,desc:'붉은 루비 보석 카드 뒷면'},
+  {id:'card_sapphire',category:'card_back',name:'사파이어 백',icon:'♠',rarity:'rare',price:8000000,desc:'블루 사파이어 패턴 카드'},
+  {id:'card_gold',category:'card_back',name:'24K 골드 백',icon:'♛',rarity:'epic',price:20000000,desc:'24K 골드 패턴 카드 뒷면'},
+  {id:'card_cosmic',category:'card_back',name:'코스믹 J 백',icon:'J',rarity:'epic',price:50000000,desc:'J 로고가 빛나는 우주 테마'},
+  {id:'card_dragon',category:'card_back',name:'드래곤 씰',icon:'🐲',rarity:'legendary',price:100000000,desc:'황금 용 문양의 카드 백'},
+  {id:'card_diamond',category:'card_back',name:'다이아 데크',icon:'💎',rarity:'legendary',price:250000000,desc:'다이아 결정 패턴의 럭셔리 카드 백'},
+  {id:'card_junja',category:'card_back',name:'JUNJA ROYAL DECK',icon:'J♛',rarity:'mythic',price:500000000,desc:'JUNJA 시그니처 로열 카드 백'},
 
-  {id:'bubble_hype',category:'bubble_pack',name:'하이프 팩',icon:'💥',rarity:'rare',price:300000,desc:'오늘 느낌 온다! · 굿게임! · 터졌다! · 딱 맞췄다!'},
-  {id:'bubble_cute',category:'bubble_pack',name:'큐트 팩',icon:'💖',rarity:'rare',price:300000,desc:'좋아좋아! · 찡긋~ · 한 번만... · 박수!'},
-  {id:'bubble_royal',category:'bubble_pack',name:'로열 팩',icon:'👑',rarity:'epic',price:1000000,desc:'품격 있게~ · 클래스가 다르지 · 인정! · 왕좌는 내 자리'}
-];
+  // SPEECH BUBBLE PACKS
+  {id:'bubble_hype',category:'bubble_pack',name:'하이프 팩',icon:'💥',rarity:'rare',price:2000000,desc:'오늘 느낌 온다! · 굿게임! · 터졌다! · 딱 맞췄다!'},
+  {id:'bubble_cute',category:'bubble_pack',name:'큐트 팩',icon:'💖',rarity:'rare',price:2000000,desc:'좋아좋아! · 찡긋~ · 한 번만... · 박수!'},
+  {id:'bubble_royal',category:'bubble_pack',name:'로열 팩',icon:'👑',rarity:'epic',price:5000000,desc:'품격 있게~ · 클래스가 다르지 · 인정! · 왕좌는 내 자리'},
+  {id:'bubble_highroller',category:'bubble_pack',name:'하이롤러 팩',icon:'💸',rarity:'legendary',price:10000000,desc:'큰 판 간다 · 칩 쌓아 · 올인 감성 · 오늘은 내 날'},
+  {id:'bubble_legend',category:'bubble_pack',name:'레전드 팩',icon:'⚡',rarity:'mythic',price:25000000,desc:'전설 등장 · 이게 클래스 · 분위기 잡았다 · 끝내자'}
+]
 const SHOP_BY_ID = Object.fromEntries(SHOP_ITEMS.map(x=>[x.id,Object.freeze({...x})]));
 const LOADOUT_FIELDS = new Set(['costume','frame','title','pet','table_skin','card_back','bubble_pack']);
 const SLOT_SYMBOLS = [
@@ -307,12 +353,14 @@ function ensureLoadout(userId){
 }
 function inventoryIds(userId){return new Set(db.prepare('SELECT item_id FROM user_inventory WHERE user_id=?').all(userId).map(x=>x.item_id));}
 function collectionTier(count){
-  if(count>=30)return {name:'DIAMOND COLLECTOR',icon:'💎',level:5};
-  if(count>=20)return {name:'GOLD COLLECTOR',icon:'👑',level:4};
-  if(count>=10)return {name:'SILVER COLLECTOR',icon:'✦',level:3};
+  if(count>=60)return {name:'CROWN COLLECTOR',icon:'👑',level:7};
+  if(count>=45)return {name:'ROYAL COLLECTOR',icon:'♛',level:6};
+  if(count>=32)return {name:'DIAMOND COLLECTOR',icon:'💎',level:5};
+  if(count>=22)return {name:'GOLD COLLECTOR',icon:'🏆',level:4};
+  if(count>=12)return {name:'SILVER COLLECTOR',icon:'✦',level:3};
   if(count>=5)return {name:'BRONZE COLLECTOR',icon:'★',level:2};
   if(count>=1)return {name:'ROOKIE COLLECTOR',icon:'•',level:1};
-  return {name:'NEW MEMBER',icon:'',level:0};
+  return {name:'NEW MEMBER',icon:'◇',level:0};
 }
 function itemPublic(id){const x=SHOP_BY_ID[id];return x?{...x}:null;}
 function cosmeticsPublic(userId){
