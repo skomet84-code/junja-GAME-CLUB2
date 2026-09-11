@@ -110,15 +110,21 @@ const soloGostop = new Map();
 const raceCards = new Map();
 const sseClients = new Map();
 const authAttempts = new Map();
+const liveFloors = new Map();
 
 const AVATARS = ['🧑‍💼','😎','🧢','👑','🐯','🐻','🦊','🐼','🐸','🦁'];
+const LIVE_GAMES = new Set(['slot','holdem','yut','seotda','gostop','horse','bigwheel','sicbo']);
 const ROOM_REACTIONS = {
-  frustrated:{emoji:'😫',label:'답답해'},
-  hurry:{emoji:'⏩',label:'빨리빨리'},
-  cry:{emoji:'😭',label:'우는 중'},
-  laugh:{emoji:'😂',label:'웃겨'},
-  wow:{emoji:'😲',label:'놀람'},
-  sad:{emoji:'😢',label:'슬퍼'}
+  frustrated:{emoji:'😫',label:'답답해!'},
+  hurry:{emoji:'⏩',label:'빨리빨리!'},
+  cry:{emoji:'😭',label:'으앙 ㅠㅠ'},
+  laugh:{emoji:'😂',label:'ㅋㅋㅋㅋ'},
+  wow:{emoji:'😲',label:'헐?!'},
+  sad:{emoji:'😢',label:'슬퍼...'},
+  eye:{emoji:'👀',label:'눈 찔러!'},
+  right:{emoji:'🙆',label:'맞지 맞지~'},
+  nice:{emoji:'😎',label:'나이스~'},
+  go:{emoji:'🔥',label:'가즈아!'}
 };
 const SLOT_SYMBOLS = [
   {s:'🍒',w:140},{s:'🍋',w:120},{s:'🍊',w:100},{s:'🔔',w:65},{s:'⭐',w:45},{s:'💎',w:25},{s:'7️⃣',w:7},{s:'J',w:1}
@@ -245,6 +251,41 @@ function pushRefresh(roomId=null){
   }
 }
 function onlineCount(){ return sseClients.size; }
+
+function liveGameKey(v){
+  const game=String(v||'').toLowerCase();
+  if(!LIVE_GAMES.has(game)) throw new Error('지원하지 않는 라이브 게임입니다.');
+  return game;
+}
+function liveFloorMap(game){
+  game=liveGameKey(game);
+  if(!liveFloors.has(game)) liveFloors.set(game,new Map());
+  return liveFloors.get(game);
+}
+function cleanLiveFloor(game){
+  const map=liveFloorMap(game),t=now();
+  for(const [uid,p] of map){
+    if(!p||t-Number(p.lastSeen||0)>18000) map.delete(uid);
+    else if(p.reaction&&Number(p.reaction.expiresAt||0)<=t) p.reaction=null;
+  }
+  return map;
+}
+function liveFloorTouch(user,game){
+  game=liveGameKey(game);const map=cleanLiveFloor(game),t=now(),prev=map.get(user.id);
+  const p=prev||{userId:user.id,nickname:user.nickname,avatar:user.avatar,joinedAt:t,reaction:null};
+  p.nickname=user.nickname;p.avatar=user.avatar;p.lastSeen=t;map.set(user.id,p);
+  return {isNew:!prev,member:p};
+}
+function liveFloorLeave(userId,game){
+  try{const map=liveFloorMap(game);return map.delete(Number(userId));}catch{return false}
+}
+function liveFloorMembers(game){
+  const t=now();
+  return [...cleanLiveFloor(game).values()].sort((a,b)=>a.joinedAt-b.joinedAt).map(p=>({
+    userId:p.userId,nickname:p.nickname,avatar:p.avatar,joinedAt:p.joinedAt,lastSeen:p.lastSeen,
+    reaction:p.reaction&&p.reaction.expiresAt>t?{key:p.reaction.key,emoji:p.reaction.emoji,label:p.reaction.label,at:p.reaction.at,expiresAt:p.reaction.expiresAt}:null
+  }));
+}
 
 function roomStatus(r){ if(r.game==='holdem') return r.hand && r.hand.phase!=='complete'?'PLAYING':'WAITING'; if(r.game==='yut') return r.yut?.phase==='playing'?'PLAYING':'WAITING'; return 'WAITING'; }
 function roomReadyCount(r){return r.players.filter(p=>p.ready).length;}
@@ -965,6 +1006,35 @@ const server=http.createServer(async(req,res)=>{
       const u=requireAuth(req,res);if(!u)return;const b=await readBody(req);let result;
       try{result=sicboRoll(u.id,Number(b.bet),String(b.key||''));}catch(e){return json(res,400,{error:e.message});}
       pushRefresh();return json(res,200,{result,user:userPublic(u.id)});
+    }
+
+
+    if(url.pathname==='/api/live'&&req.method==='GET'){
+      const u=requireAuth(req,res);if(!u)return;
+      let game;try{game=liveGameKey(url.searchParams.get('game'))}catch(e){return json(res,400,{error:e.message})}
+      const touched=liveFloorTouch(u,game);if(touched.isNew)pushRefresh();
+      return json(res,200,{game,members:liveFloorMembers(game),selfId:u.id});
+    }
+    if(url.pathname==='/api/live/heartbeat'&&req.method==='POST'){
+      const u=requireAuth(req,res);if(!u)return;const b=await readBody(req);
+      let game;try{game=liveGameKey(b.game)}catch(e){return json(res,400,{error:e.message})}
+      const touched=liveFloorTouch(u,game);if(touched.isNew)pushRefresh();
+      return json(res,200,{ok:true,game,members:liveFloorMembers(game),joined:touched.isNew});
+    }
+    if(url.pathname==='/api/live/reaction'&&req.method==='POST'){
+      const u=requireAuth(req,res);if(!u)return;const b=await readBody(req);
+      let game;try{game=liveGameKey(b.game)}catch(e){return json(res,400,{error:e.message})}
+      const key=String(b.key||''),def=ROOM_REACTIONS[key];if(!def)return json(res,400,{error:'지원하지 않는 말풍선입니다.'});
+      const map=cleanLiveFloor(game);let p=map.get(u.id);if(!p)p=liveFloorTouch(u,game).member;
+      const t=now();if(p.reaction&&t-Number(p.reaction.at||0)<700)return json(res,429,{error:'말풍선은 잠깐 기다렸다가 다시 보내줘.'});
+      p.reaction={key,emoji:def.emoji,label:def.label,at:t,expiresAt:t+5000};p.lastSeen=t;map.set(u.id,p);pushRefresh();
+      return json(res,200,{ok:true,game,members:liveFloorMembers(game)});
+    }
+    if(url.pathname==='/api/live/leave'&&req.method==='POST'){
+      const u=requireAuth(req,res);if(!u)return;const b=await readBody(req);
+      let game;try{game=liveGameKey(b.game)}catch(e){return json(res,400,{error:e.message})}
+      const removed=liveFloorLeave(u.id,game);if(removed)pushRefresh();
+      return json(res,200,{ok:true});
     }
 
     if(url.pathname==='/api/horse/card'&&req.method==='GET'){

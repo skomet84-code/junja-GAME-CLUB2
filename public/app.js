@@ -1,16 +1,63 @@
 const $=(s,r=document)=>r.querySelector(s), $$=(s,r=document)=>[...r.querySelectorAll(s)];
-let me=null,currentView='lobby',currentRoomId=null,currentGame=null,events=null,selectedBet=10000,refreshTimer=null,slotSpinState=null,autoSpinRunning=false,autoSpinStop=false,slotSession={spins:0,wins:0,net:0,best:0,recent:[]},selectedYutMoveIndex=0,selectedSoloYutMoveIndex=0,horseCardData=null,horseRacing=false,horseLastResult=null,bigWheelSelected='x2',bigWheelSpinning=false,bigWheelAngle=0,sicboSelected='small',sicboRolling=false,roomPollTimer=null,roomRefreshBusy=false,lastRoomVersion=-1;
+let me=null,currentView='lobby',currentRoomId=null,currentGame=null,events=null,selectedBet=10000,refreshTimer=null,slotSpinState=null,autoSpinRunning=false,autoSpinStop=false,slotSession={spins:0,wins:0,net:0,best:0,recent:[]},selectedYutMoveIndex=0,selectedSoloYutMoveIndex=0,horseCardData=null,horseRacing=false,horseLastResult=null,bigWheelSelected='x2',bigWheelSpinning=false,bigWheelAngle=0,sicboSelected='small',sicboRolling=false,roomPollTimer=null,roomRefreshBusy=false,lastRoomVersion=-1,roomSeenMembers=new Map(),liveGame=null,liveHeartbeatTimer=null,livePollTimer=null,liveKnownIds=new Set(),liveInitialized=false;
 const SLOT_SYMBOLS=['🍒','🍋','🍊','🔔','⭐','💎','7️⃣','J'];
 const SLOT_CELL_CLASS={'🍒':'cherry','🍋':'lemon','🍊':'orange','🔔':'bell','⭐':'star','💎':'diamond','7️⃣':'seven','J':'junja'};
-const REACTION_META={frustrated:['😫','답답'],hurry:['⏩','빨리'],cry:['😭','울음'],laugh:['😂','웃음'],wow:['😲','놀람'],sad:['😢','슬픔']};
+const REACTION_META={frustrated:['😫','답답해!'],hurry:['⏩','빨리빨리!'],cry:['😭','으앙 ㅠㅠ'],laugh:['😂','ㅋㅋㅋㅋ'],wow:['😲','헐?!'],sad:['😢','슬퍼...'],eye:['👀','눈 찔러!'],right:['🙆','맞지 맞지~'],nice:['😎','나이스~'],go:['🔥','가즈아!']};
+const LIVE_GAME_VIEWS=new Set(['slot','holdem','yut','seotda','gostop','horse','bigwheel','sicbo']);
+const LIVE_GAME_LABEL={slot:'ROYAL REELS',holdem:"HOLD'EM ARENA",yut:'YUT ARENA',seotda:'SEOTDA DUEL',gostop:'MATGO FLOOR',horse:'GRAND RACE',bigwheel:'BIG WHEEL',sicbo:'SIC BO'};
 const money=n=>new Intl.NumberFormat('ko-KR').format(Number(n||0))+' G';
 const timeText=t=>new Intl.DateTimeFormat('ko-KR',{hour:'2-digit',minute:'2-digit',month:'numeric',day:'numeric'}).format(new Date(t));
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 function html(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
 function avatarImg(avatar=0,alt='플레이어',extra=''){const idx=Math.abs(Number(avatar||0))%10;return `<img class="game-face ${extra}" src="/art/poker-avatars/avatar-${idx}.svg" alt="${html(alt)}">`}
 function botFace(game='poker',extra=''){const src=game==='poker'?'/art/poker-avatars/bot.svg':`/art/${game}-mascot.svg`;return `<img class="game-face bot-face ${extra}" src="${src}" alt="J-BOT">`}
-function reactionBubble(room,userId){const x=(room?.reactions||[]).find(r=>Number(r.userId)===Number(userId));return x?`<div class="reaction-bubble" title="${html(x.label||'반응')}"><b>${html(x.emoji)}</b><small>${html(x.nickname||'')}</small></div>`:''}
-function reactionDockHtml(){return `<div class="reaction-dock"><span>QUICK REACTION</span>${Object.entries(REACTION_META).map(([k,[e,l]])=>`<button type="button" data-reaction="${k}" title="${l}"><b>${e}</b><small>${l}</small></button>`).join('')}<em>텍스트 채팅 없이 이모티콘만 전송</em></div>`}
+function reactionBubble(room,userId){const x=(room?.reactions||[]).find(r=>Number(r.userId)===Number(userId));return x?`<div class="reaction-bubble" title="${html(x.label||'반응')}"><b>${html(x.emoji)}</b><span>${html(x.label||'')}</span><small>${html(x.nickname||'')}</small></div>`:''}
+function reactionDockHtml(){return `<div class="reaction-dock"><span>QUICK BUBBLE</span>${Object.entries(REACTION_META).map(([k,[e,l]])=>`<button type="button" data-reaction="${k}" title="${html(l)}"><b>${e}</b><small>${html(l)}</small></button>`).join('')}<em>텍스트 입력 없이 정해진 말풍선만 전송</em></div>`}
+function ensureLiveFloorMount(game){
+  const section=$(`#view-${game}`);if(!section)return null;let mount=$('.live-floor-mount',section);
+  if(!mount){mount=document.createElement('div');mount.className='live-floor-mount';const head=$('.view-head',section);head?.insertAdjacentElement('afterend',mount)}
+  return mount;
+}
+function liveFace(p){return `<div class="live-player-face">${avatarImg(p.avatar,p.nickname,'live-face')}${p.reaction?`<div class="live-speech"><b>${html(p.reaction.emoji)}</b><span>${html(p.reaction.label)}</span></div>`:''}<i class="live-dot"></i></div>`}
+function renderLiveFloor(game,members=[]){
+  const mount=ensureLiveFloorMount(game);if(!mount)return;
+  const nowMs=Date.now(),others=members.filter(p=>Number(p.userId)!==Number(me?.id));
+  mount.innerHTML=`<div class="live-floor panel"><div class="live-floor-head"><div><small>LIVE FLOOR · ${html(LIVE_GAME_LABEL[game]||game.toUpperCase())}</small><h3><i></i> 실시간 참여자 <b>${members.length}</b>명</h3></div><span>${['holdem','yut'].includes(game)?'방 참가자는 함께 플레이 · 진행 중엔 같은 게임 유저도 실시간 표시':'같은 게임에 들어온 유저와 동시에 플레이 · 결과는 각자 정산'}</span></div><div class="live-members">${members.map(p=>`<div class="live-member ${Number(p.userId)===Number(me?.id)?'me':''} ${nowMs-Number(p.joinedAt||0)<5000?'just-in':''}">${liveFace(p)}<div><b>${html(p.nickname)}</b><small>${Number(p.userId)===Number(me?.id)?'나 · PLAYING':'ONLINE'}</small></div></div>`).join('')||'<div class="live-empty">아직 이 게임에 접속한 유저가 없어.</div>'}</div><div class="live-reaction-row"><span>말풍선</span>${Object.entries(REACTION_META).map(([k,[e,l]])=>`<button type="button" data-floor-reaction="${k}" title="${html(l)}"><b>${e}</b><small>${html(l)}</small></button>`).join('')}</div></div>`;
+  $$('[data-floor-reaction]',mount).forEach(b=>b.onclick=()=>sendLiveReaction(b.dataset.floorReaction,b));
+}
+async function refreshLiveFloor(silent=true){
+  if(!liveGame||currentView!==liveGame)return;
+  try{
+    const d=await api('/api/live?game='+encodeURIComponent(liveGame)),ids=new Set((d.members||[]).map(x=>Number(x.userId)));
+    if(liveInitialized){
+      for(const p of d.members||[]){const id=Number(p.userId);if(id!==Number(me?.id)&&!liveKnownIds.has(id))toast(`🎉 ${p.nickname}님이 ${LIVE_GAME_LABEL[liveGame]||'게임'}에 들어왔어!`)}
+    }
+    liveKnownIds=ids;liveInitialized=true;renderLiveFloor(liveGame,d.members||[]);
+  }catch(e){if(!silent)toast(e.message)}
+}
+async function liveHeartbeat(){
+  if(document.hidden||!liveGame||currentView!==liveGame)return;
+  try{const d=await api('/api/live/heartbeat',{method:'POST',body:JSON.stringify({game:liveGame})});renderLiveFloor(liveGame,d.members||[])}catch{}
+}
+function leaveLiveFloor(game){
+  if(!game||!LIVE_GAME_VIEWS.has(game))return;
+  fetch('/api/live/leave',{method:'POST',credentials:'same-origin',keepalive:true,headers:{'Content-Type':'application/json'},body:JSON.stringify({game})}).catch(()=>{});
+}
+function startLiveFloor(game){
+  if(!LIVE_GAME_VIEWS.has(game)){stopLiveFloor();return}
+  if(liveGame&&liveGame!==game)leaveLiveFloor(liveGame);
+  clearInterval(liveHeartbeatTimer);clearInterval(livePollTimer);liveGame=game;liveKnownIds=new Set();liveInitialized=false;
+  ensureLiveFloorMount(game);liveHeartbeat();refreshLiveFloor(true);
+  liveHeartbeatTimer=setInterval(liveHeartbeat,6000);livePollTimer=setInterval(()=>{if(!document.hidden)refreshLiveFloor(true)},1800);
+}
+function stopLiveFloor(){
+  clearInterval(liveHeartbeatTimer);clearInterval(livePollTimer);liveHeartbeatTimer=null;livePollTimer=null;
+  if(liveGame)leaveLiveFloor(liveGame);liveGame=null;liveKnownIds=new Set();liveInitialized=false;
+}
+async function sendLiveReaction(key,btn){
+  if(!liveGame)return;if(btn)btn.disabled=true;
+  try{const d=await api('/api/live/reaction',{method:'POST',body:JSON.stringify({game:liveGame,key})});renderLiveFloor(liveGame,d.members||[]);fx('click')}catch(e){toast(e.message)}finally{setTimeout(()=>{if(btn)btn.disabled=false},750)}
+}
 function signedMoney(n){return (Number(n)>=0?'+':'')+money(n)}
 function toast(msg){const e=$('#toast');if(!e)return;e.textContent=msg;e.classList.add('show');clearTimeout(e._t);e._t=setTimeout(()=>e.classList.remove('show'),2400)}
 function fx(kind='click'){
@@ -39,8 +86,8 @@ function bootMain(){
   $('#authScreen').classList.add('hidden');$('#mainApp').classList.remove('hidden');updateHeader();bindMain();connectEvents();
   const q=new URLSearchParams(location.search),rid=q.get('room'),game=q.get('game');
   if(rid&&['holdem','yut'].includes(game)){go(game).then(()=>joinRoom(game,rid));}else{go('lobby');setTimeout(resumeMyRoom,450);}
-  if('serviceWorker' in navigator)navigator.serviceWorker.register('/sw.js?v=150').catch(()=>{});
-  if(!localStorage.getItem('jgc_help_seen_15'))setTimeout(()=>openHelp('lobby'),550);
+  if('serviceWorker' in navigator)navigator.serviceWorker.register('/sw.js?v=160').catch(()=>{});
+  if(!localStorage.getItem('jgc_help_seen_16'))setTimeout(()=>openHelp('lobby'),550);
   document.addEventListener('visibilitychange',()=>{if(!document.hidden&&currentRoomId)loadCurrentRoom(true).catch(()=>{})});
 }
 let mainBound=false;
@@ -51,7 +98,7 @@ function bindMain(){if(mainBound)return;mainBound=true;
   $('#bigWheelSpinBtn')?.addEventListener('click',spinBigWheel);$$('[data-wheel-bet]').forEach(b=>b.addEventListener('click',()=>selectBigWheelBet(b.dataset.wheelBet)));$('#sicboRollBtn')?.addEventListener('click',rollSicbo);$$('[data-sicbo-bet]').forEach(b=>b.addEventListener('click',()=>selectSicboBet(b.dataset.sicboBet)));
   $('#spinBtn').addEventListener('click',()=>spin({manual:true}));$('#slotBetInput')?.addEventListener('input',e=>syncSlotBetInput(e.target));$('#slotBetInput')?.addEventListener('change',e=>normalizeSlotBetInput(e.target));$$('[data-auto-spin]').forEach(b=>b.addEventListener('click',()=>runAutoSpins(Number(b.dataset.autoSpin))));$('#autoStopBtn')?.addEventListener('click',()=>{autoSpinStop=true;$('#autoSpinStatus').textContent='중지 요청...'});$('#slotSessionReset')?.addEventListener('click',resetSlotSession);$('#jackpotContinueBtn')?.addEventListener('click',closeSlotJackpot);document.addEventListener('visibilitychange',()=>{if(document.hidden&&autoSpinRunning){autoSpinStop=true;if($('#autoSpinStatus'))$('#autoSpinStatus').textContent='화면 전환으로 자동 중지';}});$('#tourneyCard')?.addEventListener('click',()=>toast('토너먼트는 다음 업데이트에서 오픈 예정이야.'));
   const betRoot=$('#betRow');if(betRoot&&!betRoot.children.length)for(const b of [1000,5000,10000,25000,50000,100000]){const el=document.createElement('button');el.type='button';el.className='bet-chip'+(b===selectedBet?' active':'');el.textContent=money(b);el.onclick=()=>{selectedBet=b;if($('#slotBetInput'))$('#slotBetInput').value=b;$$('.bet-chip').forEach(x=>x.classList.remove('active'));el.classList.add('active');updateCurrentBetLabel();fx()};betRoot.appendChild(el)}
-  $('#helpBtn').onclick=()=>openHelp(currentView);$('#closeHelp').onclick=closeHelp;$('#helpDone').onclick=()=>{localStorage.setItem('jgc_help_seen_15','1');closeHelp()};$('.help-backdrop').onclick=closeHelp;$$('[data-open-help]').forEach(b=>b.onclick=e=>{e.stopPropagation();openHelp(b.dataset.openHelp)});$$('[data-help-tab]').forEach(b=>b.onclick=()=>setHelpTab(b.dataset.helpTab));
+  $('#helpBtn').onclick=()=>openHelp(currentView);$('#closeHelp').onclick=closeHelp;$('#helpDone').onclick=()=>{localStorage.setItem('jgc_help_seen_16','1');closeHelp()};$('.help-backdrop').onclick=closeHelp;$$('[data-open-help]').forEach(b=>b.onclick=e=>{e.stopPropagation();openHelp(b.dataset.openHelp)});$$('[data-help-tab]').forEach(b=>b.onclick=()=>setHelpTab(b.dataset.helpTab));
   $$('[data-mode-game]').forEach(b=>b.onclick=()=>switchMode(b.dataset.modeGame,b.dataset.mode));
   $('#startSoloHoldem').onclick=startSoloHoldem;$('#startSoloYut').onclick=startSoloYut;$('#startSeotda').onclick=startSeotda;$('#startGostop').onclick=startGostop;
   bindQuickWagers();
@@ -66,19 +113,20 @@ function setHelpTab(tab='lobby'){const ok=['lobby','slot','holdem','yut','seotda
 function openHelp(tab=currentView){setHelpTab(tab);$('#helpModal').classList.remove('hidden');document.body.classList.add('modal-open')}
 function closeHelp(){$('#helpModal').classList.add('hidden');document.body.classList.remove('modal-open')}
 function switchMode(game,mode){$$(`[data-mode-game="${game}"]`).forEach(b=>b.classList.toggle('active',b.dataset.mode===mode));$(`#${game}MultiArea`)?.classList.toggle('hidden',mode!=='multi');$(`#${game}SoloArea`)?.classList.toggle('hidden',mode!=='solo');if(mode==='solo'){if(game==='holdem')loadSoloHoldem();else if(game==='yut')loadSoloYut()}else loadRooms(game)}
-function connectEvents(){if(events)events.close();events=new EventSource('/api/events');events.addEventListener('refresh',()=>{clearTimeout(refreshTimer);refreshTimer=setTimeout(async()=>{try{const d=await api('/api/me');me=d.user;updateHeader();if(currentRoomId)await loadCurrentRoom();else if(currentView==='lobby')await loadLobby(false);else if(currentView==='holdem'&&!$('#holdemMultiArea').classList.contains('hidden'))await loadRooms('holdem');else if(currentView==='yut'&&!$('#yutMultiArea').classList.contains('hidden'))await loadRooms('yut');else if(currentView==='admin'&&me?.is_admin)await loadAdmin($('#adminSearch')?.value.trim()||'',false)}catch{}},180)})}
+function connectEvents(){if(events)events.close();events=new EventSource('/api/events');events.addEventListener('refresh',()=>{clearTimeout(refreshTimer);refreshTimer=setTimeout(async()=>{try{const d=await api('/api/me');me=d.user;updateHeader();if(liveGame&&currentView===liveGame)refreshLiveFloor(true);if(currentRoomId)await loadCurrentRoom();else if(currentView==='lobby')await loadLobby(false);else if(currentView==='holdem'&&!$('#holdemMultiArea').classList.contains('hidden'))await loadRooms('holdem');else if(currentView==='yut'&&!$('#yutMultiArea').classList.contains('hidden'))await loadRooms('yut');else if(currentView==='admin'&&me?.is_admin)await loadAdmin($('#adminSearch')?.value.trim()||'',false)}catch{}},180)})}
 function updateHeader(){if(!me)return;$('#walletBalance').textContent=money(me.balance);$('#avatarEmoji').textContent=me.avatarEmoji;$('#nickName').textContent=me.nickname;$('#dailyBtn').disabled=!me.dailyAvailable;$('#dailyBtn').textContent=me.dailyAvailable?'🎁 출석 +50,000 G':'✓ 오늘 출석 완료';$('#adminBtn')?.classList.toggle('hidden',!me.is_admin)}
 async function refreshMe(){const d=await api('/api/me');me=d.user;updateHeader();$('#onlineCount').textContent='ONLINE '+d.online;return d}
 async function go(view){
   if(view==='admin'&&!me?.is_admin){toast('관리자 권한이 필요합니다.');return}
   if(currentRoomId&&!['holdem','yut'].includes(view)){toast('먼저 멀티 게임방에서 나가기를 눌러줘.');return}
-  currentView=view;$$('.view').forEach(v=>v.classList.remove('active'));$('#view-'+view)?.classList.add('active');window.scrollTo({top:0,behavior:'smooth'});
+  const prevView=currentView;currentView=view;$$('.view').forEach(v=>v.classList.remove('active'));$('#view-'+view)?.classList.add('active');window.scrollTo({top:0,behavior:'smooth'});
+  if(LIVE_GAME_VIEWS.has(view))startLiveFloor(view);else if(LIVE_GAME_VIEWS.has(prevView)||liveGame)stopLiveFloor();
   if(view==='lobby')await loadLobby();if(view==='slot')initSlotMachine();if(view==='holdem')await loadRooms('holdem');if(view==='yut')await loadRooms('yut');if(view==='ledger')await loadLedger();if(view==='seotda')await loadSeotda();if(view==='gostop')await loadGostop();if(view==='horse'){if(horseCardData)renderHorseCard({keepResult:true});else if(horseLastResult)renderHorseLastResult(horseLastResult);else await loadHorseCard();}if(view==='bigwheel')initBigWheel();if(view==='sicbo')initSicbo();if(view==='admin')await loadAdmin('');
 }
 async function loadLobby(full=true){try{await refreshMe();const d=await api('/api/leaderboard');$('#leaderboard').innerHTML=d.rows.map((r,i)=>`<div class="rank-row"><div class="rank-no">${i+1}</div><div class="rank-name"><span>${r.avatarEmoji}</span><span>${html(r.nickname)}</span></div><div class="rank-money">${money(r.balance)}</div></div>`).join('')||'<div class="empty">아직 랭킹이 없습니다.</div>';$('#myStats').innerHTML=`<div class="stat"><span>홀덤 승리</span><b>${me.poker_wins}</b></div><div class="stat"><span>윷놀이 승리</span><b>${me.yut_wins}</b></div><div class="stat"><span>섯다 승리</span><b>${me.seotda_wins||0}</b></div><div class="stat"><span>고스톱 승리</span><b>${me.gostop_wins||0}</b></div><div class="stat"><span>슬롯 스핀</span><b>${me.slot_spins}</b></div><div class="stat"><span>슬롯 손익</span><b>${signedMoney(me.slot_profit)}</b></div><div class="stat"><span>경마 적중</span><b>${me.horse_wins||0}/${me.horse_races||0}</b></div><div class="stat"><span>경마 손익</span><b>${signedMoney(me.horse_profit||0)}</b></div><div class="stat"><span>빅휠 적중</span><b>${me.bigwheel_wins||0}/${me.bigwheel_plays||0}</b></div><div class="stat"><span>빅휠 손익</span><b>${signedMoney(me.bigwheel_profit||0)}</b></div><div class="stat"><span>다이사이 적중</span><b>${me.sicbo_wins||0}/${me.sicbo_plays||0}</b></div><div class="stat"><span>다이사이 손익</span><b>${signedMoney(me.sicbo_profit||0)}</b></div>`}catch(e){if(full)toast(e.message)}}
 async function claimDaily(){try{const d=await api('/api/daily',{method:'POST',body:'{}'});toast(`출석 보너스 +${money(d.amount)}`);await refreshMe()}catch(e){toast(e.message)}}
-async function openProfile(){await refreshMe();$('#profileContent').innerHTML=`<div class="profile-big"><div class="emoji">${me.avatarEmoji}</div><h3>${html(me.nickname)} ${me.is_admin?'<span class="profile-admin-badge">ADMIN</span>':''}</h3><p>@${html(me.username)} · 가입 ${new Date(me.created_at).toLocaleDateString('ko-KR')}</p></div><div class="stat-grid"><div class="stat"><span>보유머니</span><b>${money(me.balance)}</b></div><div class="stat"><span>홀덤 승리</span><b>${me.poker_wins}</b></div><div class="stat"><span>윷 승리</span><b>${me.yut_wins}</b></div><div class="stat"><span>섯다/고스톱</span><b>${me.seotda_wins||0}/${me.gostop_wins||0}</b></div></div><p class="privacy-note">게임머니는 현금 가치가 없고, 텍스트 채팅 없이 6종 이모티콘 반응만 제공합니다.</p>`;$('#profileSheet').classList.remove('hidden')}
-async function logout(){await api('/api/logout',{method:'POST',body:'{}'}).catch(()=>{});location.reload()}
+async function openProfile(){await refreshMe();$('#profileContent').innerHTML=`<div class="profile-big"><div class="emoji">${me.avatarEmoji}</div><h3>${html(me.nickname)} ${me.is_admin?'<span class="profile-admin-badge">ADMIN</span>':''}</h3><p>@${html(me.username)} · 가입 ${new Date(me.created_at).toLocaleDateString('ko-KR')}</p></div><div class="stat-grid"><div class="stat"><span>보유머니</span><b>${money(me.balance)}</b></div><div class="stat"><span>홀덤 승리</span><b>${me.poker_wins}</b></div><div class="stat"><span>윷 승리</span><b>${me.yut_wins}</b></div><div class="stat"><span>섯다/고스톱</span><b>${me.seotda_wins||0}/${me.gostop_wins||0}</b></div></div><p class="privacy-note">게임머니는 현금 가치가 없고, 텍스트 채팅 없이 정해진 말풍선 반응만 제공합니다.</p>`;$('#profileSheet').classList.remove('hidden')}
+async function logout(){stopLiveFloor();await api('/api/logout',{method:'POST',body:'{}'}).catch(()=>{});location.reload()}
 async function loadLedger(){try{const d=await api('/api/ledger');$('#ledgerList').innerHTML=d.rows.map(r=>`<div class="ledger-row"><div><b>${html(r.memo)}</b><small>${timeText(r.created_at)} · 잔액 ${money(r.balance_after)}</small></div><b class="${r.amount>=0?'plus':'minus'}">${r.amount>=0?'+':''}${money(r.amount)}</b></div>`).join('')||'<div class="empty">내역이 없습니다.</div>'}catch(e){toast(e.message)}}
 
 
@@ -283,7 +331,12 @@ async function loadCurrentRoom(silent=false){
     if(/찾을 수 없습니다|참가자가 아닙니다/.test(e.message)){const oldGame=currentGame;currentRoomId=null;currentGame=null;lastRoomVersion=-1;stopRoomPolling();if(oldGame){$(`#${oldGame}Room`)?.classList.add('hidden');$(`#${oldGame}Browser`)?.classList.remove('hidden');loadRooms(oldGame)}}
   }finally{roomRefreshBusy=false}
 }
-function renderRoom(room){lastRoomVersion=room.version||lastRoomVersion;if(room.game==='holdem')renderHoldem(room);else renderYut(room)}
+function notifyRoomJoins(room){
+  const ids=new Set((room.players||[]).map(p=>Number(p.userId))),prev=roomSeenMembers.get(room.id);
+  if(prev){for(const p of room.players||[]){const id=Number(p.userId);if(id!==Number(me?.id)&&!prev.has(id))toast(`🎮 ${p.nickname}님이 방에 들어왔어!`)}}
+  roomSeenMembers.set(room.id,ids);
+}
+function renderRoom(room){lastRoomVersion=room.version||lastRoomVersion;notifyRoomJoins(room);if(room.game==='holdem')renderHoldem(room);else renderYut(room)}
 async function toggleReady(){if(!currentRoomId)return;try{const d=await api(`/api/rooms/${currentRoomId}/ready`,{method:'POST',body:'{}'});renderRoom(d.room)}catch(e){toast(e.message)}}
 async function leaveRoom(){if(!currentRoomId)return;try{await api(`/api/rooms/${currentRoomId}/leave`,{method:'POST',body:'{}'});const old=currentGame;currentRoomId=null;currentGame=null;lastRoomVersion=-1;stopRoomPolling();await refreshMe();if(old==='holdem'){$('#holdemRoom').classList.add('hidden');$('#holdemBrowser').classList.remove('hidden');loadRooms('holdem')}else{$('#yutRoom').classList.add('hidden');$('#yutBrowser').classList.remove('hidden');loadRooms('yut')}}catch(e){toast(e.message)}}
 async function closeRoom(){if(!currentRoomId)return;if(!confirm('대기실/게임을 종료하고 참가자에게 보유 판돈을 환급할까?'))return;try{await api(`/api/rooms/${currentRoomId}/close`,{method:'POST',body:'{}'});const old=currentGame;currentRoomId=null;currentGame=null;lastRoomVersion=-1;stopRoomPolling();toast('방을 비웠어.');await refreshMe();if(old==='holdem'){$('#holdemRoom').classList.add('hidden');$('#holdemBrowser').classList.remove('hidden');loadRooms('holdem')}else{$('#yutRoom').classList.add('hidden');$('#yutBrowser').classList.remove('hidden');loadRooms('yut')}}catch(e){toast(e.message)}}
@@ -291,7 +344,7 @@ async function recoverRoom(){if(!currentRoomId)return;if(!confirm('게임 상태
 async function startRoom(){try{const d=await api(`/api/rooms/${currentRoomId}/start`,{method:'POST',body:'{}'});renderRoom(d.room);await loadCurrentRoom()}catch(e){toast(e.message)}}
 function roomToolbar(room){const host=room.hostId===me.id,mine=room.players.find(p=>p.userId===me.id),waiting=room.status==='WAITING';return `<div class="room-shell-head">${roomTurnBanner(room)}${roomParticipantChips(room)}</div><div class="room-toolbar"><div class="room-title"><h3>${html(room.name)}</h3><small>방 코드 <b>${room.id}</b> · 판돈 ${money(room.buyIn)} · ${room.players.length}/${room.maxPlayers}명</small></div><div class="toolbar-actions"><button class="secondary copy-code" type="button">코드 복사</button><button class="secondary copy-link" type="button">초대 링크</button>${waiting?`<button class="${mine?.ready?'ready-on':'primary'} ready-room" type="button">${mine?.ready?'✓ READY':'READY'}</button>`:''}${host&&waiting?`<button class="primary start-room" ${!room.allReady?'disabled':''} type="button">${room.allReady?'게임 시작':'전원 READY 대기'}</button><button class="danger close-room" type="button">대기실 비우기</button>`:''}${!waiting?'<button class="danger recover-room" type="button">오류 복구</button>':''}<button class="secondary leave-room" ${!waiting?'disabled title="진행 중에는 오류 복구를 이용해줘"':''} type="button">나가기</button></div></div>${reactionDockHtml()}`}
 function bindRoomCommon(root,room){$('.copy-code',root).onclick=async()=>{try{await navigator.clipboard.writeText(room.id);toast('방 코드 복사 완료')}catch{toast('방 코드: '+room.id)}};$('.copy-link',root).onclick=async()=>{const link=`${location.origin}/?game=${room.game}&room=${room.id}`;try{if(navigator.share)await navigator.share({title:'JUNJA GAME CLUB',text:`${room.name} 같이 하자!`,url:link});else{await navigator.clipboard.writeText(link);toast('초대 링크 복사 완료')}}catch(e){if(e.name!=='AbortError')toast('초대 링크를 복사하지 못했습니다.')}};$('.leave-room',root)?.addEventListener('click',leaveRoom);$('.ready-room',root)?.addEventListener('click',toggleReady);$('.start-room',root)?.addEventListener('click',startRoom);$('.close-room',root)?.addEventListener('click',closeRoom);$('.recover-room',root)?.addEventListener('click',recoverRoom);$$('[data-reaction]',root).forEach(b=>b.onclick=async()=>{if(b.disabled)return;b.disabled=true;try{const d=await api(`/api/rooms/${currentRoomId}/reaction`,{method:'POST',body:JSON.stringify({key:b.dataset.reaction})});renderRoom(d.room);setTimeout(()=>{if(currentRoomId===room.id)loadCurrentRoom(false).catch(()=>{})},4700)}catch(e){toast(e.message)}finally{setTimeout(()=>b.disabled=false,750)}})}
-function privacyPanelHtml(){return `<div class="privacy-room-card panel"><div class="privacy-shield">🛡️</div><div><small>PRIVACY MODE</small><h3>텍스트 채팅 없음</h3><p>개인정보 노출 없는 6종 이모티콘 반응만 지원합니다.</p></div></div>`}
+function privacyPanelHtml(){return `<div class="privacy-room-card panel"><div class="privacy-shield">🛡️</div><div><small>PRIVACY MODE</small><h3>텍스트 채팅 없음</h3><p>개인정보 노출 없는 10종 고정 말풍선만 지원합니다.</p></div></div>`}
 
 // POKER RENDER (MULTI + SOLO) · v1.2 IMPACT TABLE
 const POKER_RANKS=['스트레이트 플러시','포카드','풀하우스','플러시','스트레이트','트리플','투페어','원페어','하이카드'];

@@ -1,8 +1,8 @@
 {
   "name": "junja-game-club",
-  "version": "1.5.0",
+  "version": "1.6.0",
   "private": true,
-  "description": "JUNJA GAME CLUB v1.5 - One-touch horse and wager controls, persistent race result board, mobile UX refinements, and Neon persistence.",
+  "description": "JUNJA GAME CLUB v1.6 - Live game-floor presence, real-time join indicators, cute preset speech bubbles, and social play polish.",
   "type": "commonjs",
   "scripts": {
     "start": "node server.js"
