@@ -1,8 +1,8 @@
 {
   "name": "junja-game-club",
-  "version": "1.7.0",
+  "version": "1.8.0",
   "private": true,
-  "description": "JUNJA GAME CLUB v1.7 - Refined preset bubbles and safe member-to-member virtual game-money gifts from the profile.",
+  "description": "JUNJA GAME CLUB v1.8 - Mobile stability, premium Seven Card Stud poker, and live 1v1 Baccarat Duel with bankroll-based stakes.",
   "type": "commonjs",
   "scripts": {
     "start": "node server.js"

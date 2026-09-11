@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#090b15">
 <title>JUNJA GAME CLUB</title>
-<link rel="manifest" href="/manifest.webmanifest?v=160">
-<link rel="stylesheet" href="/style.css?v=160">
+<link rel="manifest" href="/manifest.webmanifest?v=180">
+<link rel="stylesheet" href="/style.css?v=180">
 </head>
 <body>
 <div id="app">
@@ -31,16 +31,19 @@
       <div class="wallet-pill"><span>보유머니</span><b id="walletBalance">0 G</b></div>
       <button id="profileBtn" class="profile-pill" type="button"><span id="avatarEmoji">😎</span><span><b id="nickName">-</b><small id="onlineCount">ONLINE 0</small></span></button>
     </header>
+    <div id="networkBanner" class="network-banner hidden"><span class="network-dot"></span><b id="networkText">네트워크 연결 확인 중</b><button id="networkRetryBtn" type="button">재연결</button></div>
 
     <main>
       <section id="view-lobby" class="view active">
         <div class="hero panel hero-upgraded">
-          <div class="hero-copy"><div class="eyebrow">JUNJA ARCADE · VERSION 1.6</div><h2>친구 대전도, 혼자 AI전도.</h2><p>슬롯 3×3 · 홀덤 · 윷놀이 · 섯다 · 고스톱 · 경마 · 빅휠 · 다이사이까지 한 계정으로 플레이. 채팅 없이 실시간 참여자와 귀여운 말풍선 반응으로 같이 놀 수 있어.</p><div class="hero-actions"><button id="dailyBtn" class="daily-btn" type="button">🎁 출석 +50,000 G</button><button class="secondary hero-guide" data-open-help="lobby" type="button">게임 가이드</button></div></div>
+          <div class="hero-copy"><div class="eyebrow">JUNJA ARCADE · VERSION 1.8</div><h2>친구 대전도, 혼자 AI전도.</h2><p>슬롯 · 텍사스 홀덤 · 세븐포커 · 바카라 · 윷놀이 · 섯다 · 맞고 · 경마 · 빅휠 · 다이사이까지 한 계정으로 플레이. 채팅 없이 실시간 참여자와 귀여운 말풍선 반응으로 같이 놀 수 있어.</p><div class="hero-actions"><button id="dailyBtn" class="daily-btn" type="button">🎁 출석 +50,000 G</button><button class="secondary hero-guide" data-open-help="lobby" type="button">게임 가이드</button></div></div>
           <div class="hero-character"><img src="/art/club-host.svg" alt="게임 클럽 호스트"><div class="character-caption"><b>CLUB HOST J</b><span>오늘의 게임을 선택하세요</span></div></div>
         </div>
 
         <div class="game-grid game-grid-eight">
           <button class="game-card poker" data-go="holdem" type="button"><img class="game-art" src="/art/poker-mascot.svg" alt="홀덤"><div class="game-icon">♠</div><span class="dual-badge">MULTI + AI</span><div><small>TEXAS HOLD'EM</small><h3>텍사스 홀덤</h3><p>친구 2~6인 또는 J-BOT 헤즈업</p></div></button>
+          <button class="game-card sevenpoker" data-go="sevenpoker" type="button"><div class="game-art seven-card-fan"><i>♠A</i><i>♥K</i><i>♦Q</i></div><div class="game-icon">♠</div><span class="ai-badge">7 CARD · AI</span><div><small>SEVEN CARD STUD</small><h3>JUNJA 세븐포커</h3><p>3rd~7th Street · 실전 베팅 · J-BOT 대전</p></div></button>
+          <button class="game-card baccarat" data-go="baccarat" type="button"><div class="game-art baccarat-card-art"><span>P</span><b>9</b><span>B</span></div><div class="game-icon">B</div><span class="dual-badge">1 VS 1 LIVE</span><div><small>BACCARAT DUEL</small><h3>바카라 대전</h3><p>친구 1:1 · 낮은 잔액까지 제한 없는 맞대결</p></div></button>
           <button class="game-card slot" data-go="slot" type="button"><img class="game-art" src="/art/slot-mascot.svg" alt="슬롯"><div class="game-icon">7</div><span class="solo-badge">3×3</span><div><small>ROYAL REELS</small><h3>슬롯 머신</h3><p>5개 페이라인 · 777 최대 x1000</p></div></button>
           <button class="game-card yut" data-go="yut" type="button"><img class="game-art" src="/art/yut-mascot.svg" alt="윷놀이"><div class="game-icon">윷</div><span class="dual-badge">MULTI + AI</span><div><small>KOREAN CLASSIC</small><h3>윷놀이</h3><p>친구 2~4인 또는 J-BOT 1:1</p></div></button>
           <button class="game-card seotda" data-go="seotda" type="button"><img class="game-art" src="/art/seotda-mascot.svg" alt="섯다"><div class="game-icon">花</div><span class="ai-badge">AI 1P</span><div><small>KOREAN CARD DUEL</small><h3>섯다</h3><p>38광땡부터 망통까지 빠른 승부</p></div></button>
@@ -111,7 +114,7 @@
           <div class="casino-game-header"><div class="casino-dealer"><img src="/art/club-host.svg" alt="빅휠 딜러"><div><small>JUNJA CASINO FLOOR</small><h3>FORTUNE WHEEL</h3><span>휠이 멈출 때까지 결과는 공개되지 않습니다.</span></div></div><div class="live-sign"><i></i> LIVE</div></div>
           <div class="bigwheel-layout">
             <div class="bigwheel-stage"><div class="wheel-pointer"><span></span></div><canvas id="bigWheelCanvas" width="760" height="760" aria-label="빅휠"></canvas><div class="wheel-center-cap"><b>J</b><small>JUNJA</small></div><div id="bigWheelResult" class="wheel-result-banner">배당을 선택하고 휠을 돌려.</div></div>
-            <div class="premium-panel bigwheel-controls"><h3>BET BOARD</h3><p class="casino-note">선택한 칸에 휠이 멈추면 표시된 배수만큼 총 지급. 최고 배당은 <b>JUNJA ×20</b>.</p><div id="bigWheelBets" class="wheel-bet-grid"><button data-wheel-bet="x2" type="button">×2<small>10칸</small></button><button data-wheel-bet="x3" type="button">×3<small>6칸</small></button><button data-wheel-bet="x5" type="button">×5<small>4칸</small></button><button data-wheel-bet="x10" type="button">×10<small>2칸</small></button><button data-wheel-bet="x15" type="button">×15<small>1칸</small></button><button data-wheel-bet="junja" class="junja-bet" type="button">JUNJA<small>×20 · 1칸</small></button></div><label class="casino-wager-label">베팅 금액<input id="bigWheelBet" type="number" min="1000" max="100000" step="1000" value="10000"><small>1,000G 단위 · MAX 100,000G</small></label><button id="bigWheelSpinBtn" class="primary full casino-main-btn" type="button">SPIN THE WHEEL</button></div>
+            <div class="premium-panel bigwheel-controls"><h3>BET BOARD</h3><p class="casino-note">선택한 칸에 휠이 멈추면 표시된 배수만큼 총 지급. 최고 배당은 <b>JUNJA ×20</b>.</p><div id="bigWheelBets" class="wheel-bet-grid"><button data-wheel-bet="x2" type="button">×2<small>10칸</small></button><button data-wheel-bet="x3" type="button">×3<small>6칸</small></button><button data-wheel-bet="x5" type="button">×5<small>4칸</small></button><button data-wheel-bet="x10" type="button">×10<small>2칸</small></button><button data-wheel-bet="x15" type="button">×15<small>1칸</small></button><button data-wheel-bet="junja" class="junja-bet" type="button">JUNJA<small>×20 · 1칸</small></button></div><label class="casino-wager-label">베팅 금액<input id="bigWheelBet" type="number" min="1000" max="100000" step="1000" value="10000"><small>1,000G 단위 · MAX 100,000G</small></label><button id="bigWheelSpinBtn" class="primary full casino-main-btn" type="button">SPIN THE WHEEL</button><div class="casino-auto-row"><button data-wheel-auto="10" type="button">AUTO 10</button><button data-wheel-auto="50" type="button">AUTO 50</button><button data-wheel-auto="100" type="button">AUTO 100</button><button id="bigWheelAutoStop" class="danger" type="button" disabled>STOP</button><span id="bigWheelAutoStatus">수동</span></div></div>
           </div>
         </div>
       </section>
@@ -122,9 +125,32 @@
           <div class="casino-game-header"><div class="casino-dealer"><img src="/art/poker-avatars/avatar-3.svg" alt="다이사이 딜러"><div><small>MACAU STYLE TABLE</small><h3>SIC BO</h3><span>3개의 주사위 결과를 서버에서 판정합니다.</span></div></div><div class="live-sign"><i></i> DICE LIVE</div></div>
           <div class="sicbo-layout">
             <div class="sicbo-stage"><div class="dice-dome"><div id="sicboDice" class="dice-tray"><div class="die" data-die="0"></div><div class="die" data-die="1"></div><div class="die" data-die="2"></div></div><div class="dice-table-mark">JUNJA · SIC BO</div></div><div id="sicboResult" class="sicbo-result">베팅 칸을 고르고 ROLL DICE</div></div>
-            <div class="premium-panel sicbo-controls"><h3>BETTING TABLE</h3><div id="sicboBets" class="sicbo-bet-board"><button data-sicbo-bet="small" type="button"><b>SMALL</b><span>4–10</span><small>×2 · 트리플 제외</small></button><button data-sicbo-bet="big" type="button"><b>BIG</b><span>11–17</span><small>×2 · 트리플 제외</small></button><button data-sicbo-bet="odd" type="button"><b>ODD</b><span>홀수</span><small>×2 · 트리플 제외</small></button><button data-sicbo-bet="even" type="button"><b>EVEN</b><span>짝수</span><small>×2 · 트리플 제외</small></button><button data-sicbo-bet="any-triple" class="triple-bet" type="button"><b>ANY TRIPLE</b><span>같은 눈 3개</span><small>×31</small></button></div><div class="sicbo-total-title">TOTAL · 합계 숫자</div><div id="sicboTotals" class="sicbo-total-grid"></div><label class="casino-wager-label">베팅 금액<input id="sicboBet" type="number" min="1000" max="100000" step="1000" value="10000"><small>한 판 최대 100,000G</small></label><button id="sicboRollBtn" class="primary full casino-main-btn" type="button">ROLL DICE</button></div>
+            <div class="premium-panel sicbo-controls"><h3>BETTING TABLE</h3><div id="sicboBets" class="sicbo-bet-board"><button data-sicbo-bet="small" type="button"><b>SMALL</b><span>4–10</span><small>×2 · 트리플 제외</small></button><button data-sicbo-bet="big" type="button"><b>BIG</b><span>11–17</span><small>×2 · 트리플 제외</small></button><button data-sicbo-bet="odd" type="button"><b>ODD</b><span>홀수</span><small>×2 · 트리플 제외</small></button><button data-sicbo-bet="even" type="button"><b>EVEN</b><span>짝수</span><small>×2 · 트리플 제외</small></button><button data-sicbo-bet="any-triple" class="triple-bet" type="button"><b>ANY TRIPLE</b><span>같은 눈 3개</span><small>×31</small></button></div><div class="sicbo-total-title">TOTAL · 합계 숫자</div><div id="sicboTotals" class="sicbo-total-grid"></div><label class="casino-wager-label">베팅 금액<input id="sicboBet" type="number" min="1000" max="100000" step="1000" value="10000"><small>한 판 최대 100,000G</small></label><button id="sicboRollBtn" class="primary full casino-main-btn" type="button">ROLL DICE</button><div class="casino-auto-row"><button data-sicbo-auto="10" type="button">AUTO 10</button><button data-sicbo-auto="50" type="button">AUTO 50</button><button data-sicbo-auto="100" type="button">AUTO 100</button><button id="sicboAutoStop" class="danger" type="button" disabled>STOP</button><span id="sicboAutoStatus">수동</span></div></div>
           </div>
         </div>
+      </section>
+
+
+      <section id="view-sevenpoker" class="view">
+        <div class="view-head"><button class="back" data-go="lobby" type="button">←</button><div><small>SEVEN CARD STUD · PRO TABLE</small><h2>JUNJA 세븐포커</h2></div><button class="secondary view-guide" data-open-help="sevenpoker" type="button">? 사용법</button></div>
+        <div id="sevenPokerStart" class="seven-start panel">
+          <div class="seven-start-visual"><div class="seven-neon">SEVEN</div><div class="seven-fan"><i>♠A</i><i>♥K</i><i>♦Q</i><i>♣J</i><i>♠10</i></div><span>3RD STREET → 7TH STREET</span></div>
+          <div class="seven-start-copy"><small>HEADS-UP VS J-BOT</small><h3>진짜 포커 테이블처럼 한 장씩 공개되는 세븐포커</h3><p>처음 3장(2장 비공개 + 1장 공개)으로 시작해 4·5·6번째 카드는 공개, 마지막 7번째 카드는 비공개로 받습니다. 매 Street마다 체크·콜·레이즈·폴드를 선택합니다.</p>
+            <div class="quick-wager-block"><span>테이블 바이인</span><div class="quick-wager-row" data-wager-group="sevenBuyIn"><button type="button" data-set-wager="25000">2.5만</button><button type="button" data-set-wager="50000">5만</button><button type="button" data-set-wager="75000">7.5만</button><button type="button" data-set-wager="100000" class="active">10만 MAX</button></div></div>
+            <div class="solo-bet-row no-spinner-bet"><input id="sevenBuyIn" type="number" min="10000" max="100000" step="1000" value="100000" inputmode="numeric"><button id="startSevenPoker" class="primary" type="button">J-BOT 테이블 입장</button></div>
+            <label class="auto-next-toggle"><input id="sevenAutoNext" type="checkbox"><span></span><b>핸드 종료 후 3초 뒤 자동으로 다음 핸드</b></label>
+          </div>
+        </div>
+        <div id="sevenPokerTable" class="hidden"></div>
+      </section>
+
+      <section id="view-baccarat" class="view">
+        <div class="view-head"><button class="back" data-go="lobby" type="button">←</button><div><small>BACCARAT DUEL · LIVE 1 VS 1</small><h2>바카라 대전</h2></div><button class="secondary view-guide" data-open-help="baccarat" type="button">? 사용법</button></div>
+        <div id="baccaratBrowser" class="baccarat-browser">
+          <div class="panel baccarat-hero-panel"><div class="baccarat-brand"><small>JUNJA GRAND SALON</small><h3>BACCARAT DUEL</h3><p>딜러를 상대로 하는 일반 바카라가 아니라 <b>친구 두 명이 같은 금액을 걸고 Player/Banker 패로 맞붙는 1:1 모드</b>입니다. 역할은 매 판 교대합니다.</p></div><div class="baccarat-shoe-art"><span>8</span><small>DECK<br>SHOE</small></div></div>
+          <div class="baccarat-browser-grid"><div class="panel create-room premium-panel"><small>PRIVATE DUEL</small><h3>바카라 대전방 만들기</h3><p>상대가 입장하면 두 사람 중 <b>보유머니가 적은 사람의 잔액</b>이 그 판의 최대 베팅 한도가 됩니다.</p><button id="createBaccarat" class="primary full" type="button">새 바카라 대전방</button></div><div class="panel room-list-card premium-panel"><div class="section-head"><div><small>OPEN DUELS</small><h3>열린 바카라방</h3></div><button class="ghost" id="refreshBaccarat" type="button">새로고침</button></div><div id="baccaratRooms" class="room-list"></div></div></div>
+        </div>
+        <div id="baccaratRoom" class="hidden"></div>
       </section>
 
       <section id="view-admin" class="view">
@@ -148,10 +174,12 @@
       <section id="view-ledger" class="view"><div class="view-head"><button class="back" data-go="lobby" type="button">←</button><div><small>WALLET HISTORY</small><h2>게임머니 내역</h2></div></div><div class="panel section-card premium-panel"><div id="ledgerList" class="ledger-list"></div></div></section>
     </main>
 
-    <div id="helpModal" class="help-modal hidden"><div class="help-backdrop"></div><div class="help-card panel"><button id="closeHelp" class="sheet-close" type="button">×</button><div class="help-head"><div><small>JUNJA GAME CLUB GUIDE</small><h2>게임방법</h2><p>게임별 핵심만 빠르게 확인해.</p></div><div class="help-emoji">🎮</div></div><div class="help-tabs"><button data-help-tab="lobby" class="active" type="button">전체</button><button data-help-tab="slot" type="button">슬롯</button><button data-help-tab="holdem" type="button">홀덤</button><button data-help-tab="yut" type="button">윷</button><button data-help-tab="seotda" type="button">섯다</button><button data-help-tab="gostop" type="button">고스톱</button><button data-help-tab="horse" type="button">경마</button><button data-help-tab="bigwheel" type="button">빅휠</button><button data-help-tab="sicbo" type="button">다이사이</button></div><div class="help-pages">
+    <div id="helpModal" class="help-modal hidden"><div class="help-backdrop"></div><div class="help-card panel"><button id="closeHelp" class="sheet-close" type="button">×</button><div class="help-head"><div><small>JUNJA GAME CLUB GUIDE</small><h2>게임방법</h2><p>게임별 핵심만 빠르게 확인해.</p></div><div class="help-emoji">🎮</div></div><div class="help-tabs"><button data-help-tab="lobby" class="active" type="button">전체</button><button data-help-tab="slot" type="button">슬롯</button><button data-help-tab="holdem" type="button">홀덤</button><button data-help-tab="sevenpoker" type="button">세븐포커</button><button data-help-tab="baccarat" type="button">바카라</button><button data-help-tab="yut" type="button">윷</button><button data-help-tab="seotda" type="button">섯다</button><button data-help-tab="gostop" type="button">고스톱</button><button data-help-tab="horse" type="button">경마</button><button data-help-tab="bigwheel" type="button">빅휠</button><button data-help-tab="sicbo" type="button">다이사이</button></div><div class="help-pages">
       <article data-help-page="lobby" class="active"><div class="guide-grid"><div class="guide-step"><b>01</b><h3>가입</h3><p>100만 G로 시작. 연락처·실명 대신 게임 별명만 사용.</p></div><div class="guide-step"><b>02</b><h3>모드</h3><p>홀덤·윷은 친구 멀티와 AI 1인전을 모두 지원.</p></div><div class="guide-step"><b>03</b><h3>개인정보</h3><p>채팅 기능은 없고 닉네임과 게임 진행 정보만 표시.</p></div><div class="guide-step"><b>04</b><h3>게임머니</h3><p>현금 가치가 없고 충전·환전·상품 교환 기능도 없음. 프로필에서 친구 닉네임을 확인한 뒤 보유머니 안에서 선물 가능.</p></div></div></article>
       <article data-help-page="slot"><div class="guide-hero"><span>🎰</span><div><h3>3×3 로열 릴</h3><p>3행×3열 고정. 가로 3줄과 대각선 2줄에서 같은 심볼 3개를 맞춰.</p></div></div><div class="guide-list"><p><b>777</b> 한 페이라인 완성 시 x1000</p><p><b>J 보너스</b> J 한 개당 x20, JJJ 페이라인 완성 시 x500</p><p><b>자동 돌리기</b> 10·50·100회 연속 SPIN. 777/JJJ 잭팟이 터지면 즉시 자동 중지</p><p><b>다중 라인</b> 여러 줄이 맞으면 배당 합산</p><p><b>SPIN</b> 세 릴이 순차적으로 멈추며 당첨선을 표시</p></div></article>
       <article data-help-page="holdem"><div class="guide-hero"><span>♠️</span><div><h3>텍사스 홀덤</h3><p>친구방 2~6인 또는 AI 헤즈업. 체크·콜·레이즈·폴드로 진행.</p></div></div><div class="guide-list"><p><b>AI 모드</b> 바이인 후 J-BOT과 연속 핸드 가능</p><p><b>나가기</b> 남은 테이블 칩을 게임머니로 정산</p><p><b>승리</b> 마지막까지 남거나 가장 높은 5장 족보</p></div></article>
+      <article data-help-page="sevenpoker"><div class="guide-hero"><span>🂡</span><div><h3>세븐포커</h3><p>7장의 개인 카드 중 가장 좋은 5장 족보로 승부하는 7 Card Stud 방식.</p></div></div><div class="guide-list"><p><b>3rd Street</b> 2장 비공개 + 1장 공개</p><p><b>4th~6th</b> 한 장씩 공개되며 매 Street 베팅</p><p><b>7th River</b> 마지막 한 장은 비공개</p><p><b>액션</b> 체크 · 콜 · ½ POT · MAX · 직접 레이즈 · 폴드</p><p><b>연속 플레이</b> 자동 다음 핸드를 켜면 종료 3초 뒤 같은 테이블 칩으로 다음 판</p></div></article>
+      <article data-help-page="baccarat"><div class="guide-hero"><span>🃏</span><div><h3>바카라 대전</h3><p>친구 2명이 동일 금액을 걸고 Player/Banker 패로 직접 승부.</p></div></div><div class="guide-list"><p><b>한도</b> 고정 상한 없음. 두 사람 중 잔액이 낮은 사람의 보유머니가 최대 베팅</p><p><b>룰</b> 8덱 슈 · Natural 8/9 · 표준 Third Card Rule</p><p><b>역할</b> Player / Banker는 매 판 자동 교대해 장기적인 역할 편향을 줄임</p><p><b>승패</b> 승자는 상대 판돈만큼 순이익, TIE는 게임머니 변동 없음</p><p><b>연속 대전</b> 두 사람 모두 AUTO NEXT를 켜면 결과 확인 후 자동 다음 판</p></div></article>
       <article data-help-page="yut"><div class="guide-hero"><span>🪵</span><div><h3>정통 윷놀이</h3><p>도1·개2·걸3·윷4·모5. 윷/모 또는 상대말 잡기 시 추가 던지기.</p></div></div><div class="guide-list"><p><b>업기</b> 같은 팀 말이 같은 지점에 만나면 한 묶음이 되어 함께 이동</p><p><b>지름길</b> 코너에 정확히 도착하면 다음 이동부터 대각선 경로 사용</p><p><b>팀전</b> 2:2 / 3:3에서 팀 공동 말 4개를 번갈아 운용</p><p><b>승리</b> 팀의 말 4개를 모두 FINISH</p></div></article>
       <article data-help-page="seotda"><div class="guide-hero"><span>🎴</span><div><h3>섯다</h3><p>두 장의 월패로 족보를 만들어 J-BOT과 승부.</p></div></div><div class="guide-list"><p><b>상위</b> 38광땡 &gt; 18광땡 &gt; 13광땡 &gt; 땡</p><p><b>특수</b> 알리·독사·구삥·장삥·장사·세륙</p><p><b>두 배 승부</b> 판돈을 한 번 더 걸고 보상도 두 배 규모</p></div></article>
       <article data-help-page="gostop"><div class="guide-hero"><span>🌸</span><div><h3>고스톱 / 맞고</h3><p>같은 월끼리 맞춰 먹고 광·열끗·띠·피를 모아 점수를 올려.</p></div></div><div class="guide-list"><p><b>플레이</b> 손패 한 장 선택 → 같은 월 바닥패 획득 → 덱 한 장 자동 뒤집기</p><p><b>7점+</b> 점수가 새로 올라가면 GO 또는 STOP 선택</p><p><b>GO</b> 계속 진행하며 최종 배당 증가</p></div></article>
@@ -165,6 +193,6 @@
     <div id="toast" class="toast"></div>
   </div>
 </div>
-<script src="/app.js?v=170"></script>
+<script src="/app.js?v=180"></script>
 </body>
 </html>

@@ -23,7 +23,12 @@ const EXTRA_COLUMNS = {
     ['bigwheel_profit','INTEGER NOT NULL DEFAULT 0'],
     ['sicbo_plays','INTEGER NOT NULL DEFAULT 0'],
     ['sicbo_wins','INTEGER NOT NULL DEFAULT 0'],
-    ['sicbo_profit','INTEGER NOT NULL DEFAULT 0']
+    ['sicbo_profit','INTEGER NOT NULL DEFAULT 0'],
+    ['seven_games','INTEGER NOT NULL DEFAULT 0'],
+    ['seven_wins','INTEGER NOT NULL DEFAULT 0'],
+    ['baccarat_games','INTEGER NOT NULL DEFAULT 0'],
+    ['baccarat_wins','INTEGER NOT NULL DEFAULT 0'],
+    ['baccarat_profit','INTEGER NOT NULL DEFAULT 0']
   ],
   users: [
     ['is_admin','INTEGER NOT NULL DEFAULT 0'],

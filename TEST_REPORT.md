@@ -1,25 +1,49 @@
-# JUNJA GAME CLUB v1.7 테스트 리포트
+# JUNJA GAME CLUB v1.8 TEST REPORT
 
-## 문법 / 캐시
+## 정적 검사
 - `node --check server.js` 통과
 - `node --check public/app.js` 통과
-- PWA 캐시 `junja-club-v17`, JS/CSS 버전 `170`으로 갱신
+- `node --check persistent-db.js` 통과
+- `node --check public/sw.js` 통과
+- PWA cache: `junja-club-v18`
+- JS/CSS asset version: `v=180`
 
-## 말풍선
-- 클라이언트/서버 공통 목록에서 `눈 찔러!`, `맞지 맞지~` 제거
-- 구버전 클라이언트가 삭제된 `eye` 키를 보내도 서버에서 `지원하지 않는 말풍선입니다.`로 거부 확인
-- 유지된 `나이스~` 말풍선 정상 전송 확인
+## 통합 테스트 · Node 22 로컬 서버
+- 회원 A/B 가입 및 세션 로그인 성공
+- 친구 게임머니 123G 전송 및 잔액 반영 확인
+- LIVE FLOOR 2명 입장 + 고정 말풍선 반응 전송 확인
+- 슬롯 3×3 spin API 정상
+- AI Texas Hold’em 시작 → 폴드 → 정산 정상
+- AI 윷놀이 시작 → 윷 던지기 → pending move 생성 → 종료 정상
+- AI 섯다 시작 → 승부 → 결과/초기화 정상
+- AI 맞고 시작 → 실제 패 1장 플레이 후 상태 진행 정상
+- 경마 경주표 생성 → 단승 레이스 → 7마리 순위 응답 정상
+- Big Wheel spin / Sic Bo roll 정상
 
-## 친구 게임머니 보내기
-- 회원 A/B 각각 1,000,000 G로 가입
-- A가 닉네임으로 B 정확 조회 성공, 조회 응답에 아이디/비밀번호/잔액 등 민감정보 미포함 확인
-- A → B 123,456 G 전송 성공
-- A 잔액 876,544 G / B 잔액 1,123,456 G 확인
-- 보내는 사람 내역에 `friend_send -123,456`, 받는 사람 내역에 `friend_receive +123,456` 기록 확인
-- 보유머니 초과 전송 서버 차단 확인
-- 자기 자신에게 전송 서버 차단 확인
-- 전송 처리는 단일 DB 트랜잭션으로 양쪽 잔액과 양쪽 장부를 함께 반영
+## Seven Poker
+- 50,000G 바이인 시작 성공
+- Ante가 street bet과 분리되어 CHECK/CHECK 후 정상적으로 다음 Street 진행하는지 확인
+- 3rd → 4th → 5th → 6th → 7th → Showdown 전체 핸드 완료 확인
+- 최종 내 족보 / J-BOT 족보 반환 확인
+- 다음 핸드 시작 후 FOLD → 핸드 완료 → 테이블 칩 cashout 정상
 
-## 데이터 유지
-- 기존 테이블 구조 변경 없음
-- `users`, `ledger`는 기존 Neon 스냅샷 대상이므로 v0.8 이후 영구저장 방식 그대로 유지
+## Baccarat Duel
+- 방 생성 → 두 번째 회원 실시간 입장 성공
+- `maxStake = min(두 회원의 현재 잔액)` 확인
+- 의도적으로 잔액을 1,000G 단위가 아닌 값으로 만든 후 **정확한 잔액 전체를 MAX stake로 설정 가능** 확인
+- MAX + 1G 요청 서버 차단 확인
+- 두 회원 READY → Round 1 정상 처리
+- Player/Banker 각각 2~3장, point 0~9 확인
+- 양쪽 AUTO NEXT 활성화 후 Round 2 정상 처리
+- Round 1/2에서 PLAYER/BANKER 역할이 서로 교대되는 것 확인
+- `/api/my-room`에서 Baccarat 방 복구 정보 확인
+- 양쪽 정상 퇴장 확인
+
+## 회귀 / 모바일
+- 일반 게임 슬롯 100,001G 베팅 서버 차단 확인 (기존 100,000G MAX 유지)
+- 새 Seven Poker / Baccarat 화면, AUTO 100 버튼, network banner, `viewport-fit=cover` 정적 제공 확인
+- 네트워크 online 상태 변경 시 자동 루프 상태를 강제로 초기화하지 않도록 수정
+- offline 시 슬롯/Big Wheel/Sic Bo 자동 진행 및 Seven/Baccarat 다음 판 타이머 안전 중지
+
+## 참고
+로컬 테스트에서는 `DATABASE_URL`을 넣지 않아 SQLite local mode로 실행했습니다. 배포 환경에서는 기존 Render의 Neon `DATABASE_URL`을 그대로 사용합니다.
