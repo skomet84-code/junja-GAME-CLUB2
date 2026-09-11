@@ -1,4 +1,3 @@
-JUNJA GAME CLUB v0.9.0
+JUNJA GAME CLUB v1.0.0
 Built 2026-09-11
-Focus: multiplayer stability, custom wagers, READY/turn UI, room recovery, smoother slot/horse animation, admin room control.
-Persistence: Neon PostgreSQL snapshot persistence retained.
+Focus: reliable solo play, poker hand HUD, Vegas slot, detailed horse animation, 2nd-place horse bonus, mobile stability

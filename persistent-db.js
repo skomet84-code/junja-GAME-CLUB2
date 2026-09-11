@@ -4,7 +4,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { execFileSync } = require('node:child_process');
 const { DatabaseSync: NativeDatabaseSync } = require('node:sqlite');
-const { Pool } = require('pg');
+let PoolCtor = null;
 
 const TABLES = ['users','stats','sessions','ledger','admin_audit','room_escrow'];
 const EXTRA_COLUMNS = {
@@ -40,7 +40,8 @@ function sslOptions(){
 async function getPool(){
   if(!hasRemote()) return null;
   if(!pool){
-    pool = new Pool({connectionString:process.env.DATABASE_URL,ssl:sslOptions(),max:2,idleTimeoutMillis:30000,connectionTimeoutMillis:15000});
+    PoolCtor = PoolCtor || require('pg').Pool;
+    pool = new PoolCtor({connectionString:process.env.DATABASE_URL,ssl:sslOptions(),max:2,idleTimeoutMillis:30000,connectionTimeoutMillis:15000});
     await pool.query(`CREATE TABLE IF NOT EXISTS junja_club_state (
       id INTEGER PRIMARY KEY,
       payload JSONB NOT NULL,

@@ -288,6 +288,30 @@ function combos5(a){const out=[];for(let i=0;i<a.length-4;i++)for(let j=i+1;j<a.
 function compareRank(a,b){for(let i=0;i<Math.max(a.length,b.length);i++){const d=(a[i]||0)-(b[i]||0);if(d)return d;}return 0;}
 function eval7(cards){let best=null;for(const c of combos5(cards)){const r=eval5(c);if(!best||compareRank(r,best)>0)best=r;}return best;}
 function handName(rank){return ['하이카드','원페어','투페어','트리플','스트레이트','플러시','풀하우스','포카드','스트레이트 플러시'][rank[0]];}
+function pokerHandStatus(cards){
+  const clean=(cards||[]).filter(c=>c&&c!=='XX');
+  if(!clean.length)return {name:'카드 대기',detail:'카드가 배분되면 현재 패를 분석해줘.',draws:[]};
+  let name='하이카드',detail='',rank=null;
+  if(clean.length>=5){
+    let best=null;for(const c of combos5(clean)){const r=eval5(c);if(!best||compareRank(r,best)>0)best=r;}
+    rank=best;name=handName(best);
+  }else{
+    const vals=clean.map(c=>rankVal(c[0])),counts=new Map();for(const v of vals)counts.set(v,(counts.get(v)||0)+1);
+    const groups=[...counts.entries()].sort((a,b)=>b[1]-a[1]||b[0]-a[0]);
+    const pairs=groups.filter(g=>g[1]===2).length;
+    if(groups[0]?.[1]===4)name='포카드';else if(groups[0]?.[1]===3)name='트리플';else if(pairs>=2)name='투페어';else if(pairs===1)name='원페어';
+    else name='하이카드';
+  }
+  const draws=[];
+  const suitCounts={S:0,H:0,D:0,C:0};for(const c of clean)suitCounts[c[1]]=(suitCounts[c[1]]||0)+1;
+  if(Object.values(suitCounts).some(n=>n===4))draws.push('플러시 드로우');
+  const uniq=[...new Set(clean.map(c=>rankVal(c[0])))].sort((a,b)=>a-b);if(uniq.includes(14))uniq.unshift(1);
+  let straightDraw=false;for(let start=1;start<=10;start++){let hits=0;for(let v=start;v<start+5;v++)if(uniq.includes(v))hits++;if(hits===4){straightDraw=true;break;}}
+  if(straightDraw&&!/스트레이트/.test(name))draws.push('스트레이트 드로우');
+  const high=Math.max(...clean.map(c=>rankVal(c[0])));const highLabel=high===14?'A':high===13?'K':high===12?'Q':high===11?'J':String(high);
+  detail=rank?`${name} 완성`:(name==='하이카드'?`${highLabel} 하이`:name);
+  return {name,detail,draws};
+}
 function orderedPlayers(r){ return [...r.players].sort((a,b)=>a.seat-b.seat); }
 function nextEligibleIndex(arr,startIdx,pred){ for(let step=1;step<=arr.length;step++){const i=(startIdx+step)%arr.length;if(pred(arr[i]))return i;}return -1; }
 function pokerHandPlayers(r){return r.hand?orderedPlayers(r).filter(p=>r.hand.p[p.userId]):[];}
@@ -397,7 +421,8 @@ function pokerView(r,userId){
   const reveal=h.phase==='complete'&&h.result?.type==='showdown';
   const players={};for(const rp of pokerHandPlayers(r)){const hp=h.p[rp.userId];players[rp.userId]={roundBet:hp.roundBet,totalBet:hp.totalBet,folded:hp.folded,allIn:hp.allIn,acted:hp.acted,hole:(rp.userId===userId||reveal&&!hp.folded)?hp.hole:['XX','XX']};}
   const me=players[userId];
-  return {phase:h.phase,board:h.board,players,currentBet:h.currentBet,minRaise:h.minRaise,turnUserId:h.turnUserId,pot:pokerPot(h),dealerSeat:h.dealerSeat,result:h.result,legal:me&&h.turnUserId===userId?{toCall:Math.max(0,h.currentBet-me.roundBet),minRaiseTo:h.currentBet+h.minRaise,maxRaiseTo:(roomPlayer(r,userId)?.stack||0)+me.roundBet}:null};
+  const myCards=me?[...(me.hole||[]),...(h.board||[])].filter(c=>c&&c!=='XX'):[];
+  return {phase:h.phase,board:h.board,players,currentBet:h.currentBet,minRaise:h.minRaise,turnUserId:h.turnUserId,pot:pokerPot(h),dealerSeat:h.dealerSeat,result:h.result,myHand:pokerHandStatus(myCards),legal:me&&h.turnUserId===userId?{toCall:Math.max(0,h.currentBet-me.roundBet),minRaiseTo:h.currentBet+h.minRaise,maxRaiseTo:(roomPlayer(r,userId)?.stack||0)+me.roundBet}:null};
 }
 
 // ---------- Yut engine v0.7: stacking / shortcuts / teams ----------
@@ -635,13 +660,16 @@ function raceMultiplier(type,picks,card){
   return 0;
 }
 function settleRace(userId,bet,type,picks,card,order){
-  let won=false;if(type==='win')won=order[0].id===Number(picks[0]);
+  let won=false,placeBonus=false,finishRank=null;
+  if(type==='win'){
+    const picked=Number(picks[0]);finishRank=order.findIndex(h=>h.id===picked)+1;won=finishRank===1;placeBonus=finishRank===2;
+  }
   else if(type==='quinella'){const top=[order[0].id,order[1].id].sort().join(',');won=top===[Number(picks[0]),Number(picks[1])].sort().join(',');}
   else if(type==='exacta')won=order[0].id===Number(picks[0])&&order[1].id===Number(picks[1]);
-  const mult=raceMultiplier(type,picks,card),payout=won?Math.floor(bet*mult):0;
-  if(payout>0)walletChange(userId,payout,'horse_win',`경마 ${type} 적중 x${mult}`);
+  const winMult=raceMultiplier(type,picks,card),mult=won?winMult:(placeBonus?.5:0),payout=won?Math.floor(bet*winMult):(placeBonus?Math.floor(bet*.5):0);
+  if(payout>0)walletChange(userId,payout,won?'horse_win':'horse_place_bonus',won?`경마 ${type} 적중 x${winMult}`:'경마 단승 2위 위로금 x0.5');
   db.prepare('UPDATE stats SET horse_races=horse_races+1, horse_wins=horse_wins+?, horse_profit=horse_profit+? WHERE user_id=?').run(won?1:0,payout-bet,userId);
-  return {won,mult,payout};
+  return {won,placeBonus,finishRank,mult,payout,winMult};
 }
 // ---------- Seotda ----------
 function seotdaDeck(){const d=[];for(let m=1;m<=10;m++){d.push({m,g:[1,3,8].includes(m),id:`${m}G`});d.push({m,g:false,id:`${m}N`});}return shuffle(d);}
