@@ -61,6 +61,23 @@ CREATE TABLE IF NOT EXISTS admin_audit (
   memo TEXT NOT NULL,
   created_at INTEGER NOT NULL
 );
+CREATE TABLE IF NOT EXISTS user_inventory (
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  item_id TEXT NOT NULL,
+  purchase_price INTEGER NOT NULL,
+  purchased_at INTEGER NOT NULL,
+  PRIMARY KEY(user_id,item_id)
+);
+CREATE TABLE IF NOT EXISTS user_loadout (
+  user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+  costume TEXT,
+  frame TEXT,
+  title TEXT,
+  pet TEXT,
+  table_skin TEXT,
+  card_back TEXT,
+  bubble_pack TEXT
+);
 CREATE TABLE IF NOT EXISTS room_escrow (
   room_id TEXT NOT NULL,
   user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -122,15 +139,74 @@ const baccaratRooms = new Map();
 const AVATARS = ['🧑‍💼','😎','🧢','👑','🐯','🐻','🦊','🐼','🐸','🦁'];
 const LIVE_GAMES = new Set(['slot','holdem','sevenpoker','yut','seotda','gostop','horse','bigwheel','sicbo','baccarat']);
 const ROOM_REACTIONS = {
-  frustrated:{emoji:'😫',label:'답답해!'},
-  hurry:{emoji:'⏩',label:'빨리빨리!'},
-  cry:{emoji:'😭',label:'으앙 ㅠㅠ'},
-  laugh:{emoji:'😂',label:'ㅋㅋㅋㅋ'},
-  wow:{emoji:'😲',label:'헐?!'},
-  sad:{emoji:'😢',label:'슬퍼...'},
-  nice:{emoji:'😎',label:'나이스~'},
-  go:{emoji:'🔥',label:'가즈아!'}
+  frustrated:{emoji:'😫',label:'답답해!',pack:'base'},
+  hurry:{emoji:'⏩',label:'빨리빨리!',pack:'base'},
+  cry:{emoji:'😭',label:'으앙 ㅠㅠ',pack:'base'},
+  laugh:{emoji:'😂',label:'ㅋㅋㅋㅋ',pack:'base'},
+  wow:{emoji:'😲',label:'헐?!',pack:'base'},
+  sad:{emoji:'😢',label:'슬퍼...',pack:'base'},
+  nice:{emoji:'😎',label:'나이스~',pack:'base'},
+  go:{emoji:'🔥',label:'가즈아!',pack:'base'},
+  lucky:{emoji:'🍀',label:'오늘 느낌 온다!',pack:'bubble_hype'},
+  gg:{emoji:'🤝',label:'굿게임!',pack:'bubble_hype'},
+  boom:{emoji:'💥',label:'터졌다!',pack:'bubble_hype'},
+  clutch:{emoji:'🎯',label:'딱 맞췄다!',pack:'bubble_hype'},
+  heart:{emoji:'💖',label:'좋아좋아!',pack:'bubble_cute'},
+  wink:{emoji:'😉',label:'찡긋~',pack:'bubble_cute'},
+  pout:{emoji:'🥺',label:'한 번만...',pack:'bubble_cute'},
+  clap:{emoji:'👏',label:'박수!',pack:'bubble_cute'},
+  crown:{emoji:'👑',label:'품격 있게~',pack:'bubble_royal'},
+  sparkle:{emoji:'✨',label:'클래스가 다르지',pack:'bubble_royal'},
+  salute:{emoji:'🫡',label:'인정!',pack:'bubble_royal'},
+  throne:{emoji:'🪑',label:'왕좌는 내 자리',pack:'bubble_royal'}
 };
+
+const SHOP_ITEMS = [
+  {id:'costume_dealer',category:'costume',name:'VIP 딜러',icon:'🎩',rarity:'rare',price:250000,desc:'카지노 딜러 느낌의 골드 햇 장식'},
+  {id:'costume_rabbit',category:'costume',name:'럭키 래빗',icon:'🐰',rarity:'rare',price:650000,desc:'행운을 부르는 토끼 코스튬'},
+  {id:'costume_royal',category:'costume',name:'로열 크라운',icon:'👑',rarity:'epic',price:1500000,desc:'입장부터 티 나는 왕관 코스튬'},
+  {id:'costume_angel',category:'costume',name:'헤븐 윙',icon:'😇',rarity:'epic',price:2500000,desc:'은은하게 빛나는 천사 코스튬'},
+  {id:'costume_devil',category:'costume',name:'레드 데빌',icon:'😈',rarity:'epic',price:2500000,desc:'승부욕 넘치는 레드 데빌'},
+  {id:'costume_robot',category:'costume',name:'J-ROBOT',icon:'🤖',rarity:'legendary',price:5000000,desc:'메탈릭 미래형 코스튬'},
+  {id:'costume_dragon',category:'costume',name:'골든 드래곤',icon:'🐲',rarity:'legendary',price:15000000,desc:'고액 플레이어를 위한 드래곤 오라'},
+  {id:'costume_junja',category:'costume',name:'JUNJA SIGNATURE',icon:'J',rarity:'mythic',price:50000000,desc:'최상위 시그니처 J 코스튬'},
+
+  {id:'frame_bronze',category:'frame',name:'브론즈 링',icon:'◉',rarity:'common',price:100000,desc:'깔끔한 브론즈 프로필 링'},
+  {id:'frame_neon',category:'frame',name:'네온 베가스',icon:'✦',rarity:'rare',price:400000,desc:'네온이 흐르는 프로필 프레임'},
+  {id:'frame_royal',category:'frame',name:'로열 골드',icon:'♛',rarity:'epic',price:1000000,desc:'금빛 왕실 프레임'},
+  {id:'frame_diamond',category:'frame',name:'다이아몬드',icon:'💎',rarity:'legendary',price:10000000,desc:'다이아 빛이 도는 최고급 프레임'},
+  {id:'frame_inferno',category:'frame',name:'인페르노',icon:'🔥',rarity:'mythic',price:25000000,desc:'불꽃이 살아있는 최상위 프레임'},
+
+  {id:'title_vip',category:'title',name:'VIP',icon:'VIP',rarity:'common',price:250000,desc:'닉네임 아래 VIP 칭호'},
+  {id:'title_highroller',category:'title',name:'HIGH ROLLER',icon:'HR',rarity:'rare',price:1000000,desc:'큰 판을 즐기는 플레이어 칭호'},
+  {id:'title_pokerace',category:'title',name:'POKER ACE',icon:'A♠',rarity:'epic',price:3000000,desc:'카드 테이블 전용 감성 칭호'},
+  {id:'title_jackpot',category:'title',name:'JACKPOT KING',icon:'777',rarity:'epic',price:5000000,desc:'잭팟을 노리는 플레이어 칭호'},
+  {id:'title_grandmaster',category:'title',name:'GRAND MASTER',icon:'GM',rarity:'legendary',price:10000000,desc:'클럽 상위 컬렉터 칭호'},
+  {id:'title_legend',category:'title',name:'JUNJA LEGEND',icon:'J★',rarity:'mythic',price:50000000,desc:'최상위 명예 칭호'},
+
+  {id:'pet_cat',category:'pet',name:'카지노 캣',icon:'🐈',rarity:'common',price:300000,desc:'옆에서 응원하는 작은 고양이'},
+  {id:'pet_shiba',category:'pet',name:'럭키 시바',icon:'🐕',rarity:'rare',price:800000,desc:'승부를 지켜보는 시바'},
+  {id:'pet_robot',category:'pet',name:'칩봇',icon:'🤖',rarity:'epic',price:3000000,desc:'칩을 지키는 미니 로봇'},
+  {id:'pet_dragon',category:'pet',name:'베이비 드래곤',icon:'🐉',rarity:'legendary',price:8000000,desc:'테이블 옆을 지키는 작은 용'},
+  {id:'pet_phoenix',category:'pet',name:'골든 피닉스',icon:'🦅',rarity:'mythic',price:20000000,desc:'황금 불꽃 오라를 가진 전설 펫'},
+
+  {id:'table_emerald',category:'table_skin',name:'에메랄드 클래식',icon:'♣',rarity:'common',price:500000,desc:'정통 카지노 녹색 펠트'},
+  {id:'table_royalred',category:'table_skin',name:'로열 레드',icon:'♥',rarity:'rare',price:1500000,desc:'고급 레드 벨벳 테이블'},
+  {id:'table_midnight',category:'table_skin',name:'미드나잇 블랙',icon:'♠',rarity:'epic',price:2000000,desc:'블랙 & 실버 하이롤러 룸'},
+  {id:'table_neon',category:'table_skin',name:'네온 베가스',icon:'✦',rarity:'legendary',price:5000000,desc:'보라·블루 네온 카지노 테이블'},
+  {id:'table_diamond',category:'table_skin',name:'다이아 살롱',icon:'♦',rarity:'mythic',price:15000000,desc:'다이아 광택이 흐르는 프리미엄 살롱'},
+
+  {id:'card_obsidian',category:'card_back',name:'옵시디언 백',icon:'🂠',rarity:'common',price:200000,desc:'검정 카드 뒷면'},
+  {id:'card_ruby',category:'card_back',name:'루비 백',icon:'♦',rarity:'rare',price:500000,desc:'붉은 보석 카드 뒷면'},
+  {id:'card_gold',category:'card_back',name:'24K 골드 백',icon:'♛',rarity:'epic',price:2000000,desc:'골드 패턴 카드 뒷면'},
+  {id:'card_cosmic',category:'card_back',name:'코스믹 J 백',icon:'J',rarity:'legendary',price:5000000,desc:'J 로고가 빛나는 우주 테마'},
+
+  {id:'bubble_hype',category:'bubble_pack',name:'하이프 팩',icon:'💥',rarity:'rare',price:300000,desc:'오늘 느낌 온다! · 굿게임! · 터졌다! · 딱 맞췄다!'},
+  {id:'bubble_cute',category:'bubble_pack',name:'큐트 팩',icon:'💖',rarity:'rare',price:300000,desc:'좋아좋아! · 찡긋~ · 한 번만... · 박수!'},
+  {id:'bubble_royal',category:'bubble_pack',name:'로열 팩',icon:'👑',rarity:'epic',price:1000000,desc:'품격 있게~ · 클래스가 다르지 · 인정! · 왕좌는 내 자리'}
+];
+const SHOP_BY_ID = Object.fromEntries(SHOP_ITEMS.map(x=>[x.id,Object.freeze({...x})]));
+const LOADOUT_FIELDS = new Set(['costume','frame','title','pet','table_skin','card_back','bubble_pack']);
 const SLOT_SYMBOLS = [
   {s:'🍒',w:140},{s:'🍋',w:120},{s:'🍊',w:100},{s:'🔔',w:65},{s:'⭐',w:45},{s:'💎',w:25},{s:'7️⃣',w:7},{s:'J',w:1}
 ];
@@ -224,6 +300,61 @@ function transferGameMoney(senderId,targetId,amount){
   }catch(e){try{db.exec('ROLLBACK')}catch{};throw e;}
 }
 
+function ensureLoadout(userId){
+  let row=db.prepare('SELECT * FROM user_loadout WHERE user_id=?').get(userId);
+  if(!row){db.prepare('INSERT INTO user_loadout(user_id) VALUES(?)').run(userId);row=db.prepare('SELECT * FROM user_loadout WHERE user_id=?').get(userId);}
+  return row;
+}
+function inventoryIds(userId){return new Set(db.prepare('SELECT item_id FROM user_inventory WHERE user_id=?').all(userId).map(x=>x.item_id));}
+function collectionTier(count){
+  if(count>=30)return {name:'DIAMOND COLLECTOR',icon:'💎',level:5};
+  if(count>=20)return {name:'GOLD COLLECTOR',icon:'👑',level:4};
+  if(count>=10)return {name:'SILVER COLLECTOR',icon:'✦',level:3};
+  if(count>=5)return {name:'BRONZE COLLECTOR',icon:'★',level:2};
+  if(count>=1)return {name:'ROOKIE COLLECTOR',icon:'•',level:1};
+  return {name:'NEW MEMBER',icon:'',level:0};
+}
+function itemPublic(id){const x=SHOP_BY_ID[id];return x?{...x}:null;}
+function cosmeticsPublic(userId){
+  userId=Number(userId);
+  const empty=()=>{const out={ownedCount:0,collection:collectionTier(0)};for(const f of LOADOUT_FIELDS)out[f]=null;return out;};
+  if(!Number.isInteger(userId)||userId<1||!db.prepare('SELECT 1 FROM users WHERE id=?').get(userId))return empty();
+  const load=ensureLoadout(userId),owned=inventoryIds(userId),count=owned.size;
+  const out={ownedCount:count,collection:collectionTier(count)};
+  for(const f of LOADOUT_FIELDS){out[f]=load[f]?itemPublic(load[f]):null;}
+  return out;
+}
+function reactionAllowed(userId,key){
+  const def=ROOM_REACTIONS[key];if(!def)return false;if(def.pack==='base')return true;
+  const load=ensureLoadout(userId);return load.bubble_pack===def.pack && inventoryIds(userId).has(def.pack);
+}
+function shopState(userId){
+  const load=ensureLoadout(userId),owned=inventoryIds(userId);
+  return {items:SHOP_ITEMS.map(x=>({...x,owned:owned.has(x.id),equipped:load[x.category]===x.id})),loadout:cosmeticsPublic(userId),ownedCount:owned.size};
+}
+function buyShopItem(userId,itemId){
+  const item=SHOP_BY_ID[String(itemId||'')];if(!item)throw new Error('존재하지 않는 상점 아이템입니다.');
+  if(db.prepare('SELECT 1 FROM user_inventory WHERE user_id=? AND item_id=?').get(userId,item.id))throw new Error('이미 보유한 아이템입니다.');
+  db.exec('BEGIN IMMEDIATE');
+  try{
+    const u=db.prepare('SELECT balance FROM users WHERE id=?').get(userId);if(!u)throw new Error('사용자를 찾을 수 없습니다.');
+    if(u.balance<item.price)throw new Error(`게임머니가 부족합니다. ${formatMoney(item.price)}G가 필요합니다.`);
+    const next=u.balance-item.price,t=now();
+    db.prepare('UPDATE users SET balance=? WHERE id=?').run(next,userId);
+    db.prepare('INSERT INTO user_inventory(user_id,item_id,purchase_price,purchased_at) VALUES(?,?,?,?)').run(userId,item.id,item.price,t);
+    db.prepare('INSERT INTO ledger(user_id,amount,balance_after,type,memo,created_at) VALUES(?,?,?,?,?,?)').run(userId,-item.price,next,'shop_purchase',`JUNJA BOUTIQUE · ${item.name} 구매`,t);
+    db.exec('COMMIT');return {balance:next,item};
+  }catch(e){try{db.exec('ROLLBACK')}catch{};throw e;}
+}
+function equipShopItem(userId,category,itemId){
+  category=String(category||'');if(!LOADOUT_FIELDS.has(category))throw new Error('잘못된 장착 슬롯입니다.');
+  ensureLoadout(userId);
+  if(itemId==null||itemId==='') {db.prepare(`UPDATE user_loadout SET ${category}=NULL WHERE user_id=?`).run(userId);return cosmeticsPublic(userId);}
+  const item=SHOP_BY_ID[String(itemId)];if(!item||item.category!==category)throw new Error('이 슬롯에 장착할 수 없는 아이템입니다.');
+  if(!db.prepare('SELECT 1 FROM user_inventory WHERE user_id=? AND item_id=?').get(userId,item.id))throw new Error('먼저 아이템을 구매해주세요.');
+  db.prepare(`UPDATE user_loadout SET ${category}=? WHERE user_id=?`).run(item.id,userId);return cosmeticsPublic(userId);
+}
+
 function userPublic(userId){
   const u=db.prepare(`SELECT u.id,u.username,u.nickname,u.balance,u.avatar,u.created_at,u.last_daily,u.is_admin,u.is_disabled,
     s.slot_spins,s.slot_wins,s.slot_profit,s.poker_hands,s.poker_wins,s.yut_games,s.yut_wins,
@@ -232,7 +363,7 @@ function userPublic(userId){
     s.seven_games,s.seven_wins,s.baccarat_games,s.baccarat_wins,s.baccarat_profit
     FROM users u JOIN stats s ON s.user_id=u.id WHERE u.id=?`).get(userId);
   if(!u) return null;
-  return {...u, avatarEmoji:AVATARS[u.avatar%AVATARS.length], dailyAvailable:u.last_daily!==kstDate()};
+  return {...u, avatarEmoji:AVATARS[u.avatar%AVATARS.length], cosmetics:cosmeticsPublic(userId), dailyAvailable:u.last_daily!==kstDate()};
 }
 
 function parseCookies(req){
@@ -312,14 +443,14 @@ function liveFloorLeave(userId,game){
 function liveFloorMembers(game){
   const t=now();
   return [...cleanLiveFloor(game).values()].sort((a,b)=>a.joinedAt-b.joinedAt).map(p=>({
-    userId:p.userId,nickname:p.nickname,avatar:p.avatar,joinedAt:p.joinedAt,lastSeen:p.lastSeen,
+    userId:p.userId,nickname:p.nickname,avatar:p.avatar,cosmetics:cosmeticsPublic(p.userId),joinedAt:p.joinedAt,lastSeen:p.lastSeen,
     reaction:p.reaction&&p.reaction.expiresAt>t?{key:p.reaction.key,emoji:p.reaction.emoji,label:p.reaction.label,at:p.reaction.at,expiresAt:p.reaction.expiresAt}:null
   }));
 }
 
 function roomStatus(r){ if(r.game==='holdem') return r.hand && r.hand.phase!=='complete'?'PLAYING':'WAITING'; if(r.game==='yut') return r.yut?.phase==='playing'?'PLAYING':'WAITING'; return 'WAITING'; }
 function roomReadyCount(r){return r.players.filter(p=>p.ready).length;}
-function roomSummary(r){return {id:r.id,name:r.name,game:r.game,buyIn:r.buyIn,maxPlayers:r.maxPlayers,players:r.players.length,hostNickname:r.players.find(p=>p.userId===r.hostId)?.nickname||'호스트',status:roomStatus(r),smallBlind:r.smallBlind,bigBlind:r.bigBlind,yutMode:r.yutMode||'individual',yutModeLabel:yutModeLabel(r.yutMode||'individual'),readyCount:roomReadyCount(r),version:r.version||0,updatedAt:r.updatedAt||r.createdAt,participants:orderedPlayers(r).map(p=>({userId:p.userId,nickname:p.nickname,avatar:p.avatar,ready:!!p.ready,seat:p.seat}))};}
+function roomSummary(r){return {id:r.id,name:r.name,game:r.game,buyIn:r.buyIn,maxPlayers:r.maxPlayers,players:r.players.length,hostNickname:r.players.find(p=>p.userId===r.hostId)?.nickname||'호스트',status:roomStatus(r),smallBlind:r.smallBlind,bigBlind:r.bigBlind,yutMode:r.yutMode||'individual',yutModeLabel:yutModeLabel(r.yutMode||'individual'),readyCount:roomReadyCount(r),version:r.version||0,updatedAt:r.updatedAt||r.createdAt,participants:orderedPlayers(r).map(p=>({userId:p.userId,nickname:p.nickname,avatar:p.avatar,cosmetics:cosmeticsPublic(p.userId),ready:!!p.ready,seat:p.seat}))};}
 function findRoom(id){ return rooms.get(String(id)); }
 function roomPlayer(r,userId){ return r.players.find(p=>p.userId===userId); }
 function findUserRoom(userId){ return [...rooms.values()].find(r=>roomPlayer(r,userId)); }
@@ -982,9 +1113,9 @@ function baccaratPlay(r){
 }
 function baccaratPublic(r,userId){
   const maxStake=baccaratMaxStake(r);if(maxStake>0&&r.stake>maxStake)r.stake=Math.max(1000,Math.floor(maxStake));
-  return {id:r.id,game:'baccarat',name:r.name,hostId:r.hostId,phase:r.phase,stake:r.stake,maxStake,roundNo:r.roundNo||0,version:r.version||0,updatedAt:r.updatedAt,players:r.players.map((p,i)=>{const u=userPublic(p.userId);return {...p,balance:u?.balance||0,avatarEmoji:AVATARS[p.avatar%AVATARS.length],isMe:p.userId===userId,role:r.result?(r.result.bankerUserId===p.userId?'BANKER':'PLAYER'):(((r.startBankerIndex+(r.roundNo||0))%2)===i?'BANKER':'PLAYER')};}),result:r.result||null};
+  return {id:r.id,game:'baccarat',name:r.name,hostId:r.hostId,phase:r.phase,stake:r.stake,maxStake,roundNo:r.roundNo||0,version:r.version||0,updatedAt:r.updatedAt,players:r.players.map((p,i)=>{const u=userPublic(p.userId);return {...p,balance:u?.balance||0,avatarEmoji:AVATARS[p.avatar%AVATARS.length],cosmetics:u?.cosmetics||null,isMe:p.userId===userId,role:r.result?(r.result.bankerUserId===p.userId?'BANKER':'PLAYER'):(((r.startBankerIndex+(r.roundNo||0))%2)===i?'BANKER':'PLAYER')};}),result:r.result||null};
 }
-function baccaratSummary(r){return {id:r.id,game:'baccarat',name:r.name,hostId:r.hostId,players:r.players.length,maxPlayers:2,status:r.players.length<2?'WAITING':r.phase==='dealing'?'PLAYING':'READY',stake:r.stake,maxStake:baccaratMaxStake(r),updatedAt:r.updatedAt,participants:r.players.map(p=>({userId:p.userId,nickname:p.nickname,avatar:p.avatar,ready:!!p.ready,auto:!!p.auto}))};}
+function baccaratSummary(r){return {id:r.id,game:'baccarat',name:r.name,hostId:r.hostId,players:r.players.length,maxPlayers:2,status:r.players.length<2?'WAITING':r.phase==='dealing'?'PLAYING':'READY',stake:r.stake,maxStake:baccaratMaxStake(r),updatedAt:r.updatedAt,participants:r.players.map(p=>({userId:p.userId,nickname:p.nickname,avatar:p.avatar,cosmetics:cosmeticsPublic(p.userId),ready:!!p.ready,auto:!!p.auto}))};}
 function baccaratClose(r){baccaratRooms.delete(r.id);pushRefresh();}
 
 function activeRoomReactions(r){
@@ -1000,7 +1131,7 @@ function personalizedRoom(r,userId){
     id:r.id,name:r.name,game:r.game,buyIn:r.buyIn,maxPlayers:r.maxPlayers,hostId:r.hostId,status:roomStatus(r),smallBlind:r.smallBlind,bigBlind:r.bigBlind,yutMode:r.yutMode||'individual',yutModeLabel:yutModeLabel(r.yutMode||'individual'),
     version:r.version||0,updatedAt:r.updatedAt||r.createdAt,readyCount:roomReadyCount(r),allReady:r.players.length>=2&&r.players.every(p=>!!p.ready),
     turnUserId,turnNickname:turnPlayer?.nickname||null,myTurn:turnUserId===userId,
-    players:orderedPlayers(r).map(p=>({...p,ready:!!p.ready,avatarEmoji:AVATARS[p.avatar%AVATARS.length]})),
+    players:orderedPlayers(r).map(p=>({...p,ready:!!p.ready,avatarEmoji:AVATARS[p.avatar%AVATARS.length],cosmetics:cosmeticsPublic(p.userId)})),
     reactions:activeRoomReactions(r),
     hand:r.game==='holdem'?pokerView(r,userId):null,yut:r.game==='yut'?r.yut:null
   };
@@ -1050,6 +1181,14 @@ const server=http.createServer(async(req,res)=>{
       const token=parseCookies(req).sid;if(token)db.prepare('DELETE FROM sessions WHERE token=?').run(token);return json(res,200,{ok:true},{'Set-Cookie':'sid=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0'});
     }
     if(url.pathname==='/api/me'&&req.method==='GET'){const u=requireAuth(req,res);if(!u)return;return json(res,200,{user:u,online:onlineCount()});}
+    if(url.pathname==='/api/shop'&&req.method==='GET'){const u=requireAuth(req,res);if(!u)return;return json(res,200,{...shopState(u.id),user:userPublic(u.id)});}
+    if(url.pathname==='/api/shop/buy'&&req.method==='POST'){
+      const u=requireAuth(req,res);if(!u)return;if(!rateLimit('shop_buy:'+u.id,20,60000))return json(res,429,{error:'구매를 너무 빠르게 반복하고 있어. 잠시 후 다시 시도해줘.'});
+      const b=await readBody(req);try{const r=buyShopItem(u.id,b.itemId);pushRefresh();return json(res,200,{ok:true,item:r.item,user:userPublic(u.id),state:shopState(u.id)});}catch(e){return json(res,400,{error:e.message});}
+    }
+    if(url.pathname==='/api/shop/equip'&&req.method==='POST'){
+      const u=requireAuth(req,res);if(!u)return;const b=await readBody(req);try{const cosmetics=equipShopItem(u.id,b.category,b.itemId);pushRefresh();return json(res,200,{ok:true,cosmetics,user:userPublic(u.id),state:shopState(u.id)});}catch(e){return json(res,400,{error:e.message});}
+    }
     if(url.pathname==='/api/member/lookup'&&req.method==='GET'){
       const u=requireAuth(req,res);if(!u)return;
       if(!rateLimit('member_lookup:'+u.id,30,60000))return json(res,429,{error:'친구 확인을 너무 자주 했어. 잠시 후 다시 시도해줘.'});
@@ -1058,7 +1197,7 @@ const server=http.createServer(async(req,res)=>{
       const target=db.prepare('SELECT id,nickname,avatar,is_disabled FROM users WHERE nickname=? COLLATE NOCASE').get(nickname);
       if(!target||target.is_disabled)return json(res,404,{error:'해당 닉네임의 친구를 찾을 수 없어.'});
       if(Number(target.id)===Number(u.id))return json(res,400,{error:'자기 자신에게는 보낼 수 없어.'});
-      return json(res,200,{user:{id:target.id,nickname:target.nickname,avatar:target.avatar,avatarEmoji:AVATARS[target.avatar%AVATARS.length]}});
+      return json(res,200,{user:{id:target.id,nickname:target.nickname,avatar:target.avatar,avatarEmoji:AVATARS[target.avatar%AVATARS.length],cosmetics:cosmeticsPublic(target.id)}});
     }
     if(url.pathname==='/api/wallet/transfer'&&req.method==='POST'){
       const u=requireAuth(req,res);if(!u)return;
@@ -1083,7 +1222,7 @@ const server=http.createServer(async(req,res)=>{
       const u=requireAuth(req,res);if(!u)return;const rows=db.prepare('SELECT amount,balance_after,type,memo,created_at FROM ledger WHERE user_id=? ORDER BY id DESC LIMIT 30').all(u.id);return json(res,200,{rows});
     }
     if(url.pathname==='/api/leaderboard'&&req.method==='GET'){
-      const u=requireAuth(req,res);if(!u)return;const rows=db.prepare(`SELECT u.nickname,u.balance,u.avatar,s.poker_wins,s.yut_wins,s.slot_profit,s.seotda_wins,s.gostop_wins FROM users u JOIN stats s ON s.user_id=u.id ORDER BY u.balance DESC LIMIT 20`).all().map(x=>({...x,avatarEmoji:AVATARS[x.avatar%AVATARS.length]}));return json(res,200,{rows});
+      const u=requireAuth(req,res);if(!u)return;const rows=db.prepare(`SELECT u.id,u.nickname,u.balance,u.avatar,s.poker_wins,s.yut_wins,s.slot_profit,s.seotda_wins,s.gostop_wins FROM users u JOIN stats s ON s.user_id=u.id ORDER BY u.balance DESC LIMIT 20`).all().map(x=>({...x,avatarEmoji:AVATARS[x.avatar%AVATARS.length],cosmetics:cosmeticsPublic(x.id)}));return json(res,200,{rows});
     }
     if(url.pathname==='/api/admin/users'&&req.method==='GET'){
       const admin=requireAdmin(req,res);if(!admin)return;
@@ -1254,7 +1393,7 @@ const server=http.createServer(async(req,res)=>{
     if(url.pathname==='/api/live/reaction'&&req.method==='POST'){
       const u=requireAuth(req,res);if(!u)return;const b=await readBody(req);
       let game;try{game=liveGameKey(b.game)}catch(e){return json(res,400,{error:e.message})}
-      const key=String(b.key||''),def=ROOM_REACTIONS[key];if(!def)return json(res,400,{error:'지원하지 않는 말풍선입니다.'});
+      const key=String(b.key||''),def=ROOM_REACTIONS[key];if(!def||!reactionAllowed(u.id,key))return json(res,400,{error:'사용할 수 없는 말풍선입니다. 상점에서 말풍선 팩을 장착했는지 확인해줘.'});
       const map=cleanLiveFloor(game);let p=map.get(u.id);if(!p)p=liveFloorTouch(u,game).member;
       const t=now();if(p.reaction&&t-Number(p.reaction.at||0)<700)return json(res,429,{error:'말풍선은 잠깐 기다렸다가 다시 보내줘.'});
       p.reaction={key,emoji:def.emoji,label:def.label,at:t,expiresAt:t+5000};p.lastSeen=t;map.set(u.id,p);pushRefresh();
@@ -1303,7 +1442,7 @@ const server=http.createServer(async(req,res)=>{
       if(op==='reaction'&&req.method==='POST'){
         const p=roomPlayer(r,u.id);if(!p)return json(res,403,{error:'이 방 참가자가 아닙니다.'});
         const b=await readBody(req),key=String(b.key||'');const def=ROOM_REACTIONS[key];
-        if(!def)return json(res,400,{error:'지원하지 않는 이모티콘입니다.'});
+        if(!def||!reactionAllowed(u.id,key))return json(res,400,{error:'사용할 수 없는 말풍선입니다. 상점에서 말풍선 팩을 장착했는지 확인해줘.'});
         r.reactions=r.reactions||{};const t=now();const prev=r.reactions[u.id];
         if(prev&&t-Number(prev.at||0)<700)return json(res,429,{error:'이모티콘은 잠깐 기다렸다가 다시 보내줘.'});
         r.reactions[u.id]={userId:u.id,nickname:p.nickname,key,emoji:def.emoji,label:def.label,at:t,expiresAt:t+4500};

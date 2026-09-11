@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#090b15">
 <title>JUNJA GAME CLUB</title>
-<link rel="manifest" href="/manifest.webmanifest?v=180">
-<link rel="stylesheet" href="/style.css?v=180">
+<link rel="manifest" href="/manifest.webmanifest?v=190">
+<link rel="stylesheet" href="/style.css?v=190">
 </head>
 <body>
 <div id="app">
@@ -26,7 +26,7 @@
   <div id="mainApp" class="main-app hidden">
     <header class="topbar glass">
       <div class="brand-inline" data-go="lobby"><span class="mini-mark">J</span><strong>JUNJA CLUB</strong></div>
-      <button id="helpBtn" class="help-pill" type="button">? 게임방법</button>
+      <button id="helpBtn" class="help-pill" type="button">? 게임방법</button><button id="shopBtn" class="shop-pill" data-go="shop" type="button">🛍️ BOUTIQUE</button>
       <button id="adminBtn" class="admin-pill hidden" data-go="admin" type="button">⚙ ADMIN</button>
       <div class="wallet-pill"><span>보유머니</span><b id="walletBalance">0 G</b></div>
       <button id="profileBtn" class="profile-pill" type="button"><span id="avatarEmoji">😎</span><span><b id="nickName">-</b><small id="onlineCount">ONLINE 0</small></span></button>
@@ -36,7 +36,7 @@
     <main>
       <section id="view-lobby" class="view active">
         <div class="hero panel hero-upgraded">
-          <div class="hero-copy"><div class="eyebrow">JUNJA ARCADE · VERSION 1.8</div><h2>친구 대전도, 혼자 AI전도.</h2><p>슬롯 · 텍사스 홀덤 · 세븐포커 · 바카라 · 윷놀이 · 섯다 · 맞고 · 경마 · 빅휠 · 다이사이까지 한 계정으로 플레이. 채팅 없이 실시간 참여자와 귀여운 말풍선 반응으로 같이 놀 수 있어.</p><div class="hero-actions"><button id="dailyBtn" class="daily-btn" type="button">🎁 출석 +50,000 G</button><button class="secondary hero-guide" data-open-help="lobby" type="button">게임 가이드</button></div></div>
+          <div class="hero-copy"><div class="eyebrow">JUNJA ARCADE · VERSION 1.9</div><h2>친구 대전도, 혼자 AI전도.</h2><p>슬롯 · 텍사스 홀덤 · 세븐포커 · 바카라 · 윷놀이 · 섯다 · 맞고 · 경마 · 빅휠 · 다이사이까지 한 계정으로 플레이. 채팅 없이 실시간 참여자와 귀여운 말풍선 반응으로 같이 놀 수 있어.</p><div class="hero-actions"><button id="dailyBtn" class="daily-btn" type="button">🎁 출석 +50,000 G</button><button class="secondary" data-go="shop" type="button">🛍️ 아바타 상점</button><button class="secondary hero-guide" data-open-help="lobby" type="button">게임 가이드</button></div></div>
           <div class="hero-character"><img src="/art/club-host.svg" alt="게임 클럽 호스트"><div class="character-caption"><b>CLUB HOST J</b><span>오늘의 게임을 선택하세요</span></div></div>
         </div>
 
@@ -153,6 +153,12 @@
         <div id="baccaratRoom" class="hidden"></div>
       </section>
 
+      <section id="view-shop" class="view">
+        <div class="view-head boutique-head"><button class="back" data-go="lobby" type="button">←</button><div><small>JUNJA BOUTIQUE · ECONOMY</small><h2>아바타 & 컬렉션 상점</h2></div><span class="boutique-badge">NO PAY-TO-WIN</span></div>
+        <div class="economy-notice panel"><div>💎</div><p><b>게임으로 벌고, 꾸미고, 자랑하는 CLUB ECONOMY.</b><br>모든 상품은 외형·연출 전용이며 승률이나 배당에는 영향을 주지 않습니다. 게임머니는 현금 가치·환전·상품 교환이 없습니다.</p></div>
+        <div id="shopContent"></div>
+      </section>
+
       <section id="view-admin" class="view">
         <div class="view-head admin-head"><button class="back" data-go="lobby" type="button">←</button><div><small>OWNER CONTROL CENTER</small><h2>관리자 센터</h2></div><span class="admin-badge">SERVER ADMIN</span></div>
         <div class="admin-summary-grid">
@@ -175,7 +181,7 @@
     </main>
 
     <div id="helpModal" class="help-modal hidden"><div class="help-backdrop"></div><div class="help-card panel"><button id="closeHelp" class="sheet-close" type="button">×</button><div class="help-head"><div><small>JUNJA GAME CLUB GUIDE</small><h2>게임방법</h2><p>게임별 핵심만 빠르게 확인해.</p></div><div class="help-emoji">🎮</div></div><div class="help-tabs"><button data-help-tab="lobby" class="active" type="button">전체</button><button data-help-tab="slot" type="button">슬롯</button><button data-help-tab="holdem" type="button">홀덤</button><button data-help-tab="sevenpoker" type="button">세븐포커</button><button data-help-tab="baccarat" type="button">바카라</button><button data-help-tab="yut" type="button">윷</button><button data-help-tab="seotda" type="button">섯다</button><button data-help-tab="gostop" type="button">고스톱</button><button data-help-tab="horse" type="button">경마</button><button data-help-tab="bigwheel" type="button">빅휠</button><button data-help-tab="sicbo" type="button">다이사이</button></div><div class="help-pages">
-      <article data-help-page="lobby" class="active"><div class="guide-grid"><div class="guide-step"><b>01</b><h3>가입</h3><p>100만 G로 시작. 연락처·실명 대신 게임 별명만 사용.</p></div><div class="guide-step"><b>02</b><h3>모드</h3><p>홀덤·윷은 친구 멀티와 AI 1인전을 모두 지원.</p></div><div class="guide-step"><b>03</b><h3>개인정보</h3><p>채팅 기능은 없고 닉네임과 게임 진행 정보만 표시.</p></div><div class="guide-step"><b>04</b><h3>게임머니</h3><p>현금 가치가 없고 충전·환전·상품 교환 기능도 없음. 프로필에서 친구 닉네임을 확인한 뒤 보유머니 안에서 선물 가능.</p></div></div></article>
+      <article data-help-page="lobby" class="active"><div class="guide-grid"><div class="guide-step"><b>01</b><h3>가입</h3><p>100만 G로 시작. 연락처·실명 대신 게임 별명만 사용.</p></div><div class="guide-step"><b>02</b><h3>모드</h3><p>홀덤·윷은 친구 멀티와 AI 1인전을 모두 지원.</p></div><div class="guide-step"><b>03</b><h3>개인정보</h3><p>채팅 기능은 없고 닉네임과 게임 진행 정보만 표시.</p></div><div class="guide-step"><b>04</b><h3>게임머니</h3><p>현금 가치가 없고 충전·환전·상품 교환 기능도 없음. 게임에서 번 G로 아바타·프레임·칭호·펫·테이블 스킨을 구매하거나 친구에게 선물 가능.</p></div></div></article>
       <article data-help-page="slot"><div class="guide-hero"><span>🎰</span><div><h3>3×3 로열 릴</h3><p>3행×3열 고정. 가로 3줄과 대각선 2줄에서 같은 심볼 3개를 맞춰.</p></div></div><div class="guide-list"><p><b>777</b> 한 페이라인 완성 시 x1000</p><p><b>J 보너스</b> J 한 개당 x20, JJJ 페이라인 완성 시 x500</p><p><b>자동 돌리기</b> 10·50·100회 연속 SPIN. 777/JJJ 잭팟이 터지면 즉시 자동 중지</p><p><b>다중 라인</b> 여러 줄이 맞으면 배당 합산</p><p><b>SPIN</b> 세 릴이 순차적으로 멈추며 당첨선을 표시</p></div></article>
       <article data-help-page="holdem"><div class="guide-hero"><span>♠️</span><div><h3>텍사스 홀덤</h3><p>친구방 2~6인 또는 AI 헤즈업. 체크·콜·레이즈·폴드로 진행.</p></div></div><div class="guide-list"><p><b>AI 모드</b> 바이인 후 J-BOT과 연속 핸드 가능</p><p><b>나가기</b> 남은 테이블 칩을 게임머니로 정산</p><p><b>승리</b> 마지막까지 남거나 가장 높은 5장 족보</p></div></article>
       <article data-help-page="sevenpoker"><div class="guide-hero"><span>🂡</span><div><h3>세븐포커</h3><p>7장의 개인 카드 중 가장 좋은 5장 족보로 승부하는 7 Card Stud 방식.</p></div></div><div class="guide-list"><p><b>3rd Street</b> 2장 비공개 + 1장 공개</p><p><b>4th~6th</b> 한 장씩 공개되며 매 Street 베팅</p><p><b>7th River</b> 마지막 한 장은 비공개</p><p><b>액션</b> 체크 · 콜 · ½ POT · MAX · 직접 레이즈 · 폴드</p><p><b>연속 플레이</b> 자동 다음 핸드를 켜면 종료 3초 뒤 같은 테이블 칩으로 다음 판</p></div></article>
@@ -193,6 +199,6 @@
     <div id="toast" class="toast"></div>
   </div>
 </div>
-<script src="/app.js?v=180"></script>
+<script src="/app.js?v=190"></script>
 </body>
 </html>

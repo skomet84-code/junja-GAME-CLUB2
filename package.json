@@ -1,8 +1,8 @@
 {
   "name": "junja-game-club",
-  "version": "1.8.0",
+  "version": "1.9.0",
   "private": true,
-  "description": "JUNJA GAME CLUB v1.8 - Mobile stability, premium Seven Card Stud poker, and live 1v1 Baccarat Duel with bankroll-based stakes.",
+  "description": "JUNJA GAME CLUB v1.9 - Avatar, inventory, boutique shop, cosmetic loadouts, collection tiers, table skins and premium speech bubble packs.",
   "type": "commonjs",
   "scripts": {
     "start": "node server.js"
