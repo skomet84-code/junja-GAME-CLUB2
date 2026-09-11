@@ -1,9 +1,9 @@
 # ROADMAP
 
-## Next quality pass
-- Horse sound FX / photo-finish replay
-- Multiplayer horse race room / spectator mode
-- Yut optional house rules (Back-do, exact finish variants)
-- Go-stop multiplayer
-- Seotda multiplayer
-- PostgreSQL permanent storage
+## 다음 안정화 후보
+- 멀티 게임 액션 타이머 및 자동 패스/폴드
+- 서버 재시작 시 진행 중 멀티룸 상태 자체의 영구 저장
+- 네트워크 지연 표시 / 재연결 상태 배너
+- 홀덤 카드 딜링/칩 이동 애니메이션 고급화
+- 경마 말 스프라이트/프레임 애니메이션 및 중계 강화
+- 윷가락 3D WebGL 연출

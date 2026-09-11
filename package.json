@@ -1,8 +1,8 @@
 {
   "name": "junja-game-club",
-  "version": "0.8.0",
+  "version": "0.9.0",
   "private": true,
-  "description": "JUNJA GAME CLUB v0.8 - Neon-backed persistent account and wallet storage.",
+  "description": "JUNJA GAME CLUB v0.9 - multiplayer stability and premium mobile UX update with Neon persistence.",
   "type": "commonjs",
   "scripts": {
     "start": "node server.js"
