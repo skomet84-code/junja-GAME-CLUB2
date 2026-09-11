@@ -121,8 +121,6 @@ const ROOM_REACTIONS = {
   laugh:{emoji:'😂',label:'ㅋㅋㅋㅋ'},
   wow:{emoji:'😲',label:'헐?!'},
   sad:{emoji:'😢',label:'슬퍼...'},
-  eye:{emoji:'👀',label:'눈 찔러!'},
-  right:{emoji:'🙆',label:'맞지 맞지~'},
   nice:{emoji:'😎',label:'나이스~'},
   go:{emoji:'🔥',label:'가즈아!'}
 };
@@ -193,6 +191,30 @@ function walletChange(userId, amount, type, memo){
     db.exec('COMMIT');
     return next;
   }catch(e){ db.exec('ROLLBACK'); throw e; }
+}
+
+
+function transferGameMoney(senderId,targetId,amount){
+  senderId=Number(senderId);targetId=Number(targetId);amount=Math.trunc(Number(amount));
+  if(!Number.isInteger(senderId)||!Number.isInteger(targetId)||senderId<1||targetId<1) throw new Error('회원 정보가 올바르지 않습니다.');
+  if(senderId===targetId) throw new Error('자기 자신에게는 보낼 수 없습니다.');
+  if(!Number.isInteger(amount)||amount<1||amount>1000000000) throw new Error('보낼 금액은 1~1,000,000,000 G 범위의 정수로 입력하세요.');
+  db.exec('BEGIN IMMEDIATE');
+  try{
+    const sender=db.prepare('SELECT id,nickname,balance,is_disabled FROM users WHERE id=?').get(senderId);
+    const target=db.prepare('SELECT id,nickname,balance,is_disabled FROM users WHERE id=?').get(targetId);
+    if(!sender) throw new Error('보내는 회원을 찾을 수 없습니다.');
+    if(!target||target.is_disabled) throw new Error('받는 친구를 찾을 수 없습니다.');
+    if(sender.is_disabled) throw new Error('현재 계정에서는 보낼 수 없습니다.');
+    if(sender.balance<amount) throw new Error(`보유 게임머니 ${formatMoney(sender.balance)}G보다 많이 보낼 수 없습니다.`);
+    const senderNext=sender.balance-amount,targetNext=target.balance+amount,t=now();
+    db.prepare('UPDATE users SET balance=? WHERE id=?').run(senderNext,senderId);
+    db.prepare('UPDATE users SET balance=? WHERE id=?').run(targetNext,targetId);
+    db.prepare('INSERT INTO ledger(user_id,amount,balance_after,type,memo,created_at) VALUES(?,?,?,?,?,?)').run(senderId,-amount,senderNext,'friend_send',`${target.nickname}님에게 게임머니 보내기`,t);
+    db.prepare('INSERT INTO ledger(user_id,amount,balance_after,type,memo,created_at) VALUES(?,?,?,?,?,?)').run(targetId,amount,targetNext,'friend_receive',`${sender.nickname}님에게 받은 게임머니`,t);
+    db.exec('COMMIT');
+    return {senderBalance:senderNext,targetBalance:targetNext,target:{id:target.id,nickname:target.nickname}};
+  }catch(e){try{db.exec('ROLLBACK')}catch{};throw e;}
 }
 
 function userPublic(userId){
@@ -865,6 +887,24 @@ const server=http.createServer(async(req,res)=>{
       const token=parseCookies(req).sid;if(token)db.prepare('DELETE FROM sessions WHERE token=?').run(token);return json(res,200,{ok:true},{'Set-Cookie':'sid=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0'});
     }
     if(url.pathname==='/api/me'&&req.method==='GET'){const u=requireAuth(req,res);if(!u)return;return json(res,200,{user:u,online:onlineCount()});}
+    if(url.pathname==='/api/member/lookup'&&req.method==='GET'){
+      const u=requireAuth(req,res);if(!u)return;
+      if(!rateLimit('member_lookup:'+u.id,30,60000))return json(res,429,{error:'친구 확인을 너무 자주 했어. 잠시 후 다시 시도해줘.'});
+      const nickname=escText(url.searchParams.get('nickname')||'',14);
+      if(nickname.length<2)return json(res,400,{error:'친구 닉네임을 정확히 입력해줘.'});
+      const target=db.prepare('SELECT id,nickname,avatar,is_disabled FROM users WHERE nickname=? COLLATE NOCASE').get(nickname);
+      if(!target||target.is_disabled)return json(res,404,{error:'해당 닉네임의 친구를 찾을 수 없어.'});
+      if(Number(target.id)===Number(u.id))return json(res,400,{error:'자기 자신에게는 보낼 수 없어.'});
+      return json(res,200,{user:{id:target.id,nickname:target.nickname,avatar:target.avatar,avatarEmoji:AVATARS[target.avatar%AVATARS.length]}});
+    }
+    if(url.pathname==='/api/wallet/transfer'&&req.method==='POST'){
+      const u=requireAuth(req,res);if(!u)return;
+      if(!rateLimit('wallet_transfer:'+u.id,12,60000))return json(res,429,{error:'게임머니 보내기를 너무 자주 했어. 잠시 후 다시 시도해줘.'});
+      const b=await readBody(req),targetId=Number(b.targetId),amount=Math.trunc(Number(b.amount));
+      if(!Number.isInteger(targetId)||targetId<1)return json(res,400,{error:'받는 친구를 다시 확인해줘.'});
+      if(!Number.isInteger(amount)||amount<1)return json(res,400,{error:'보낼 금액을 올바르게 입력해줘.'});
+      try{const result=transferGameMoney(u.id,targetId,amount);pushRefresh();return json(res,200,{ok:true,amount,target:result.target,user:userPublic(u.id)});}catch(e){return json(res,400,{error:e.message});}
+    }
     if(url.pathname==='/api/events'&&req.method==='GET'){
       const u=requireAuth(req,res);if(!u)return;
       res.writeHead(200,{'Content-Type':'text/event-stream','Cache-Control':'no-cache','Connection':'keep-alive',...securityHeaders()});

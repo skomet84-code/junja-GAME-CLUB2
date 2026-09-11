@@ -1,8 +1,8 @@
 {
   "name": "junja-game-club",
-  "version": "1.6.0",
+  "version": "1.7.0",
   "private": true,
-  "description": "JUNJA GAME CLUB v1.6 - Live game-floor presence, real-time join indicators, cute preset speech bubbles, and social play polish.",
+  "description": "JUNJA GAME CLUB v1.7 - Refined preset bubbles and safe member-to-member virtual game-money gifts from the profile.",
   "type": "commonjs",
   "scripts": {
     "start": "node server.js"
