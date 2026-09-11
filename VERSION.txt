@@ -1,3 +1,1 @@
-JUNJA GAME CLUB v1.0.0
-Built 2026-09-11
-Focus: reliable solo play, poker hand HUD, Vegas slot, detailed horse animation, 2nd-place horse bonus, mobile stability
+v1.2

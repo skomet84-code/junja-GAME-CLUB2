@@ -1,8 +1,8 @@
 {
   "name": "junja-game-club",
-  "version": "0.9.0",
+  "version": "1.2.0",
   "private": true,
-  "description": "JUNJA GAME CLUB v0.9 - multiplayer stability and premium mobile UX update with Neon persistence.",
+  "description": "JUNJA GAME CLUB v1.2 - reactions, admin debit fixes, poker/slot/seotda impact effects, character UI, Neon persistence.",
   "type": "commonjs",
   "scripts": {
     "start": "node server.js"

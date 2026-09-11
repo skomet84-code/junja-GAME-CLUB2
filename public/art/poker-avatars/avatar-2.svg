@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+<defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#58d1ff"/><stop offset="1" stop-color="#101728"/></linearGradient></defs>
+<rect width="128" height="128" rx="30" fill="url(#bg)"/>
+<circle cx="64" cy="58" r="37" fill="#e9b58f" stroke="#ffffff55" stroke-width="2"/>
+<path d="M19 42 Q27 14 65 15 Q101 17 107 45 Q88 27 68 31 Q48 25 19 42Z" fill="#57321f"/><path d="M88 18 Q104 23 109 38" fill="none" stroke="#57321f" stroke-width="7"/>
+<circle cx="50" cy="58" r="4.2" fill="#1a1515"/><circle cx="78" cy="58" r="4.2" fill="#1a1515"/>
+<circle cx="49" cy="56.8" r="1.2" fill="#fff"/><circle cx="77" cy="56.8" r="1.2" fill="#fff"/>
+<path d="M51 76 Q64 86 77 76" fill="none" stroke="#8e3d3d" stroke-width="3.4" stroke-linecap="round"/>
+<circle cx="39" cy="70" r="5" fill="#ff889955" /><circle cx="89" cy="70" r="5" fill="#ff889955"/>
+<path d="M21 128 Q25 94 64 94 Q103 94 107 128Z" fill="#58d1ff"/>
+<circle cx="103" cy="24" r="12" fill="#ffd166" stroke="#fff8" stroke-width="2"/><text x="103" y="29" text-anchor="middle" font-family="Arial" font-size="14" font-weight="900" fill="#101018">J</text>
+</svg>

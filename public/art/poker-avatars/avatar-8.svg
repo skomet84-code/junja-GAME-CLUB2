@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+<defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#7ac3ff"/><stop offset="1" stop-color="#101728"/></linearGradient></defs>
+<rect width="128" height="128" rx="30" fill="url(#bg)"/>
+<circle cx="64" cy="58" r="37" fill="#b97b5c" stroke="#ffffff55" stroke-width="2"/>
+<path d="M22 39 Q25 17 62 15 Q94 15 104 39 L92 29 L80 38 L69 29 L57 39 L45 30 L34 39Z" fill="#0f1823"/>
+<circle cx="50" cy="58" r="4.2" fill="#1a1515"/><circle cx="78" cy="58" r="4.2" fill="#1a1515"/>
+<circle cx="49" cy="56.8" r="1.2" fill="#fff"/><circle cx="77" cy="56.8" r="1.2" fill="#fff"/>
+<path d="M51 76 Q64 86 77 76" fill="none" stroke="#8e3d3d" stroke-width="3.4" stroke-linecap="round"/>
+<circle cx="39" cy="70" r="5" fill="#ff889955" /><circle cx="89" cy="70" r="5" fill="#ff889955"/>
+<path d="M21 128 Q25 94 64 94 Q103 94 107 128Z" fill="#7ac3ff"/>
+<circle cx="103" cy="24" r="12" fill="#f48fb1" stroke="#fff8" stroke-width="2"/><text x="103" y="29" text-anchor="middle" font-family="Arial" font-size="14" font-weight="900" fill="#101018">J</text>
+</svg>

@@ -106,10 +106,18 @@ const sseClients = new Map();
 const authAttempts = new Map();
 
 const AVATARS = ['🧑‍💼','😎','🧢','👑','🐯','🐻','🦊','🐼','🐸','🦁'];
+const ROOM_REACTIONS = {
+  frustrated:{emoji:'😫',label:'답답해'},
+  hurry:{emoji:'⏩',label:'빨리빨리'},
+  cry:{emoji:'😭',label:'우는 중'},
+  laugh:{emoji:'😂',label:'웃겨'},
+  wow:{emoji:'😲',label:'놀람'},
+  sad:{emoji:'😢',label:'슬퍼'}
+};
 const SLOT_SYMBOLS = [
-  {s:'🍒',w:28},{s:'🍋',w:24},{s:'🍊',w:20},{s:'🔔',w:13},{s:'⭐',w:9},{s:'💎',w:5},{s:'7️⃣',w:3}
+  {s:'🍒',w:140},{s:'🍋',w:120},{s:'🍊',w:100},{s:'🔔',w:65},{s:'⭐',w:45},{s:'💎',w:25},{s:'7️⃣',w:7},{s:'J',w:1}
 ];
-const SLOT_MULT = {'🍒':6,'🍋':8,'🍊':10,'🔔':18,'⭐':35,'💎':80,'7️⃣':1000};
+const SLOT_MULT = {'🍒':6,'🍋':8,'🍊':10,'🔔':18,'⭐':35,'💎':80,'7️⃣':1000,'J':500};
 const SLOT_LINES = [
   { key:'top', label:'TOP', cssClass:'top', cells:[[0,0],[0,1],[0,2]] },
   { key:'mid', label:'MIDDLE', cssClass:'mid', cells:[[1,0],[1,1],[1,2]] },
@@ -310,7 +318,8 @@ function pokerHandStatus(cards){
   if(straightDraw&&!/스트레이트/.test(name))draws.push('스트레이트 드로우');
   const high=Math.max(...clean.map(c=>rankVal(c[0])));const highLabel=high===14?'A':high===13?'K':high===12?'Q':high===11?'J':String(high);
   detail=rank?`${name} 완성`:(name==='하이카드'?`${highLabel} 하이`:name);
-  return {name,detail,draws};
+  const rankLevel=rank?Number(rank[0]||0):Math.max(0,['하이카드','원페어','투페어','트리플','스트레이트','플러시','풀하우스','포카드','스트레이트 플러시'].indexOf(name));
+  return {name,detail,draws,rankLevel};
 }
 function orderedPlayers(r){ return [...r.players].sort((a,b)=>a.seat-b.seat); }
 function nextEligibleIndex(arr,startIdx,pred){ for(let step=1;step<=arr.length;step++){const i=(startIdx+step)%arr.length;if(pred(arr[i]))return i;}return -1; }
@@ -422,7 +431,7 @@ function pokerView(r,userId){
   const players={};for(const rp of pokerHandPlayers(r)){const hp=h.p[rp.userId];players[rp.userId]={roundBet:hp.roundBet,totalBet:hp.totalBet,folded:hp.folded,allIn:hp.allIn,acted:hp.acted,hole:(rp.userId===userId||reveal&&!hp.folded)?hp.hole:['XX','XX']};}
   const me=players[userId];
   const myCards=me?[...(me.hole||[]),...(h.board||[])].filter(c=>c&&c!=='XX'):[];
-  return {phase:h.phase,board:h.board,players,currentBet:h.currentBet,minRaise:h.minRaise,turnUserId:h.turnUserId,pot:pokerPot(h),dealerSeat:h.dealerSeat,result:h.result,myHand:pokerHandStatus(myCards),legal:me&&h.turnUserId===userId?{toCall:Math.max(0,h.currentBet-me.roundBet),minRaiseTo:h.currentBet+h.minRaise,maxRaiseTo:(roomPlayer(r,userId)?.stack||0)+me.roundBet}:null};
+  return {phase:h.phase,startedAt:h.startedAt,board:h.board,players,currentBet:h.currentBet,minRaise:h.minRaise,turnUserId:h.turnUserId,pot:pokerPot(h),dealerSeat:h.dealerSeat,result:h.result,myHand:pokerHandStatus(myCards),legal:me&&h.turnUserId===userId?{toCall:Math.max(0,h.currentBet-me.roundBet),minRaiseTo:h.currentBet+h.minRaise,maxRaiseTo:(roomPlayer(r,userId)?.stack||0)+me.roundBet}:null};
 }
 
 // ---------- Yut engine v0.7: stacking / shortcuts / teams ----------
@@ -547,7 +556,7 @@ function pokerBotDrive(r,userId){
   }
 }
 function soloPokerStart(user,buyIn){
-  buyIn=gameWager(buyIn,10000,5000000,1000);
+  buyIn=gameWager(buyIn,10000,100000,1000);
   if(soloHoldem.has(user.id))throw new Error('이미 AI 홀덤 테이블이 열려 있습니다.');
   if(user.balance<buyIn)throw new Error('게임머니가 부족합니다.');
   walletChange(user.id,-buyIn,'solo_holdem_buyin',`AI 홀덤 바이인 ${formatMoney(buyIn)}G`);
@@ -580,7 +589,7 @@ function soloPokerCashout(userId){
 
 // ---------- Solo Yut AI v0.7 ----------
 function soloYutStartGame(user,bet){
-  bet=gameWager(bet,5000,2000000,1000);
+  bet=gameWager(bet,5000,100000,1000);
   if(soloYut.has(user.id))throw new Error('이미 AI 윷놀이가 진행 중입니다.');if(user.balance<bet)throw new Error('게임머니가 부족합니다.');
   walletChange(user.id,-bet,'solo_yut_bet',`AI 윷놀이 참가금 ${formatMoney(bet)}G`);
   const s={bet,phase:'playing',turn:'user',sides:{user:Array.from({length:4},yutNewPiece),bot:Array.from({length:4},yutNewPiece)},pending:[],awaitingThrow:true,captureBonus:0,last:null,winner:null,startedAt:now()};
@@ -680,7 +689,7 @@ function seotdaRank(cards){
   const specials={'1-2':[69,'알리'],'1-4':[68,'독사'],'1-9':[67,'구삥'],'1-10':[66,'장삥'],'4-10':[65,'장사'],'4-6':[64,'세륙']};if(specials[key])return specials[key];
   const k=(m[0]+m[1])%10;return [k,k===9?'갑오':k===0?'망통':`${k}끗`];
 }
-function soloSeotdaStart(user,bet){bet=gameWager(bet,5000,2000000,1000);if(user.balance<bet)throw new Error('게임머니가 부족합니다.');const old=soloSeotda.get(user.id);if(old&&old.phase!=='complete')throw new Error('이미 섯다 판이 진행 중입니다.');if(old)soloSeotda.delete(user.id);walletChange(user.id,-bet,'seotda_bet',`AI 섯다 판돈 ${formatMoney(bet)}G`);escrowSet(`SEOTDA${user.id}`,user.id,bet,'seotda');const d=seotdaDeck();const s={bet,phase:'decision',userCards:[d.pop(),d.pop()],botCards:[d.pop(),d.pop()],revealed:false,result:null};soloSeotda.set(user.id,s);return s;}
+function soloSeotdaStart(user,bet){bet=gameWager(bet,5000,100000,1000);if(user.balance<bet)throw new Error('게임머니가 부족합니다.');const old=soloSeotda.get(user.id);if(old&&old.phase!=='complete')throw new Error('이미 섯다 판이 진행 중입니다.');if(old)soloSeotda.delete(user.id);walletChange(user.id,-bet,'seotda_bet',`AI 섯다 판돈 ${formatMoney(bet)}G`);escrowSet(`SEOTDA${user.id}`,user.id,bet,'seotda');const d=seotdaDeck();const s={bet,phase:'decision',userCards:[d.pop(),d.pop()],botCards:[d.pop(),d.pop()],revealed:false,result:null};soloSeotda.set(user.id,s);return s;}
 function soloSeotdaResolve(userId,action){const s=soloSeotda.get(userId);if(!s||s.phase!=='decision')throw new Error('진행 중인 섯다 판이 없습니다.');let stake=s.bet;if(action==='double'){const u=userPublic(userId);if(u.balance<s.bet)throw new Error('두 배 승부에 필요한 게임머니가 부족합니다.');walletChange(userId,-s.bet,'seotda_double','AI 섯다 두 배 승부 추가 베팅');stake=s.bet*2;escrowSet(`SEOTDA${userId}`,userId,stake,'seotda');}if(action==='fold'){escrowDelete(`SEOTDA${userId}`,userId);s.phase='complete';s.revealed=true;s.result={winner:'bot',text:'다이 · J-BOT 승리',payout:0};db.prepare('UPDATE stats SET seotda_games=seotda_games+1 WHERE user_id=?').run(userId);return s;}const ur=seotdaRank(s.userCards),br=seotdaRank(s.botCards);const cmp=ur[0]-br[0];let payout=0,winner='tie';if(cmp>0){winner='user';payout=stake*2;}else if(cmp===0){payout=stake;}escrowDelete(`SEOTDA${userId}`,userId);if(payout)walletChange(userId,payout,'seotda_win',`AI 섯다 ${winner==='user'?'승리':'무승부'} 정산`);db.prepare('UPDATE stats SET seotda_games=seotda_games+1, seotda_wins=seotda_wins+? WHERE user_id=?').run(winner==='user'?1:0,userId);s.phase='complete';s.revealed=true;s.result={winner,payout,userRank:ur[1],botRank:br[1],text:winner==='user'?`${ur[1]} 승리!`:winner==='bot'?`${br[1]}에 패배`:`${ur[1]} 무승부`};return s;}
 
 // ---------- Go-stop / Matgo simplified full 48-card engine ----------
@@ -695,10 +704,17 @@ function gostopDrawAndCapture(s,side){const card=s.deck.pop();if(card)captureMat
 function gostopCanDecision(s,side){const sc=gostopScore(s.captured[side]).score;return sc>=7&&sc>s.lastDecisionScore[side];}
 function gostopFinish(userId,winner,reason){const s=soloGostop.get(userId);if(!s||s.phase==='complete')return;escrowDelete(`GOSTOP${userId}`,userId);s.phase='complete';s.winner=winner;const us=gostopScore(s.captured.user),bs=gostopScore(s.captured.bot);let payout=0;if(winner==='user'){const mult=Math.max(1,us.score)*(1+s.goCount.user);payout=s.bet*Math.max(2,mult);walletChange(userId,payout,'gostop_win',`AI 고스톱 승리 x${Math.max(2,mult)}`);}db.prepare('UPDATE stats SET gostop_games=gostop_games+1, gostop_wins=gostop_wins+? WHERE user_id=?').run(winner==='user'?1:0,userId);s.result={reason,payout,userScore:us,botScore:bs};}
 function gostopBotTurn(userId){const s=soloGostop.get(userId);if(!s||s.phase!=='playing')return;let guard=0;while(s.turn==='bot'&&s.phase==='playing'&&guard++<4){let best=0,bestScore=-1;s.hands.bot.forEach((c,i)=>{const matches=s.floor.filter(f=>f.m===c.m).length;const typeScore={광:8,'열끗':4,'띠':3,'피':1}[c.type]||0;const score=matches*20+typeScore;if(score>bestScore){bestScore=score;best=i}});const card=s.hands.bot.splice(best,1)[0];captureMatch(s,'bot',card);gostopDrawAndCapture(s,'bot');const sc=gostopScore(s.captured.bot);if(gostopCanDecision(s,'bot')){s.lastDecisionScore.bot=sc.score;if(sc.score>=10||s.hands.bot.length<=2||Math.random()<.35){gostopFinish(userId,'bot','J-BOT이 스톱을 선언했습니다.');return;}s.goCount.bot++;}if(!s.hands.bot.length&&!s.deck.length){const us=gostopScore(s.captured.user).score,bs=sc.score;gostopFinish(userId,us>bs?'user':'bot','패가 모두 소진되었습니다.');return;}s.turn='user';}}
-function soloGostopStart(user,bet){bet=gameWager(bet,5000,2000000,1000);if(user.balance<bet)throw new Error('게임머니가 부족합니다.');const old=soloGostop.get(user.id);if(old&&old.phase!=='complete')throw new Error('이미 고스톱 판이 진행 중입니다.');if(old)soloGostop.delete(user.id);walletChange(user.id,-bet,'gostop_bet',`AI 고스톱 판돈 ${formatMoney(bet)}G`);escrowSet(`GOSTOP${user.id}`,user.id,bet,'gostop');const d=hwatuDeck(),s={bet,phase:'playing',hands:{user:[],bot:[]},floor:[],captured:{user:[],bot:[]},deck:d,turn:'user',goCount:{user:0,bot:0},lastDecisionScore:{user:0,bot:0},needDecision:false,winner:null,result:null};for(let i=0;i<10;i++){s.hands.user.push(d.pop());s.hands.bot.push(d.pop());}for(let i=0;i<8;i++)s.floor.push(d.pop());soloGostop.set(user.id,s);return s;}
+function soloGostopStart(user,bet){bet=gameWager(bet,5000,100000,1000);if(user.balance<bet)throw new Error('게임머니가 부족합니다.');const old=soloGostop.get(user.id);if(old&&old.phase!=='complete')throw new Error('이미 고스톱 판이 진행 중입니다.');if(old)soloGostop.delete(user.id);walletChange(user.id,-bet,'gostop_bet',`AI 고스톱 판돈 ${formatMoney(bet)}G`);escrowSet(`GOSTOP${user.id}`,user.id,bet,'gostop');const d=hwatuDeck(),s={bet,phase:'playing',hands:{user:[],bot:[]},floor:[],captured:{user:[],bot:[]},deck:d,turn:'user',goCount:{user:0,bot:0},lastDecisionScore:{user:0,bot:0},needDecision:false,winner:null,result:null};for(let i=0;i<10;i++){s.hands.user.push(d.pop());s.hands.bot.push(d.pop());}for(let i=0;i<8;i++)s.floor.push(d.pop());soloGostop.set(user.id,s);return s;}
 function soloGostopPlay(userId,cardId){const s=soloGostop.get(userId);if(!s||s.phase!=='playing')throw new Error('진행 중인 고스톱이 없습니다.');if(s.turn!=='user'||s.needDecision)throw new Error('지금은 패를 낼 수 없습니다.');const idx=s.hands.user.findIndex(c=>c.id===cardId);if(idx<0)throw new Error('손패에 없는 카드입니다.');const card=s.hands.user.splice(idx,1)[0];captureMatch(s,'user',card);gostopDrawAndCapture(s,'user');if(gostopCanDecision(s,'user')){s.needDecision=true;s.lastDecisionScore.user=gostopScore(s.captured.user).score;return s;}if(!s.hands.user.length&&!s.deck.length){const us=gostopScore(s.captured.user).score,bs=gostopScore(s.captured.bot).score;gostopFinish(userId,us>=bs?'user':'bot','패가 모두 소진되었습니다.');return s;}s.turn='bot';gostopBotTurn(userId);return s;}
 function soloGostopDecision(userId,decision){const s=soloGostop.get(userId);if(!s||!s.needDecision)throw new Error('고/스톱을 선택할 차례가 아닙니다.');s.needDecision=false;if(decision==='stop'){gostopFinish(userId,'user','스톱!');return s;}s.goCount.user++;s.turn='bot';gostopBotTurn(userId);return s;}
 function publicGostop(s){if(!s)return null;const {deck,...rest}=s;return {...rest,hands:{user:s.hands.user,bot:s.phase==='complete'?s.hands.bot:s.hands.bot.map(()=>({id:'XX'}))},deckCount:s.deck.length,score:{user:gostopScore(s.captured.user),bot:gostopScore(s.captured.bot)}};}
+
+function activeRoomReactions(r){
+  const t=now();
+  r.reactions=r.reactions||{};
+  for(const [uid,x] of Object.entries(r.reactions)){if(!x||Number(x.expiresAt||0)<=t)delete r.reactions[uid];}
+  return Object.values(r.reactions).map(x=>({userId:x.userId,nickname:x.nickname,key:x.key,emoji:x.emoji,label:x.label,at:x.at,expiresAt:x.expiresAt}));
+}
 
 function personalizedRoom(r,userId){
   const turnUserId=currentTurnUserId(r),turnPlayer=turnUserId!=null?roomPlayer(r,turnUserId):null;
@@ -707,6 +723,7 @@ function personalizedRoom(r,userId){
     version:r.version||0,updatedAt:r.updatedAt||r.createdAt,readyCount:roomReadyCount(r),allReady:r.players.length>=2&&r.players.every(p=>!!p.ready),
     turnUserId,turnNickname:turnPlayer?.nickname||null,myTurn:turnUserId===userId,
     players:orderedPlayers(r).map(p=>({...p,ready:!!p.ready,avatarEmoji:AVATARS[p.avatar%AVATARS.length]})),
+    reactions:activeRoomReactions(r),
     hand:r.game==='holdem'?pokerView(r,userId):null,yut:r.game==='yut'?r.yut:null
   };
 }
@@ -791,9 +808,14 @@ const server=http.createServer(async(req,res)=>{
     }
     if(url.pathname==='/api/admin/wallet'&&req.method==='POST'){
       const admin=requireAdmin(req,res);if(!admin)return;
-      const b=await readBody(req);const targetId=Number(b.userId),amount=Number(b.amount),memo=escText(b.memo,60)||'관리자 조정';
-      if(!Number.isInteger(targetId)||!db.prepare('SELECT id FROM users WHERE id=?').get(targetId))return json(res,404,{error:'대상 회원을 찾을 수 없습니다.'});
-      if(!Number.isInteger(amount)||amount===0||Math.abs(amount)>1000000000)return json(res,400,{error:'조정 금액은 1~1,000,000,000 G 범위의 정수로 입력하세요.'});
+      const b=await readBody(req);const targetId=Number(b.userId),memo=escText(b.memo,60)||'관리자 조정';
+      const target=db.prepare('SELECT id,balance FROM users WHERE id=?').get(targetId);
+      if(!Number.isInteger(targetId)||!target)return json(res,404,{error:'대상 회원을 찾을 수 없습니다.'});
+      const raw=Math.abs(Math.trunc(Number(b.amount)||0)),direction=String(b.direction||'');
+      if(!Number.isInteger(raw)||raw<1||raw>1000000000)return json(res,400,{error:'조정 금액은 1~1,000,000,000 G 범위의 정수로 입력하세요.'});
+      let amount=direction==='debit'?-raw:direction==='credit'?raw:Number(b.amount);
+      if(!Number.isInteger(amount)||amount===0)amount=raw;
+      if(amount<0&&raw>target.balance)return json(res,400,{error:`현재 잔액 ${formatMoney(target.balance)}G보다 많이 차감할 수 없습니다.`});
       let balance;
       try{balance=walletChange(targetId,amount,amount>0?'admin_credit':'admin_debit',`관리자 조정 · ${memo}`);}catch(e){return json(res,400,{error:e.message});}
       db.prepare('INSERT INTO admin_audit(admin_user_id,target_user_id,action,amount,memo,created_at) VALUES(?,?,?,?,?,?)').run(admin.id,targetId,amount>0?'credit':'debit',amount,memo,now());
@@ -822,7 +844,7 @@ const server=http.createServer(async(req,res)=>{
     }
 
     if(url.pathname==='/api/slot/spin'&&req.method==='POST'){
-      const u=requireAuth(req,res);if(!u)return;const b=await readBody(req);let bet;try{bet=gameWager(b.bet,1000,500000,1000)}catch(e){return json(res,400,{error:e.message})};
+      const u=requireAuth(req,res);if(!u)return;const b=await readBody(req);let bet;try{bet=gameWager(b.bet,1000,100000,1000)}catch(e){return json(res,400,{error:e.message})};
       if(u.balance<bet)return json(res,400,{error:'게임머니가 부족합니다.'});
       walletChange(u.id,-bet,'slot_bet',`슬롯 베팅 ${formatMoney(bet)}G`);
       const pick=()=>{const total=SLOT_SYMBOLS.reduce((s,x)=>s+x.w,0);let n=crypto.randomInt(total);for(const x of SLOT_SYMBOLS){if(n<x.w)return x.s;n-=x.w;}return '🍒';};
@@ -839,11 +861,21 @@ const server=http.createServer(async(req,res)=>{
           }
         }
       }
-      if(winLines.length>=3) totalMultiplier+=15;
+      const hasJLine=winLines.some(w=>w.symbols?.[0]==='J');
+      if(!hasJLine){
+        const jCells=[];
+        for(let r=0;r<3;r++)for(let c=0;c<3;c++)if(grid[r][c]==='J')jCells.push([r,c]);
+        if(jCells.length){
+          const scatterMult=jCells.length*20;
+          totalMultiplier+=scatterMult;
+          winLines.push({label:'J SCATTER',cssClass:null,cells:jCells,symbols:jCells.map(()=> 'J'),mult:scatterMult,scatter:true});
+        }
+      }
+      if(winLines.filter(w=>!w.scatter).length>=3) totalMultiplier+=15;
       const payout=Math.floor(bet*totalMultiplier);
       if(payout>0)walletChange(u.id,payout,'slot_win',`슬롯 당첨 x${totalMultiplier}`);
       const profit=payout-bet;db.prepare('UPDATE stats SET slot_spins=slot_spins+1, slot_wins=slot_wins+?, slot_profit=slot_profit+? WHERE user_id=?').run(payout>bet?1:0,profit,u.id);pushRefresh();
-      return json(res,200,{grid,bet,payout,profit,totalMultiplier,winLines,user:userPublic(u.id),jackpot:totalMultiplier>=80});
+      return json(res,200,{grid,bet,payout,profit,totalMultiplier,winLines,user:userPublic(u.id),jackpot:winLines.some(w=>!w.scatter&&(w.symbols?.[0]==='7️⃣'||w.symbols?.[0]==='J'))});
     }
 
     // ---- Solo game routes ----
@@ -876,7 +908,7 @@ const server=http.createServer(async(req,res)=>{
     }
     if(url.pathname==='/api/horse/race'&&req.method==='POST'){
       const u=requireAuth(req,res);if(!u)return;const b=await readBody(req),card=raceCards.get(u.id);if(!card)return json(res,409,{error:'먼저 새 경주표를 받아주세요.'});
-      let bet;try{bet=gameWager(b.bet,1000,2000000,1000)}catch(e){return json(res,400,{error:e.message})};
+      let bet;try{bet=gameWager(b.bet,1000,100000,1000)}catch(e){return json(res,400,{error:e.message})};
       if(u.balance<bet)return json(res,400,{error:'게임머니가 부족합니다.'});const type=['win','quinella','exacta'].includes(b.type)?b.type:'win';const picks=Array.isArray(b.picks)?b.picks.map(Number):[];
       if((type==='win'&&picks.length<1)||(type!=='win'&&picks.length<2)||new Set(picks).size!==picks.length)return json(res,400,{error:'말 선택을 확인해주세요.'});
       walletChange(u.id,-bet,'horse_bet',`경마 ${type} 베팅 ${formatMoney(bet)}G`);const order=horseRun(card);const result=settleRace(u.id,bet,type,picks,card,order);raceCards.delete(u.id);pushRefresh();
@@ -890,10 +922,10 @@ const server=http.createServer(async(req,res)=>{
     }
     if(url.pathname==='/api/rooms'&&req.method==='POST'){
       const u=requireAuth(req,res);if(!u)return;if(findUserRoom(u.id))return json(res,409,{error:'이미 다른 게임방에 참가 중입니다. 먼저 그 방에서 나와주세요.'});const b=await readBody(req),game=b.game==='yut'?'yut':'holdem';
-      const yutMode=game==='yut'&&['individual','2v2','3v3'].includes(b.yutMode)?b.yutMode:'individual';const maxPlayers=game==='holdem'?clampInt(b.maxPlayers,2,6):(yutMode==='2v2'?4:yutMode==='3v3'?6:clampInt(b.maxPlayers,2,6));let buyIn;try{buyIn=gameWager(b.buyIn,5000,5000000,1000)}catch(e){return json(res,400,{error:e.message})};
+      const yutMode=game==='yut'&&['individual','2v2','3v3'].includes(b.yutMode)?b.yutMode:'individual';const maxPlayers=game==='holdem'?clampInt(b.maxPlayers,2,6):(yutMode==='2v2'?4:yutMode==='3v3'?6:clampInt(b.maxPlayers,2,6));let buyIn;try{buyIn=gameWager(b.buyIn,5000,100000,1000)}catch(e){return json(res,400,{error:e.message})};
       if(u.balance<buyIn)return json(res,400,{error:'방 참가금보다 보유 게임머니가 적습니다.'});
       const id=makeRoomId();const name=game==='holdem'?`홀덤 테이블 ${id}`:`윷놀이 방 ${id}`;walletChange(u.id,-buyIn,`${game}_buyin`,`${name} 참가금`);
-      const t=now();const r={id,name,game,buyIn,maxPlayers,hostId:u.id,smallBlind:game==='holdem'?Math.max(100,Math.floor(buyIn/100)):0,bigBlind:game==='holdem'?Math.max(200,Math.floor(buyIn/50)):0,players:[{userId:u.id,nickname:u.nickname,avatar:u.avatar,seat:0,stack:game==='holdem'?buyIn:0,ready:false,joinedAt:t}],createdAt:t,updatedAt:t,version:1,hand:null,yut:null,yutMode,dealerSeat:null};
+      const t=now();const r={id,name,game,buyIn,maxPlayers,hostId:u.id,smallBlind:game==='holdem'?Math.max(100,Math.floor(buyIn/100)):0,bigBlind:game==='holdem'?Math.max(200,Math.floor(buyIn/50)):0,players:[{userId:u.id,nickname:u.nickname,avatar:u.avatar,seat:0,stack:game==='holdem'?buyIn:0,ready:false,joinedAt:t}],createdAt:t,updatedAt:t,version:1,hand:null,yut:null,yutMode,dealerSeat:null,reactions:{}};
       rooms.set(id,r);escrowSet(id,u.id,buyIn,game);pushRefresh(id);return json(res,201,{room:personalizedRoom(r,u.id)});
     }
     const roomMatch=url.pathname.match(/^\/api\/rooms\/([A-F0-9]+)(?:\/(.*))?$/);
@@ -903,6 +935,15 @@ const server=http.createServer(async(req,res)=>{
       if(op==='ready'&&req.method==='POST'){
         if(roomStatus(r)==='PLAYING')return json(res,409,{error:'게임 진행 중에는 준비 상태를 바꿀 수 없습니다.'});
         const p=roomPlayer(r,u.id);if(!p)return json(res,403,{error:'이 방 참가자가 아닙니다.'});p.ready=!p.ready;touchRoom(r);pushRefresh(r.id);return json(res,200,{room:personalizedRoom(r,u.id)});
+      }
+      if(op==='reaction'&&req.method==='POST'){
+        const p=roomPlayer(r,u.id);if(!p)return json(res,403,{error:'이 방 참가자가 아닙니다.'});
+        const b=await readBody(req),key=String(b.key||'');const def=ROOM_REACTIONS[key];
+        if(!def)return json(res,400,{error:'지원하지 않는 이모티콘입니다.'});
+        r.reactions=r.reactions||{};const t=now();const prev=r.reactions[u.id];
+        if(prev&&t-Number(prev.at||0)<700)return json(res,429,{error:'이모티콘은 잠깐 기다렸다가 다시 보내줘.'});
+        r.reactions[u.id]={userId:u.id,nickname:p.nickname,key,emoji:def.emoji,label:def.label,at:t,expiresAt:t+4500};
+        touchRoom(r);pushRefresh(r.id);return json(res,200,{ok:true,room:personalizedRoom(r,u.id)});
       }
       if(op==='close'&&req.method==='POST'){
         if(r.hostId!==u.id&&!u.is_admin)return json(res,403,{error:'방장 또는 관리자만 방을 비울 수 있습니다.'});

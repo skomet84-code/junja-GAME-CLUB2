@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+<defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#5867ff"/><stop offset="1" stop-color="#151931"/></linearGradient></defs>
+<rect width="128" height="128" rx="30" fill="url(#bg)"/>
+<rect x="26" y="28" width="76" height="68" rx="26" fill="#dfe7f7" stroke="#ffffffaa" stroke-width="3"/>
+<rect x="35" y="44" width="58" height="34" rx="15" fill="#18213d"/>
+<circle cx="51" cy="61" r="6" fill="#72e5ff"/><circle cx="77" cy="61" r="6" fill="#72e5ff"/>
+<path d="M53 82 Q64 89 75 82" fill="none" stroke="#495a7a" stroke-width="4" stroke-linecap="round"/>
+<path d="M64 28 V17" stroke="#dfe7f7" stroke-width="5" stroke-linecap="round"/><circle cx="64" cy="13" r="5" fill="#ffcf67"/>
+<path d="M23 128 Q27 99 64 99 Q101 99 105 128Z" fill="#283760"/>
+<circle cx="102" cy="24" r="12" fill="#f6cf67"/><text x="102" y="29" text-anchor="middle" font-family="Arial" font-size="11" font-weight="900" fill="#16131a">AI</text>
+</svg>
