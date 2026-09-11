@@ -1,5 +1,5 @@
-const CACHE='junja-club-v20';
-const ASSETS=['/','/style.css?v=200','/app.js?v=200','/manifest.webmanifest','/art/club-host.svg','/art/poker-mascot.svg','/art/slot-mascot.svg','/art/yut-mascot.svg','/art/gostop-mascot.svg','/art/seotda-mascot.svg'];
+const CACHE='junja-club-v21';
+const ASSETS=['/','/style.css?v=210','/app.js?v=210','/manifest.webmanifest','/art/club-host.svg','/art/poker-mascot.svg','/art/slot-mascot.svg','/art/yut-mascot.svg','/art/gostop-mascot.svg','/art/seotda-mascot.svg'];
 self.addEventListener('install',e=>e.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS)).then(()=>self.skipWaiting())));
 self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));
 self.addEventListener('fetch',e=>{

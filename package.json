@@ -1,8 +1,8 @@
 {
   "name": "junja-game-club",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "private": true,
-  "description": "JUNJA GAME CLUB v2.0 - Luxury Boutique, purchasable animated profile borders, high-value economy and 1B prestige collection.",
+  "description": "JUNJA GAME CLUB v2.1 - Premium Character Boutique with 30 purchasable male/female characters, 1B prestige avatars and full-game cosmetic integration.",
   "type": "commonjs",
   "scripts": {
     "start": "node server.js"

@@ -70,6 +70,7 @@ CREATE TABLE IF NOT EXISTS user_inventory (
 );
 CREATE TABLE IF NOT EXISTS user_loadout (
   user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+  character TEXT,
   costume TEXT,
   frame TEXT,
   title TEXT,
@@ -114,6 +115,7 @@ ensureColumn('stats','baccarat_wins','INTEGER NOT NULL DEFAULT 0');
 ensureColumn('stats','baccarat_profit','INTEGER NOT NULL DEFAULT 0');
 ensureColumn('users','is_admin','INTEGER NOT NULL DEFAULT 0');
 ensureColumn('users','is_disabled','INTEGER NOT NULL DEFAULT 0');
+ensureColumn('user_loadout','character','TEXT');
 
 // If the server restarted while rooms were active, return virtual chips safely.
 const staleEscrows = db.prepare('SELECT room_id,user_id,amount,game FROM room_escrow').all();
@@ -170,6 +172,39 @@ const ROOM_REACTIONS = {
 };
 
 const SHOP_ITEMS = [
+  // PREMIUM CHARACTERS · 대표 아바타. 구매/장착 후 전 게임에서 사용
+  {id:'char_m_luca',category:'character',gender:'M',asset:'/art/characters/char_m_luca.svg',name:'루카',icon:'♠',rarity:'rare',price:5000000,desc:'부드러운 미소와 블루 수트. 부담 없이 시작하는 프리미엄 남캐'},
+  {id:'char_m_jay',category:'character',gender:'M',asset:'/art/characters/char_m_jay.svg',name:'제이',icon:'J',rarity:'rare',price:8000000,desc:'청록 네온 무드의 스트리트 하이롤러'},
+  {id:'char_m_ryan',category:'character',gender:'M',asset:'/art/characters/char_m_ryan.svg',name:'라이언',icon:'✦',rarity:'rare',price:12000000,desc:'보랏빛 웨이브 헤어와 세련된 나이트 룩'},
+  {id:'char_m_noir',category:'character',gender:'M',asset:'/art/characters/char_m_noir.svg',name:'노아르',icon:'♣',rarity:'rare',price:20000000,desc:'블랙 수트와 선글라스의 차가운 카지노 젠틀맨'},
+  {id:'char_m_ace',category:'character',gender:'M',asset:'/art/characters/char_m_ace.svg',name:'에이스 준',icon:'A♠',rarity:'epic',price:35000000,desc:'레드 블랙 수트와 에이스 핀. 카드 테이블 전용 분위기'},
+  {id:'char_m_kai',category:'character',gender:'M',asset:'/art/characters/char_m_kai.svg',name:'카이',icon:'◆',rarity:'epic',price:50000000,desc:'블루 스틸 무드의 깔끔한 포커 플레이어'},
+  {id:'char_m_leon',category:'character',gender:'M',asset:'/art/characters/char_m_leon.svg',name:'레온',icon:'♛',rarity:'epic',price:70000000,desc:'골드 포인트와 클래식 파트 헤어의 로열 남캐'},
+  {id:'char_m_dante',category:'character',gender:'M',asset:'/art/characters/char_m_dante.svg',name:'단테',icon:'♦',rarity:'epic',price:90000000,desc:'다크 레드 무드와 작은 흉터가 있는 승부사'},
+  {id:'char_m_victor',category:'character',gender:'M',asset:'/art/characters/char_m_victor.svg',name:'빅터 로열',icon:'V',rarity:'legendary',price:150000000,desc:'에메랄드 수트와 보석 브로치의 정통 VIP'},
+  {id:'char_m_phantom',category:'character',gender:'M',asset:'/art/characters/char_m_phantom.svg',name:'팬텀 K',icon:'K',rarity:'legendary',price:220000000,desc:'퍼플 마스크와 블랙 망토 분위기의 미스터리 캐릭터'},
+  {id:'char_m_crown',category:'character',gender:'M',asset:'/art/characters/char_m_crown.svg',name:'크라운 제이드',icon:'♚',rarity:'legendary',price:300000000,desc:'골드 왕실 무드와 크라운 핀을 가진 상위 컬렉터 남캐'},
+  {id:'char_m_cosmos',category:'character',gender:'M',asset:'/art/characters/char_m_cosmos.svg',name:'코스모스 레이',icon:'★',rarity:'legendary',price:450000000,desc:'별빛 블루 수트와 코스믹 오라가 흐르는 캐릭터'},
+  {id:'char_m_emperor',category:'character',gender:'M',asset:'/art/characters/char_m_emperor.svg',name:'엠퍼러 J',icon:'J♛',rarity:'mythic',price:650000000,desc:'황제 골드와 J 시그니처를 결합한 신화급 남캐'},
+  {id:'char_m_royal',category:'character',gender:'M',asset:'/art/characters/char_m_royal.svg',name:'로열 아르카나',icon:'✧',rarity:'mythic',price:800000000,desc:'퍼플 젬과 아르카나 무드의 최상위 로열 캐릭터'},
+  {id:'char_m_junja',category:'character',gender:'M',asset:'/art/characters/char_m_junja.svg',name:'JUNJA KING',icon:'♛',rarity:'prestige',price:1000000000,desc:'10억 G 프레스티지. 왕관·골드 오라를 가진 남캐 최종 컬렉션',featured:true},
+
+  {id:'char_f_aria',category:'character',gender:'F',asset:'/art/characters/char_f_aria.svg',name:'아리아',icon:'♥',rarity:'rare',price:5000000,desc:'핑크 리본과 단발 헤어의 밝고 세련된 여성 캐릭터'},
+  {id:'char_f_yuna',category:'character',gender:'F',asset:'/art/characters/char_f_yuna.svg',name:'유나',icon:'✦',rarity:'rare',price:8000000,desc:'블루 퍼플 드레스와 롱헤어의 청순 VIP'},
+  {id:'char_f_sena',category:'character',gender:'F',asset:'/art/characters/char_f_sena.svg',name:'세나',icon:'◆',rarity:'rare',price:12000000,desc:'민트 포니테일과 모던 딜러 룩'},
+  {id:'char_f_ruby',category:'character',gender:'F',asset:'/art/characters/char_f_ruby.svg',name:'루비',icon:'♦',rarity:'rare',price:20000000,desc:'루비 이어링과 레드 드레스의 화려한 캐릭터'},
+  {id:'char_f_luna',category:'character',gender:'F',asset:'/art/characters/char_f_luna.svg',name:'루나',icon:'☾',rarity:'epic',price:35000000,desc:'달빛 퍼플 무드와 긴 머리의 신비로운 캐릭터'},
+  {id:'char_f_chloe',category:'character',gender:'F',asset:'/art/characters/char_f_chloe.svg',name:'클로이',icon:'●',rarity:'epic',price:50000000,desc:'샴페인 골드 무드와 진주 포인트의 클래식 캐릭터'},
+  {id:'char_f_ivy',category:'character',gender:'F',asset:'/art/characters/char_f_ivy.svg',name:'아이비',icon:'❧',rarity:'epic',price:70000000,desc:'에메랄드 드레스와 자연스러운 웨이브 헤어'},
+  {id:'char_f_vega',category:'character',gender:'F',asset:'/art/characters/char_f_vega.svg',name:'베가',icon:'★',rarity:'epic',price:90000000,desc:'사파이어 포니테일과 스타 장식의 나이트 캐릭터'},
+  {id:'char_f_belle',category:'character',gender:'F',asset:'/art/characters/char_f_belle.svg',name:'벨 로열',icon:'♛',rarity:'legendary',price:150000000,desc:'골드 크라운 핀과 로열 드레스의 프리미엄 캐릭터'},
+  {id:'char_f_noir',category:'character',gender:'F',asset:'/art/characters/char_f_noir.svg',name:'느와르 레이디',icon:'♠',rarity:'legendary',price:220000000,desc:'블랙 마스크와 퍼플 드레스의 미스터리 VIP'},
+  {id:'char_f_aurora',category:'character',gender:'F',asset:'/art/characters/char_f_aurora.svg',name:'오로라',icon:'✧',rarity:'legendary',price:300000000,desc:'오로라 헤어와 빛나는 액세서리의 상위 컬렉터 캐릭터'},
+  {id:'char_f_seraph',category:'character',gender:'F',asset:'/art/characters/char_f_seraph.svg',name:'세라프',icon:'☼',rarity:'legendary',price:450000000,desc:'화이트 골드 드레스와 천상 오라의 세라프'},
+  {id:'char_f_empress',category:'character',gender:'F',asset:'/art/characters/char_f_empress.svg',name:'엠프레스 J',icon:'J♛',rarity:'mythic',price:650000000,desc:'황제 크라운과 J 시그니처를 가진 신화급 여성 캐릭터'},
+  {id:'char_f_venus',category:'character',gender:'F',asset:'/art/characters/char_f_venus.svg',name:'비너스 로열',icon:'✦',rarity:'mythic',price:800000000,desc:'로즈 젬과 로열 드레스의 최상위 여성 캐릭터'},
+  {id:'char_f_junja',category:'character',gender:'F',asset:'/art/characters/char_f_junja.svg',name:'JUNJA EMPRESS',icon:'♕',rarity:'prestige',price:1000000000,desc:'10억 G 프레스티지. 황금 왕관과 오라를 가진 여캐 최종 컬렉션',featured:true},
+
   // COSTUMES · 보여지는 존재감 중심
   {id:'costume_dealer',category:'costume',name:'VIP 딜러',icon:'🎩',rarity:'rare',price:2000000,desc:'골드 딜러 햇과 하이롤러 무드'},
   {id:'costume_rabbit',category:'costume',name:'럭키 래빗',icon:'🐰',rarity:'rare',price:5000000,desc:'행운을 부르는 럭키 래빗 코스튬'},
@@ -252,7 +287,7 @@ const SHOP_ITEMS = [
   {id:'bubble_legend',category:'bubble_pack',name:'레전드 팩',icon:'⚡',rarity:'mythic',price:25000000,desc:'전설 등장 · 이게 클래스 · 분위기 잡았다 · 끝내자'}
 ]
 const SHOP_BY_ID = Object.fromEntries(SHOP_ITEMS.map(x=>[x.id,Object.freeze({...x})]));
-const LOADOUT_FIELDS = new Set(['costume','frame','title','pet','table_skin','card_back','bubble_pack']);
+const LOADOUT_FIELDS = new Set(['character','costume','frame','title','pet','table_skin','card_back','bubble_pack']);
 const SLOT_SYMBOLS = [
   {s:'🍒',w:140},{s:'🍋',w:120},{s:'🍊',w:100},{s:'🔔',w:65},{s:'⭐',w:45},{s:'💎',w:25},{s:'7️⃣',w:7},{s:'J',w:1}
 ];
