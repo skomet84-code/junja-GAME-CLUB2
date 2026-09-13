@@ -1,8 +1,3 @@
-# v2.4 QA / NEXT
+# v2.4.1
 
-- Render 실배포 후 iPhone Safari / Android Chrome에서 섯다 3~5판 연속 플레이 확인
-- 섯다 멀티: 한쪽 잔액이 기존 판돈보다 낮아진 상태에서 READY → 자동 판돈 조정 확인
-- 세븐포커: 전액 스택으로 장시간 플레이 후 퇴장/강제복구 정산 반복 확인
-- 경마: 실제 휴대폰 60Hz/120Hz 환경에서 질주 프레임 체감 확인
-- 네트워크가 느린 환경에서 경마 RUNNING 진입 시 서버 시간 기준 동기화 확인
-- PWA 구버전 UI가 남으면 v2.4 서비스워커 교체 여부 확인
+Emergency UX stability hotfix. No economy/database/game-rule changes.

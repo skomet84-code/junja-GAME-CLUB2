@@ -700,3 +700,13 @@ body.skin-table-marble .poker-table,body.skin-table-marble .seven-felt{backgroun
 @media(max-width:820px){.vertical-race-track .horse-art{height:104px!important}.vertical-race-track .race-runner{height:106px!important}.vertical-race-track .runner-tag{top:94px!important}.vertical-race-track .finish-rank{top:35px!important}.quick-wager-row.high-stake{grid-template-columns:repeat(3,minmax(0,1fr))!important}}
 @media(max-width:520px){.vertical-race-track .horse-art{height:94px!important}.vertical-race-track .race-runner{height:96px!important}.vertical-race-track .runner-tag{top:84px!important}.vertical-race-track .finish-rank{top:31px!important}.seotda-next-actions{grid-template-columns:1fr}.quick-wager-row.high-stake{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
 .race-horse-svg.topdown.realistic .horse-nostril{fill:#120a07}.vertical-race-track .race-runner.running .horse-figure{transform-origin:70px 124px}.vertical-race-track .race-runner.running .front-l,.vertical-race-track .race-runner.running .rear-r,.vertical-race-track .race-runner.running .front-r,.vertical-race-track .race-runner.running .rear-l{transform-origin:70px 132px}.vertical-race-track .race-runner.running .jockey-real{transform-origin:70px 68px}.vertical-race-track .race-runner.running .horse-tail-real{transform-origin:70px 42px}.vertical-race-track .race-runner.running .horse-shadow{transform-origin:70px 126px}
+
+
+/* v2.4.1 HOTFIX — guide modal must never swallow/lose close taps */
+.help-modal.hidden{display:none!important;pointer-events:none!important}
+.help-modal{pointer-events:auto!important}
+.help-backdrop{z-index:1!important;pointer-events:auto!important}
+.help-card{position:relative!important;z-index:3!important;pointer-events:auto!important;isolation:isolate}
+.help-card .sheet-close,.help-card .help-done{z-index:20!important;pointer-events:auto!important;touch-action:manipulation!important;-webkit-tap-highlight-color:transparent}
+.help-card .sheet-close{position:absolute!important}
+.help-tabs,.help-pages{position:relative;z-index:4;pointer-events:auto}

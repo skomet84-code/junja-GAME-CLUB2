@@ -1,39 +1,12 @@
-# JUNJA GAME CLUB v2.4 TEST REPORT
+# v2.4.1 HOTFIX TEST REPORT
 
-## 정적 검사
-- `node --check server.js` 통과
-- `node --check public/app.js` 통과
-- `node --check persistent-db.js` 통과
-- HTML 파싱 검사 통과
-- CSS 중괄호/괄호 균형 검사 통과
-- 서비스워커 캐시 `junja-club-v24`, 정적 자산 `?v=240` 적용
-
-## 섯다 실제 로컬 API 검사
-- AI 섯다 **1,500,000G** 판돈으로 정상 시작 확인 (기존 100,000G 상한 없음)
-- 3번째 패 받기 → 한 장 버리기 → 정산 정상
-- 같은 1,500,000G 판돈으로 화면/세션 초기화 없이 다음 판 즉시 시작 확인
-- 멀티 섯다 **700,000G** 방 생성 → 2명 입장 → READY → 3장 진행 → 쇼다운 확인
-- 완료 후 두 명이 다시 READY하면 같은 방에서 다음 라운드가 `draw` 상태로 자동 시작됨 확인
-- 테스트 DB에서 한 참가자의 현재 잔액을 기존 판돈보다 낮게 만든 뒤 재대결 시, 다음 판돈이 가능한 잔액 수준으로 자동 하향되어 새 라운드가 시작됨 확인
-- AI 섯다에서 J-BOT 승리 상황이 `무승부`로 잘못 표시되던 분기 수정 후 `...에 패배`로 정상 표시 확인
-
-## 세븐포커 실제 로컬 API 검사
-- 멀티 세븐포커 방 생성 시 1,000,000G 보유 회원이 1,000,000G 전액 스택으로 입장 확인
-- 두 번째 회원도 자신의 1,000,000G 전액 스택으로 참가 확인
-- 서버 코드에 세븐포커 100,000G 고정 상한이 없고 ALL WALLET 로직을 사용하는 것 확인
-
-## 경마 검사
-- 서버 베팅창 `8,000ms` 확인
-- 서버 질주 `6,500ms`, 결과 표시 `4,000ms` 설정 확인
-- 말 이름 우니 / 도도 / 아라 / 돼지 / 햅피 / 신동 / 준자 유지 확인
-- 애니메이션 도착시간이 `1위 < 2위 < ... < 7위`가 되도록 계산되는 것 확인
-- 이동 Y 값은 진행 중 단조 증가하도록 수정해 뒤로 튀는 위치 흔들림 제거
-- 말 SVG 진행 방향: 머리/주둥이가 아래, 꼬리가 위로 향하도록 구성 확인
-
-## 데이터/배포 안전성
-- v2.4 수정은 기존 회원 DB 스키마를 초기화하지 않음
-- Neon `DATABASE_URL` 사용 구조 유지
-- 테스트용 SQLite DB는 배포 ZIP에 포함하지 않도록 제외
-
-## 남은 실제 기기 QA
-서버/API/정적 검사는 통과했지만, 최종 말 그래픽의 체감 부드러움은 기기 GPU·브라우저에 따라 달라질 수 있으므로 Render 배포 후 실제 iPhone/Android에서 한 번 확인하는 것을 권장합니다.
+- `node --check public/app.js`: PASS
+- `node --check server.js`: PASS
+- `node --check public/sw.js`: PASS
+- help modal close wiring static assertions: PASS
+- first-run mandatory auto-open removed: PASS
+- help close paths: 확인했어 / X / backdrop / ESC: wired
+- localStorage exception cannot block close: PASS by code path (close first, storage in try/catch)
+- app shell cache headers changed to no-cache/no-store: PASS
+- service worker/cache asset version: v241
+- Neon/database schema changes: NONE

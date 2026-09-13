@@ -1,8 +1,8 @@
 {
   "name": "junja-game-club",
-  "version": "2.4.0",
+  "version": "2.4.1",
   "private": true,
-  "description": "JUNJA GAME CLUB v2.4 - Royal casino overhaul with roulette, premium Yut, all-wallet poker tables, cinematic baccarat, realistic wheel/dice and audio.",
+  "description": "JUNJA GAME CLUB v2.4.1 - Royal casino overhaul with roulette, premium Yut, all-wallet poker tables, cinematic baccarat, realistic wheel/dice and audio.",
   "type": "commonjs",
   "scripts": {
     "start": "node server.js"
