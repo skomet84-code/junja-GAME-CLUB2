@@ -1,8 +1,8 @@
 {
   "name": "junja-game-club",
-  "version": "2.4.1",
+  "version": "2.4.2",
   "private": true,
-  "description": "JUNJA GAME CLUB v2.4.1 - Royal casino overhaul with roulette, premium Yut, all-wallet poker tables, cinematic baccarat, realistic wheel/dice and audio.",
+  "description": "JUNJA GAME CLUB v2.4.2 Recovery Hotfix - restores frontend controls, removes stale PWA cache risk, preserves v2.4 game logic and data.",
   "type": "commonjs",
   "scripts": {
     "start": "node server.js"

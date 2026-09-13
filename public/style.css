@@ -710,3 +710,9 @@ body.skin-table-marble .poker-table,body.skin-table-marble .seven-felt{backgroun
 .help-card .sheet-close,.help-card .help-done{z-index:20!important;pointer-events:auto!important;touch-action:manipulation!important;-webkit-tap-highlight-color:transparent}
 .help-card .sheet-close{position:absolute!important}
 .help-tabs,.help-pages{position:relative;z-index:4;pointer-events:auto}
+
+/* v2.4.2 RECOVERY: hidden overlays must never intercept game controls */
+.hidden{display:none!important;pointer-events:none!important}
+#helpModal.hidden,#slotJackpotOverlay.hidden,#profileSheet.hidden{display:none!important;pointer-events:none!important}
+.view.active{pointer-events:auto}
+button:not(:disabled){touch-action:manipulation}
