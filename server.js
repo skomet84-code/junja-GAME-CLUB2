@@ -118,6 +118,9 @@ ensureColumn('stats','seven_wins','INTEGER NOT NULL DEFAULT 0');
 ensureColumn('stats','baccarat_games','INTEGER NOT NULL DEFAULT 0');
 ensureColumn('stats','baccarat_wins','INTEGER NOT NULL DEFAULT 0');
 ensureColumn('stats','baccarat_profit','INTEGER NOT NULL DEFAULT 0');
+ensureColumn('stats','roulette_plays','INTEGER NOT NULL DEFAULT 0');
+ensureColumn('stats','roulette_wins','INTEGER NOT NULL DEFAULT 0');
+ensureColumn('stats','roulette_profit','INTEGER NOT NULL DEFAULT 0');
 ensureColumn('users','is_admin','INTEGER NOT NULL DEFAULT 0');
 ensureColumn('users','is_disabled','INTEGER NOT NULL DEFAULT 0');
 ensureColumn('user_loadout','character','TEXT');
@@ -161,7 +164,7 @@ const soloSeven = new Map();
 const baccaratRooms = new Map();
 
 const AVATARS = ['🧑‍💼','😎','🧢','👑','🐯','🐻','🦊','🐼','🐸','🦁'];
-const LIVE_GAMES = new Set(['slot','holdem','sevenpoker','yut','seotda','gostop','horse','bigwheel','sicbo','baccarat']);
+const LIVE_GAMES = new Set(['slot','holdem','sevenpoker','yut','seotda','gostop','horse','bigwheel','sicbo','baccarat','roulette']);
 const ROOM_REACTIONS = {
   frustrated:{emoji:'😫',label:'답답해!',pack:'base'},
   hurry:{emoji:'⏩',label:'빨리빨리!',pack:'base'},
@@ -308,12 +311,15 @@ const SHOP_ITEMS = [
   {id:'bubble_highroller',category:'bubble_pack',name:'하이롤러 팩',icon:'💸',rarity:'legendary',price:10000000,desc:'큰 판 간다 · 칩 쌓아 · 올인 감성 · 오늘은 내 날'},
   {id:'bubble_legend',category:'bubble_pack',name:'레전드 팩',icon:'⚡',rarity:'mythic',price:25000000,desc:'전설 등장 · 이게 클래스 · 분위기 잡았다 · 끝내자'}
 ]
+// v2.3 Luxury perks: equipped premium pieces provide tiny transparent benefits, hard-capped.
+const SHOP_PERKS={char_m_junja:{slotLuckPct:.4,dailyBonusPct:2},char_f_junja:{slotLuckPct:.4,dailyBonusPct:2},char_m_royal:{slotLuckPct:.2},char_f_empress:{slotLuckPct:.2},frame_legend:{slotLuckPct:.3},frame_junjaroyal:{slotLuckPct:.2},pet_guardian:{slotLuckPct:.3,dailyBonusPct:2},pet_phoenix:{slotLuckPct:.15},title_thejunja:{dailyBonusPct:1}};
+for(const item of SHOP_ITEMS){if(SHOP_PERKS[item.id])item.perk={...SHOP_PERKS[item.id]};}
 const SHOP_BY_ID = Object.fromEntries(SHOP_ITEMS.map(x=>[x.id,Object.freeze({...x})]));
 const LOADOUT_FIELDS = new Set(['character','costume','frame','title','pet','table_skin','card_back','bubble_pack']);
 const SLOT_SYMBOLS = [
   {s:'🍒',w:140},{s:'🍋',w:120},{s:'🍊',w:100},{s:'🔔',w:65},{s:'⭐',w:45},{s:'💎',w:25},{s:'7️⃣',w:7},{s:'J',w:1}
 ];
-const SLOT_MULT = {'🍒':2,'🍋':2,'🍊':3,'🔔':5,'⭐':8,'💎':15,'7️⃣':1000,'J':500};
+const SLOT_MULT = {'🍒':2,'🍋':3,'🍊':5,'🔔':8,'⭐':10,'💎':20,'7️⃣':1000,'J':800};
 const SLOT_LINES = [
   { key:'top', label:'TOP', cssClass:'top', cells:[[0,0],[0,1],[0,2]] },
   { key:'mid', label:'MIDDLE', cssClass:'mid', cells:[[1,0],[1,1],[1,2]] },
@@ -422,11 +428,12 @@ function collectionTier(count){
 function itemPublic(id){const x=SHOP_BY_ID[id];return x?{...x}:null;}
 function cosmeticsPublic(userId){
   userId=Number(userId);
-  const empty=()=>{const out={ownedCount:0,collection:collectionTier(0)};for(const f of LOADOUT_FIELDS)out[f]=null;return out;};
+  const empty=()=>{const out={ownedCount:0,collection:collectionTier(0),perks:{slotLuckPct:0,dailyBonusPct:0}};for(const f of LOADOUT_FIELDS)out[f]=null;return out;};
   if(!Number.isInteger(userId)||userId<1||!db.prepare('SELECT 1 FROM users WHERE id=?').get(userId))return empty();
   const load=ensureLoadout(userId),owned=inventoryIds(userId),count=owned.size;
-  const out={ownedCount:count,collection:collectionTier(count)};
-  for(const f of LOADOUT_FIELDS){out[f]=load[f]?itemPublic(load[f]):null;}
+  const out={ownedCount:count,collection:collectionTier(count)};let slotLuckPct=0,dailyBonusPct=0;
+  for(const f of LOADOUT_FIELDS){out[f]=load[f]?itemPublic(load[f]):null;const perk=out[f]?.perk||{};slotLuckPct+=Number(perk.slotLuckPct||0);dailyBonusPct+=Number(perk.dailyBonusPct||0);}
+  out.perks={slotLuckPct:Math.min(1,Math.round(slotLuckPct*100)/100),dailyBonusPct:Math.min(5,Math.round(dailyBonusPct*100)/100)};
   return out;
 }
 function reactionAllowed(userId,key){
@@ -465,7 +472,7 @@ function userPublic(userId){
     s.slot_spins,s.slot_wins,s.slot_profit,s.poker_hands,s.poker_wins,s.yut_games,s.yut_wins,
     s.seotda_games,s.seotda_wins,s.gostop_games,s.gostop_wins,s.solo_poker_wins,s.solo_yut_wins,
     s.horse_races,s.horse_wins,s.horse_profit,s.bigwheel_plays,s.bigwheel_wins,s.bigwheel_profit,s.sicbo_plays,s.sicbo_wins,s.sicbo_profit,
-    s.seven_games,s.seven_wins,s.baccarat_games,s.baccarat_wins,s.baccarat_profit
+    s.seven_games,s.seven_wins,s.baccarat_games,s.baccarat_wins,s.baccarat_profit,s.roulette_plays,s.roulette_wins,s.roulette_profit
     FROM users u JOIN stats s ON s.user_id=u.id WHERE u.id=?`).get(userId);
   if(!u) return null;
   return {...u, avatarEmoji:AVATARS[u.avatar%AVATARS.length], cosmetics:cosmeticsPublic(userId), dailyAvailable:u.last_daily!==kstDate()};
@@ -555,7 +562,7 @@ function liveFloorMembers(game){
 
 function roomStatus(r){ if(r.game==='holdem') return r.hand && r.hand.phase!=='complete'?'PLAYING':'WAITING'; if(r.game==='sevenpoker') return r.seven && !r.seven.complete?'PLAYING':'WAITING'; if(r.game==='seotda') return r.seotda&&r.seotda.phase!=='complete'?'PLAYING':'WAITING'; if(r.game==='yut') return r.yut?.phase==='playing'?'PLAYING':'WAITING'; return 'WAITING'; }
 function roomReadyCount(r){return r.players.filter(p=>p.ready).length;}
-function roomSummary(r){return {id:r.id,name:r.name,game:r.game,buyIn:r.buyIn,maxPlayers:r.maxPlayers,players:r.players.length,hostNickname:r.players.find(p=>p.userId===r.hostId)?.nickname||'호스트',status:roomStatus(r),smallBlind:r.smallBlind,bigBlind:r.bigBlind,yutMode:r.yutMode||'individual',yutModeLabel:yutModeLabel(r.yutMode||'individual'),readyCount:roomReadyCount(r),version:r.version||0,updatedAt:r.updatedAt||r.createdAt,participants:orderedPlayers(r).map(p=>({userId:p.userId,nickname:p.nickname,avatar:p.avatar,cosmetics:cosmeticsPublic(p.userId),ready:!!p.ready,seat:p.seat}))};}
+function roomSummary(r){return {id:r.id,name:r.name,game:r.game,buyIn:r.buyIn,allWallet:!!r.allWallet,maxPlayers:r.maxPlayers,players:r.players.length,hostNickname:r.players.find(p=>p.userId===r.hostId)?.nickname||'호스트',status:roomStatus(r),smallBlind:r.smallBlind,bigBlind:r.bigBlind,yutMode:r.yutMode||'individual',yutModeLabel:yutModeLabel(r.yutMode||'individual'),readyCount:roomReadyCount(r),version:r.version||0,updatedAt:r.updatedAt||r.createdAt,participants:orderedPlayers(r).map(p=>({userId:p.userId,nickname:p.nickname,avatar:p.avatar,cosmetics:cosmeticsPublic(p.userId),ready:!!p.ready,seat:p.seat}))};}
 function findRoom(id){ return rooms.get(String(id)); }
 function roomPlayer(r,userId){ return r.players.find(p=>p.userId===userId); }
 function findUserRoom(userId){ return [...rooms.values()].find(r=>roomPlayer(r,userId)); }
@@ -758,12 +765,12 @@ function yutNewPiece(){return {node:'START',route:'outer'};}
 function yutClonePiece(p){return {node:p.node,route:p.route||'outer'};}
 function yutPhysical(p){if(!p)return'START';if(p.node==='CA'||p.node==='CB')return'C';return p.node;}
 function yutFinished(p){return p?.node==='FINISH';}
-function yutNextStep(p,firstStep){
+function yutNextStep(p,firstStep,routeChoice='shortcut'){
   const node=p.node,route=p.route||'outer';
   if(node==='FINISH')return yutClonePiece(p);
   if(node==='START')return {node:'O1',route:'outer'};
-  if(node==='O5')return firstStep?{node:'A1',route:'A'}:{node:'O6',route:'outer'};
-  if(node==='O10')return firstStep?{node:'B1',route:'B'}:{node:'O11',route:'outer'};
+  if(node==='O5')return firstStep&&routeChoice!=='outer'?{node:'A1',route:'A'}:{node:'O6',route:'outer'};
+  if(node==='O10')return firstStep&&routeChoice!=='outer'?{node:'B1',route:'B'}:{node:'O11',route:'outer'};
   if(/^O\d+$/.test(node)){
     const n=Number(node.slice(1));
     if(n<20)return {node:`O${n+1}`,route:'outer'};
@@ -773,9 +780,9 @@ function yutNextStep(p,firstStep){
   if(map[node])return {node:map[node][0],route:map[node][1]};
   return {node:'START',route:'outer'};
 }
-function yutAdvance(piece,move){
+function yutAdvance(piece,move,routeChoice='shortcut'){
   let p=yutClonePiece(piece);const trace=[];
-  for(let i=0;i<move;i++){p=yutNextStep(p,i===0);trace.push(yutPhysical(p));if(p.node==='FINISH')break;}
+  for(let i=0;i<move;i++){p=yutNextStep(p,i===0,routeChoice);trace.push(yutPhysical(p));if(p.node==='FINISH')break;}
   return {piece:p,trace};
 }
 function throwYut(){
@@ -821,7 +828,7 @@ function yutSettle(r,y,winnerSide){
   }
   winners.forEach((uid,i)=>walletChange(uid,base+(i===0?rem:0),'yut_win',`${r.name} ${winnerSide.label} 우승 상금`));
 }
-function yutMove(r,userId,pieceIndex,moveIndex=0){
+function yutMove(r,userId,pieceIndex,moveIndex=0,routeChoice='shortcut'){
   const y=r.yut;if(!y||y.phase!=='playing'||!y.pending.length)throw new Error('던지기부터 하세요.');
   if(y.awaitingThrow)throw new Error('윷/모 보너스 던지기를 먼저 진행하세요.');
   const cur=yutCurrentPlayer(r,y);if(!cur||cur.userId!==userId)throw new Error('당신 차례가 아닙니다.');
@@ -830,7 +837,7 @@ function yutMove(r,userId,pieceIndex,moveIndex=0){
   const selected=side.pieces[pieceIndex];if(yutFinished(selected))throw new Error('이미 완주한 말입니다.');
   const moveResult=y.pending[moveIndex],fromPhysical=yutPhysical(selected);
   const stackIndexes=fromPhysical==='START'? [pieceIndex] : side.pieces.map((p,i)=>yutPhysical(p)===fromPhysical&&!yutFinished(p)?i:-1).filter(i=>i>=0);
-  const advanced=yutAdvance(selected,moveResult.move),dest=advanced.piece,destPhysical=yutPhysical(dest);
+  const advanced=yutAdvance(selected,moveResult.move,routeChoice),dest=advanced.piece,destPhysical=yutPhysical(dest);
   stackIndexes.forEach(i=>side.pieces[i]=yutClonePiece(dest));
   // If the moving stack lands on friendly pieces, all pieces become one stack and inherit the incoming route.
   if(destPhysical!=='START'&&destPhysical!=='FINISH') side.pieces.forEach((p,i)=>{if(yutPhysical(p)===destPhysical)side.pieces[i]=yutClonePiece(dest);});
@@ -872,13 +879,13 @@ function pokerBotDrive(r,userId){
     try{pokerAction(r,botId,action,raiseTo)}catch{try{pokerAction(r,botId,toCall?'call':'check',0)}catch{break}}
   }
 }
-function soloPokerStart(user,buyIn){
-  buyIn=gameWager(buyIn,10000,100000,1000);
+function soloPokerStart(user){
+  const buyIn=Math.floor(Number(user.balance||0));
   if(soloHoldem.has(user.id))throw new Error('이미 AI 홀덤 테이블이 열려 있습니다.');
-  if(user.balance<buyIn)throw new Error('게임머니가 부족합니다.');
-  walletChange(user.id,-buyIn,'solo_holdem_buyin',`AI 홀덤 바이인 ${formatMoney(buyIn)}G`);
-  const botId=soloPokerBotId(user.id);
-  const r={id:`SOLOH${user.id}`,solo:true,name:'J-BOT HEADS UP',game:'holdem',buyIn,maxPlayers:2,hostId:user.id,smallBlind:Math.max(500,Math.floor(buyIn/100)),bigBlind:Math.max(1000,Math.floor(buyIn/50)),players:[
+  if(!Number.isSafeInteger(buyIn)||buyIn<1000)throw new Error('홀덤 테이블 입장에는 최소 1,000G가 필요합니다.');
+  walletChange(user.id,-buyIn,'solo_holdem_buyin',`AI 홀덤 전액 스택 입장 ${formatMoney(buyIn)}G`);
+  const botId=soloPokerBotId(user.id),smallBlind=Math.max(1000,Math.min(50000,Math.floor((buyIn*.002)/1000)*1000||1000)),bigBlind=smallBlind*2;
+  const r={id:`SOLOH${user.id}`,solo:true,name:'J-BOT HEADS UP',game:'holdem',buyIn,maxPlayers:2,hostId:user.id,smallBlind,bigBlind,players:[
     {userId:user.id,nickname:user.nickname,avatar:user.avatar,seat:0,stack:buyIn},
     {userId:botId,nickname:'J-BOT',avatar:6,seat:1,stack:buyIn,bot:true}
   ],createdAt:now(),hand:null,dealerSeat:null};
@@ -913,10 +920,10 @@ function soloYutStartGame(user,bet){
   soloYut.set(user.id,s);escrowSet(`SOLOY${user.id}`,user.id,bet,'solo_yut');return s;
 }
 function soloYutPhysicalPieces(s,side,physical){return s.sides[side].map((p,i)=>yutPhysical(p)===physical?i:-1).filter(i=>i>=0);}
-function soloYutMoveSide(s,side,pieceIndex,moveIndex=0){
+function soloYutMoveSide(s,side,pieceIndex,moveIndex=0,routeChoice='shortcut'){
   if(!s.pending.length)throw new Error('먼저 윷을 던져야 합니다.');if(s.awaitingThrow)throw new Error('윷/모 보너스 던지기를 먼저 진행하세요.');
   pieceIndex=clampInt(pieceIndex,0,3);moveIndex=clampInt(moveIndex,0,s.pending.length-1);const piece=s.sides[side][pieceIndex];if(yutFinished(piece))throw new Error('이미 완주한 말입니다.');
-  const moveResult=s.pending[moveIndex],from=yutPhysical(piece),stack=from==='START'?[pieceIndex]:soloYutPhysicalPieces(s,side,from),adv=yutAdvance(piece,moveResult.move),dest=adv.piece,to=yutPhysical(dest);
+  const moveResult=s.pending[moveIndex],from=yutPhysical(piece),stack=from==='START'?[pieceIndex]:soloYutPhysicalPieces(s,side,from),adv=yutAdvance(piece,moveResult.move,routeChoice),dest=adv.piece,to=yutPhysical(dest);
   stack.forEach(i=>s.sides[side][i]=yutClonePiece(dest));
   if(to!=='START'&&to!=='FINISH')s.sides[side].forEach((p,i)=>{if(yutPhysical(p)===to)s.sides[side][i]=yutClonePiece(dest)});
   const other=side==='user'?'bot':'user',captured=[];
@@ -1052,6 +1059,25 @@ function horsePlaceBet(user,body){
   walletChange(user.id,-bet,'horse_bet',`LIVE 경마 ${type} ${picks.join('/')} · x${mult} · ${formatMoney(bet)}G`);
   r.bets.set(user.id,{userId:user.id,type,picks,bet,mult,placedAt:now()});escrowSet(`HORSE_${r.id}`,user.id,bet,'horse');pushRefresh();return horseMeetPublic(user.id);
 }
+// ---------- European Roulette · v2.3 ----------
+const ROULETTE_WHEEL=[0,32,15,19,4,21,2,25,17,34,6,27,13,36,11,30,8,23,10,5,24,16,33,1,20,14,31,9,22,18,29,7,28,12,35,3,26];
+const ROULETTE_RED=new Set([1,3,5,7,9,12,14,16,18,19,21,23,25,27,30,32,34,36]);
+function rouletteColor(n){return n===0?'green':ROULETTE_RED.has(n)?'red':'black';}
+function rouletteRows(row){row=Number(row);if(row<1||row>12)return[];return [row*3-2,row*3-1,row*3];}
+function rouletteValidateBet(b){
+  const kind=String(b?.kind||''),amount=Math.floor(Number(b?.amount||0));if(!Number.isSafeInteger(amount)||amount<1000)throw new Error('룰렛 칩은 최소 1,000G부터 걸 수 있습니다.');const target=b?.target;
+  if(kind==='straight'){const n=Number(target);if(!Number.isInteger(n)||n<0||n>36)throw new Error('잘못된 숫자 베팅입니다.');return {kind,target:n,amount,mult:36,label:String(n)};}
+  if(kind==='split'){const a=(Array.isArray(target)?target:[]).map(Number).sort((x,y)=>x-y);if(a.length!==2||a[0]===a[1]||a.some(n=>n<0||n>36))throw new Error('스플릿 숫자를 확인해주세요.');const valid=(a[0]===0&&[1,2,3].includes(a[1]))||(a[0]>0&&((Math.abs(a[0]-a[1])===3)||(a[1]-a[0]===1&&Math.floor((a[0]-1)/3)===Math.floor((a[1]-1)/3))));if(!valid)throw new Error('서로 붙어 있는 두 숫자만 SPLIT 가능해.');return {kind,target:a,amount,mult:18,label:a.join('/')};}
+  if(kind==='street'){const row=Number(target);if(!rouletteRows(row).length)throw new Error('STREET를 확인해줘.');return {kind,target:row,amount,mult:12,label:rouletteRows(row).join('-')};}
+  if(kind==='corner'){const a=(Array.isArray(target)?target:[]).map(Number).sort((x,y)=>x-y);if(a.length!==4||a.some(n=>n<1||n>36))throw new Error('CORNER 숫자를 확인해줘.');const r1=Math.floor((a[0]-1)/3)+1,r2=r1+1,c1=((a[0]-1)%3)+1,expect=[(r1-1)*3+c1,(r1-1)*3+c1+1,(r2-1)*3+c1,(r2-1)*3+c1+1].sort((x,y)=>x-y);if(c1>=3||a.join(',')!==expect.join(','))throw new Error('맞닿은 4개 숫자만 CORNER 가능해.');return {kind,target:a,amount,mult:9,label:a.join('/')};}
+  if(kind==='sixline'){const row=Number(target);if(row<1||row>11)throw new Error('SIX LINE을 확인해줘.');const nums=[...rouletteRows(row),...rouletteRows(row+1)];return {kind,target:row,amount,mult:6,label:nums.join('-')};}
+  if(kind==='dozen'){const n=Number(target);if(![1,2,3].includes(n))throw new Error('DOZEN을 확인해줘.');return {kind,target:n,amount,mult:3,label:`${(n-1)*12+1}-${n*12}`};}
+  if(kind==='column'){const n=Number(target);if(![1,2,3].includes(n))throw new Error('COLUMN을 확인해줘.');return {kind,target:n,amount,mult:3,label:`COLUMN ${n}`};}
+  if(['red','black','odd','even','low','high'].includes(kind))return {kind,target:null,amount,mult:2,label:kind.toUpperCase()};throw new Error('지원하지 않는 룰렛 베팅입니다.');
+}
+function rouletteBetWins(b,n){if(b.kind==='straight')return n===b.target;if(b.kind==='split'||b.kind==='corner')return b.target.includes(n);if(b.kind==='street')return rouletteRows(b.target).includes(n);if(b.kind==='sixline')return [...rouletteRows(b.target),...rouletteRows(b.target+1)].includes(n);if(b.kind==='dozen')return n>=1+(b.target-1)*12&&n<=b.target*12;if(b.kind==='column')return n>0&&((n-1)%3)+1===b.target;if(b.kind==='red')return rouletteColor(n)==='red';if(b.kind==='black')return rouletteColor(n)==='black';if(b.kind==='odd')return n>0&&n%2===1;if(b.kind==='even')return n>0&&n%2===0;if(b.kind==='low')return n>=1&&n<=18;if(b.kind==='high')return n>=19&&n<=36;return false;}
+function rouletteSpin(user,rawBets){if(!Array.isArray(rawBets)||!rawBets.length)throw new Error('룰렛 베팅을 하나 이상 올려줘.');if(rawBets.length>30)throw new Error('한 라운드에는 최대 30개 베팅까지 가능해.');const bets=rawBets.map(rouletteValidateBet),totalBet=bets.reduce((a,b)=>a+b.amount,0);if(totalBet>user.balance)throw new Error('전체 베팅금이 보유 게임머니보다 많아.');walletChange(user.id,-totalBet,'roulette_bet',`유럽식 룰렛 ${bets.length}개 베팅 · ${formatMoney(totalBet)}G`);const number=crypto.randomInt(37),color=rouletteColor(number);let payout=0;const settled=bets.map(b=>{const won=rouletteBetWins(b,number),returned=won?b.amount*b.mult:0;payout+=returned;return {...b,won,returned};});if(payout>0)walletChange(user.id,payout,'roulette_win',`룰렛 ${number} ${color.toUpperCase()} · 지급 ${formatMoney(payout)}G`);const profit=payout-totalBet;db.prepare('UPDATE stats SET roulette_plays=roulette_plays+1,roulette_wins=roulette_wins+?,roulette_profit=roulette_profit+? WHERE user_id=?').run(payout>0?1:0,profit,user.id);pushRefresh();return {number,color,index:ROULETTE_WHEEL.indexOf(number),bets:settled,totalBet,payout,profit};}
+
 // ---------- Big Wheel & Sic Bo v1.3 ----------
 const BIG_WHEEL_SEGMENTS = [
   ...Array(10).fill({key:'x2',label:'×2',mult:2}),
@@ -1278,9 +1304,9 @@ function sevenPublic(s){
   if(!s)return null;const botCards=s.cards.bot.map((c,i)=>s.complete||s.faceUp.bot[i]?c:'XX');
   return {buyIn:s.buyIn,handNo:s.handNo,phase:s.phase,complete:s.complete,street:s.street,pot:s.pot,ante:s.ante,turn:s.turn,lastAction:s.lastAction,stack:s.stack,roundBet:s.roundBet,currentBet:s.currentBet,minRaise:s.minRaise,cards:{user:s.cards.user,bot:botCards},faceUp:s.faceUp,result:s.result,userStatus:sevenCurrentStatus(s,'user'),botVisibleStatus:pokerHandStatus(sevenVisibleCards(s,'bot'))};
 }
-function sevenStart(user,buyIn){
-  buyIn=gameWager(buyIn,10000,100000,1000);if(user.balance<buyIn)throw new Error('게임머니가 부족해.');if(soloSeven.has(user.id))throw new Error('이미 세븐포커 테이블에 앉아 있어.');
-  walletChange(user.id,-buyIn,'seven_buyin',`세븐포커 AI 테이블 바이인 ${formatMoney(buyIn)}G`);const s={userId:user.id,botId:-200000-user.id,buyIn,stack:{user:buyIn,bot:buyIn},handNo:0};soloSeven.set(user.id,s);escrowSet(sevenKey(user.id),user.id,buyIn,'seven_poker');sevenBeginHand(s);sevenBotDrive(s);return s;
+function sevenStart(user){
+  const buyIn=Math.floor(Number(user.balance||0));if(!Number.isSafeInteger(buyIn)||buyIn<1000)throw new Error('세븐포커 테이블 입장에는 최소 1,000G가 필요해.');if(soloSeven.has(user.id))throw new Error('이미 세븐포커 테이블에 앉아 있어.');
+  walletChange(user.id,-buyIn,'seven_buyin',`세븐포커 전액 스택 입장 ${formatMoney(buyIn)}G`);const s={userId:user.id,botId:-200000-user.id,buyIn,stack:{user:buyIn,bot:buyIn},handNo:0};soloSeven.set(user.id,s);escrowSet(sevenKey(user.id),user.id,buyIn,'seven_poker');sevenBeginHand(s);sevenBotDrive(s);return s;
 }
 function sevenNext(userId){const s=soloSeven.get(userId);if(!s)throw new Error('세븐포커 테이블이 없어.');if(!s.complete)throw new Error('현재 핸드가 아직 끝나지 않았어.');sevenBeginHand(s);sevenBotDrive(s);return s;}
 function sevenCashout(userId){const s=soloSeven.get(userId);if(!s)return 0;if(!s.complete)throw new Error('진행 중인 핸드가 끝난 뒤 정산할 수 있어.');const amt=Math.max(0,Math.floor(s.stack.user));if(amt)walletChange(userId,amt,'seven_cashout','세븐포커 테이블 칩 정산');escrowDelete(sevenKey(userId),userId);soloSeven.delete(userId);return amt;}
@@ -1384,7 +1410,7 @@ function activeRoomReactions(r){
 function personalizedRoom(r,userId){
   const turnUserId=currentTurnUserId(r),turnPlayer=turnUserId!=null?roomPlayer(r,turnUserId):null;
   return {
-    id:r.id,name:r.name,game:r.game,buyIn:r.buyIn,maxPlayers:r.maxPlayers,hostId:r.hostId,status:roomStatus(r),smallBlind:r.smallBlind,bigBlind:r.bigBlind,yutMode:r.yutMode||'individual',yutModeLabel:yutModeLabel(r.yutMode||'individual'),
+    id:r.id,name:r.name,game:r.game,buyIn:r.buyIn,allWallet:!!r.allWallet,maxPlayers:r.maxPlayers,hostId:r.hostId,status:roomStatus(r),smallBlind:r.smallBlind,bigBlind:r.bigBlind,yutMode:r.yutMode||'individual',yutModeLabel:yutModeLabel(r.yutMode||'individual'),
     version:r.version||0,updatedAt:r.updatedAt||r.createdAt,readyCount:roomReadyCount(r),allReady:r.players.length>=2&&r.players.every(p=>!!p.ready),
     turnUserId,turnNickname:turnPlayer?.nickname||null,myTurn:turnUserId===userId,
     players:orderedPlayers(r).map(p=>({...p,ready:!!p.ready,avatarEmoji:AVATARS[p.avatar%AVATARS.length],cosmetics:cosmeticsPublic(p.userId)})),
@@ -1472,7 +1498,7 @@ const server=http.createServer(async(req,res)=>{
     }
     if(url.pathname==='/api/daily'&&req.method==='POST'){
       const u=requireAuth(req,res);if(!u)return;const d=kstDate();if(u.last_daily===d)return json(res,409,{error:'오늘 출석 보너스는 이미 받았습니다.'});
-      db.prepare('UPDATE users SET last_daily=? WHERE id=?').run(d,u.id);const bal=walletChange(u.id,50000,'daily','오늘의 출석 보너스');pushRefresh();return json(res,200,{balance:bal,amount:50000});
+      const dailyPct=Number(cosmeticsPublic(u.id)?.perks?.dailyBonusPct||0),dailyAmount=Math.floor(50000*(1+dailyPct/100));db.prepare('UPDATE users SET last_daily=? WHERE id=?').run(d,u.id);const bal=walletChange(u.id,dailyAmount,'daily',`오늘의 출석 보너스${dailyPct?` · CLUB PERK +${dailyPct}%`:''}`);pushRefresh();return json(res,200,{balance:bal,amount:dailyAmount,dailyBonusPct:dailyPct});
     }
     if(url.pathname==='/api/ledger'&&req.method==='GET'){
       const u=requireAuth(req,res);if(!u)return;const rows=db.prepare('SELECT amount,balance_after,type,memo,created_at FROM ledger WHERE user_id=? ORDER BY id DESC LIMIT 30').all(u.id);return json(res,200,{rows});
@@ -1486,7 +1512,7 @@ const server=http.createServer(async(req,res)=>{
       const like=`%${q}%`;
       const rows=db.prepare(`SELECT u.id,u.username,u.nickname,u.balance,u.created_at,u.is_admin,u.is_disabled,u.avatar,
         s.slot_spins,s.slot_profit,s.poker_hands,s.poker_wins,s.yut_games,s.yut_wins,s.seotda_games,s.seotda_wins,s.gostop_games,s.gostop_wins,s.horse_races,s.horse_wins,s.horse_profit,s.bigwheel_plays,s.bigwheel_wins,s.bigwheel_profit,s.sicbo_plays,s.sicbo_wins,s.sicbo_profit,
-    s.seven_games,s.seven_wins,s.baccarat_games,s.baccarat_wins,s.baccarat_profit
+    s.seven_games,s.seven_wins,s.baccarat_games,s.baccarat_wins,s.baccarat_profit,s.roulette_plays,s.roulette_wins,s.roulette_profit
         FROM users u JOIN stats s ON s.user_id=u.id
         WHERE (?='' OR u.username LIKE ? OR u.nickname LIKE ?)
         ORDER BY u.is_admin DESC,u.id DESC LIMIT 100`).all(q,like,like).map(x=>({...x,avatarEmoji:AVATARS[x.avatar%AVATARS.length]}));
@@ -1542,7 +1568,7 @@ const server=http.createServer(async(req,res)=>{
       const u=requireAuth(req,res);if(!u)return;const b=await readBody(req);let bet;try{bet=gameWager(b.bet,1000,100000,1000)}catch(e){return json(res,400,{error:e.message})};
       if(u.balance<bet)return json(res,400,{error:'게임머니가 부족합니다.'});
       walletChange(u.id,-bet,'slot_bet',`슬롯 베팅 ${formatMoney(bet)}G`);
-      const pick=()=>{const total=SLOT_SYMBOLS.reduce((s,x)=>s+x.w,0);let n=crypto.randomInt(total);for(const x of SLOT_SYMBOLS){if(n<x.w)return x.s;n-=x.w;}return '🍒';};
+      const slotLuck=Math.max(0,Math.min(1,Number(u.cosmetics?.perks?.slotLuckPct||0)));const pick=()=>{const weighted=SLOT_SYMBOLS.map(x=>({...x,w:x.w*((x.s==='J'||x.s==='7️⃣')?(1+slotLuck/100):1)})),total=weighted.reduce((s,x)=>s+x.w,0);let n=(crypto.randomInt(1000000)/1000000)*total;for(const x of weighted){if(n<x.w)return x.s;n-=x.w;}return '🍒';};
       const grid=Array.from({length:3},()=>Array.from({length:3},()=>pick()));
       const winLines=[];let totalMultiplier=0;
       for(const line of SLOT_LINES){
@@ -1554,7 +1580,7 @@ const server=http.createServer(async(req,res)=>{
       const hasJLine=winLines.some(w=>w.symbols?.[0]==='J');
       if(!hasJLine){
         const jCells=[];for(let r=0;r<3;r++)for(let c=0;c<3;c++)if(grid[r][c]==='J')jCells.push([r,c]);
-        if(jCells.length){const scatterMult=jCells.length*20;totalMultiplier+=scatterMult;winLines.push({label:'J SCATTER',cssClass:null,cells:jCells,symbols:jCells.map(()=> 'J'),mult:scatterMult,scatter:true});}
+        if(jCells.length){const scatterMult=jCells.length*30;totalMultiplier+=scatterMult;winLines.push({label:'J SCATTER',cssClass:null,cells:jCells,symbols:jCells.map(()=> 'J'),mult:scatterMult,scatter:true});}
       }
       if(winLines.filter(w=>!w.scatter).length>=3) totalMultiplier+=15;
       const regularPayout=Math.floor(bet*totalMultiplier);
@@ -1572,11 +1598,15 @@ const server=http.createServer(async(req,res)=>{
       const payout=regularPayout+jackpotAward,profit=payout-bet;
       db.prepare('UPDATE stats SET slot_spins=slot_spins+1, slot_wins=slot_wins+?, slot_profit=slot_profit+? WHERE user_id=?').run(payout>bet?1:0,profit,u.id);pushRefresh();
       const jackpotLine=winLines.find(w=>!w.scatter&&(w.symbols?.[0]==='7️⃣'||w.symbols?.[0]==='J'));
-      return json(res,200,{grid,bet,payout,regularPayout,profit,totalMultiplier,winLines,user:userPublic(u.id),jackpot:!!jackpotLine,jackpotSymbol:jackpotLine?.symbols?.[0]||null,poolJackpot:sevenJackpot,jackpotAward,jackpotContribution,jackpotPool:pool,jackpotBase:SLOT_JACKPOT_BASE});
+      return json(res,200,{grid,bet,payout,regularPayout,profit,totalMultiplier,winLines,user:userPublic(u.id),jackpot:!!jackpotLine,jackpotSymbol:jackpotLine?.symbols?.[0]||null,poolJackpot:sevenJackpot,jackpotAward,jackpotContribution,jackpotPool:pool,jackpotBase:SLOT_JACKPOT_BASE,slotLuckPct:slotLuck});
+    }
+
+    if(url.pathname==='/api/roulette/spin'&&req.method==='POST'){
+      const u=requireAuth(req,res);if(!u)return;const b=await readBody(req);try{const result=rouletteSpin(u,b.bets);return json(res,200,{result,user:userPublic(u.id)});}catch(e){return json(res,400,{error:e.message});}
     }
 
     // ---- Solo game routes ----
-    if(url.pathname==='/api/solo/holdem/start'&&req.method==='POST'){const u=requireAuth(req,res);if(!u)return;const b=await readBody(req);const r=soloPokerStart(u,Number(b.buyIn));return json(res,200,{room:personalizedRoom(r,u.id),user:userPublic(u.id)});}
+    if(url.pathname==='/api/solo/holdem/start'&&req.method==='POST'){const u=requireAuth(req,res);if(!u)return;const b=await readBody(req);const r=soloPokerStart(u);return json(res,200,{room:personalizedRoom(r,u.id),user:userPublic(u.id)});}
     if(url.pathname==='/api/solo/holdem'&&req.method==='GET'){const u=requireAuth(req,res);if(!u)return;const r=soloHoldem.get(u.id);return json(res,200,{room:r?personalizedRoom(r,u.id):null});}
     if(url.pathname==='/api/solo/holdem/action'&&req.method==='POST'){const u=requireAuth(req,res);if(!u)return;const r=soloHoldem.get(u.id);if(!r)return json(res,404,{error:'AI 홀덤 테이블이 없습니다.'});const b=await readBody(req);pokerAction(r,u.id,b.action,b.raiseTo);pokerBotDrive(r,u.id);return json(res,200,{room:personalizedRoom(r,u.id)});}
     if(url.pathname==='/api/solo/holdem/next'&&req.method==='POST'){const u=requireAuth(req,res);if(!u)return;const r=soloPokerNext(u.id);return json(res,200,{room:personalizedRoom(r,u.id)});}
@@ -1585,7 +1615,7 @@ const server=http.createServer(async(req,res)=>{
     if(url.pathname==='/api/solo/yut/start'&&req.method==='POST'){const u=requireAuth(req,res);if(!u)return;const b=await readBody(req);const game=soloYutStartGame(u,Number(b.bet));return json(res,200,{game,user:userPublic(u.id)});}
     if(url.pathname==='/api/solo/yut'&&req.method==='GET'){const u=requireAuth(req,res);if(!u)return;const game=soloYut.get(u.id);return json(res,200,{game});}
     if(url.pathname==='/api/solo/yut/throw'&&req.method==='POST'){const u=requireAuth(req,res);if(!u)return;const s=soloYut.get(u.id);if(!s||s.phase!=='playing')return json(res,404,{error:'진행 중인 AI 윷놀이가 없습니다.'});if(s.turn!=='user')return json(res,409,{error:'지금은 J-BOT 차례입니다.'});if(!s.awaitingThrow)return json(res,409,{error:'먼저 움직일 말을 선택하세요.'});soloYutThrowFor(s,'user');return json(res,200,{game:s});}
-    if(url.pathname==='/api/solo/yut/move'&&req.method==='POST'){const u=requireAuth(req,res);if(!u)return;const s=soloYut.get(u.id);if(!s)return json(res,404,{error:'AI 윷놀이가 없습니다.'});const b=await readBody(req);soloYutMoveSide(s,'user',Number(b.pieceIndex),Number(b.moveIndex||0));if(s.phase==='complete'){settleSoloYut(u.id);}else{soloYutBotDrive(u.id);settleSoloYut(u.id);}return json(res,200,{game:s,user:userPublic(u.id)});}
+    if(url.pathname==='/api/solo/yut/move'&&req.method==='POST'){const u=requireAuth(req,res);if(!u)return;const s=soloYut.get(u.id);if(!s)return json(res,404,{error:'AI 윷놀이가 없습니다.'});const b=await readBody(req);soloYutMoveSide(s,'user',Number(b.pieceIndex),Number(b.moveIndex||0),String(b.routeChoice||'shortcut'));if(s.phase==='complete'){settleSoloYut(u.id);}else{soloYutBotDrive(u.id);settleSoloYut(u.id);}return json(res,200,{game:s,user:userPublic(u.id)});}
     if(url.pathname==='/api/solo/yut/quit'&&req.method==='POST'){const u=requireAuth(req,res);if(!u)return;const s=soloYut.get(u.id);if(s&&!s.settled)escrowDelete(`SOLOY${u.id}`,u.id);soloYut.delete(u.id);if(s&&!s.settled)db.prepare('UPDATE stats SET yut_games=yut_games+1 WHERE user_id=?').run(u.id);return json(res,200,{ok:true,user:userPublic(u.id)});}
 
     if(url.pathname==='/api/solo/seotda/start'&&req.method==='POST'){const u=requireAuth(req,res);if(!u)return;const b=await readBody(req);let game;try{game=soloSeotdaStart(u,Number(b.bet))}catch(e){return json(res,400,{error:e.message})}return json(res,200,{game:soloSeotdaPublic(game),user:userPublic(u.id)});}
@@ -1617,7 +1647,7 @@ const server=http.createServer(async(req,res)=>{
 
 
     // Seven Poker AI
-    if(url.pathname==='/api/solo/seven/start'&&req.method==='POST'){const u=requireAuth(req,res);if(!u)return;const b=await readBody(req);try{const g=sevenStart(u,Number(b.buyIn));return json(res,200,{game:sevenPublic(g),user:userPublic(u.id)});}catch(e){return json(res,400,{error:e.message});}}
+    if(url.pathname==='/api/solo/seven/start'&&req.method==='POST'){const u=requireAuth(req,res);if(!u)return;const b=await readBody(req);try{const g=sevenStart(u);return json(res,200,{game:sevenPublic(g),user:userPublic(u.id)});}catch(e){return json(res,400,{error:e.message});}}
     if(url.pathname==='/api/solo/seven'&&req.method==='GET'){const u=requireAuth(req,res);if(!u)return;return json(res,200,{game:sevenPublic(soloSeven.get(u.id)||null)});}
     if(url.pathname==='/api/solo/seven/action'&&req.method==='POST'){const u=requireAuth(req,res);if(!u)return;const s=soloSeven.get(u.id);if(!s)return json(res,404,{error:'세븐포커 테이블이 없어.'});const b=await readBody(req);try{sevenAction(s,'user',String(b.action||''),b.raiseTo);sevenBotDrive(s);return json(res,200,{game:sevenPublic(s),user:userPublic(u.id)});}catch(e){return json(res,400,{error:e.message});}}
     if(url.pathname==='/api/solo/seven/next'&&req.method==='POST'){const u=requireAuth(req,res);if(!u)return;try{const s=sevenNext(u.id);return json(res,200,{game:sevenPublic(s),user:userPublic(u.id)});}catch(e){return json(res,400,{error:e.message});}}
@@ -1695,10 +1725,10 @@ const server=http.createServer(async(req,res)=>{
     }
     if(url.pathname==='/api/rooms'&&req.method==='POST'){
       const u=requireAuth(req,res);if(!u)return;if(findUserRoom(u.id)||baccaratFindUser(u.id))return json(res,409,{error:'이미 다른 게임방에 참가 중입니다. 먼저 그 방에서 나와주세요.'});const b=await readBody(req),requested=String(b.game||'holdem'),game=['holdem','yut','seotda','sevenpoker'].includes(requested)?requested:'holdem';
-      const yutMode=game==='yut'&&['individual','2v2','3v3'].includes(b.yutMode)?b.yutMode:'individual';const maxPlayers=game==='holdem'?clampInt(b.maxPlayers,2,6):game==='yut'?(yutMode==='2v2'?4:yutMode==='3v3'?6:clampInt(b.maxPlayers,2,6)):2;let buyIn;try{buyIn=gameWager(b.buyIn,game==='sevenpoker'?10000:5000,100000,1000)}catch(e){return json(res,400,{error:e.message})};
-      if(u.balance<buyIn)return json(res,400,{error:'방 참가금보다 보유 게임머니가 적습니다.'});
-      const id=makeRoomId();const name=game==='holdem'?`홀덤 테이블 ${id}`:game==='yut'?`윷놀이 방 ${id}`:game==='seotda'?`3장 섯다 듀얼 ${id}`:`세븐포커 테이블 ${id}`;walletChange(u.id,-buyIn,`${game}_buyin`,`${name} 참가금`);
-      const t=now(),chipGame=game==='holdem'||game==='sevenpoker';const r={id,name,game,buyIn,maxPlayers,hostId:u.id,smallBlind:game==='holdem'?Math.max(100,Math.floor(buyIn/100)):0,bigBlind:game==='holdem'?Math.max(200,Math.floor(buyIn/50)):0,players:[{userId:u.id,nickname:u.nickname,avatar:u.avatar,seat:0,stack:chipGame?buyIn:0,ready:false,joinedAt:t}],createdAt:t,updatedAt:t,version:1,hand:null,seven:null,seotda:null,yut:null,yutMode,dealerSeat:null,reactions:{}};
+      const yutMode=game==='yut'&&['individual','2v2','3v3'].includes(b.yutMode)?b.yutMode:'individual';const maxPlayers=game==='holdem'?clampInt(b.maxPlayers,2,6):game==='yut'?(yutMode==='2v2'?4:yutMode==='3v3'?6:clampInt(b.maxPlayers,2,6)):2;const chipGame=game==='holdem'||game==='sevenpoker';let buyIn;try{buyIn=chipGame?Math.floor(Number(u.balance||0)):gameWager(b.buyIn,5000,100000,1000)}catch(e){return json(res,400,{error:e.message})};
+      if(!Number.isSafeInteger(buyIn)||buyIn<1000)return json(res,400,{error:'포커 테이블 입장에는 최소 1,000G가 필요합니다.'});if(u.balance<buyIn)return json(res,400,{error:'방 참가금보다 보유 게임머니가 적습니다.'});
+      const id=makeRoomId();const name=game==='holdem'?`홀덤 테이블 ${id}`:game==='yut'?`윷놀이 방 ${id}`:game==='seotda'?`3장 섯다 듀얼 ${id}`:`세븐포커 테이블 ${id}`;walletChange(u.id,-buyIn,`${game}_buyin`,chipGame?`${name} 전액 스택 입장`:`${name} 참가금`);
+      const t=now(),sb=game==='holdem'?Math.max(1000,Math.min(50000,Math.floor((buyIn*.002)/1000)*1000||1000)):0;const r={id,name,game,buyIn,maxPlayers,allWallet:chipGame,hostId:u.id,smallBlind:sb,bigBlind:game==='holdem'?sb*2:0,players:[{userId:u.id,nickname:u.nickname,avatar:u.avatar,seat:0,stack:chipGame?buyIn:0,ready:false,joinedAt:t}],createdAt:t,updatedAt:t,version:1,hand:null,seven:null,seotda:null,yut:null,yutMode,dealerSeat:null,reactions:{}};
       rooms.set(id,r);escrowSet(id,u.id,buyIn,game);pushRefresh(id);return json(res,201,{room:personalizedRoom(r,u.id)});
     }
     const roomMatch=url.pathname.match(/^\/api\/rooms\/([A-F0-9]+)(?:\/(.*))?$/);
@@ -1728,8 +1758,8 @@ const server=http.createServer(async(req,res)=>{
         closeRoomAndRefund(r,'오류 복구 환급');return json(res,200,{ok:true});
       }
       if(op==='join'&&req.method==='POST'){
-        if(roomPlayer(r,u.id))return json(res,200,{room:personalizedRoom(r,u.id)});if(findUserRoom(u.id)||baccaratFindUser(u.id))return json(res,409,{error:'이미 다른 게임방에 참가 중입니다. 먼저 그 방에서 나와주세요.'});if(roomStatus(r)==='PLAYING')return json(res,409,{error:'게임 진행 중에는 입장할 수 없습니다.'});if(r.players.length>=r.maxPlayers)return json(res,409,{error:'방이 가득 찼습니다.'});if(u.balance<r.buyIn)return json(res,400,{error:'게임머니가 부족합니다.'});
-        walletChange(u.id,-r.buyIn,`${r.game}_buyin`,`${r.name} 참가금`);r.players.push({userId:u.id,nickname:u.nickname,avatar:u.avatar,seat:nextSeat(r),stack:(r.game==='holdem'||r.game==='sevenpoker')?r.buyIn:0,ready:false,joinedAt:now()});escrowSet(r.id,u.id,r.buyIn,r.game);touchRoom(r);pushRefresh(r.id);return json(res,200,{room:personalizedRoom(r,u.id)});
+        if(roomPlayer(r,u.id))return json(res,200,{room:personalizedRoom(r,u.id)});if(findUserRoom(u.id)||baccaratFindUser(u.id))return json(res,409,{error:'이미 다른 게임방에 참가 중입니다. 먼저 그 방에서 나와주세요.'});if(roomStatus(r)==='PLAYING')return json(res,409,{error:'게임 진행 중에는 입장할 수 없습니다.'});if(r.players.length>=r.maxPlayers)return json(res,409,{error:'방이 가득 찼습니다.'});const chipGame=r.game==='holdem'||r.game==='sevenpoker',entry=chipGame?Math.floor(Number(u.balance||0)):r.buyIn;if(entry<1000||u.balance<entry)return json(res,400,{error:'게임머니가 부족합니다.'});
+        walletChange(u.id,-entry,`${r.game}_buyin`,chipGame?`${r.name} 전액 스택 입장`:`${r.name} 참가금`);r.players.push({userId:u.id,nickname:u.nickname,avatar:u.avatar,seat:nextSeat(r),stack:chipGame?entry:0,ready:false,joinedAt:now()});escrowSet(r.id,u.id,entry,r.game);touchRoom(r);pushRefresh(r.id);return json(res,200,{room:personalizedRoom(r,u.id)});
       }
       if(op==='leave'&&req.method==='POST'){
         const p=roomPlayer(r,u.id);if(!p)return json(res,200,{ok:true});if(roomStatus(r)==='PLAYING')return json(res,409,{error:'게임 진행 중에는 나갈 수 없습니다.'});
@@ -1772,7 +1802,7 @@ const server=http.createServer(async(req,res)=>{
         if(r.game!=='yut')return json(res,400,{error:'윷놀이 방이 아닙니다.'});const result=yutThrow(r,u.id);touchRoom(r);pushRefresh(r.id);return json(res,200,{result,room:personalizedRoom(r,u.id)});
       }
       if(op==='yut/move'&&req.method==='POST'){
-        if(r.game!=='yut')return json(res,400,{error:'윷놀이 방이 아닙니다.'});const b=await readBody(req);yutMove(r,u.id,b.pieceIndex,b.moveIndex||0);touchRoom(r);pushRefresh(r.id);return json(res,200,{room:personalizedRoom(r,u.id)});
+        if(r.game!=='yut')return json(res,400,{error:'윷놀이 방이 아닙니다.'});const b=await readBody(req);yutMove(r,u.id,b.pieceIndex,b.moveIndex||0,String(b.routeChoice||'shortcut'));touchRoom(r);pushRefresh(r.id);return json(res,200,{room:personalizedRoom(r,u.id)});
       }
     }
 

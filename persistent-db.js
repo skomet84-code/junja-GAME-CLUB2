@@ -28,7 +28,10 @@ const EXTRA_COLUMNS = {
     ['seven_wins','INTEGER NOT NULL DEFAULT 0'],
     ['baccarat_games','INTEGER NOT NULL DEFAULT 0'],
     ['baccarat_wins','INTEGER NOT NULL DEFAULT 0'],
-    ['baccarat_profit','INTEGER NOT NULL DEFAULT 0']
+    ['baccarat_profit','INTEGER NOT NULL DEFAULT 0'],
+    ['roulette_plays','INTEGER NOT NULL DEFAULT 0'],
+    ['roulette_wins','INTEGER NOT NULL DEFAULT 0'],
+    ['roulette_profit','INTEGER NOT NULL DEFAULT 0']
   ],
   users: [
     ['is_admin','INTEGER NOT NULL DEFAULT 0'],

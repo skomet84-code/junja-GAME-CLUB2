@@ -1,8 +1,8 @@
 {
   "name": "junja-game-club",
-  "version": "2.2.0",
+  "version": "2.3.0",
   "private": true,
-  "description": "JUNJA GAME CLUB v2.2 - Grand Casino live racing, global 777 progressive jackpot, multiplayer Seven Poker and premium 3-card Seotda.",
+  "description": "JUNJA GAME CLUB v2.3 - Royal casino overhaul with roulette, premium Yut, all-wallet poker tables, cinematic baccarat, realistic wheel/dice and audio.",
   "type": "commonjs",
   "scripts": {
     "start": "node server.js"
