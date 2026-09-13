@@ -339,6 +339,12 @@ function gameWager(v,min=1000,max=5000000,step=1000){
   if(!Number.isFinite(n)||n<min||n>max||n%step!==0) throw new Error(`금액은 ${formatMoney(min)}G~${formatMoney(max)}G 범위에서 ${formatMoney(step)}G 단위로 입력하세요.`);
   return n;
 }
+function walletWager(v,balance,min=1000,step=1000){
+  const n=Math.floor(Number(v)),cap=Math.floor(Number(balance||0));
+  if(!Number.isSafeInteger(n)||n<min||n%step!==0) throw new Error(`금액은 최소 ${formatMoney(min)}G부터 ${formatMoney(step)}G 단위로 입력하세요.`);
+  if(n>cap) throw new Error(`보유 게임머니(${formatMoney(cap)}G)를 초과해서 걸 수 없습니다.`);
+  return n;
+}
 function escText(s,max=80){ return String(s||'').trim().replace(/[\u0000-\u001f]/g,'').slice(0,max); }
 function containsContactInfo(s){
   const v=String(s||'').trim();
@@ -1026,7 +1032,7 @@ function settleRace(userId,bet,type,picks,card,order){
   return {won,placeBonus,finishRank,mult,payout,winMult};
 }
 let horseMeet=null;
-const HORSE_BET_WINDOW_MS=16000,HORSE_RUN_MS=9000,HORSE_RESULT_MS=8500;
+const HORSE_BET_WINDOW_MS=8000,HORSE_RUN_MS=6500,HORSE_RESULT_MS=4000;
 function newHorseMeet(){
   const t=now();horseMeet={id:randomToken(5).toUpperCase(),card:horseCard(),phase:'betting',openedAt:t,bettingClosesAt:t+HORSE_BET_WINDOW_MS,startedAt:null,finishAt:null,resultUntil:null,order:null,bets:new Map(),results:new Map()};return horseMeet;
 }
@@ -1145,7 +1151,7 @@ function soloSeotdaPublic(s){
   return {...s,deck:undefined,botCards:done?s.botCards:s.botCards.map(c=>s.botDiscard?.id===c.id?c:{id:'XX'}),botBest:done?s.botBest:null};
 }
 function soloSeotdaStart(user,bet){
-  bet=gameWager(bet,5000,100000,1000);if(user.balance<bet)throw new Error('게임머니가 부족합니다.');const old=soloSeotda.get(user.id);if(old&&old.phase!=='complete')throw new Error('이미 섯다 판이 진행 중입니다.');if(old)soloSeotda.delete(user.id);
+  bet=walletWager(bet,user.balance,5000,1000);const old=soloSeotda.get(user.id);if(old&&old.phase!=='complete')throw new Error('이미 섯다 판이 진행 중입니다.');if(old)soloSeotda.delete(user.id);
   walletChange(user.id,-bet,'seotda_bet',`AI 섯다 판돈 ${formatMoney(bet)}G`);escrowSet(`SEOTDA${user.id}`,user.id,bet,'seotda');const d=seotdaDeck();
   const s={bet,stake:bet,phase:'draw',deck:d,userCards:[d.pop(),d.pop()],botCards:[d.pop(),d.pop()],userDiscard:null,botDiscard:null,userBest:null,botBest:null,revealed:false,result:null};soloSeotda.set(user.id,s);return s;
 }
@@ -1159,7 +1165,7 @@ function soloSeotdaDiscard(userId,cardId,double=false){
   const s=soloSeotda.get(userId);if(!s||s.phase!=='discard')throw new Error('버릴 패를 선택할 차례가 아닙니다.');const card=s.userCards.find(c=>c.id===String(cardId));if(!card)throw new Error('버릴 카드가 올바르지 않습니다.');
   if(double){const u=userPublic(userId);if(u.balance<s.bet)throw new Error('두 배 승부에 필요한 게임머니가 부족합니다.');walletChange(userId,-s.bet,'seotda_double','AI 섯다 3장 승부 추가 베팅');s.stake=s.bet*2;escrowSet(`SEOTDA${userId}`,userId,s.stake,'seotda');}
   s.userDiscard=card;const userPair=s.userCards.filter(c=>c.id!==card.id);const botPair=s.botCards.filter(c=>c.id!==s.botDiscard.id);const ur=seotdaRank(userPair),br=seotdaRank(botPair);s.userBest={cards:userPair,rank:ur};s.botBest={cards:botPair,rank:br,discard:s.botDiscard};
-  const cmp=ur[0]-br[0];let payout=0,winner='tie';if(cmp>0){winner='user';payout=s.stake*2;}else if(cmp===0){payout=s.stake;}
+  const cmp=ur[0]-br[0];let payout=0,winner='tie';if(cmp>0){winner='user';payout=s.stake*2;}else if(cmp<0){winner='bot';}else{payout=s.stake;}
   escrowDelete(`SEOTDA${userId}`,userId);if(payout)walletChange(userId,payout,'seotda_win',`AI 3장 섯다 ${winner==='user'?'승리':'무승부'} 정산`);db.prepare('UPDATE stats SET seotda_games=seotda_games+1, seotda_wins=seotda_wins+? WHERE user_id=?').run(winner==='user'?1:0,userId);
   s.phase='complete';s.revealed=true;s.result={winner,payout,userRank:ur[1],botRank:br[1],text:winner==='user'?`${ur[1]} 승리!`:winner==='bot'?`${br[1]}에 패배`:`${ur[1]} 무승부`};return s;
 }
@@ -1182,6 +1188,16 @@ function seotdaMultiShowdown(r){
 }
 function seotdaMultiPublic(r,userId){
   const s=r.seotda;if(!s)return null;const out={phase:s.phase,drawn:s.drawn,discard:s.discard,result:s.result,cards:{}};for(const p of r.players){const cards=s.cards[p.userId]||[];out.cards[p.userId]=p.userId===userId||s.phase==='complete'?cards:cards.map(c=>s.discard[p.userId]?.id===c.id?c:{id:'XX'});}return out;
+}
+function seotdaMultiRematch(r){
+  if(r.game!=='seotda'||r.players.length!==2)throw new Error('섯다 재대결은 2명이 필요합니다.');
+  if(!r.seotda||r.seotda.phase!=='complete')throw new Error('현재 판이 끝난 뒤 재대결할 수 있습니다.');
+  if(!r.players.every(p=>p.ready))throw new Error('두 명 모두 다음 판 READY가 필요합니다.');
+  const wallets=r.players.map(p=>({p,u:userPublic(p.userId)}));if(wallets.some(x=>!x.u))throw new Error('참가자 계정을 확인할 수 없습니다.');
+  const affordable=Math.floor(Math.min(...wallets.map(x=>Number(x.u.balance||0)))/1000)*1000;if(affordable<5000)throw new Error('한 명의 잔액이 5,000G 미만이라 다음 판을 시작할 수 없습니다.');
+  r.stakeAdjustedFrom=null;if(affordable<r.buyIn){r.stakeAdjustedFrom=r.buyIn;r.buyIn=affordable;}
+  for(const {p} of wallets){walletChange(p.userId,-r.buyIn,'seotda_rebuy',`${r.name} 연속 재대결 판돈`);escrowSet(r.id,p.userId,r.buyIn,'seotda');}
+  return seotdaMultiStart(r);
 }
 
 // ---------- Go-stop / Matgo simplified full 48-card engine ----------
@@ -1725,7 +1741,7 @@ const server=http.createServer(async(req,res)=>{
     }
     if(url.pathname==='/api/rooms'&&req.method==='POST'){
       const u=requireAuth(req,res);if(!u)return;if(findUserRoom(u.id)||baccaratFindUser(u.id))return json(res,409,{error:'이미 다른 게임방에 참가 중입니다. 먼저 그 방에서 나와주세요.'});const b=await readBody(req),requested=String(b.game||'holdem'),game=['holdem','yut','seotda','sevenpoker'].includes(requested)?requested:'holdem';
-      const yutMode=game==='yut'&&['individual','2v2','3v3'].includes(b.yutMode)?b.yutMode:'individual';const maxPlayers=game==='holdem'?clampInt(b.maxPlayers,2,6):game==='yut'?(yutMode==='2v2'?4:yutMode==='3v3'?6:clampInt(b.maxPlayers,2,6)):2;const chipGame=game==='holdem'||game==='sevenpoker';let buyIn;try{buyIn=chipGame?Math.floor(Number(u.balance||0)):gameWager(b.buyIn,5000,100000,1000)}catch(e){return json(res,400,{error:e.message})};
+      const yutMode=game==='yut'&&['individual','2v2','3v3'].includes(b.yutMode)?b.yutMode:'individual';const maxPlayers=game==='holdem'?clampInt(b.maxPlayers,2,6):game==='yut'?(yutMode==='2v2'?4:yutMode==='3v3'?6:clampInt(b.maxPlayers,2,6)):2;const chipGame=game==='holdem'||game==='sevenpoker';let buyIn;try{buyIn=chipGame?Math.floor(Number(u.balance||0)):game==='seotda'?walletWager(b.buyIn,u.balance,5000,1000):gameWager(b.buyIn,5000,100000,1000)}catch(e){return json(res,400,{error:e.message})};
       if(!Number.isSafeInteger(buyIn)||buyIn<1000)return json(res,400,{error:'포커 테이블 입장에는 최소 1,000G가 필요합니다.'});if(u.balance<buyIn)return json(res,400,{error:'방 참가금보다 보유 게임머니가 적습니다.'});
       const id=makeRoomId();const name=game==='holdem'?`홀덤 테이블 ${id}`:game==='yut'?`윷놀이 방 ${id}`:game==='seotda'?`3장 섯다 듀얼 ${id}`:`세븐포커 테이블 ${id}`;walletChange(u.id,-buyIn,`${game}_buyin`,chipGame?`${name} 전액 스택 입장`:`${name} 참가금`);
       const t=now(),sb=game==='holdem'?Math.max(1000,Math.min(50000,Math.floor((buyIn*.002)/1000)*1000||1000)):0;const r={id,name,game,buyIn,maxPlayers,allWallet:chipGame,hostId:u.id,smallBlind:sb,bigBlind:game==='holdem'?sb*2:0,players:[{userId:u.id,nickname:u.nickname,avatar:u.avatar,seat:0,stack:chipGame?buyIn:0,ready:false,joinedAt:t}],createdAt:t,updatedAt:t,version:1,hand:null,seven:null,seotda:null,yut:null,yutMode,dealerSeat:null,reactions:{}};
@@ -1737,7 +1753,11 @@ const server=http.createServer(async(req,res)=>{
       if(!op&&req.method==='GET')return json(res,200,{room:personalizedRoom(r,u.id)});
       if(op==='ready'&&req.method==='POST'){
         if(roomStatus(r)==='PLAYING')return json(res,409,{error:'게임 진행 중에는 준비 상태를 바꿀 수 없습니다.'});
-        const p=roomPlayer(r,u.id);if(!p)return json(res,403,{error:'이 방 참가자가 아닙니다.'});p.ready=!p.ready;touchRoom(r);pushRefresh(r.id);return json(res,200,{room:personalizedRoom(r,u.id)});
+        const p=roomPlayer(r,u.id);if(!p)return json(res,403,{error:'이 방 참가자가 아닙니다.'});p.ready=!p.ready;
+        if(r.game==='seotda'&&r.seotda?.phase==='complete'&&r.players.length===2&&r.players.every(x=>x.ready)){
+          try{seotdaMultiRematch(r);}catch(e){p.ready=false;touchRoom(r);pushRefresh(r.id);return json(res,409,{error:e.message,room:personalizedRoom(r,u.id)});}
+        }else touchRoom(r);
+        pushRefresh(r.id);return json(res,200,{room:personalizedRoom(r,u.id)});
       }
       if(op==='reaction'&&req.method==='POST'){
         const p=roomPlayer(r,u.id);if(!p)return json(res,403,{error:'이 방 참가자가 아닙니다.'});
@@ -1774,8 +1794,9 @@ const server=http.createServer(async(req,res)=>{
           try{sevenMStart(r);}catch(e){return json(res,409,{error:e.message});}
         }else if(r.game==='seotda'){
           if(r.seotda&&r.seotda.phase!=='complete')return json(res,409,{error:'이미 섯다 승부가 진행 중입니다.'});
-          if(r.seotda?.phase==='complete'){for(const p of r.players){const pu=userPublic(p.userId);if(!pu||pu.balance<r.buyIn)return json(res,409,{error:`${p.nickname}의 게임머니가 부족해 재경기를 시작할 수 없습니다.`});}for(const p of r.players){walletChange(p.userId,-r.buyIn,'seotda_rebuy',`${r.name} 재경기 참가금`);escrowSet(r.id,p.userId,r.buyIn,'seotda');}}
-          seotdaMultiStart(r);
+          if(r.seotda?.phase==='complete'){
+            try{seotdaMultiRematch(r);}catch(e){return json(res,409,{error:e.message});}
+          }else seotdaMultiStart(r);
         }else{
           if(r.yut?.phase==='playing')return json(res,409,{error:'이미 게임 중입니다.'});
           if(r.yut?.phase==='complete'){
