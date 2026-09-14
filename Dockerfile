@@ -6,4 +6,4 @@ COPY . .
 ENV NODE_ENV=production
 ENV PORT=10000
 EXPOSE 10000
-CMD ["node", "server.js"]
+CMD ["node", "mmorpg-v2/server.js"]
