@@ -1,0 +1,34 @@
+* { box-sizing: border-box; }
+html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; background: #101713; font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: #fff; touch-action: none; }
+button { font: inherit; }
+#app, .game-shell { width: 100%; height: 100%; }
+.game-shell { position: relative; overflow: hidden; background: #1b2a20; }
+#game { display: block; width: 100%; height: 100%; touch-action: none; image-rendering: pixelated; }
+.hud-panel { position: absolute; z-index: 10; border: 1px solid rgba(255,255,255,.18); background: rgba(18, 24, 20, .76); backdrop-filter: blur(8px); box-shadow: 0 8px 24px rgba(0,0,0,.22); }
+.topbar { top: max(12px, env(safe-area-inset-top)); left: 12px; min-width: 190px; padding: 10px 12px; border-radius: 14px; pointer-events: none; }
+.topbar > div:first-child { display: flex; justify-content: space-between; gap: 16px; margin-bottom: 7px; }
+.topbar strong { font-size: 14px; }
+.topbar span { font-size: 12px; opacity: .85; }
+.bars { display: grid; gap: 5px; }
+.bar { width: 166px; height: 8px; overflow: hidden; border-radius: 99px; background: rgba(255,255,255,.12); }
+.bar i { display: block; width: 100%; height: 100%; border-radius: inherit; }
+.hp { background: linear-gradient(90deg, #c94747, #ef6d57); }
+.mp { background: linear-gradient(90deg, #3566b7, #62a4df); }
+.quest-card { position: absolute; z-index: 12; top: max(12px, env(safe-area-inset-top)); right: 12px; width: min(230px, 44vw); padding: 10px 12px; text-align: left; border: 1px solid rgba(255,220,137,.32); border-radius: 14px; background: rgba(55, 42, 22, .82); color: #fff; box-shadow: 0 8px 24px rgba(0,0,0,.24); touch-action: manipulation; }
+.quest-card:active { transform: translateY(1px); }
+.quest-card span, .quest-card small { display: block; }
+.quest-label { margin-bottom: 3px; font-size: 10px; letter-spacing: .08em; opacity: .7; }
+.quest-card strong { display: block; font-size: 13px; }
+.quest-card small { margin-top: 2px; font-size: 10px; opacity: .75; }
+.equipment-panel { right: 12px; bottom: max(18px, env(safe-area-inset-bottom)); display: flex; gap: 8px; padding: 8px; border-radius: 14px; }
+.equipment-panel button { border: 1px solid rgba(255,255,255,.16); border-radius: 10px; padding: 9px 11px; background: rgba(255,255,255,.08); color: #fff; font-size: 12px; touch-action: manipulation; }
+.equipment-panel button:active { background: rgba(255,255,255,.17); }
+.move-hint { position: absolute; z-index: 8; left: 50%; bottom: max(22px, env(safe-area-inset-bottom)); transform: translateX(-50%); padding: 7px 11px; border-radius: 99px; background: rgba(0,0,0,.38); font-size: 11px; color: rgba(255,255,255,.82); pointer-events: none; white-space: nowrap; }
+.status { position: absolute; z-index: 8; left: 12px; bottom: max(16px, env(safe-area-inset-bottom)); font-size: 10px; letter-spacing: .12em; color: rgba(255,255,255,.55); pointer-events: none; }
+@media (max-width: 620px) {
+  .topbar { min-width: 156px; padding: 8px 10px; }
+  .bar { width: 132px; }
+  .quest-card { width: 42vw; }
+  .equipment-panel { bottom: max(58px, env(safe-area-inset-bottom)); }
+  .move-hint { bottom: max(16px, env(safe-area-inset-bottom)); }
+}
