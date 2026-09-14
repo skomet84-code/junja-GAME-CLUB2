@@ -1,11 +1,11 @@
 {
   "name": "junja-game-club",
-  "version": "2.4.2",
+  "version": "2.4.3",
   "private": true,
-  "description": "JUNJA GAME CLUB v2.4.2 Recovery Hotfix - restores frontend controls, removes stale PWA cache risk, preserves v2.4 game logic and data.",
+  "description": "JUNJA GAME CLUB v2.4.3 Admin Wallet Hotfix - removes the old 1B admin adjustment cap while preserving balance safety and existing casino logic.",
   "type": "commonjs",
   "scripts": {
-    "start": "node server.js"
+    "start": "node admin-unlimited-start.js"
   },
   "engines": {
     "node": ">=22.5.0"
