@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+  <title>JUNJA MMORPG V2</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <main id="app">
+    <section class="game-shell" aria-label="게임 화면">
+      <canvas id="game" width="1280" height="720"></canvas>
+
+      <div class="topbar hud-panel">
+        <div>
+          <strong>준자</strong>
+          <span id="levelText">Lv. 1</span>
+        </div>
+        <div class="bars">
+          <div class="bar"><i id="hpBar" class="hp"></i></div>
+          <div class="bar"><i id="mpBar" class="mp"></i></div>
+        </div>
+      </div>
+
+      <button id="questBtn" class="quest-card" type="button">
+        <span class="quest-label">진행 퀘스트</span>
+        <strong>장로에게 가기</strong>
+        <small>누르면 자동이동</small>
+      </button>
+
+      <div class="equipment-panel hud-panel">
+        <button id="armorBtn" type="button">갑옷 변경</button>
+        <button id="weaponBtn" type="button">무기 변경</button>
+      </div>
+
+      <div id="moveHint" class="move-hint">화면을 누른 채 드래그해서 이동</div>
+      <div id="status" class="status">V2 FOUNDATION</div>
+    </section>
+  </main>
+
+  <script type="module" src="./src/main.js"></script>
+</body>
+</html>
