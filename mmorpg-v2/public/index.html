@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+  <meta name="theme-color" content="#172319" />
+  <title>JUNJA MMORPG V2</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <main id="app">
+    <section class="game-shell" aria-label="JUNJA MMORPG V2 게임 화면">
+      <canvas id="game" width="1280" height="720"></canvas>
+
+      <div class="topbar hud-panel">
+        <div class="identity">
+          <div class="portrait">준</div>
+          <div class="identity-copy">
+            <strong>준자</strong>
+            <span id="levelText">Lv. 1 · 초보자</span>
+          </div>
+        </div>
+        <div class="bars" aria-label="캐릭터 상태">
+          <div class="bar hp-track"><i id="hpBar" class="hp"></i><span>HP</span></div>
+          <div class="bar mp-track"><i id="mpBar" class="mp"></i><span>MP</span></div>
+        </div>
+      </div>
+
+      <button id="questBtn" class="quest-card" type="button">
+        <span class="quest-label">현재 임무</span>
+        <strong>백운 장로를 찾아가자</strong>
+        <small>터치하면 길을 찾아 자동으로 이동합니다</small>
+      </button>
+
+      <aside class="equipment-panel hud-panel" aria-label="장비 미리보기">
+        <div class="panel-title">장비 시험</div>
+        <div class="equipment-actions">
+          <button id="armorBtn" type="button"><span>갑옷</span><b>교체</b></button>
+          <button id="weaponBtn" type="button"><span>무기</span><b>교체</b></button>
+          <button id="helmetBtn" type="button"><span>머리</span><b>교체</b></button>
+        </div>
+      </aside>
+
+      <button id="attackBtn" class="action-button" type="button" aria-label="공격">
+        <span>⚔</span>
+        <b>공격</b>
+      </button>
+
+      <div id="moveHint" class="move-hint">
+        <span class="mobile-hint">화면을 누른 채 원하는 방향으로 드래그</span>
+        <span class="desktop-hint">WASD 이동 · SPACE 공격 · 짧게 클릭하면 자동이동</span>
+      </div>
+
+      <div id="status" class="status">V2 · 시작마을 기반 구축</div>
+    </section>
+  </main>
+
+  <script type="module" src="./src/main.js"></script>
+</body>
+</html>
