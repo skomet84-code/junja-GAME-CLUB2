@@ -1,11 +1,12 @@
 {
   "name": "junja-game-club",
-  "version": "2.4.3",
+  "version": "2.5.0",
   "private": true,
-  "description": "JUNJA GAME CLUB v2.4.3 Admin Wallet Hotfix - removes the old 1B admin adjustment cap while preserving balance safety and existing casino logic.",
+  "description": "JUNJA LAND v2.5 premium overhaul - wallet-limited wagers, enhanced Yut routing and motion, premium responsive game themes.",
   "type": "commonjs",
   "scripts": {
-    "start": "node admin-unlimited-start.js"
+    "start": "node admin-unlimited-start.js",
+    "check": "node --check admin-unlimited-start.js && node --check server.js && node --check public/app.js && node --check public/v25-overhaul.js"
   },
   "engines": {
     "node": ">=22.5.0"
