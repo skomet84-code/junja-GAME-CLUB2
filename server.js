@@ -875,14 +875,15 @@ function pokerBotDrive(r,userId){
     if(!hp||!rp)break;
     const toCall=Math.max(0,h.currentBet-hp.roundBet);
     let action='check',raiseTo=0;
-    const boardCount=h.board.length;
-    const aggression=boardCount>=3 ? 0.28 : 0.20;
+    const boardCount=h.board.length,status=pokerHandStatus([...(hp.hole||[]),...(h.board||[])]),strength=Math.max(0,Number(status.rankLevel||0));
+    const aggression=Math.min(.72,(boardCount>=3?.24:.14)+strength*.09);
     if(toCall===0){
-      if(rp.stack>r.bigBlind*4 && Math.random()<aggression){action='raise';raiseTo=Math.min(hp.roundBet+rp.stack,Math.max(h.currentBet+h.minRaise,h.currentBet+r.bigBlind*2));}
+      if(rp.stack>r.bigBlind*4 && Math.random()<aggression){action='raise';const size=strength>=3?Math.max(h.minRaise,Math.floor(Math.max(r.bigBlind*2,pokerPot(h)*.65)/r.bigBlind)*r.bigBlind):Math.max(h.minRaise,r.bigBlind*2);raiseTo=Math.min(hp.roundBet+rp.stack,h.currentBet+size);}
     }else{
-      const pressure=toCall/Math.max(1,rp.stack+toCall);
-      if(pressure>.45 && Math.random()<.52) action='fold';
-      else if(rp.stack>toCall+r.bigBlind*5 && Math.random()<.16){action='raise';raiseTo=Math.min(hp.roundBet+rp.stack,h.currentBet+Math.max(h.minRaise,r.bigBlind*2));}
+      const pressure=toCall/Math.max(1,rp.stack+toCall),potPressure=toCall/Math.max(1,pokerPot(h));
+      const foldChance=Math.max(.04,Math.min(.9,.14+pressure*.75+potPressure*.35-strength*.17));
+      if(Math.random()<foldChance) action='fold';
+      else if(strength>=2&&rp.stack>toCall+r.bigBlind*4&&Math.random()<.22+strength*.06){action='raise';raiseTo=Math.min(hp.roundBet+rp.stack,h.currentBet+Math.max(h.minRaise,Math.floor(Math.max(r.bigBlind*2,pokerPot(h)*.55)/r.bigBlind)*r.bigBlind));}
       else action='call';
     }
     try{pokerAction(r,botId,action,raiseTo)}catch{try{pokerAction(r,botId,toCall?'call':'check',0)}catch{break}}
