@@ -1469,7 +1469,7 @@ function serveStatic(req,res,url){
   if(p.includes('..')){res.writeHead(400);res.end();return;}
   const file=path.join(__dirname,'public',p);
   if(!file.startsWith(path.join(__dirname,'public'))||!fs.existsSync(file)||fs.statSync(file).isDirectory()){res.writeHead(404,securityHeaders());res.end('Not found');return;}
-  const ext=path.extname(file).toLowerCase();const ct={'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'application/javascript; charset=utf-8','.json':'application/json; charset=utf-8','.webmanifest':'application/manifest+json','.png':'image/png','.svg':'image/svg+xml'}[ext]||'application/octet-stream';
+  const ext=path.extname(file).toLowerCase();const ct={'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'application/javascript; charset=utf-8','.json':'application/json; charset=utf-8','.webmanifest':'application/manifest+json','.png':'image/png','.webp':'image/webp','.svg':'image/svg+xml'}[ext]||'application/octet-stream';
   const st=fs.statSync(file);const appShell=['.html','.js','.css','.webmanifest'].includes(ext);res.writeHead(200,{'Content-Type':ct,'Content-Length':st.size,'Cache-Control':appShell?'no-cache, no-store, must-revalidate':'public, max-age=3600',...securityHeaders()});fs.createReadStream(file).pipe(res);
 }
 
