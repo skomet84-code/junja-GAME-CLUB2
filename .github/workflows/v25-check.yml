@@ -1,0 +1,54 @@
+name: JUNJA LAND v2.5 Check
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [feature/v2.5-land-overhaul]
+
+jobs:
+  runtime-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+      - name: Syntax checks
+        run: npm run check
+      - name: Start isolated test server
+        env:
+          PORT: '18080'
+          DATA_DIR: ${{ runner.temp }}/junja-v25-data
+        run: |
+          npm start > /tmp/junja-v25.log 2>&1 &
+          echo $! > /tmp/junja-v25.pid
+          for i in {1..30}; do
+            if curl -fsS http://127.0.0.1:18080/ >/tmp/index.html; then break; fi
+            sleep 1
+          done
+          curl -fsS http://127.0.0.1:18080/ >/tmp/index.html
+          grep -q 'v25-overhaul.css' /tmp/index.html
+          grep -q 'v25-overhaul.js' /tmp/index.html
+          curl -fsS http://127.0.0.1:18080/v25-overhaul.css >/dev/null
+          curl -fsS http://127.0.0.1:18080/v25-overhaul.js >/dev/null
+      - name: Verify wagers above old 100k cap
+        run: |
+          curl -fsS -c /tmp/cookie.txt -H 'Content-Type: application/json' \
+            -d '{"username":"ciplayer","nickname":"CI테스터","password":"test1234"}' \
+            http://127.0.0.1:18080/api/register >/tmp/register.json
+          SLOT_CODE=$(curl -sS -b /tmp/cookie.txt -o /tmp/slot.json -w '%{http_code}' \
+            -H 'Content-Type: application/json' -d '{"bet":200000}' \
+            http://127.0.0.1:18080/api/slot/spin)
+          test "$SLOT_CODE" = "200" || (cat /tmp/slot.json; exit 1)
+          YUT_CODE=$(curl -sS -b /tmp/cookie.txt -o /tmp/yut.json -w '%{http_code}' \
+            -H 'Content-Type: application/json' \
+            -d '{"game":"yut","yutMode":"individual","maxPlayers":2,"buyIn":200000}' \
+            http://127.0.0.1:18080/api/rooms)
+          test "$YUT_CODE" = "201" || (cat /tmp/yut.json; exit 1)
+      - name: Print server log on failure
+        if: failure()
+        run: cat /tmp/junja-v25.log || true
