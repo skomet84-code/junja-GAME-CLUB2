@@ -1,0 +1,21 @@
+/* JUNJA LAND v2.6 visual asset overhaul */
+.hero-character img{object-position:center 28%;filter:saturate(1.14) contrast(1.04)}
+.hero-character:after{content:"";position:absolute;inset:0;z-index:3;pointer-events:none;background:linear-gradient(90deg,#111827 0,transparent 35%),linear-gradient(0deg,#05070fb8,transparent 45%)}
+.character-caption{z-index:4}
+.game-card{min-height:218px;isolation:isolate;overflow:hidden}
+.game-card:after{content:"";position:absolute;inset:0;z-index:1;pointer-events:none;background:linear-gradient(90deg,rgba(5,7,13,.98) 0%,rgba(5,7,13,.92) 38%,rgba(5,7,13,.18) 72%,rgba(5,7,13,.06) 100%)}
+.game-card .game-art{z-index:0;right:0;top:0;width:68%;height:100%;max-height:none!important;border-radius:0;opacity:.94;mix-blend-mode:normal;object-fit:cover;object-position:center;mask-image:none;-webkit-mask-image:none;filter:saturate(1.1) contrast(1.04);transition:transform .35s ease,filter .35s ease}
+.game-card:hover .game-art{opacity:1;transform:scale(1.045);filter:saturate(1.2) contrast(1.06)}
+.game-card>div:last-child{position:relative;z-index:3;max-width:53%;text-shadow:0 2px 7px #000}
+.game-card .game-icon,.game-card .ai-badge,.game-card .dual-badge,.game-card .solo-badge{z-index:4}
+.game-card.slot .game-art,.game-card.yut .game-art,.game-card.gostop .game-art{filter:saturate(1.2) contrast(1.02)}
+.shop-character-preview{height:224px;align-items:stretch;background:linear-gradient(180deg,#151b2a,#070910);border:1px solid #ffffff18}
+.shop-character-preview img{width:100%;height:100%;border-radius:0;transform:none;object-fit:cover;object-position:center 22%;filter:saturate(1.08) drop-shadow(0 16px 18px #0009)}
+.shop-item:hover .shop-character-preview img{transform:scale(1.035);filter:saturate(1.18) contrast(1.03) drop-shadow(0 20px 20px #000a)}
+.shop-character-preview:after{content:"";position:absolute;z-index:2;inset:auto 0 0;height:48%;background:linear-gradient(transparent,#05070de8);pointer-events:none}
+.shop-character-preview.preview-mythic img,.shop-character-preview.preview-prestige img{filter:saturate(1.15) contrast(1.04) drop-shadow(0 0 22px #f0c35f55)}
+.character-preview-meta{z-index:4}
+.styled-avatar.premium-character>.character-portrait{object-fit:cover;object-position:center 18%;border-radius:inherit}
+.boutique-face .character-portrait,.profile-style-face.character-portrait{object-position:center 18%}
+@media(max-width:760px){.game-card{min-height:176px!important;padding:14px!important;display:block!important}.game-card .game-art{position:absolute!important;display:block!important;right:0!important;top:0!important;width:66%!important;height:100%!important;max-height:none!important}.game-card>div:last-child{max-width:58%;padding-top:42px}.game-card>div:last-child h3{font-size:17px;margin:3px 0}.game-card>div:last-child p{font-size:9px;line-height:1.35}.shop-character-preview{height:190px}.shop-character-preview img{width:100%;height:100%;border-radius:0;transform:none}}
+@media(max-width:420px){.game-card{min-height:164px!important}.game-card .game-art{width:69%!important}.game-card:after{background:linear-gradient(90deg,rgba(5,7,13,.99),rgba(5,7,13,.91) 43%,rgba(5,7,13,.08) 82%)}.game-card>div:last-child{max-width:59%;padding-top:36px}.shop-character-preview{height:172px}}

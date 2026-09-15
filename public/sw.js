@@ -1,5 +1,5 @@
-const CACHE='junja-club-v251';
-const ASSETS=['/','/style.css?v=251','/app.js?v=251','/manifest.webmanifest?v=251','/v25-overhaul.css?v=251','/v25-overhaul.js?v=251','/art/club-host.svg','/art/poker-mascot.svg','/art/slot-mascot.svg','/art/yut-mascot.svg','/art/gostop-mascot.svg','/art/seotda-mascot.svg'];
+const CACHE='junja-club-v270-visual';
+const ASSETS=['/','/style.css?v=270','/app.js?v=270','/manifest.webmanifest?v=270','/v25-overhaul.css?v=270','/v26-visual.css?v=270','/v25-overhaul.js?v=270','/art/v26/games/host.webp','/art/v26/games/holdem.webp','/art/v26/games/sevenpoker.webp','/art/v26/games/baccarat.webp','/art/v26/games/slot.webp','/art/v26/games/yut.webp','/art/v26/games/seotda.webp','/art/v26/games/gostop.webp','/art/v26/games/horse.webp','/art/v26/games/bigwheel.webp','/art/v26/games/sicbo.webp','/art/v26/games/roulette.webp'];
 self.addEventListener('install',e=>e.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS)).then(()=>self.skipWaiting())));
 self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));
 self.addEventListener('fetch',e=>{

@@ -1,8 +1,8 @@
 {
   "name": "junja-game-club",
-  "version": "2.6.0",
+  "version": "2.7.0",
   "private": true,
-  "description": "JUNJA LAND v2.6 - Yashimchan Matgo with authentic scoring, bonus multipliers, tactical AI and a premium mobile table.",
+  "description": "JUNJA LAND v2.7 - original anime character collection and bespoke illustrated key art for every game.",
   "type": "commonjs",
   "scripts": {
     "start": "node admin-unlimited-start.js",
