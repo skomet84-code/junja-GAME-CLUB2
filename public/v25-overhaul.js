@@ -1,9 +1,9 @@
 (()=>{
 'use strict';
 const seen=new Set();
+let capQueued=false;
 const sleep25=ms=>new Promise(r=>setTimeout(r,ms));
 const NODE={START:[90,90],FINISH:[90,90],O1:[90,74],O2:[90,58],O3:[90,42],O4:[90,26],O5:[90,10],O6:[74,10],O7:[58,10],O8:[42,10],O9:[26,10],O10:[10,10],O11:[10,26],O12:[10,42],O13:[10,58],O14:[10,74],O15:[10,90],O16:[26,90],O17:[42,90],O18:[58,90],O19:[74,90],O20:[82,90],A1:[75,25],A2:[63,37],C:[50,50],A4:[37,63],A5:[25,75],B1:[25,25],B2:[37,37],B4:[63,63],B5:[75,75]};
-function cap(){try{return Math.max(0,Math.floor(Number(me?.balance||0)/1000)*1000)}catch{return Number.MAX_SAFE_INTEGER}}
 function removeCaps(){
   document.querySelectorAll('main input[type="number"]').forEach(el=>{
     if(el.closest('#view-admin'))return;
@@ -12,6 +12,7 @@ function removeCaps(){
   });
   document.querySelectorAll('main small').forEach(el=>{if(/MAX\s*100,?000\s*G?/i.test(el.textContent||''))el.textContent='보유머니 한도까지';});
 }
+function scheduleCaps(){if(capQueued)return;capQueued=true;requestAnimationFrame(()=>{capQueued=false;removeCaps()})}
 function decorate(){
   document.body.classList.add('junja-v25');
   document.querySelectorAll('main .view').forEach(v=>{const id=(v.id||'').replace('view-','');if(id)v.dataset.theme=id;});
@@ -58,6 +59,6 @@ function installYutHooks(){
     }
   }catch(e){console.warn('[JUNJA v2.5] yut hook degraded',e)}
 }
-function init(){decorate();installYutHooks();new MutationObserver(removeCaps).observe(document.body,{subtree:true,childList:true});window.addEventListener('pageshow',decorate);window.addEventListener('resize',()=>document.documentElement.style.setProperty('--vh',(innerHeight*.01)+'px'))}
+function init(){decorate();installYutHooks();new MutationObserver(scheduleCaps).observe(document.body,{subtree:true,childList:true});window.addEventListener('pageshow',decorate);window.addEventListener('resize',()=>document.documentElement.style.setProperty('--vh',(innerHeight*.01)+'px'))}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
 })();
