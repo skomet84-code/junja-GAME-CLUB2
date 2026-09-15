@@ -1,0 +1,23 @@
+/* JUNJA v2.8 · cute racehorses + premium Back-do Yut */
+.cute-runner .horse-art{width:112px!important;height:112px!important;display:grid;place-items:center;filter:drop-shadow(0 10px 9px #0008)}
+.cute-racehorse{width:100%;height:100%;object-fit:contain;display:block;animation:cuteHorseGallop .48s ease-in-out infinite alternate;transform-origin:50% 78%}
+.race-runner.cute-runner{width:112px!important;margin-left:-56px!important;will-change:transform}
+.race-runner.cute-runner .runner-tag{top:91px!important}
+.race-runner.cute-runner .dust-cloud{top:82px!important}
+@keyframes cuteHorseGallop{0%{transform:translateY(2px) rotate(-1.3deg) scaleY(.98)}100%{transform:translateY(-7px) rotate(1.3deg) scaleY(1.02)}}
+.yut-toss-scene{background:radial-gradient(ellipse at 50% 88%,#d6a75b40,transparent 58%),linear-gradient(180deg,#18100a,#392313)!important}
+.yut-stick{background:none!important;border:0!important;box-shadow:none!important;overflow:visible!important}
+.yut-stick img{width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 12px 9px #0009);pointer-events:none}
+.yut-stick span{position:absolute!important;left:50%;top:50%;transform:translate(-50%,-50%);width:13px!important;height:13px!important;background:#5a2418!important;color:#ffe3a2!important;border:2px solid #ffc95f!important;box-shadow:0 0 13px #ffba4a;z-index:4}
+.yut-stick:not(.marked-stick) span{display:none!important}
+.yut-toss-scene.throwing .yut-stick{animation:yutTossPremium 1.6s cubic-bezier(.18,.7,.2,1) 1!important;animation-delay:calc(var(--i)*.1s)!important}
+@keyframes yutTossPremium{0%{transform:translateY(0) rotateX(0) rotateZ(0)}42%{transform:translateY(-84px) rotateX(420deg) rotateZ(calc((var(--i) - 1.5)*24deg))}78%{transform:translateY(-14px) rotateX(690deg) rotateZ(calc((var(--i) - 1.5)*11deg))}100%{transform:translateY(0) rotateX(720deg) rotateZ(0)}}
+.cute-yut-token{width:43px!important;height:43px!important;background:#fff7e9!important;border-width:2px!important;overflow:visible!important}
+.cute-yut-token img{width:100%!important;height:100%!important;object-fit:contain!important;filter:drop-shadow(0 4px 3px #0007)}
+.cute-yut-token b{position:absolute;right:-8px;bottom:-7px;min-width:19px;height:19px;display:grid;place-items:center;padding:0 3px;border-radius:12px;background:#121822;color:#fff;font-size:9px;border:1px solid var(--pc)}
+.yut-action-banner{margin:10px 0;padding:12px 16px;border-radius:16px;display:flex;align-items:center;gap:12px;background:linear-gradient(135deg,#1a2230,#10151e);border:1px solid #8ab8ff42;box-shadow:0 10px 26px #0005;animation:yutBannerIn .45s cubic-bezier(.2,.8,.2,1)}
+.yut-action-banner b{color:#9dc7ff}.yut-action-banner strong{font-size:15px;color:#fff}.yut-action-banner.backdo{background:linear-gradient(135deg,#50211c,#20100f);border-color:#ff9b6e80}.yut-action-banner.backdo strong{color:#ffd18b}.yut-action-banner.capture{background:linear-gradient(135deg,#5c231d,#1d1210);border-color:#ff725b99}.yut-action-banner.capture strong{color:#ffb08e}
+.backdo-chip{border-color:#ff9b66!important;background:linear-gradient(145deg,#61271c,#2b1512)!important;color:#ffd39a!important}
+.yut-motion-token{position:absolute;z-index:30;width:42px;height:42px;margin:-21px 0 0 -21px;border-radius:50%;display:grid;place-items:center;background:#fff4cf;color:#6c311c;font-size:22px;border:3px solid #ffcf66;box-shadow:0 0 0 7px #ffcf6630,0 10px 22px #0009;transition:left .48s cubic-bezier(.2,.7,.3,1),top .48s cubic-bezier(.2,.7,.3,1);pointer-events:none}
+@keyframes yutBannerIn{from{opacity:0;transform:translateY(-10px) scale(.98)}to{opacity:1;transform:none}}
+@media(max-width:720px){.cute-runner .horse-art{width:82px!important;height:82px!important}.race-runner.cute-runner{width:82px!important;margin-left:-41px!important}.race-runner.cute-runner .runner-tag{top:69px!important}.cute-yut-token{width:34px!important;height:34px!important}.yut-action-banner{padding:10px 12px}.yut-action-banner strong{font-size:12px}}

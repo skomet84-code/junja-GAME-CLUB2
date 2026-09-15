@@ -1,5 +1,5 @@
-const CACHE='junja-club-v270-visual';
-const ASSETS=['/','/style.css?v=270','/app.js?v=270','/manifest.webmanifest?v=270','/v25-overhaul.css?v=270','/v26-visual.css?v=270','/v25-overhaul.js?v=270','/art/v26/games/host.webp','/art/v26/games/holdem.webp','/art/v26/games/sevenpoker.webp','/art/v26/games/baccarat.webp','/art/v26/games/slot.webp','/art/v26/games/yut.webp','/art/v26/games/seotda.webp','/art/v26/games/gostop.webp','/art/v26/games/horse.webp','/art/v26/games/bigwheel.webp','/art/v26/games/sicbo.webp','/art/v26/games/roulette.webp'];
+const CACHE='junja-club-v280-yut-horse';
+const ASSETS=['/','/style.css?v=280','/app.js?v=280','/manifest.webmanifest?v=280','/v26-visual.css?v=280','/v28-yut-horse.css?v=280','/art/v28/horses/horse-1.webp','/art/v28/horses/horse-2.webp','/art/v28/horses/horse-3.webp','/art/v28/horses/horse-4.webp','/art/v28/horses/horse-5.webp','/art/v28/horses/horse-6.webp','/art/v28/horses/horse-7.webp','/art/v28/yut/stick-back.webp','/art/v28/yut/stick-marked.webp','/art/v28/yut/token-tiger.webp','/art/v28/yut/token-rabbit.webp','/art/v28/yut/token-fox.webp','/art/v28/yut/token-bear.webp'];
 self.addEventListener('install',e=>e.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS)).then(()=>self.skipWaiting())));
 self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));
 self.addEventListener('fetch',e=>{

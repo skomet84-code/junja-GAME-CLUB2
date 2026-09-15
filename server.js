@@ -770,8 +770,8 @@ function pokerView(r,userId){
 // ---------- Yut engine v0.7: stacking / shortcuts / teams ----------
 const YUT_SIDE_COLORS=['#f5cb58','#5ba8ff','#ff6f8e','#65d49a','#b784ff','#ff9b57'];
 function yutModeLabel(mode){return ({individual:'개인전','2v2':'2:2 팀전','3v3':'3:3 팀전'})[mode]||'개인전';}
-function yutNewPiece(){return {node:'START',route:'outer'};}
-function yutClonePiece(p){return {node:p.node,route:p.route||'outer'};}
+function yutNewPiece(){return {node:'START',route:'outer',path:[]};}
+function yutClonePiece(p){return {node:p.node,route:p.route||'outer',path:Array.isArray(p.path)?p.path.map(x=>({node:x.node,route:x.route||'outer'})):[]};}
 function yutPhysical(p){if(!p)return'START';if(p.node==='CA'||p.node==='CB')return'C';return p.node;}
 function yutFinished(p){return p?.node==='FINISH';}
 function yutNextStep(p,firstStep,routeChoice='shortcut'){
@@ -791,11 +791,16 @@ function yutNextStep(p,firstStep,routeChoice='shortcut'){
 }
 function yutAdvance(piece,move,routeChoice='shortcut'){
   let p=yutClonePiece(piece);const trace=[];
-  for(let i=0;i<move;i++){p=yutNextStep(p,i===0,routeChoice);trace.push(yutPhysical(p));if(p.node==='FINISH')break;}
-  return {piece:p,trace};
+  if(move<0){
+    if(p.node==='START'||p.node==='FINISH'||!p.path.length)return {piece:p,trace,legal:false};
+    const prev=p.path.pop();p={node:prev.node,route:prev.route||'outer',path:p.path};trace.push(yutPhysical(p));return {piece:p,trace,legal:true};
+  }
+  for(let i=0;i<move;i++){const history={node:p.node,route:p.route||'outer'};const next=yutNextStep(p,i===0,routeChoice);p={...next,path:[...p.path,history]};trace.push(yutPhysical(p));if(p.node==='FINISH')break;}
+  return {piece:p,trace,legal:true};
 }
 function throwYut(){
   const sticks=[0,0,0,0].map(()=>crypto.randomInt(2));const backs=sticks.filter(x=>x===0).length;
+  if(backs===1&&sticks[0]===0)return {move:-1,name:'빽도',extra:false,sticks,backdo:true};
   if(backs===1)return {move:1,name:'도',extra:false,sticks};
   if(backs===2)return {move:2,name:'개',extra:false,sticks};
   if(backs===3)return {move:3,name:'걸',extra:false,sticks};
@@ -824,7 +829,12 @@ function yutThrow(r,userId){
   const y=r.yut;if(!y||y.phase!=='playing')throw new Error('게임이 진행 중이 아닙니다.');
   const cur=yutCurrentPlayer(r,y);if(!cur||cur.userId!==userId)throw new Error('지금은 당신 차례가 아닙니다.');
   if(!y.awaitingThrow)throw new Error('먼저 나온 윷 결과로 말을 이동하세요.');
-  const result=throwYut();y.pending.push(result);y.awaitingThrow=!!result.extra;
+  const result=throwYut(),side=yutSideForUser(y,userId);
+  if(result.backdo&&!y.pending.length&&!side.pieces.some(p=>!['START','FINISH'].includes(yutPhysical(p)))){
+    y.awaitingThrow=true;y.turnIndex=(y.turnIndex+1)%orderedPlayers(r).length;
+    y.last={type:'throw',userId,sideId:side?.id,name:result.name,move:result.move,sticks:result.sticks,backdo:true,skipped:true,message:'빽도! 이동할 말이 없어 이번 차례는 쉬어갑니다.',at:now()};return result;
+  }
+  y.pending.push(result);y.awaitingThrow=!!result.extra;
   y.last={type:'throw',userId,sideId:yutSideForUser(y,userId)?.id,name:result.name,move:result.move,sticks:result.sticks,at:now()};
   return result;
 }
@@ -845,8 +855,9 @@ function yutMove(r,userId,pieceIndex,moveIndex=0,routeChoice='shortcut'){
   pieceIndex=clampInt(pieceIndex,0,3);moveIndex=clampInt(moveIndex,0,y.pending.length-1);
   const selected=side.pieces[pieceIndex];if(yutFinished(selected))throw new Error('이미 완주한 말입니다.');
   const moveResult=y.pending[moveIndex],fromPhysical=yutPhysical(selected);
+  if(moveResult.move<0&&['START','FINISH'].includes(fromPhysical))throw new Error('빽도는 판 위에 있는 말을 선택해야 합니다.');
   const stackIndexes=fromPhysical==='START'? [pieceIndex] : side.pieces.map((p,i)=>yutPhysical(p)===fromPhysical&&!yutFinished(p)?i:-1).filter(i=>i>=0);
-  const advanced=yutAdvance(selected,moveResult.move,routeChoice),dest=advanced.piece,destPhysical=yutPhysical(dest);
+  const advanced=yutAdvance(selected,moveResult.move,routeChoice);if(!advanced.legal)throw new Error('이 말은 뒤로 이동할 수 없습니다.');const dest=advanced.piece,destPhysical=yutPhysical(dest);
   stackIndexes.forEach(i=>side.pieces[i]=yutClonePiece(dest));
   // If the moving stack lands on friendly pieces, all pieces become one stack and inherit the incoming route.
   if(destPhysical!=='START'&&destPhysical!=='FINISH') side.pieces.forEach((p,i)=>{if(yutPhysical(p)===destPhysical)side.pieces[i]=yutClonePiece(dest);});
@@ -860,7 +871,8 @@ function yutMove(r,userId,pieceIndex,moveIndex=0,routeChoice='shortcut'){
   y.pending.splice(moveIndex,1);
   if(captured.length)y.captureBonus++;
   const stacked=destPhysical!=='START'&&destPhysical!=='FINISH'?side.pieces.filter(p=>yutPhysical(p)===destPhysical).length:stackIndexes.length;
-  y.last={type:'move',userId,sideId:side.id,name:moveResult.name,move:moveResult.move,sticks:moveResult.sticks,from:fromPhysical,to:destPhysical,trace:advanced.trace,captured,stacked,at:now()};
+  const message=captured.length?`상대 말 ${captured.length}개를 잡았다! 한 번 더!`:stacked>stackIndexes.length?`우리 말 ${stacked}개가 업혔다! 함께 이동!`:moveResult.backdo?'빽도! 한 칸 뒤로 이동!':`${moveResult.name} · ${Math.abs(moveResult.move)}칸 이동`;
+  y.last={type:'move',userId,sideId:side.id,name:moveResult.name,move:moveResult.move,sticks:moveResult.sticks,backdo:!!moveResult.backdo,from:fromPhysical,to:destPhysical,trace:advanced.trace,captured,stacked,message,at:now()};
   if(side.pieces.every(yutFinished)){yutSettle(r,y,side);return;}
   if(y.pending.length){y.awaitingThrow=false;return;}
   if(y.captureBonus>0){y.captureBonus--;y.awaitingThrow=true;return;}
@@ -926,32 +938,36 @@ function soloYutStartGame(user,bet){
   bet=gameWager(bet,5000,100000,1000);
   if(soloYut.has(user.id))throw new Error('이미 AI 윷놀이가 진행 중입니다.');if(user.balance<bet)throw new Error('게임머니가 부족합니다.');
   walletChange(user.id,-bet,'solo_yut_bet',`AI 윷놀이 참가금 ${formatMoney(bet)}G`);
-  const s={bet,phase:'playing',turn:'user',sides:{user:Array.from({length:4},yutNewPiece),bot:Array.from({length:4},yutNewPiece)},pending:[],awaitingThrow:true,captureBonus:0,last:null,winner:null,startedAt:now()};
+  const s={bet,phase:'playing',turn:'user',sides:{user:Array.from({length:4},yutNewPiece),bot:Array.from({length:4},yutNewPiece)},pending:[],awaitingThrow:true,captureBonus:0,last:null,replay:[],winner:null,startedAt:now()};
   soloYut.set(user.id,s);escrowSet(`SOLOY${user.id}`,user.id,bet,'solo_yut');return s;
 }
 function soloYutPhysicalPieces(s,side,physical){return s.sides[side].map((p,i)=>yutPhysical(p)===physical?i:-1).filter(i=>i>=0);}
 function soloYutMoveSide(s,side,pieceIndex,moveIndex=0,routeChoice='shortcut'){
   if(!s.pending.length)throw new Error('먼저 윷을 던져야 합니다.');if(s.awaitingThrow)throw new Error('윷/모 보너스 던지기를 먼저 진행하세요.');
   pieceIndex=clampInt(pieceIndex,0,3);moveIndex=clampInt(moveIndex,0,s.pending.length-1);const piece=s.sides[side][pieceIndex];if(yutFinished(piece))throw new Error('이미 완주한 말입니다.');
-  const moveResult=s.pending[moveIndex],from=yutPhysical(piece),stack=from==='START'?[pieceIndex]:soloYutPhysicalPieces(s,side,from),adv=yutAdvance(piece,moveResult.move,routeChoice),dest=adv.piece,to=yutPhysical(dest);
+  const moveResult=s.pending[moveIndex],from=yutPhysical(piece);if(moveResult.move<0&&['START','FINISH'].includes(from))throw new Error('빽도는 판 위에 있는 말을 선택해야 합니다.');const stack=from==='START'?[pieceIndex]:soloYutPhysicalPieces(s,side,from),adv=yutAdvance(piece,moveResult.move,routeChoice);if(!adv.legal)throw new Error('이 말은 뒤로 이동할 수 없습니다.');const dest=adv.piece,to=yutPhysical(dest);
   stack.forEach(i=>s.sides[side][i]=yutClonePiece(dest));
   if(to!=='START'&&to!=='FINISH')s.sides[side].forEach((p,i)=>{if(yutPhysical(p)===to)s.sides[side][i]=yutClonePiece(dest)});
   const other=side==='user'?'bot':'user',captured=[];
   if(to!=='START'&&to!=='FINISH')s.sides[other].forEach((p,i)=>{if(yutPhysical(p)===to){s.sides[other][i]=yutNewPiece();captured.push(i)}});
   s.pending.splice(moveIndex,1);if(captured.length)s.captureBonus++;
-  s.last={type:'move',side,name:moveResult.name,move:moveResult.move,sticks:moveResult.sticks,from,to,trace:adv.trace,captured,stacked:soloYutPhysicalPieces(s,side,to).length};
+  const stacked=to!=='START'&&to!=='FINISH'?soloYutPhysicalPieces(s,side,to).length:stack.length;
+  const message=captured.length?`상대 말을 잡았다! 한 번 더!`:stacked>stack.length?`우리 말 ${stacked}개가 업혔다!`:moveResult.backdo?'빽도! 한 칸 뒤로 이동!':`${moveResult.name} · ${Math.abs(moveResult.move)}칸 이동`;
+  s.last={type:'move',side,name:moveResult.name,move:moveResult.move,sticks:moveResult.sticks,backdo:!!moveResult.backdo,from,to,trace:adv.trace,captured,stacked,message,at:now()};if(side==='bot')s.replay.push({...s.last});
   if(s.sides[side].every(yutFinished)){s.phase='complete';s.winner=side;s.pending=[];s.awaitingThrow=false;return;}
   if(s.pending.length){s.awaitingThrow=false;return;}
   if(s.captureBonus>0){s.captureBonus--;s.awaitingThrow=true;return;}
   s.turn=other;s.awaitingThrow=true;
 }
 function soloYutThrowFor(s,side){
-  if(!s.awaitingThrow)throw new Error('먼저 말을 이동하세요.');const r=throwYut();s.pending.push(r);s.awaitingThrow=!!r.extra;s.last={type:'throw',side,...r};return r;
+  if(!s.awaitingThrow)throw new Error('먼저 말을 이동하세요.');const r=throwYut();
+  if(r.backdo&&!s.pending.length&&!s.sides[side].some(p=>!['START','FINISH'].includes(yutPhysical(p)))){s.turn=side==='user'?'bot':'user';s.awaitingThrow=true;s.last={type:'throw',side,...r,skipped:true,message:'빽도! 이동할 말이 없어 차례를 넘깁니다.',at:now()};if(side==='bot')s.replay.push({...s.last});return r;}
+  s.pending.push(r);s.awaitingThrow=!!r.extra;s.last={type:'throw',side,...r,message:r.backdo?'빽도! 한 칸 뒤로!':`${r.name} · ${r.move}칸`,at:now()};if(side==='bot')s.replay.push({...s.last});return r;
 }
 function soloYutBestMove(s,side){
   const other=side==='user'?'bot':'user';let best={pieceIndex:0,moveIndex:0,score:-1e9};
   s.pending.forEach((mv,mi)=>s.sides[side].forEach((p,pi)=>{
-    if(yutFinished(p))return;const adv=yutAdvance(p,mv.move),to=yutPhysical(adv.piece);let score=adv.trace.length*2;
+    if(yutFinished(p)||(mv.move<0&&yutPhysical(p)==='START'))return;const adv=yutAdvance(p,mv.move);if(!adv.legal)return;const to=yutPhysical(adv.piece);let score=adv.trace.length*2;
     if(to==='FINISH')score+=80;
     if(['O5','O10'].includes(to))score+=22;
     if(['A1','A2','CA','A4','A5','B1','B2','CB','B4','B5'].includes(adv.piece.node))score+=12;
@@ -963,7 +979,7 @@ function soloYutBestMove(s,side){
   }));return best;
 }
 function soloYutBotDrive(userId){
-  const s=soloYut.get(userId);let guard=0;
+  const s=soloYut.get(userId);let guard=0;if(s)s.replay=[];
   while(s&&s.phase==='playing'&&s.turn==='bot'&&guard++<30){
     while(s.awaitingThrow&&guard++<30){const r=soloYutThrowFor(s,'bot');if(!r.extra)break;}
     if(s.phase!=='playing'||s.turn!=='bot')break;
