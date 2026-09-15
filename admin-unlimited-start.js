@@ -55,10 +55,10 @@ let indexSource = fs.readFileSync(indexPath, 'utf8');
 indexSource = indexSource.replace(/\smax="100000"/g, '');
 indexSource = indexSource.replace(/MAX\s*100,000\s*G/g, '보유머니 한도까지').replace(/MAX\s*100,000G/g, '보유머니 한도까지');
 if (!indexSource.includes('/v25-overhaul.css')) {
-  indexSource = indexSource.replace('</head>', '<link rel="stylesheet" href="/v25-overhaul.css?v=250"></head>');
+  indexSource = indexSource.replace('</head>', '<link rel="stylesheet" href="/v25-overhaul.css?v=260"></head>');
 }
 if (!indexSource.includes('/v25-overhaul.js')) {
-  indexSource = indexSource.replace('</body>', '<script src="/v25-overhaul.js?v=250"></script></body>');
+  indexSource = indexSource.replace('</body>', '<script src="/v25-overhaul.js?v=260"></script></body>');
 }
 
 const staticBuffers = new Map([
