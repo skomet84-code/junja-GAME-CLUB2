@@ -47,6 +47,13 @@ for (const [name,engine] of engines) {
   await page.waitForSelector('#yutSoloRoom .true-yut-board',{timeout:5000});
   const boardBox=await page.locator('#yutSoloRoom .true-yut-board').boundingBox();
   if(!boardBox||boardBox.width<280||boardBox.height<280)throw new Error(`${name} yut board too small or missing`);
+  await page.evaluate(()=>{ window.__v25CenterChoice = yutRouteDialog({node:'CA',route:'A'}); });
+  await page.waitForSelector('.v25-route-modal',{timeout:3000});
+  const centerText=await page.textContent('.v25-route-modal');
+  if(!centerText?.includes('결승 지름길'))throw new Error(`${name} center shortcut dialog missing`);
+  await page.click('.v25-route-modal [data-route="shortcut"]');
+  const centerChoice=await page.evaluate(async()=>await window.__v25CenterChoice);
+  if(centerChoice!=='shortcut')throw new Error(`${name} center shortcut choice failed: ${centerChoice}`);
   const shot=`/tmp/junja-v25-${name}.png`;
   await page.screenshot({path:shot,fullPage:true});
   if(pageErrors.length)throw new Error(`${name} page errors:\n${pageErrors.join('\n')}`);
