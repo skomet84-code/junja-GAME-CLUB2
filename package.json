@@ -1,12 +1,13 @@
 {
   "name": "junja-game-club",
-  "version": "2.5.0",
+  "version": "2.6.0",
   "private": true,
-  "description": "JUNJA LAND v2.5 premium overhaul - wallet-limited wagers, enhanced Yut routing and motion, premium responsive game themes.",
+  "description": "JUNJA LAND v2.6 - Yashimchan Matgo with authentic scoring, bonus multipliers, tactical AI and a premium mobile table.",
   "type": "commonjs",
   "scripts": {
     "start": "node admin-unlimited-start.js",
-    "check": "node --check admin-unlimited-start.js && node --check server.js && node --check public/app.js && node --check public/v25-overhaul.js"
+    "check": "node --check admin-unlimited-start.js && node --check server.js && node --check public/app.js && node --check public/v25-overhaul.js",
+    "test:matgo": "node tests/yashimchan-matgo-smoke.cjs"
   },
   "engines": {
     "node": ">=22.5.0"
