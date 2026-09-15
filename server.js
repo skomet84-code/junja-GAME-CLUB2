@@ -663,19 +663,21 @@ function pokerStart(r){
   const sbIdx=seated.length===2?dealerIdx:nextEligibleIndex(seated,dealerIdx,()=>true);
   const bbIdx=nextEligibleIndex(seated,sbIdx,()=>true);
   const deck=shuffle(cardDeck());
-  const h={phase:'preflop',deck,board:[],p:{},currentBet:0,minRaise:r.bigBlind,turnUserId:null,startedAt:now(),result:null,dealerSeat:r.dealerSeat};
+  const h={phase:'preflop',deck,board:[],p:{},currentBet:0,minRaise:r.bigBlind,turnUserId:null,startedAt:now(),turnStartedAt:now(),result:null,dealerSeat:r.dealerSeat};
   for(const rp of seated) h.p[rp.userId]={hole:[deck.pop(),deck.pop()],roundBet:0,totalBet:0,folded:false,allIn:false,acted:false};
   r.hand=h;
   const post=(rp,amt)=>{const hp=h.p[rp.userId],pay=Math.min(amt,rp.stack);rp.stack-=pay;hp.roundBet+=pay;hp.totalBet+=pay;if(rp.stack===0)hp.allIn=true;};
   post(seated[sbIdx],r.smallBlind);post(seated[bbIdx],r.bigBlind);h.currentBet=Math.max(h.p[seated[sbIdx].userId].roundBet,h.p[seated[bbIdx].userId].roundBet);
   const firstIdx=nextEligibleIndex(seated,bbIdx,p=>!h.p[p.userId].folded&&!h.p[p.userId].allIn);
   h.turnUserId=firstIdx>=0?seated[firstIdx].userId:null;
+  h.turnStartedAt=now();
   if(!h.turnUserId) pokerRunout(r);
 }
 function pokerAdvanceTurn(r,currentUserId){
   const h=r.hand, arr=pokerHandPlayers(r), idx=arr.findIndex(p=>p.userId===currentUserId);
   const ni=nextEligibleIndex(arr,idx,p=>{const hp=h.p[p.userId];return !hp.folded&&!hp.allIn;});
   h.turnUserId=ni>=0?arr[ni].userId:null;
+  h.turnStartedAt=now();
 }
 function pokerRoundComplete(r){
   const h=r.hand; const active=pokerHandPlayers(r).filter(p=>!h.p[p.userId].folded);
@@ -699,6 +701,7 @@ function pokerAdvanceStreet(r){
   const arr=pokerHandPlayers(r), dealerIdx=arr.findIndex(p=>p.seat===h.dealerSeat);
   const ni=nextEligibleIndex(arr,dealerIdx,p=>{const hp=h.p[p.userId];return !hp.folded&&!hp.allIn;});
   h.turnUserId=ni>=0?arr[ni].userId:null;
+  h.turnStartedAt=now();
 }
 function pokerAwardSingle(r,winner){
   const h=r.hand,pot=pokerPot(h);winner.stack+=pot;
@@ -761,7 +764,7 @@ function pokerView(r,userId){
   const players={};for(const rp of pokerHandPlayers(r)){const hp=h.p[rp.userId];players[rp.userId]={roundBet:hp.roundBet,totalBet:hp.totalBet,folded:hp.folded,allIn:hp.allIn,acted:hp.acted,hole:(rp.userId===userId||reveal&&!hp.folded)?hp.hole:['XX','XX']};}
   const me=players[userId];
   const myCards=me?[...(me.hole||[]),...(h.board||[])].filter(c=>c&&c!=='XX'):[];
-  return {phase:h.phase,startedAt:h.startedAt,board:h.board,players,currentBet:h.currentBet,minRaise:h.minRaise,turnUserId:h.turnUserId,pot:pokerPot(h),dealerSeat:h.dealerSeat,result:h.result,myHand:pokerHandStatus(myCards),legal:me&&h.turnUserId===userId?{toCall:Math.max(0,h.currentBet-me.roundBet),minRaiseTo:h.currentBet+h.minRaise,maxRaiseTo:(roomPlayer(r,userId)?.stack||0)+me.roundBet}:null};
+  return {phase:h.phase,startedAt:h.startedAt,turnStartedAt:h.turnStartedAt,turnDeadlineAt:r.solo?null:Number(h.turnStartedAt||now())+10000,board:h.board,players,currentBet:h.currentBet,minRaise:h.minRaise,turnUserId:h.turnUserId,pot:pokerPot(h),dealerSeat:h.dealerSeat,result:h.result,myHand:pokerHandStatus(myCards),legal:me&&h.turnUserId===userId?{toCall:Math.max(0,h.currentBet-me.roundBet),minRaiseTo:h.currentBet+h.minRaise,maxRaiseTo:(roomPlayer(r,userId)?.stack||0)+me.roundBet}:null};
 }
 
 // ---------- Yut engine v0.7: stacking / shortcuts / teams ----------
@@ -872,14 +875,15 @@ function pokerBotDrive(r,userId){
     if(!hp||!rp)break;
     const toCall=Math.max(0,h.currentBet-hp.roundBet);
     let action='check',raiseTo=0;
-    const boardCount=h.board.length;
-    const aggression=boardCount>=3 ? 0.28 : 0.20;
+    const boardCount=h.board.length,status=pokerHandStatus([...(hp.hole||[]),...(h.board||[])]),strength=Math.max(0,Number(status.rankLevel||0));
+    const aggression=Math.min(.72,(boardCount>=3?.24:.14)+strength*.09);
     if(toCall===0){
-      if(rp.stack>r.bigBlind*4 && Math.random()<aggression){action='raise';raiseTo=Math.min(hp.roundBet+rp.stack,Math.max(h.currentBet+h.minRaise,h.currentBet+r.bigBlind*2));}
+      if(rp.stack>r.bigBlind*4 && Math.random()<aggression){action='raise';const size=strength>=3?Math.max(h.minRaise,Math.floor(Math.max(r.bigBlind*2,pokerPot(h)*.65)/r.bigBlind)*r.bigBlind):Math.max(h.minRaise,r.bigBlind*2);raiseTo=Math.min(hp.roundBet+rp.stack,h.currentBet+size);}
     }else{
-      const pressure=toCall/Math.max(1,rp.stack+toCall);
-      if(pressure>.45 && Math.random()<.52) action='fold';
-      else if(rp.stack>toCall+r.bigBlind*5 && Math.random()<.16){action='raise';raiseTo=Math.min(hp.roundBet+rp.stack,h.currentBet+Math.max(h.minRaise,r.bigBlind*2));}
+      const pressure=toCall/Math.max(1,rp.stack+toCall),potPressure=toCall/Math.max(1,pokerPot(h));
+      const foldChance=Math.max(.04,Math.min(.9,.14+pressure*.75+potPressure*.35-strength*.17));
+      if(Math.random()<foldChance) action='fold';
+      else if(strength>=2&&rp.stack>toCall+r.bigBlind*4&&Math.random()<.22+strength*.06){action='raise';raiseTo=Math.min(hp.roundBet+rp.stack,h.currentBet+Math.max(h.minRaise,Math.floor(Math.max(r.bigBlind*2,pokerPot(h)*.55)/r.bigBlind)*r.bigBlind));}
       else action='call';
     }
     try{pokerAction(r,botId,action,raiseTo)}catch{try{pokerAction(r,botId,toCall?'call':'check',0)}catch{break}}
@@ -980,13 +984,17 @@ const HORSES=[
   {id:6,name:'신동',speed:86,stamina:91,finish:90,color:'#d9e1ed',coat:'#4b3024'},
   {id:7,name:'준자',speed:95,stamina:85,finish:96,color:'#5ae0ad',coat:'#2e211b'}
 ];
-function oddsRound(n,min,max){return Number(Math.max(min,Math.min(max,n)).toFixed(1));}
+// Racing odds are displayed and settled as whole-number multipliers.
+function oddsRound(n,min,max){return Math.floor(Math.max(min,Math.min(max,n)));}
 function horseCard(){
-  const entries=HORSES.map(h=>{
+  // Shuffle the draw order every meet so a horse is not tied to one lane.
+  const laneDraw=[...HORSES];
+  for(let i=laneDraw.length-1;i>0;i--){const j=crypto.randomInt(i+1);[laneDraw[i],laneDraw[j]]=[laneDraw[j],laneDraw[i]];}
+  const entries=laneDraw.map((h,laneIndex)=>{
     const power=h.speed*.44+h.stamina*.24+h.finish*.32;
     const form=crypto.randomInt(84,117)/100;
     const raw=Math.pow((power*form)/100,4.7);
-    return {...h,power:Number(power.toFixed(2)),form:Number(form.toFixed(2)),raw};
+    return {...h,lane:laneIndex+1,power:Number(power.toFixed(2)),form:Number(form.toFixed(2)),raw};
   });
   const total=entries.reduce((a,h)=>a+h.raw,0)||1;
   const horses=entries.map(h=>{
@@ -1032,7 +1040,7 @@ function settleRace(userId,bet,type,picks,card,order){
   return {won,placeBonus,finishRank,mult,payout,winMult};
 }
 let horseMeet=null;
-const HORSE_BET_WINDOW_MS=8000,HORSE_RUN_MS=6500,HORSE_RESULT_MS=4000;
+const HORSE_BET_WINDOW_MS=11000,HORSE_RUN_MS=6500,HORSE_RESULT_MS=4000;
 function newHorseMeet(){
   const t=now();horseMeet={id:randomToken(5).toUpperCase(),card:horseCard(),phase:'betting',openedAt:t,bettingClosesAt:t+HORSE_BET_WINDOW_MS,startedAt:null,finishAt:null,resultUntil:null,order:null,bets:new Map(),results:new Map()};return horseMeet;
 }
@@ -1091,7 +1099,7 @@ const BIG_WHEEL_SEGMENTS = [
   ...Array(4).fill({key:'x5',label:'×5',mult:5}),
   ...Array(2).fill({key:'x10',label:'×10',mult:10}),
   {key:'x15',label:'×15',mult:15},
-  {key:'junja',label:'JUNJA',mult:20}
+  {key:'junja',label:'JUNJA',mult:40}
 ];
 const BIG_WHEEL_BETS = [...new Map(BIG_WHEEL_SEGMENTS.map(x=>[x.key,x])).values()];
 function bigWheelSpin(userId,bet,key){
@@ -1423,7 +1431,15 @@ function activeRoomReactions(r){
   return Object.values(r.reactions).map(x=>({userId:x.userId,nickname:x.nickname,key:x.key,emoji:x.emoji,label:x.label,at:x.at,expiresAt:x.expiresAt}));
 }
 
+function expirePokerTurn(r){
+  const h=r?.hand;if(r?.solo||r?.game!=='holdem'||!h||h.phase==='complete'||!h.turnUserId)return;
+  if(now()-Number(h.turnStartedAt||h.startedAt||now())<10000)return;
+  const expired=h.turnUserId;
+  try{pokerAction(r,expired,'fold',0);if(h.result)h.result.timeoutUserId=expired;touchRoom(r);}catch(e){console.warn('[HOLDem timeout]',e.message);}
+}
+
 function personalizedRoom(r,userId){
+  expirePokerTurn(r);
   const turnUserId=currentTurnUserId(r),turnPlayer=turnUserId!=null?roomPlayer(r,turnUserId):null;
   return {
     id:r.id,name:r.name,game:r.game,buyIn:r.buyIn,allWallet:!!r.allWallet,maxPlayers:r.maxPlayers,hostId:r.hostId,status:roomStatus(r),smallBlind:r.smallBlind,bigBlind:r.bigBlind,yutMode:r.yutMode||'individual',yutModeLabel:yutModeLabel(r.yutMode||'individual'),
