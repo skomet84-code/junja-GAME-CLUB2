@@ -607,6 +607,22 @@ function liveFloorMembers(game){
 
 function roomStatus(r){ if(r.game==='holdem') return r.hand && r.hand.phase!=='complete'?'PLAYING':'WAITING'; if(r.game==='sevenpoker') return r.seven && !r.seven.complete?'PLAYING':'WAITING'; if(r.game==='seotda') return r.seotda&&r.seotda.phase!=='complete'?'PLAYING':'WAITING'; if(r.game==='yut') return r.yut?.phase==='playing'?'PLAYING':'WAITING'; return 'WAITING'; }
 function roomReadyCount(r){return r.players.filter(p=>p.ready).length;}
+function holdemAutoStartEligible(r){
+  return !!r&&r.game==='holdem'&&roomStatus(r)==='WAITING'&&r.players.length>=2&&r.players.every(p=>!!p.ready)&&r.players.filter(p=>Number(p.stack||0)>0).length>=2;
+}
+function holdemAutoStartAt(r){
+  if(!holdemAutoStartEligible(r)){r.holdemAutoStartAt=null;return null;}
+  const current=Number(r.holdemAutoStartAt||0);
+  if(!Number.isFinite(current)||current<=0)r.holdemAutoStartAt=now()+5000;
+  return Number(r.holdemAutoStartAt);
+}
+function maybeAutoStartHoldem(r){
+  const at=holdemAutoStartAt(r);
+  if(!at||now()<at)return false;
+  r.holdemAutoStartAt=null;
+  try{pokerStart(r);touchRoom(r);pushRefresh(r.id);return true;}
+  catch(e){console.warn('[HOLDem auto-start]',e.message);return false;}
+}
 function roomSummary(r){return {id:r.id,name:r.name,game:r.game,buyIn:r.buyIn,allWallet:!!r.allWallet,maxPlayers:r.maxPlayers,players:r.players.length,hostNickname:r.players.find(p=>p.userId===r.hostId)?.nickname||'호스트',status:roomStatus(r),smallBlind:r.smallBlind,bigBlind:r.bigBlind,yutMode:r.yutMode||'individual',yutModeLabel:yutModeLabel(r.yutMode||'individual'),readyCount:roomReadyCount(r),version:r.version||0,updatedAt:r.updatedAt||r.createdAt,participants:orderedPlayers(r).map(p=>({userId:p.userId,nickname:p.nickname,avatar:p.avatar,cosmetics:cosmeticsPublic(p.userId),ready:!!p.ready,seat:p.seat}))};}
 function findRoom(id){ return rooms.get(String(id)); }
 function roomPlayer(r,userId){ return r.players.find(p=>p.userId===userId); }
@@ -1510,10 +1526,11 @@ function expirePokerTurn(r){
 
 function personalizedRoom(r,userId){
   expirePokerTurn(r);
+  maybeAutoStartHoldem(r);
   const turnUserId=currentTurnUserId(r),turnPlayer=turnUserId!=null?roomPlayer(r,turnUserId):null;
   return {
     id:r.id,name:r.name,game:r.game,buyIn:r.buyIn,allWallet:!!r.allWallet,maxPlayers:r.maxPlayers,hostId:r.hostId,status:roomStatus(r),smallBlind:r.smallBlind,bigBlind:r.bigBlind,yutMode:r.yutMode||'individual',yutModeLabel:yutModeLabel(r.yutMode||'individual'),
-    version:r.version||0,updatedAt:r.updatedAt||r.createdAt,readyCount:roomReadyCount(r),allReady:r.players.length>=2&&r.players.every(p=>!!p.ready),
+    version:r.version||0,updatedAt:r.updatedAt||r.createdAt,readyCount:roomReadyCount(r),allReady:r.players.length>=2&&r.players.every(p=>!!p.ready),autoStartAt:holdemAutoStartAt(r),
     turnUserId,turnNickname:turnPlayer?.nickname||null,myTurn:turnUserId===userId,
     players:orderedPlayers(r).map(p=>({...p,ready:!!p.ready,avatarEmoji:AVATARS[p.avatar%AVATARS.length],cosmetics:cosmeticsPublic(p.userId)})),
     reactions:activeRoomReactions(r),

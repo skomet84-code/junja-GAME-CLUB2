@@ -1,5 +1,5 @@
-const CACHE='junja-club-v284-yut-horse';
-const ASSETS=['/','/style.css?v=284','/app.js?v=284','/manifest.webmanifest?v=284','/v26-visual.css?v=284','/v28-yut-horse.css?v=284','/art/v28/horses/horse-1.webp','/art/v28/horses/horse-2.webp','/art/v28/horses/horse-3.webp','/art/v28/horses/horse-4.webp','/art/v28/horses/horse-5.webp','/art/v28/horses/horse-6.webp','/art/v28/horses/horse-7.webp','/art/v28/yut/stick-back.webp','/art/v28/yut/stick-marked.webp','/art/v28/yut/token-tiger.webp','/art/v28/yut/token-rabbit.webp','/art/v28/yut/token-fox.webp','/art/v28/yut/token-bear.webp'];
+const CACHE='junja-club-v285-yut-horse';
+const ASSETS=['/','/style.css?v=285','/app.js?v=285','/manifest.webmanifest?v=285','/v26-visual.css?v=285','/v28-yut-horse.css?v=285','/art/v28/horses/horse-1.webp','/art/v28/horses/horse-2.webp','/art/v28/horses/horse-3.webp','/art/v28/horses/horse-4.webp','/art/v28/horses/horse-5.webp','/art/v28/horses/horse-6.webp','/art/v28/horses/horse-7.webp','/art/v28/yut/stick-back.webp','/art/v28/yut/stick-marked.webp','/art/v28/yut/token-tiger.webp','/art/v28/yut/token-rabbit.webp','/art/v28/yut/token-fox.webp','/art/v28/yut/token-bear.webp'];
 self.addEventListener('install',e=>e.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS)).then(()=>self.skipWaiting())));
 self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));
 self.addEventListener('fetch',e=>{
