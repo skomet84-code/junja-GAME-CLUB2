@@ -1,8 +1,8 @@
 {
   "name": "junja-game-club",
-  "version": "2.8.1",
+  "version": "2.8.2",
   "private": true,
-  "description": "JUNJA LAND v2.8.1 - balanced solo Hold'em AI with stronger pre-flop defense and smarter aggression.",
+  "description": "JUNJA LAND v2.8.2 - finer solo Hold'em AI with street-aware pressure, pot odds, draws, position, stack depth and controlled bluffs.",
   "type": "commonjs",
   "scripts": {
     "start": "node admin-unlimited-start.js",
