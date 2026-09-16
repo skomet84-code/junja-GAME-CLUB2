@@ -623,6 +623,11 @@ function maybeAutoStartHoldem(r){
   try{pokerStart(r);touchRoom(r);pushRefresh(r.id);return true;}
   catch(e){console.warn('[HOLDem auto-start]',e.message);return false;}
 }
+// Production-safe server sweep: first hand and every following hand start even if a client poll is delayed/paused.
+const holdemAutoStartSweep=setInterval(()=>{
+  for(const r of rooms.values())if(r?.game==='holdem')maybeAutoStartHoldem(r);
+},250);
+holdemAutoStartSweep.unref?.();
 function roomSummary(r){return {id:r.id,name:r.name,game:r.game,buyIn:r.buyIn,allWallet:!!r.allWallet,maxPlayers:r.maxPlayers,players:r.players.length,hostNickname:r.players.find(p=>p.userId===r.hostId)?.nickname||'호스트',status:roomStatus(r),smallBlind:r.smallBlind,bigBlind:r.bigBlind,yutMode:r.yutMode||'individual',yutModeLabel:yutModeLabel(r.yutMode||'individual'),readyCount:roomReadyCount(r),version:r.version||0,updatedAt:r.updatedAt||r.createdAt,participants:orderedPlayers(r).map(p=>({userId:p.userId,nickname:p.nickname,avatar:p.avatar,cosmetics:cosmeticsPublic(p.userId),ready:!!p.ready,seat:p.seat}))};}
 function findRoom(id){ return rooms.get(String(id)); }
 function roomPlayer(r,userId){ return r.players.find(p=>p.userId===userId); }
