@@ -117,6 +117,54 @@ source = replaceOne(
   'yut center shortcut'
 );
 
+// Hold'em AI v2.8.1: keep J-BOT from over-folding, especially pre-flop.
+// Score hole cards separately because pokerHandStatus() naturally reports most
+// two-card holdings as high-card only. Cheap calls are defended much more often,
+// premium hands raise more often, and only real pressure makes weak holdings fold.
+source = replaceOne(
+  source,
+  'function pokerBotDrive(r,userId){',
+  `function holdemBotHoleScore(cards){
+  const hole=(cards||[]).filter(c=>c&&c!=='XX').slice(0,2);
+  if(hole.length<2)return .35;
+  const vals=hole.map(c=>rankVal(c[0])).sort((a,b)=>b-a),high=vals[0],low=vals[1];
+  const paired=high===low,suited=hole[0][1]===hole[1][1],gap=Math.abs(high-low);
+  let score=.18+Math.max(0,high-8)*.045+Math.max(0,low-7)*.025;
+  if(paired)score=.52+(high/14)*.4;
+  if(suited)score+=.08;
+  if(gap<=1)score+=.08;else if(gap===2)score+=.04;else if(gap>=5)score-=.06;
+  if(high===14)score+=.08;
+  if(high>=13&&low>=10)score+=.12;
+  return Math.max(.08,Math.min(.98,score));
+}
+function pokerBotDrive(r,userId){`,
+  'holdem bot preflop evaluator'
+);
+source = replaceOne(
+  source,
+  '    const boardCount=h.board.length,status=pokerHandStatus([...(hp.hole||[]),...(h.board||[])]),strength=Math.max(0,Number(status.rankLevel||0));',
+  "    const boardCount=h.board.length,status=pokerHandStatus([...(hp.hole||[]),...(h.board||[])]),strength=Math.max(0,Number(status.rankLevel||0)),holeStrength=holdemBotHoleScore(hp.hole||[]),drawBonus=Math.min(.45,Number(status.draws?.length||0)*.18),effectiveStrength=strength+drawBonus+(boardCount===0?holeStrength*1.7:holeStrength*.3);",
+  'holdem bot effective strength'
+);
+source = replaceOne(
+  source,
+  '    const aggression=Math.min(.72,(boardCount>=3?.24:.14)+strength*.09);',
+  '    const aggression=Math.min(.82,.12+holeStrength*.28+effectiveStrength*.11+(boardCount>=3?.05:0));',
+  'holdem bot aggression'
+);
+source = replaceOne(
+  source,
+  "      if(rp.stack>r.bigBlind*4 && Math.random()<aggression){action='raise';const size=strength>=3?Math.max(h.minRaise,Math.floor(Math.max(r.bigBlind*2,pokerPot(h)*.65)/r.bigBlind)*r.bigBlind):Math.max(h.minRaise,r.bigBlind*2);raiseTo=Math.min(hp.roundBet+rp.stack,h.currentBet+size);}",
+  "      if(rp.stack>r.bigBlind*4 && Math.random()<aggression){action='raise';const size=effectiveStrength>=2.6||holeStrength>=.8?Math.max(h.minRaise,Math.floor(Math.max(r.bigBlind*2,pokerPot(h)*.65)/r.bigBlind)*r.bigBlind):Math.max(h.minRaise,r.bigBlind*2);raiseTo=Math.min(hp.roundBet+rp.stack,h.currentBet+size);}",
+  'holdem bot value raise sizing'
+);
+source = replaceOne(
+  source,
+  "      const pressure=toCall/Math.max(1,rp.stack+toCall),potPressure=toCall/Math.max(1,pokerPot(h));\n      const foldChance=Math.max(.04,Math.min(.9,.14+pressure*.75+potPressure*.35-strength*.17));\n      if(Math.random()<foldChance) action='fold';\n      else if(strength>=2&&rp.stack>toCall+r.bigBlind*4&&Math.random()<.22+strength*.06){action='raise';raiseTo=Math.min(hp.roundBet+rp.stack,h.currentBet+Math.max(h.minRaise,Math.floor(Math.max(r.bigBlind*2,pokerPot(h)*.55)/r.bigBlind)*r.bigBlind));}\n      else action='call';",
+  "      const pot=Math.max(1,pokerPot(h)),pressure=toCall/Math.max(1,rp.stack+toCall),potOdds=toCall/Math.max(1,pot+toCall),cheapCall=toCall<=Math.max(r.bigBlind*2,pot*.22);\n      const foldChance=cheapCall?Math.max(.01,.07-holeStrength*.05):Math.max(.035,Math.min(.68,.08+pressure*.55+potOdds*.5-effectiveStrength*.15-holeStrength*.28));\n      const raiseChance=Math.min(.72,.12+effectiveStrength*.1+holeStrength*.3);\n      if((effectiveStrength>=2||holeStrength>=.74)&&rp.stack>toCall+r.bigBlind*4&&Math.random()<raiseChance){action='raise';raiseTo=Math.min(hp.roundBet+rp.stack,h.currentBet+Math.max(h.minRaise,Math.floor(Math.max(r.bigBlind*2,pot*.55)/r.bigBlind)*r.bigBlind));}\n      else if(Math.random()<foldChance) action='fold';\n      else action='call';",
+  'holdem bot call fold balance'
+);
+
 const runtimeServer = new Module(serverPath, module);
 runtimeServer.filename = serverPath;
 runtimeServer.paths = Module._nodeModulePaths(__dirname);
