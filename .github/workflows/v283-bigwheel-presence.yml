@@ -1,0 +1,96 @@
+name: JUNJA LAND v2.8.3 Big Wheel + Presence
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/v283-bigwheel-presence.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch-test-commit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Apply v2.8.3 patch
+        run: node scripts/v283-bigwheel-presence-patch.cjs
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Syntax checks
+        run: npm run check
+
+      - name: Runtime and presence smoke
+        env:
+          PORT: '18080'
+          DATA_DIR: ${{ runner.temp }}/junja-v283-data
+        shell: bash
+        run: |
+          npm start >/tmp/junja-v283.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill $SERVER_PID 2>/dev/null || true' EXIT
+          for i in {1..35}; do
+            if curl -fsS http://127.0.0.1:18080/ >/tmp/index-v283.html; then break; fi
+            sleep 1
+          done
+          curl -fsS http://127.0.0.1:18080/ >/tmp/index-v283.html
+          grep -q '99칸' /tmp/index-v283.html
+          grep -q '×60' /tmp/index-v283.html
+          grep -q '10,000,000G' /tmp/index-v283.html
+          curl -fsS http://127.0.0.1:18080/app.js >/tmp/app-v283.js
+          grep -q 'BIG_WHEEL_KEYS' /tmp/app-v283.js
+          grep -q 'renderLobbyPresence' /tmp/app-v283.js
+
+          curl -fsS -c /tmp/v283-cookie.txt -H 'Content-Type: application/json' \
+            -d '{"username":"presenceci","nickname":"접속테스터","password":"test1234"}' \
+            http://127.0.0.1:18080/api/register >/tmp/register-v283.json
+          curl -sS -N -b /tmp/v283-cookie.txt http://127.0.0.1:18080/api/events >/tmp/events-v283.txt 2>/dev/null &
+          SSE_PID=$!
+          sleep 1
+          curl -fsS -b /tmp/v283-cookie.txt http://127.0.0.1:18080/api/me >/tmp/me-v283.json
+          node - <<'NODE'
+          const fs=require('fs');
+          const d=JSON.parse(fs.readFileSync('/tmp/me-v283.json','utf8'));
+          if(!Array.isArray(d.presence)||!d.presence.some(x=>x.nickname==='접속테스터'))throw new Error('presence roster missing');
+          const p=d.presence.find(x=>x.nickname==='접속테스터');
+          if(p.gameLabel!=='로비'||p.stateLabel!=='대기중')throw new Error('unexpected initial presence '+JSON.stringify(p));
+          NODE
+          kill $SSE_PID 2>/dev/null || true
+
+          curl -fsS -b /tmp/v283-cookie.txt -H 'Content-Type: application/json' \
+            -d '{"bet":1000,"key":"x2"}' \
+            http://127.0.0.1:18080/api/bigwheel/spin >/tmp/wheel-v283.json
+          node - <<'NODE'
+          const fs=require('fs');
+          const d=JSON.parse(fs.readFileSync('/tmp/wheel-v283.json','utf8'));
+          if(!d.result||d.result.index<0||d.result.index>=99)throw new Error('big wheel result index is not 99-segment compatible');
+          if(d.result.landed?.key==='junja'&&d.result.landed.mult!==60)throw new Error('JUNJA multiplier is not x60');
+          NODE
+
+      - name: Commit tested v2.8.3
+        shell: bash
+        run: |
+          git config user.name 'skomet84-code'
+          git config user.email 'skomet84@gmail.com'
+          git add server.js public/app.js public/index.html public/style.css public/sw.js VERSION.txt package.json
+          if git diff --cached --quiet; then
+            echo 'No changes to commit.'
+            exit 0
+          fi
+          git commit -m 'feat: JUNJA LAND v2.8.3 big wheel 99 and live presence'
+          git push origin HEAD:main
+
+      - name: Print server log on failure
+        if: failure()
+        run: cat /tmp/junja-v283.log || true
