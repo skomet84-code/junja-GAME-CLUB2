@@ -1,0 +1,241 @@
+name: JUNJA LAND v2.8.6 Verified Live Sync
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/v286-live-sync.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  verify-patch-deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Apply v2.8.6 verified sync patch
+        run: node scripts/v286-live-sync-patch.cjs
+
+      - name: Verify source definitions
+        shell: bash
+        run: |
+          node - <<'NODE'
+          const fs=require('fs');
+          for(const file of ['server.js','public/app.js']){
+            const s=fs.readFileSync(file,'utf8');
+            const m=s.match(/const BIG_WHEEL_KEYS=(\[[^\n]+\]);/);
+            if(!m)throw new Error(file+' BIG_WHEEL_KEYS missing');
+            const keys=Function('return '+m[1])();
+            const counts=Object.fromEntries(['x2','x3','x5','x10','x15','junja'].map(k=>[k,keys.filter(x=>x===k).length]));
+            if(keys.length!==77)throw new Error(file+' wheel length '+keys.length);
+            if(JSON.stringify(counts)!==JSON.stringify({x2:32,x3:19,x5:13,x10:6,x15:5,junja:2}))throw new Error(file+' wheel counts '+JSON.stringify(counts));
+            if(keys[0]!=='junja'||keys[38]!=='junja')throw new Error(file+' JUNJA positions wrong');
+            if(keys.some((x,i)=>x===keys[(i+1)%keys.length]))throw new Error(file+' adjacent duplicates');
+            if(!/junja:\{key:'junja',label:'JUNJA',mult:100\}/.test(s))throw new Error(file+' JUNJA x100 missing');
+          }
+          const server=fs.readFileSync('server.js','utf8');
+          if(!server.includes('holdemAutoStartSweep=setInterval'))throw new Error('server-driven Holdem sweep missing');
+          const app=fs.readFileSync('public/app.js','utf8');
+          for(const text of ['전원 READY · 5초 뒤 자동 시작!','다음 핸드가 자동 시작돼','첫 핸드','다음 핸드'])if(!app.includes(text))throw new Error('client auto-start copy missing: '+text);
+          const html=fs.readFileSync('public/index.html','utf8');
+          for(const text of ['VERSION 2.8.6','77칸 대형 휠','총 <b>77칸</b>','JUNJA 제발','★ ×100 · 단 2칸 ★'])if(!html.includes(text))throw new Error('index marker missing: '+text);
+          NODE
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Syntax checks
+        run: npm run check
+
+      - name: Production-command simulation - Big Wheel and multiplayer Holdem
+        env:
+          PORT: '18080'
+          DATA_DIR: ${{ runner.temp }}/junja-v286-data
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm start >/tmp/junja-v286.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill $SERVER_PID 2>/dev/null || true' EXIT
+          for i in {1..40}; do
+            if curl -fsS http://127.0.0.1:18080/ >/tmp/index-v286.html; then break; fi
+            sleep 1
+          done
+
+          curl -fsS http://127.0.0.1:18080/ >/tmp/index-v286.html
+          grep -q 'VERSION 2.8.6' /tmp/index-v286.html
+          grep -q '77칸 대형 휠' /tmp/index-v286.html
+          grep -q '총 <b>77칸</b>' /tmp/index-v286.html
+          grep -q 'JUNJA 제발' /tmp/index-v286.html
+          grep -q '×100' /tmp/index-v286.html
+          if grep -q '99칸 대형 휠' /tmp/index-v286.html; then echo 'stale 99 wheel copy served' >&2; exit 1; fi
+
+          curl -fsS http://127.0.0.1:18080/app.js >/tmp/app-v286.js
+          grep -q '★JUNJA★' /tmp/app-v286.js
+          grep -q '전원 READY · 5초 뒤 자동 시작!' /tmp/app-v286.js
+          grep -q '다음 핸드가 자동 시작돼' /tmp/app-v286.js
+          node - <<'NODE'
+          const fs=require('fs');
+          const s=fs.readFileSync('/tmp/app-v286.js','utf8');
+          const m=s.match(/const BIG_WHEEL_KEYS=(\[[^\n]+\]);/);if(!m)throw new Error('served BIG_WHEEL_KEYS missing');
+          const keys=Function('return '+m[1])();
+          if(keys.length!==77||keys.filter(x=>x==='junja').length!==2)throw new Error('served wheel definition mismatch');
+          if(!/junja:\{key:'junja',label:'JUNJA',mult:100\}/.test(s))throw new Error('served JUNJA x100 missing');
+          NODE
+
+          # Big Wheel API simulation: 30 actual spins, every returned index must fit 77 segments.
+          curl -fsS -c /tmp/wheel.cookie -H 'Content-Type: application/json' \
+            -d '{"username":"wheel286ci","nickname":"휠검증286","password":"test1234"}' \
+            http://127.0.0.1:18080/api/register >/tmp/wheel-user.json
+          for i in $(seq 1 30); do
+            curl -fsS -b /tmp/wheel.cookie -H 'Content-Type: application/json' \
+              -d '{"bet":1000,"key":"x2"}' \
+              http://127.0.0.1:18080/api/bigwheel/spin > /tmp/wheel-$i.json
+          done
+          node - <<'NODE'
+          const fs=require('fs');
+          for(let i=1;i<=30;i++){
+            const d=JSON.parse(fs.readFileSync(`/tmp/wheel-${i}.json`,'utf8'));
+            if(!d.result||d.result.index<0||d.result.index>=77)throw new Error('wheel index outside 77 at spin '+i);
+            if(d.result.landed?.key==='junja'&&d.result.landed.mult!==100)throw new Error('JUNJA was not x100 at spin '+i);
+          }
+          NODE
+
+          # Multiplayer Holdem simulation: two real API users, no client polling needed for server auto-start.
+          curl -fsS -c /tmp/p1.cookie -H 'Content-Type: application/json' \
+            -d '{"username":"holdem286a","nickname":"홀덤검증A","password":"test1234"}' \
+            http://127.0.0.1:18080/api/register >/tmp/p1.json
+          curl -fsS -c /tmp/p2.cookie -H 'Content-Type: application/json' \
+            -d '{"username":"holdem286b","nickname":"홀덤검증B","password":"test1234"}' \
+            http://127.0.0.1:18080/api/register >/tmp/p2.json
+          curl -fsS -b /tmp/p1.cookie -H 'Content-Type: application/json' \
+            -d '{"game":"holdem","maxPlayers":2}' \
+            http://127.0.0.1:18080/api/rooms >/tmp/room-create.json
+          ROOM_ID=$(node -e "const d=require('/tmp/room-create.json');process.stdout.write(d.room.id)")
+          curl -fsS -b /tmp/p2.cookie -H 'Content-Type: application/json' -d '{}' \
+            http://127.0.0.1:18080/api/rooms/$ROOM_ID/join >/tmp/join.json
+          curl -fsS -b /tmp/p1.cookie -H 'Content-Type: application/json' -d '{}' \
+            http://127.0.0.1:18080/api/rooms/$ROOM_ID/ready >/tmp/ready1.json
+          curl -fsS -b /tmp/p2.cookie -H 'Content-Type: application/json' -d '{}' \
+            http://127.0.0.1:18080/api/rooms/$ROOM_ID/ready >/tmp/ready2.json
+          node - <<'NODE'
+          const d=require('/tmp/ready2.json');
+          if(!d.room?.allReady)throw new Error('Holdem players not all READY');
+          if(d.room?.status!=='WAITING')throw new Error('Holdem should count down before first hand');
+          if(!Number.isFinite(Number(d.room?.autoStartAt)))throw new Error('first-hand autoStartAt missing');
+          NODE
+
+          # Do not poll the room during countdown: proves the server sweep starts it by itself.
+          sleep 6
+          curl -fsS -b /tmp/p1.cookie http://127.0.0.1:18080/api/rooms/$ROOM_ID >/tmp/first-hand.json
+          node - <<'NODE'
+          const fs=require('fs'),d=JSON.parse(fs.readFileSync('/tmp/first-hand.json','utf8'));
+          if(d.room?.status!=='PLAYING'||!d.room?.hand||d.room.hand.phase==='complete')throw new Error('first multiplayer Holdem hand did not server-auto-start');
+          fs.writeFileSync('/tmp/first-start.txt',String(d.room.hand.startedAt));
+          const turn=d.room.turnUserId, p=d.room.players.find(x=>Number(x.userId)===Number(turn));
+          if(!p)throw new Error('turn player missing');
+          fs.writeFileSync('/tmp/turn-nick.txt',p.nickname);
+          NODE
+
+          TURN_NICK=$(cat /tmp/turn-nick.txt)
+          if [ "$TURN_NICK" = '홀덤검증A' ]; then TURN_COOKIE=/tmp/p1.cookie; else TURN_COOKIE=/tmp/p2.cookie; fi
+          curl -fsS -b "$TURN_COOKIE" -H 'Content-Type: application/json' -d '{"action":"fold","raiseTo":0}' \
+            http://127.0.0.1:18080/api/rooms/$ROOM_ID/poker/action >/tmp/after-fold.json
+          node - <<'NODE'
+          const d=require('/tmp/after-fold.json');
+          if(d.room?.status!=='WAITING'||d.room?.hand?.phase!=='complete')throw new Error('fold did not finish first hand');
+          if(!Number.isFinite(Number(d.room?.autoStartAt)))throw new Error('next-hand autoStartAt missing');
+          if(!d.room.players.every(p=>p.ready))throw new Error('READY state not preserved for auto-rematch');
+          NODE
+
+          # Again: no room polling while waiting. The server itself must start hand #2 after five seconds.
+          sleep 6
+          curl -fsS -b /tmp/p1.cookie http://127.0.0.1:18080/api/rooms/$ROOM_ID >/tmp/second-hand.json
+          node - <<'NODE'
+          const fs=require('fs'),d=JSON.parse(fs.readFileSync('/tmp/second-hand.json','utf8'));
+          const first=Number(fs.readFileSync('/tmp/first-start.txt','utf8'));
+          if(d.room?.status!=='PLAYING'||!d.room?.hand||d.room.hand.phase==='complete')throw new Error('second multiplayer Holdem hand did not auto-restart');
+          if(Number(d.room.hand.startedAt)<=first)throw new Error('second hand did not create a new hand timestamp');
+          if(d.room.autoStartAt!=null)throw new Error('autoStartAt should clear while hand is playing');
+          NODE
+
+      - name: Commit tested v2.8.6 to main
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'skomet84-code'
+          git config user.email 'skomet84@gmail.com'
+          git add server.js public/app.js public/index.html public/sw.js VERSION.txt package.json
+          if git diff --cached --quiet; then
+            echo 'No source changes to commit.'
+          else
+            git commit -m 'fix: JUNJA LAND v2.8.6 verify wheel 77 and server Holdem auto-restart'
+            git push origin HEAD:main
+          fi
+
+      - name: Trigger Render deploy when repository secrets are available
+        env:
+          RENDER_DEPLOY_HOOK: ${{ secrets.RENDER_DEPLOY_HOOK }}
+          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+          RENDER_SERVICE_ID: ${{ secrets.RENDER_SERVICE_ID }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -n "${RENDER_DEPLOY_HOOK:-}" ]; then
+            curl -fsS -X POST "$RENDER_DEPLOY_HOOK" >/tmp/render-trigger.txt
+            echo 'Render deploy hook triggered.'
+          elif [ -n "${RENDER_API_KEY:-}" ] && [ -n "${RENDER_SERVICE_ID:-}" ]; then
+            curl -fsS -X POST -H "Authorization: Bearer $RENDER_API_KEY" -H 'Content-Type: application/json' \
+              "https://api.render.com/v1/services/$RENDER_SERVICE_ID/deploys" -d '{}' >/tmp/render-trigger.txt
+            echo 'Render API deploy triggered.'
+          else
+            echo 'No Render deploy secret configured; waiting for Render Git auto-deploy.'
+          fi
+
+      - name: Verify deployed JUNJA LAND is actually v2.8.6
+        shell: bash
+        run: |
+          set -euo pipefail
+          LIVE='https://junja-game-club.onrender.com'
+          ok=0
+          for i in $(seq 1 72); do
+            if curl -LfsS --max-time 25 "$LIVE/" >/tmp/live-index.html 2>/tmp/live-curl.err; then
+              if grep -q 'VERSION 2.8.6' /tmp/live-index.html && grep -q '77칸 대형 휠' /tmp/live-index.html && grep -q 'JUNJA 제발' /tmp/live-index.html; then
+                ok=1; break
+              fi
+            fi
+            sleep 5
+          done
+          if [ "$ok" -ne 1 ]; then
+            echo 'Live deployment did not reach v2.8.6 within the verification window.' >&2
+            echo '---- live version markers ----' >&2
+            grep -o 'VERSION [0-9.]*' /tmp/live-index.html 2>/dev/null | head -5 >&2 || true
+            grep -o '[0-9][0-9]칸 대형 휠' /tmp/live-index.html 2>/dev/null | head -5 >&2 || true
+            cat /tmp/live-curl.err >&2 2>/dev/null || true
+            exit 1
+          fi
+          curl -LfsS --max-time 25 "$LIVE/app.js?v=286" >/tmp/live-app.js
+          grep -q '★JUNJA★' /tmp/live-app.js
+          grep -q '전원 READY · 5초 뒤 자동 시작!' /tmp/live-app.js
+          grep -q '다음 핸드가 자동 시작돼' /tmp/live-app.js
+          node - <<'NODE'
+          const fs=require('fs'),s=fs.readFileSync('/tmp/live-app.js','utf8');
+          const m=s.match(/const BIG_WHEEL_KEYS=(\[[^\n]+\]);/);if(!m)throw new Error('live BIG_WHEEL_KEYS missing');
+          const keys=Function('return '+m[1])();
+          if(keys.length!==77||keys.filter(x=>x==='junja').length!==2)throw new Error('live wheel is not 77/2 JUNJA');
+          if(!/junja:\{key:'junja',label:'JUNJA',mult:100\}/.test(s))throw new Error('live JUNJA x100 missing');
+          NODE
+          echo 'LIVE_DEPLOY_VERIFIED=v2.8.6'
+
+      - name: Print server log on failure
+        if: failure()
+        run: cat /tmp/junja-v286.log 2>/dev/null || true
