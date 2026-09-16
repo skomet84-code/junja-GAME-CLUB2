@@ -1,0 +1,104 @@
+name: JUNJA LAND v2.8.4 Big Wheel 77
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/v284-bigwheel77.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch-test-commit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Apply v2.8.4 patch
+        run: node scripts/v284-bigwheel77-patch.cjs
+
+      - name: Verify 77 wheel definition
+        shell: bash
+        run: |
+          node - <<'NODE'
+          const fs=require('fs');
+          for(const file of ['server.js','public/app.js']){
+            const s=fs.readFileSync(file,'utf8');
+            const m=s.match(/const BIG_WHEEL_KEYS=(\[[^\n]+\]);/);
+            if(!m)throw new Error(file+' BIG_WHEEL_KEYS missing');
+            const keys=Function('return '+m[1])();
+            if(keys.length!==77)throw new Error(file+' wheel is not 77: '+keys.length);
+            if(keys.filter(x=>x==='junja').length!==2||keys[0]!=='junja'||keys[38]!=='junja')throw new Error(file+' JUNJA slot layout mismatch');
+            if(keys.some((x,i)=>x===keys[(i+1)%keys.length]))throw new Error(file+' adjacent duplicate payouts');
+            if(!/junja:\{key:'junja',label:'JUNJA',mult:100\}/.test(s))throw new Error(file+' JUNJA x100 missing');
+          }
+          const html=fs.readFileSync('public/index.html','utf8');
+          if(!html.includes('총 <b>77칸</b>')||!html.includes('★ ×100 · 단 2칸 ★')||!html.includes('JUNJA 제발'))throw new Error('77/JUNJA presentation copy missing');
+          const version=fs.readFileSync('VERSION.txt','utf8');
+          if(!version.includes('v2.8.4')||!version.includes('BIG WHEEL 77')||!version.includes('JUNJA x100'))throw new Error('version marker missing');
+          NODE
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Syntax checks
+        run: npm run check
+
+      - name: Runtime smoke
+        env:
+          PORT: '18080'
+          DATA_DIR: ${{ runner.temp }}/junja-v284-data
+        shell: bash
+        run: |
+          npm start >/tmp/junja-v284.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill $SERVER_PID 2>/dev/null || true' EXIT
+          for i in {1..35}; do
+            if curl -fsS http://127.0.0.1:18080/ >/tmp/index-v284.html; then break; fi
+            sleep 1
+          done
+          curl -fsS http://127.0.0.1:18080/ >/tmp/index-v284.html
+          grep -q '77칸' /tmp/index-v284.html
+          grep -q '×100' /tmp/index-v284.html
+          grep -q 'JUNJA 제발' /tmp/index-v284.html
+          curl -fsS http://127.0.0.1:18080/app.js >/tmp/app-v284.js
+          grep -q "mult:100" /tmp/app-v284.js
+          grep -q "★JUNJA★" /tmp/app-v284.js
+
+          curl -fsS -c /tmp/v284-cookie.txt -H 'Content-Type: application/json' \
+            -d '{"username":"wheel77ci","nickname":"빅휠77테스터","password":"test1234"}' \
+            http://127.0.0.1:18080/api/register >/tmp/register-v284.json
+          curl -fsS -b /tmp/v284-cookie.txt -H 'Content-Type: application/json' \
+            -d '{"bet":1000,"key":"x2"}' \
+            http://127.0.0.1:18080/api/bigwheel/spin >/tmp/wheel-v284.json
+          node - <<'NODE'
+          const fs=require('fs');
+          const d=JSON.parse(fs.readFileSync('/tmp/wheel-v284.json','utf8'));
+          if(!d.result||d.result.index<0||d.result.index>=77)throw new Error('big wheel result index is not 77-segment compatible');
+          if(d.result.landed?.key==='junja'&&d.result.landed.mult!==100)throw new Error('JUNJA multiplier is not x100');
+          NODE
+
+      - name: Commit tested v2.8.4
+        shell: bash
+        run: |
+          git config user.name 'skomet84-code'
+          git config user.email 'skomet84@gmail.com'
+          git add server.js public/app.js public/index.html public/style.css public/sw.js VERSION.txt
+          if git diff --cached --quiet; then
+            echo 'No changes to commit.'
+            exit 0
+          fi
+          git commit -m 'feat: JUNJA LAND v2.8.4 big wheel 77 and JUNJA x100'
+          git push origin HEAD:main
+
+      - name: Print server log on failure
+        if: failure()
+        run: cat /tmp/junja-v284.log || true
