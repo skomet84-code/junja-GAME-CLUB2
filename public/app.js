@@ -30,7 +30,7 @@ function liveFace(p){return `<div class="live-player-face">${avatarImg(p.avatar,
 function renderLiveFloor(game,members=[]){
   const mount=ensureLiveFloorMount(game);if(!mount)return;
   const nowMs=Date.now(),others=members.filter(p=>Number(p.userId)!==Number(me?.id));
-  mount.innerHTML=`<div class="live-floor panel"><div class="live-floor-head"><div><small>LIVE FLOOR · ${html(LIVE_GAME_LABEL[game]||game.toUpperCase())}</small><h3><i></i> 실시간 참여자 <b>${members.length}</b>명</h3></div><span>${['holdem','yut','baccarat'].includes(game)?'방 참가자는 함께 플레이 · 진행 중엔 같은 게임 유저도 실시간 표시':'같은 게임에 들어온 유저와 동시에 플레이 · 결과는 각자 정산'}</span></div><div class="live-members">${members.map(p=>`<div class="live-member ${Number(p.userId)===Number(me?.id)?'me':''} ${nowMs-Number(p.joinedAt||0)<5000?'just-in':''}">${liveFace(p)}<div><b>${html(p.nickname)}</b>${equippedTitle(p.cosmetics)?`<em class="live-title">${html(equippedTitle(p.cosmetics))}</em>`:''}<small>${Number(p.userId)===Number(me?.id)?'나 · PLAYING':'ONLINE'}</small></div></div>`).join('')||'<div class="live-empty">아직 이 게임에 접속한 유저가 없어.</div>'}</div><div class="live-reaction-row"><span>말풍선</span>${reactionEntries().map(([k,[e,l]])=>`<button type="button" data-floor-reaction="${k}" title="${html(l)}"><b>${e}</b><small>${html(l)}</small></button>`).join('')}</div></div>`;
+  mount.innerHTML=`<div class="live-floor panel"><div class="live-floor-head"><div><small>LIVE FLOOR · ${html(LIVE_GAME_LABEL[game]||game.toUpperCase())}</small><h3><i></i> 실시간 참여자 <b>${members.length}</b>명</h3></div><span>${['holdem','yut','baccarat'].includes(game)?'방 참가자는 함께 플레이 · 진행 중엔 같은 게임 유저도 실시간 표시':'같은 게임에 들어온 유저와 동시에 플레이 · 결과는 각자 정산'}</span></div><div class="live-members">${members.map(p=>`<div class="live-member ${Number(p.userId)===Number(me?.id)?'me':''} ${nowMs-Number(p.joinedAt||0)<5000?'just-in':''}">${liveFace(p)}<div><b>${html(p.nickname)}</b>${equippedTitle(p.cosmetics)?`<em class="live-title">${html(equippedTitle(p.cosmetics))}</em>`:''}<small>${(Number(p.userId)===Number(me?.id)?'나 · ':'')+(p.state==='PLAYING'?'게임중':'대기중')}</small></div></div>`).join('')||'<div class="live-empty">아직 이 게임에 접속한 유저가 없어.</div>'}</div><div class="live-reaction-row"><span>말풍선</span>${reactionEntries().map(([k,[e,l]])=>`<button type="button" data-floor-reaction="${k}" title="${html(l)}"><b>${e}</b><small>${html(l)}</small></button>`).join('')}</div></div>`;
   $$('[data-floor-reaction]',mount).forEach(b=>b.onclick=()=>sendLiveReaction(b.dataset.floorReaction,b));
 }
 async function refreshLiveFloor(silent=true){
@@ -43,9 +43,17 @@ async function refreshLiveFloor(silent=true){
     liveKnownIds=ids;liveInitialized=true;renderLiveFloor(liveGame,d.members||[]);
   }catch(e){if(!silent)toast(e.message)}
 }
+function localPresenceState(){
+  if(currentView==='slot')return autoSpinRunning||$('#spinBtn')?.disabled?'PLAYING':'WAITING';
+  if(currentView==='horse')return horseRacing||horseAutoBusy?'PLAYING':'WAITING';
+  if(currentView==='bigwheel')return bigWheelSpinning||bigWheelAutoRunning?'PLAYING':'WAITING';
+  if(currentView==='sicbo')return sicboRolling||sicboAutoRunning?'PLAYING':'WAITING';
+  if(currentView==='roulette')return rouletteSpinning?'PLAYING':'WAITING';
+  return 'WAITING';
+}
 async function liveHeartbeat(){
   if(document.hidden||!liveGame||currentView!==liveGame)return;
-  try{const d=await api('/api/live/heartbeat',{method:'POST',body:JSON.stringify({game:liveGame})});renderLiveFloor(liveGame,d.members||[])}catch{}
+  try{const d=await api('/api/live/heartbeat',{method:'POST',body:JSON.stringify({game:liveGame,state:localPresenceState()})});renderLiveFloor(liveGame,d.members||[])}catch{}
 }
 function leaveLiveFloor(game){
   if(!game||!LIVE_GAME_VIEWS.has(game))return;
@@ -189,7 +197,12 @@ function closeHelp(){const modal=$('#helpModal');if(!modal)return;modal.classLis
 function switchMode(game,mode){$$(`[data-mode-game="${game}"]`).forEach(b=>b.classList.toggle('active',b.dataset.mode===mode));$(`#${game}MultiArea`)?.classList.toggle('hidden',mode!=='multi');$(`#${game}SoloArea`)?.classList.toggle('hidden',mode!=='solo');if(mode==='solo'){if(game==='holdem')loadSoloHoldem();else if(game==='yut')loadSoloYut();else if(game==='seotda')loadSeotda();else if(game==='sevenpoker')loadSevenPoker()}else loadRooms(game)}
 function connectEvents(){if(events)events.close();events=new EventSource('/api/events');events.onopen=()=>setNetworkState('online');events.onerror=()=>setNetworkState(navigator.onLine?'degraded':'offline');events.addEventListener('refresh',()=>{clearTimeout(refreshTimer);refreshTimer=setTimeout(async()=>{try{const d=await api('/api/me');me=d.user;updateHeader();if(liveGame&&currentView===liveGame)refreshLiveFloor(true);if(currentView==='slot')refreshSlotJackpot(true);if(currentRoomId)await loadCurrentRoom();else if(currentView==='lobby')await loadLobby(false);else if(currentView==='holdem'&&!$('#holdemMultiArea').classList.contains('hidden'))await loadRooms('holdem');else if(currentView==='sevenpoker'&&!$('#sevenpokerMultiArea').classList.contains('hidden'))await loadRooms('sevenpoker');else if(currentView==='seotda'&&!$('#seotdaMultiArea').classList.contains('hidden'))await loadRooms('seotda');else if(currentView==='yut'&&!$('#yutMultiArea').classList.contains('hidden'))await loadRooms('yut');else if(currentView==='baccarat'&&!currentRoomId)await loadBaccaratRooms(true);else if(currentView==='admin'&&me?.is_admin)await loadAdmin($('#adminSearch')?.value.trim()||'',false)}catch{}},180)})}
 function updateHeader(){if(!me)return;$('#walletBalance').textContent=money(me.balance);$('#avatarEmoji').innerHTML=avatarImg(me.avatar,me.nickname,'header-face',me.cosmetics);$('#nickName').textContent=me.nickname;const title=equippedTitle(me.cosmetics);$('#profileBtn')?.setAttribute('data-title',title);$('#dailyBtn').disabled=!me.dailyAvailable;const dailyPct=Number(me.cosmetics?.perks?.dailyBonusPct||0),dailyAmt=Math.floor(50000*(1+dailyPct/100));$('#dailyBtn').textContent=me.dailyAvailable?`🎁 출석 +${money(dailyAmt)}${dailyPct?` · +${dailyPct}%`:''}`:'✓ 오늘 출석 완료';$('#adminBtn')?.classList.toggle('hidden',!me.is_admin);applyCosmetics()}
-async function refreshMe(){const d=await api('/api/me');me=d.user;updateHeader();$('#onlineCount').textContent='ONLINE '+d.online;if($('#lobbyOnlineNow'))$('#lobbyOnlineNow').textContent='ONLINE '+d.online;if($('#lobbyLiveFaces'))$('#lobbyLiveFaces').innerHTML=`<b>${d.online}</b><span>명 접속 중</span>`;return d}
+function renderLobbyPresence(rows=[]){
+  const root=$('#lobbyLiveFaces');if(!root)return;
+  root.classList.add('presence-roster');
+  root.innerHTML=rows.length?rows.map(p=>'<div class="presence-person '+(p.state==='PLAYING'?'playing':'waiting')+'">'+avatarImg(p.avatar,p.nickname,'presence-face',p.cosmetics)+'<div><b>'+html(p.nickname)+'</b><span>'+html(p.gameLabel||'로비')+(p.mode&&p.mode!=='LOBBY'?' · '+html(p.mode):'')+'</span></div><em>'+(p.state==='PLAYING'?'게임중':'대기중')+'</em></div>').join(''):'<div class="presence-empty">현재 다른 접속자가 없어.</div>';
+}
+async function refreshMe(){const d=await api('/api/me');me=d.user;updateHeader();$('#onlineCount').textContent='ONLINE '+d.online;if($('#lobbyOnlineNow'))$('#lobbyOnlineNow').textContent='ONLINE '+d.online;renderLobbyPresence(d.presence||[]);return d}
 async function go(view){
   if(view==='admin'&&!me?.is_admin){toast('관리자 권한이 필요합니다.');return}
   if(currentRoomId&&view!==currentGame){toast('먼저 멀티 게임방에서 나가기를 눌러줘.');return}
@@ -643,11 +656,13 @@ async function refreshSlotJackpot(silent=true){try{const d=await api('/api/slot/
 
 // SEOTDA
 function resetSeotdaUI(){if($('#seotdaTable')?.classList.contains('hidden'))$('#seotdaStart')?.classList.remove('hidden')}
-const BIG_WHEEL_SEGMENTS=[...Array(10).fill({key:'x2',label:'×2',mult:2}),...Array(6).fill({key:'x3',label:'×3',mult:3}),...Array(4).fill({key:'x5',label:'×5',mult:5}),...Array(2).fill({key:'x10',label:'×10',mult:10}),{key:'x15',label:'×15',mult:15},{key:'junja',label:'JUNJA',mult:40}];
+const BIG_WHEEL_DEFS={x2:{key:'x2',label:'×2',mult:2},x3:{key:'x3',label:'×3',mult:3},x5:{key:'x5',label:'×5',mult:5},x10:{key:'x10',label:'×10',mult:10},x15:{key:'x15',label:'×15',mult:15},junja:{key:'junja',label:'JUNJA',mult:60}};
+const BIG_WHEEL_KEYS=['junja','x2','x3','x5','x2','x10','x2','x3','x2','x5','x3','x2','x15','x2','x3','x5','x2','x10','x2','x3','x2','x5','x3','x2','x15','x2','x3','x5','x2','x3','x2','x10','x2','x5','x3','x2','x5','x2','x3','x2','x3','x2','x10','x2','x5','x3','x2','x15','x2','junja','x3','x5','x2','x3','x2','x5','x2','x10','x3','x2','x5','x2','x3','x2','x15','x2','x3','x2','x5','x10','x2','x3','x2','x5','x3','x2','x3','x2','x5','x2','x10','x2','x3','x2','x5','x3','x2','x15','x2','x3','x5','x2','x10','x2','x3','x2','x5','x3','x2'];
+const BIG_WHEEL_SEGMENTS=BIG_WHEEL_KEYS.map(key=>BIG_WHEEL_DEFS[key]);
 const BIG_WHEEL_COLORS=['#6d1422','#d5aa52','#153d35','#c43a39','#284777','#75509b'];
 function selectBigWheelBet(key){if(bigWheelSpinning)return;bigWheelSelected=key;$$('[data-wheel-bet]').forEach(b=>b.classList.toggle('active',b.dataset.wheelBet===key));fx()}
 function drawBigWheel(){
-  const canvas=$('#bigWheelCanvas');if(!canvas)return;const ctx=canvas.getContext('2d'),w=canvas.width,h=canvas.height,cx=w/2,cy=h/2,n=BIG_WHEEL_SEGMENTS.length,step=Math.PI*2/n,r=w*.43;
+  const canvas=$('#bigWheelCanvas');if(!canvas)return;const ctx=canvas.getContext('2d'),w=canvas.width,h=canvas.height,cx=w/2,cy=h/2,n=BIG_WHEEL_SEGMENTS.length,step=Math.PI*2/n,r=w*.43,dense=n>=80;
   ctx.clearRect(0,0,w,h);ctx.save();ctx.translate(cx,cy);
   // Casino frame / depth rings
   const outer=ctx.createRadialGradient(0,0,r*.65,0,0,r*1.12);outer.addColorStop(0,'#201207');outer.addColorStop(.66,'#090909');outer.addColorStop(.82,'#b7852f');outer.addColorStop(.91,'#f8e09a');outer.addColorStop(1,'#5d3e13');ctx.beginPath();ctx.arc(0,0,r*1.1,0,Math.PI*2);ctx.fillStyle=outer;ctx.shadowColor='#000';ctx.shadowBlur=34;ctx.fill();ctx.shadowBlur=0;
@@ -661,7 +676,7 @@ function drawBigWheel(){
     // metal separator and outer peg
     ctx.save();ctx.rotate(a0);ctx.fillStyle='#d8b45a';ctx.fillRect(r*.74,-2,r*.27,4);ctx.restore();
     const px=Math.cos(a0)*r*1.035,py=Math.sin(a0)*r*1.035;ctx.beginPath();ctx.arc(px,py,7.5,0,Math.PI*2);const pg=ctx.createRadialGradient(px-2,py-2,1,px,py,8);pg.addColorStop(0,'#fff4c5');pg.addColorStop(.4,'#e7c369');pg.addColorStop(1,'#6f4a16');ctx.fillStyle=pg;ctx.fill();
-    ctx.save();ctx.rotate(mid);ctx.translate(r*.69,0);ctx.rotate(Math.PI/2);ctx.textAlign='center';ctx.textBaseline='middle';ctx.shadowColor='#000';ctx.shadowBlur=8;ctx.fillStyle=x.key==='junja'?'#fff0a9':'#fff';ctx.font=`900 ${x.key==='junja'?22:30}px system-ui`;ctx.fillText(x.label,0,0);ctx.shadowBlur=0;ctx.restore();
+    ctx.save();ctx.rotate(mid);ctx.translate(dense?r*.64:r*.69,0);if(!dense)ctx.rotate(Math.PI/2);ctx.textAlign='center';ctx.textBaseline='middle';ctx.shadowColor='#000';ctx.shadowBlur=dense?2:8;ctx.fillStyle=x.key==='junja'?'#fff0a9':'#fff';ctx.font=`900 ${dense?(x.key==='junja'?9:10):(x.key==='junja'?22:30)}px system-ui`;ctx.fillText(x.label,0,0);ctx.shadowBlur=0;ctx.restore();
   }
   // inner decorative rings
   ctx.beginPath();ctx.arc(0,0,r*.28,0,Math.PI*2);ctx.fillStyle='#140f0a';ctx.fill();ctx.strokeStyle='#d7ae54';ctx.lineWidth=9;ctx.stroke();ctx.beginPath();ctx.arc(0,0,r*.19,0,Math.PI*2);ctx.fillStyle='#05080c';ctx.fill();ctx.strokeStyle='#f3d27a';ctx.lineWidth=3;ctx.stroke();ctx.restore();
@@ -671,7 +686,7 @@ function drawBigWheel(){
 function initBigWheel(){drawBigWheel();selectBigWheelBet(bigWheelSelected);if($('#bigWheelResult'))$('#bigWheelResult').textContent='배당을 선택하고 실제 카지노 휠처럼 돌려봐.'}
 function bigWheelPointerTick(){const p=$('.wheel-pointer');if(!p)return;p.classList.remove('tick');void p.offsetWidth;p.classList.add('tick');fx('wheel')}
 async function spinBigWheel(auto=false){
-  if(bigWheelSpinning)return false;const input=$('#bigWheelBet'),bet=Math.max(1000,Math.min(100000,Math.floor(Number(input?.value||1000)/1000)*1000));if(input)input.value=bet;bigWheelSpinning=true;const btn=$('#bigWheelSpinBtn');btn.disabled=true;btn.textContent='WHEEL SPINNING...';$('#bigWheelResult').innerHTML='<small>NO MORE BETS</small><b>딜러가 휠을 회전시켰습니다…</b>';
+  if(bigWheelSpinning)return false;const input=$('#bigWheelBet'),bet=Math.max(1000,Math.min(10000000,Math.floor(Number(me?.balance||0)/1000)*1000,Math.floor(Number(input?.value||1000)/1000)*1000));if(input)input.value=bet;bigWheelSpinning=true;const btn=$('#bigWheelSpinBtn');btn.disabled=true;btn.textContent='WHEEL SPINNING...';$('#bigWheelResult').innerHTML='<small>NO MORE BETS</small><b>딜러가 휠을 회전시켰습니다…</b>';
   let ok=false,lastPocket=-1;try{
     const d=await api('/api/bigwheel/spin',{method:'POST',body:JSON.stringify({bet,key:bigWheelSelected})}),idx=d.result.index,n=BIG_WHEEL_SEGMENTS.length,step=Math.PI*2/n,current=bigWheelAngle%(Math.PI*2),desired=-(idx*step+step/2),turns=8+Math.floor(Math.random()*3),target=current+(turns*Math.PI*2)+(((desired-current)%(Math.PI*2)+Math.PI*2)%(Math.PI*2)),start=performance.now(),from=bigWheelAngle,dur=auto?4300:6200;
     $('.bigwheel-stage')?.classList.add('wheel-live');

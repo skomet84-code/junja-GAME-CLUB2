@@ -529,7 +529,45 @@ function pushRefresh(roomId=null){
     try{c.res.write(`event: refresh\ndata: ${JSON.stringify({roomId,t:now()})}\n\n`);}catch{}
   }
 }
-function onlineCount(){ return sseClients.size; }
+function onlineCount(){ return new Set([...sseClients.values()].map(x=>Number(x.userId)).filter(Number.isFinite)).size; }
+
+const PRESENCE_GAME_LABEL={slot:'슬롯',holdem:'텍사스 홀덤',sevenpoker:'세븐포커',baccarat:'바카라',yut:'윷놀이',seotda:'섯다',gostop:'야심찬 맞고',horse:'경마',bigwheel:'빅휠',sicbo:'다이사이',roulette:'룰렛'};
+function presenceLiveEntry(userId){
+  const uid=Number(userId);
+  for(const game of LIVE_GAMES){const map=cleanLiveFloor(game),member=map.get(uid);if(member)return {game,member};}
+  return null;
+}
+function presenceSoloState(game,userId,fallback='WAITING'){
+  if(game==='holdem'){const r=soloHoldem.get(userId);if(r?.hand)return r.hand.phase!=='complete'?'PLAYING':'WAITING';}
+  if(game==='yut'){const g=soloYut.get(userId);if(g)return String(g.phase||'').toLowerCase()==='complete'?'WAITING':'PLAYING';}
+  if(game==='seotda'){const g=soloSeotda.get(userId);if(g)return String(g.phase||'').toLowerCase()==='complete'?'WAITING':'PLAYING';}
+  if(game==='gostop'){const g=soloGostop.get(userId);if(g)return String(g.phase||'').toLowerCase()==='complete'?'WAITING':'PLAYING';}
+  if(game==='sevenpoker'){const g=soloSeven.get(userId);if(g)return g.complete?'WAITING':'PLAYING';}
+  return fallback==='PLAYING'?'PLAYING':'WAITING';
+}
+function presenceStateForGameUser(game,userId,fallback='WAITING'){
+  const r=findUserRoom(userId);if(r&&r.game===game)return roomStatus(r)==='PLAYING'?'PLAYING':'WAITING';
+  if(game==='baccarat'){const b=baccaratFindUser(userId);if(b)return b.phase==='dealing'?'PLAYING':'WAITING';}
+  return presenceSoloState(game,userId,fallback);
+}
+function presenceSnapshot(){
+  const ids=[...new Set([...sseClients.values()].map(x=>Number(x.userId)).filter(Number.isFinite))];
+  return ids.map(userId=>{
+    const u=userPublic(userId);if(!u)return null;
+    let game=null,state='WAITING',mode='LOBBY',roomName='';
+    const r=findUserRoom(userId);
+    if(r){game=r.game;state=roomStatus(r)==='PLAYING'?'PLAYING':'WAITING';mode='MULTI';roomName=r.name||'';}
+    else{
+      const b=baccaratFindUser(userId);
+      if(b){game='baccarat';state=b.phase==='dealing'?'PLAYING':'WAITING';mode='MULTI';roomName=b.name||'';}
+      else{
+        const live=presenceLiveEntry(userId);
+        if(live){game=live.game;state=presenceStateForGameUser(game,userId,live.member?.state);mode=['holdem','sevenpoker','yut','seotda','gostop'].includes(game)&&state==='PLAYING'?'AI':'SOLO';}
+      }
+    }
+    return {userId,nickname:u.nickname,avatar:u.avatar,cosmetics:cosmeticsPublic(userId),game,gameLabel:game?(PRESENCE_GAME_LABEL[game]||game):'로비',state,stateLabel:state==='PLAYING'?'게임중':'대기중',mode,roomName};
+  }).filter(Boolean).sort((a,b)=>a.state===b.state?String(a.nickname).localeCompare(String(b.nickname),'ko'):a.state==='PLAYING'?-1:1);
+}
 
 function liveGameKey(v){
   const game=String(v||'').toLowerCase();
@@ -549,11 +587,12 @@ function cleanLiveFloor(game){
   }
   return map;
 }
-function liveFloorTouch(user,game){
-  game=liveGameKey(game);const map=cleanLiveFloor(game),t=now(),prev=map.get(user.id);
-  const p=prev||{userId:user.id,nickname:user.nickname,avatar:user.avatar,joinedAt:t,reaction:null};
-  p.nickname=user.nickname;p.avatar=user.avatar;p.lastSeen=t;map.set(user.id,p);
-  return {isNew:!prev,member:p};
+function liveFloorTouch(user,game,state=null){
+  game=liveGameKey(game);const map=cleanLiveFloor(game),t=now(),prev=map.get(user.id),nextState=state==='PLAYING'||state==='WAITING'?state:(prev?.state||'WAITING');
+  const p=prev||{userId:user.id,nickname:user.nickname,avatar:user.avatar,joinedAt:t,reaction:null,state:'WAITING'};
+  const stateChanged=!!prev&&p.state!==nextState;
+  p.nickname=user.nickname;p.avatar=user.avatar;p.state=nextState;p.lastSeen=t;map.set(user.id,p);
+  return {isNew:!prev,stateChanged,member:p};
 }
 function liveFloorLeave(userId,game){
   try{const map=liveFloorMap(game);return map.delete(Number(userId));}catch{return false}
@@ -561,7 +600,7 @@ function liveFloorLeave(userId,game){
 function liveFloorMembers(game){
   const t=now();
   return [...cleanLiveFloor(game).values()].sort((a,b)=>a.joinedAt-b.joinedAt).map(p=>({
-    userId:p.userId,nickname:p.nickname,avatar:p.avatar,cosmetics:cosmeticsPublic(p.userId),joinedAt:p.joinedAt,lastSeen:p.lastSeen,
+    userId:p.userId,nickname:p.nickname,avatar:p.avatar,cosmetics:cosmeticsPublic(p.userId),joinedAt:p.joinedAt,lastSeen:p.lastSeen,state:presenceStateForGameUser(game,p.userId,p.state),
     reaction:p.reaction&&p.reaction.expiresAt>t?{key:p.reaction.key,emoji:p.reaction.emoji,label:p.reaction.label,at:p.reaction.at,expiresAt:p.reaction.expiresAt}:null
   }));
 }
@@ -1109,17 +1148,19 @@ function rouletteBetWins(b,n){if(b.kind==='straight')return n===b.target;if(b.ki
 function rouletteSpin(user,rawBets){if(!Array.isArray(rawBets)||!rawBets.length)throw new Error('룰렛 베팅을 하나 이상 올려줘.');if(rawBets.length>30)throw new Error('한 라운드에는 최대 30개 베팅까지 가능해.');const bets=rawBets.map(rouletteValidateBet),totalBet=bets.reduce((a,b)=>a+b.amount,0);if(totalBet>user.balance)throw new Error('전체 베팅금이 보유 게임머니보다 많아.');walletChange(user.id,-totalBet,'roulette_bet',`유럽식 룰렛 ${bets.length}개 베팅 · ${formatMoney(totalBet)}G`);const number=crypto.randomInt(37),color=rouletteColor(number);let payout=0;const settled=bets.map(b=>{const won=rouletteBetWins(b,number),returned=won?b.amount*b.mult:0;payout+=returned;return {...b,won,returned};});if(payout>0)walletChange(user.id,payout,'roulette_win',`룰렛 ${number} ${color.toUpperCase()} · 지급 ${formatMoney(payout)}G`);const profit=payout-totalBet;db.prepare('UPDATE stats SET roulette_plays=roulette_plays+1,roulette_wins=roulette_wins+?,roulette_profit=roulette_profit+? WHERE user_id=?').run(payout>0?1:0,profit,user.id);pushRefresh();return {number,color,index:ROULETTE_WHEEL.indexOf(number),bets:settled,totalBet,payout,profit};}
 
 // ---------- Big Wheel & Sic Bo v1.3 ----------
-const BIG_WHEEL_SEGMENTS = [
-  ...Array(10).fill({key:'x2',label:'×2',mult:2}),
-  ...Array(6).fill({key:'x3',label:'×3',mult:3}),
-  ...Array(4).fill({key:'x5',label:'×5',mult:5}),
-  ...Array(2).fill({key:'x10',label:'×10',mult:10}),
-  {key:'x15',label:'×15',mult:15},
-  {key:'junja',label:'JUNJA',mult:40}
-];
+const BIG_WHEEL_DEFS = {
+  x2:{key:'x2',label:'×2',mult:2},
+  x3:{key:'x3',label:'×3',mult:3},
+  x5:{key:'x5',label:'×5',mult:5},
+  x10:{key:'x10',label:'×10',mult:10},
+  x15:{key:'x15',label:'×15',mult:15},
+  junja:{key:'junja',label:'JUNJA',mult:60}
+};
+const BIG_WHEEL_KEYS=['junja','x2','x3','x5','x2','x10','x2','x3','x2','x5','x3','x2','x15','x2','x3','x5','x2','x10','x2','x3','x2','x5','x3','x2','x15','x2','x3','x5','x2','x3','x2','x10','x2','x5','x3','x2','x5','x2','x3','x2','x3','x2','x10','x2','x5','x3','x2','x15','x2','junja','x3','x5','x2','x3','x2','x5','x2','x10','x3','x2','x5','x2','x3','x2','x15','x2','x3','x2','x5','x10','x2','x3','x2','x5','x3','x2','x3','x2','x5','x2','x10','x2','x3','x2','x5','x3','x2','x15','x2','x3','x5','x2','x10','x2','x3','x2','x5','x3','x2'];
+const BIG_WHEEL_SEGMENTS=BIG_WHEEL_KEYS.map(key=>BIG_WHEEL_DEFS[key]);
 const BIG_WHEEL_BETS = [...new Map(BIG_WHEEL_SEGMENTS.map(x=>[x.key,x])).values()];
 function bigWheelSpin(userId,bet,key){
-  bet=gameWager(bet,1000,100000,1000);
+  bet=gameWager(bet,1000,10000000,1000);if(bet>10000000)throw new Error('빅휠 최대 베팅은 10,000,000G입니다.');
   const u=userPublic(userId);if(!u||u.balance<bet)throw new Error('게임머니가 부족합니다.');
   const target=BIG_WHEEL_BETS.find(x=>x.key===key);if(!target)throw new Error('배당 선택을 확인해주세요.');
   walletChange(userId,-bet,'bigwheel_bet',`빅휠 ${target.label} 베팅 ${formatMoney(bet)}G`);
@@ -1523,7 +1564,7 @@ const server=http.createServer(async(req,res)=>{
     if(url.pathname==='/api/logout'&&req.method==='POST'){
       const token=parseCookies(req).sid;if(token)db.prepare('DELETE FROM sessions WHERE token=?').run(token);return json(res,200,{ok:true},{'Set-Cookie':'sid=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0'});
     }
-    if(url.pathname==='/api/me'&&req.method==='GET'){const u=requireAuth(req,res);if(!u)return;return json(res,200,{user:u,online:onlineCount()});}
+    if(url.pathname==='/api/me'&&req.method==='GET'){const u=requireAuth(req,res);if(!u)return;return json(res,200,{user:u,online:onlineCount(),presence:presenceSnapshot()});}
     if(url.pathname==='/api/shop'&&req.method==='GET'){const u=requireAuth(req,res);if(!u)return;return json(res,200,{...shopState(u.id),user:userPublic(u.id)});}
     if(url.pathname==='/api/shop/buy'&&req.method==='POST'){
       const u=requireAuth(req,res);if(!u)return;if(!rateLimit('shop_buy:'+u.id,20,60000))return json(res,429,{error:'구매를 너무 빠르게 반복하고 있어. 잠시 후 다시 시도해줘.'});
@@ -1741,8 +1782,8 @@ const server=http.createServer(async(req,res)=>{
     if(url.pathname==='/api/live/heartbeat'&&req.method==='POST'){
       const u=requireAuth(req,res);if(!u)return;const b=await readBody(req);
       let game;try{game=liveGameKey(b.game)}catch(e){return json(res,400,{error:e.message})}
-      const touched=liveFloorTouch(u,game);if(touched.isNew)pushRefresh();
-      return json(res,200,{ok:true,game,members:liveFloorMembers(game),joined:touched.isNew});
+      const touched=liveFloorTouch(u,game,b.state);if(touched.isNew||touched.stateChanged)pushRefresh();
+      return json(res,200,{ok:true,game,members:liveFloorMembers(game),joined:touched.isNew,stateChanged:touched.stateChanged});
     }
     if(url.pathname==='/api/live/reaction'&&req.method==='POST'){
       const u=requireAuth(req,res);if(!u)return;const b=await readBody(req);

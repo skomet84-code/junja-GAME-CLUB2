@@ -1,8 +1,8 @@
 {
   "name": "junja-game-club",
-  "version": "2.8.2",
+  "version": "2.8.3",
   "private": true,
-  "description": "JUNJA LAND v2.8.2 - finer solo Hold'em AI with street-aware pressure, pot odds, draws, position, stack depth and controlled bluffs.",
+  "description": "JUNJA LAND v2.8.3 - 99-segment dispersed Big Wheel with two JUNJA x60 slots plus live user location and playing/waiting presence.",
   "type": "commonjs",
   "scripts": {
     "start": "node admin-unlimited-start.js",
