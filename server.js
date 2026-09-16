@@ -1154,9 +1154,9 @@ const BIG_WHEEL_DEFS = {
   x5:{key:'x5',label:'×5',mult:5},
   x10:{key:'x10',label:'×10',mult:10},
   x15:{key:'x15',label:'×15',mult:15},
-  junja:{key:'junja',label:'JUNJA',mult:60}
+  junja:{key:'junja',label:'JUNJA',mult:100}
 };
-const BIG_WHEEL_KEYS=['junja','x2','x3','x5','x2','x10','x2','x3','x2','x5','x3','x2','x15','x2','x3','x5','x2','x10','x2','x3','x2','x5','x3','x2','x15','x2','x3','x5','x2','x3','x2','x10','x2','x5','x3','x2','x5','x2','x3','x2','x3','x2','x10','x2','x5','x3','x2','x15','x2','junja','x3','x5','x2','x3','x2','x5','x2','x10','x3','x2','x5','x2','x3','x2','x15','x2','x3','x2','x5','x10','x2','x3','x2','x5','x3','x2','x3','x2','x5','x2','x10','x2','x3','x2','x5','x3','x2','x15','x2','x3','x5','x2','x10','x2','x3','x2','x5','x3','x2'];
+const BIG_WHEEL_KEYS=['junja','x2','x3','x2','x3','x2','x3','x2','x3','x2','x3','x2','x3','x2','x5','x2','x3','x2','x5','x2','x3','x2','x5','x2','x3','x2','x5','x2','x3','x2','x5','x2','x3','x2','x5','x2','x3','x2','junja','x2','x5','x2','x3','x2','x5','x2','x3','x2','x10','x2','x5','x2','x3','x2','x15','x2','x10','x5','x3','x2','x15','x10','x5','x3','x2','x15','x10','x5','x3','x2','x15','x10','x5','x3','x2','x15','x10'];
 const BIG_WHEEL_SEGMENTS=BIG_WHEEL_KEYS.map(key=>BIG_WHEEL_DEFS[key]);
 const BIG_WHEEL_BETS = [...new Map(BIG_WHEEL_SEGMENTS.map(x=>[x.key,x])).values()];
 function bigWheelSpin(userId,bet,key){

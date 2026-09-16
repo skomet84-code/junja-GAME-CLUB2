@@ -656,13 +656,13 @@ async function refreshSlotJackpot(silent=true){try{const d=await api('/api/slot/
 
 // SEOTDA
 function resetSeotdaUI(){if($('#seotdaTable')?.classList.contains('hidden'))$('#seotdaStart')?.classList.remove('hidden')}
-const BIG_WHEEL_DEFS={x2:{key:'x2',label:'×2',mult:2},x3:{key:'x3',label:'×3',mult:3},x5:{key:'x5',label:'×5',mult:5},x10:{key:'x10',label:'×10',mult:10},x15:{key:'x15',label:'×15',mult:15},junja:{key:'junja',label:'JUNJA',mult:60}};
-const BIG_WHEEL_KEYS=['junja','x2','x3','x5','x2','x10','x2','x3','x2','x5','x3','x2','x15','x2','x3','x5','x2','x10','x2','x3','x2','x5','x3','x2','x15','x2','x3','x5','x2','x3','x2','x10','x2','x5','x3','x2','x5','x2','x3','x2','x3','x2','x10','x2','x5','x3','x2','x15','x2','junja','x3','x5','x2','x3','x2','x5','x2','x10','x3','x2','x5','x2','x3','x2','x15','x2','x3','x2','x5','x10','x2','x3','x2','x5','x3','x2','x3','x2','x5','x2','x10','x2','x3','x2','x5','x3','x2','x15','x2','x3','x5','x2','x10','x2','x3','x2','x5','x3','x2'];
+const BIG_WHEEL_DEFS={x2:{key:'x2',label:'×2',mult:2},x3:{key:'x3',label:'×3',mult:3},x5:{key:'x5',label:'×5',mult:5},x10:{key:'x10',label:'×10',mult:10},x15:{key:'x15',label:'×15',mult:15},junja:{key:'junja',label:'JUNJA',mult:100}};
+const BIG_WHEEL_KEYS=['junja','x2','x3','x2','x3','x2','x3','x2','x3','x2','x3','x2','x3','x2','x5','x2','x3','x2','x5','x2','x3','x2','x5','x2','x3','x2','x5','x2','x3','x2','x5','x2','x3','x2','x5','x2','x3','x2','junja','x2','x5','x2','x3','x2','x5','x2','x3','x2','x10','x2','x5','x2','x3','x2','x15','x2','x10','x5','x3','x2','x15','x10','x5','x3','x2','x15','x10','x5','x3','x2','x15','x10','x5','x3','x2','x15','x10'];
 const BIG_WHEEL_SEGMENTS=BIG_WHEEL_KEYS.map(key=>BIG_WHEEL_DEFS[key]);
 const BIG_WHEEL_COLORS=['#6d1422','#d5aa52','#153d35','#c43a39','#284777','#75509b'];
 function selectBigWheelBet(key){if(bigWheelSpinning)return;bigWheelSelected=key;$$('[data-wheel-bet]').forEach(b=>b.classList.toggle('active',b.dataset.wheelBet===key));fx()}
 function drawBigWheel(){
-  const canvas=$('#bigWheelCanvas');if(!canvas)return;const ctx=canvas.getContext('2d'),w=canvas.width,h=canvas.height,cx=w/2,cy=h/2,n=BIG_WHEEL_SEGMENTS.length,step=Math.PI*2/n,r=w*.43,dense=n>=80;
+  const canvas=$('#bigWheelCanvas');if(!canvas)return;const ctx=canvas.getContext('2d'),w=canvas.width,h=canvas.height,cx=w/2,cy=h/2,n=BIG_WHEEL_SEGMENTS.length,step=Math.PI*2/n,r=w*.43,dense=n>=60;
   ctx.clearRect(0,0,w,h);ctx.save();ctx.translate(cx,cy);
   // Casino frame / depth rings
   const outer=ctx.createRadialGradient(0,0,r*.65,0,0,r*1.12);outer.addColorStop(0,'#201207');outer.addColorStop(.66,'#090909');outer.addColorStop(.82,'#b7852f');outer.addColorStop(.91,'#f8e09a');outer.addColorStop(1,'#5d3e13');ctx.beginPath();ctx.arc(0,0,r*1.1,0,Math.PI*2);ctx.fillStyle=outer;ctx.shadowColor='#000';ctx.shadowBlur=34;ctx.fill();ctx.shadowBlur=0;
@@ -671,12 +671,12 @@ function drawBigWheel(){
   ctx.save();ctx.rotate(bigWheelAngle);
   for(let i=0;i<n;i++){
     const x=BIG_WHEEL_SEGMENTS[i],a0=-Math.PI/2+i*step,a1=a0+step,ci=['x2','x3','x5','x10','x15','junja'].indexOf(x.key),cols=[['#6b1718','#b23a30'],['#0d3e31','#1b7657'],['#203a78','#3769be'],['#5f3510','#b36d1f'],['#43205d','#8445a7'],['#7a5810','#e2b339']][ci]||['#333','#555'];
-    const mid=(a0+a1)/2,grad=ctx.createRadialGradient(0,0,r*.18,0,0,r);grad.addColorStop(0,cols[1]);grad.addColorStop(1,cols[0]);
-    ctx.beginPath();ctx.moveTo(0,0);ctx.arc(0,0,r,a0+.004,a1-.004);ctx.closePath();ctx.fillStyle=grad;ctx.fill();ctx.strokeStyle='#f8df93';ctx.lineWidth=2.2;ctx.stroke();
+    const mid=(a0+a1)/2,isJunja=x.key==='junja',grad=ctx.createRadialGradient(0,0,r*.18,0,0,r);if(isJunja){grad.addColorStop(0,'#fff6b0');grad.addColorStop(.34,'#ff62d7');grad.addColorStop(1,'#8f145d')}else{grad.addColorStop(0,cols[1]);grad.addColorStop(1,cols[0]);}
+    ctx.beginPath();ctx.moveTo(0,0);ctx.arc(0,0,r,a0+.004,a1-.004);ctx.closePath();ctx.fillStyle=grad;ctx.fill();ctx.strokeStyle=isJunja?'#fff7b5':'#f8df93';ctx.lineWidth=isJunja?5:2.2;ctx.shadowColor=isJunja?'#ffdf67':'transparent';ctx.shadowBlur=isJunja?18:0;ctx.stroke();ctx.shadowBlur=0;
     // metal separator and outer peg
     ctx.save();ctx.rotate(a0);ctx.fillStyle='#d8b45a';ctx.fillRect(r*.74,-2,r*.27,4);ctx.restore();
     const px=Math.cos(a0)*r*1.035,py=Math.sin(a0)*r*1.035;ctx.beginPath();ctx.arc(px,py,7.5,0,Math.PI*2);const pg=ctx.createRadialGradient(px-2,py-2,1,px,py,8);pg.addColorStop(0,'#fff4c5');pg.addColorStop(.4,'#e7c369');pg.addColorStop(1,'#6f4a16');ctx.fillStyle=pg;ctx.fill();
-    ctx.save();ctx.rotate(mid);ctx.translate(dense?r*.64:r*.69,0);if(!dense)ctx.rotate(Math.PI/2);ctx.textAlign='center';ctx.textBaseline='middle';ctx.shadowColor='#000';ctx.shadowBlur=dense?2:8;ctx.fillStyle=x.key==='junja'?'#fff0a9':'#fff';ctx.font=`900 ${dense?(x.key==='junja'?9:10):(x.key==='junja'?22:30)}px system-ui`;ctx.fillText(x.label,0,0);ctx.shadowBlur=0;ctx.restore();
+    ctx.save();ctx.rotate(mid);ctx.translate(dense?r*.64:r*.69,0);if(!dense)ctx.rotate(Math.PI/2);ctx.textAlign='center';ctx.textBaseline='middle';ctx.shadowColor=isJunja?'#ffd84f':'#000';ctx.shadowBlur=isJunja?18:(dense?3:8);ctx.fillStyle=isJunja?'#fffdf0':'#fff';ctx.font=`900 ${dense?(isJunja?13:12):(isJunja?24:30)}px system-ui`;ctx.fillText(isJunja?'★JUNJA★':x.label,0,0);ctx.shadowBlur=0;ctx.restore();if(isJunja){ctx.save();ctx.rotate(mid);ctx.translate(r*.84,0);ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle='#fff2a1';ctx.shadowColor='#ffce3f';ctx.shadowBlur=15;ctx.font='900 15px system-ui';ctx.fillText('♛',0,0);ctx.restore();}
   }
   // inner decorative rings
   ctx.beginPath();ctx.arc(0,0,r*.28,0,Math.PI*2);ctx.fillStyle='#140f0a';ctx.fill();ctx.strokeStyle='#d7ae54';ctx.lineWidth=9;ctx.stroke();ctx.beginPath();ctx.arc(0,0,r*.19,0,Math.PI*2);ctx.fillStyle='#05080c';ctx.fill();ctx.strokeStyle='#f3d27a';ctx.lineWidth=3;ctx.stroke();ctx.restore();

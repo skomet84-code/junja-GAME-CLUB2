@@ -748,3 +748,12 @@ button:not(:disabled){touch-action:manipulation}
 .presence-empty{font-size:12px;opacity:.7;padding:8px 0}
 @media(max-width:760px){.lobby-live-now{align-items:flex-start;flex-wrap:wrap}.lobby-live-faces.presence-roster{width:100%;max-width:none;justify-content:flex-start}.presence-person{min-width:0;flex:1 1 calc(50% - 4px)}}
 @media(max-width:430px){.presence-person{flex-basis:100%}}
+
+/* v2.8.4 JUNJA WISH */
+.bigwheel-stage{position:relative}
+.junja-wish-badge{position:absolute;z-index:8;top:18px;left:50%;transform:translateX(-50%);padding:9px 15px;border:1px solid #ffe27f99;border-radius:999px;background:linear-gradient(135deg,#6f123edb,#be246fdb 55%,#6d4d0ddb);box-shadow:0 0 18px #ff55c766,0 0 34px #ffd85c33,inset 0 1px #fff7;color:#fff7dc;font-size:12px;font-weight:900;letter-spacing:.02em;text-shadow:0 2px 8px #000;pointer-events:none;animation:junjaWishPulse 1.25s ease-in-out infinite}
+.junja-wish-badge b{color:#fff0a3;margin-left:5px}
+.wheel-bet-grid .junja-bet{border-color:#ffe171!important;background:linear-gradient(145deg,#7f164c,#c52878 55%,#70500e)!important;box-shadow:0 0 18px #ff4fc355,inset 0 0 0 1px #fff3a944!important;color:#fff8db!important}
+.wheel-bet-grid .junja-bet small{color:#fff0a3!important}
+@keyframes junjaWishPulse{0%,100%{filter:brightness(1);transform:translateX(-50%) scale(1)}50%{filter:brightness(1.18);transform:translateX(-50%) scale(1.035)}}
+@media(max-width:700px){.junja-wish-badge{top:10px;font-size:10px;padding:7px 10px}}
