@@ -1,0 +1,105 @@
+name: JUNJA LAND v2.8.5 Holdem Multi Auto Start
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/v285-holdem-multi-autostart.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch-test-commit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Apply v2.8.5 patch
+        run: node scripts/v285-holdem-multi-autostart-patch.cjs
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Syntax checks
+        run: npm run check
+
+      - name: Multiplayer Holdem auto-start smoke test
+        env:
+          PORT: '18080'
+          DATA_DIR: ${{ runner.temp }}/junja-v285-data
+        shell: bash
+        run: |
+          npm start >/tmp/junja-v285.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill $SERVER_PID 2>/dev/null || true' EXIT
+          for i in {1..35}; do
+            if curl -fsS http://127.0.0.1:18080/ >/tmp/index-v285.html; then break; fi
+            sleep 1
+          done
+          curl -fsS http://127.0.0.1:18080/ >/tmp/index-v285.html
+          grep -q 'VERSION 2.8.5' /tmp/index-v285.html
+          curl -fsS http://127.0.0.1:18080/app.js >/tmp/app-v285.js
+          grep -q '다음 핸드' /tmp/app-v285.js
+          grep -q 'autoStartAt' /tmp/app-v285.js
+
+          curl -fsS -c /tmp/p1.cookie -H 'Content-Type: application/json' \
+            -d '{"username":"holdemauto1","nickname":"자동시작1","password":"test1234"}' \
+            http://127.0.0.1:18080/api/register >/tmp/p1.json
+          curl -fsS -c /tmp/p2.cookie -H 'Content-Type: application/json' \
+            -d '{"username":"holdemauto2","nickname":"자동시작2","password":"test1234"}' \
+            http://127.0.0.1:18080/api/register >/tmp/p2.json
+
+          curl -fsS -b /tmp/p1.cookie -H 'Content-Type: application/json' \
+            -d '{"game":"holdem","maxPlayers":2}' \
+            http://127.0.0.1:18080/api/rooms >/tmp/room-create.json
+          ROOM_ID=$(node -e "const d=require('/tmp/room-create.json');process.stdout.write(d.room.id)")
+
+          curl -fsS -b /tmp/p2.cookie -H 'Content-Type: application/json' -d '{}' \
+            http://127.0.0.1:18080/api/rooms/$ROOM_ID/join >/tmp/join.json
+          curl -fsS -b /tmp/p1.cookie -H 'Content-Type: application/json' -d '{}' \
+            http://127.0.0.1:18080/api/rooms/$ROOM_ID/ready >/tmp/ready1.json
+          curl -fsS -b /tmp/p2.cookie -H 'Content-Type: application/json' -d '{}' \
+            http://127.0.0.1:18080/api/rooms/$ROOM_ID/ready >/tmp/ready2.json
+
+          node - <<'NODE'
+          const fs=require('fs');
+          const d=JSON.parse(fs.readFileSync('/tmp/ready2.json','utf8'));
+          if(!d.room?.allReady)throw new Error('players are not all ready');
+          if(!Number.isFinite(Number(d.room?.autoStartAt)))throw new Error('holdem autoStartAt missing');
+          if(d.room.status!=='WAITING')throw new Error('room should wait during 5s countdown');
+          NODE
+
+          sleep 6
+          curl -fsS -b /tmp/p1.cookie http://127.0.0.1:18080/api/rooms/$ROOM_ID >/tmp/after-auto.json
+          node - <<'NODE'
+          const fs=require('fs');
+          const d=JSON.parse(fs.readFileSync('/tmp/after-auto.json','utf8'));
+          if(d.room?.status!=='PLAYING')throw new Error('multiplayer Holdem did not auto-start after 5 seconds: '+JSON.stringify(d.room));
+          if(!d.room?.hand||d.room.hand.phase==='complete')throw new Error('Holdem hand missing after auto-start');
+          if(d.room.autoStartAt!=null)throw new Error('autoStartAt should clear while playing');
+          NODE
+
+      - name: Commit tested v2.8.5
+        shell: bash
+        run: |
+          git config user.name 'skomet84-code'
+          git config user.email 'skomet84@gmail.com'
+          git add server.js public/app.js public/index.html public/sw.js VERSION.txt package.json
+          if git diff --cached --quiet; then
+            echo 'No changes to commit.'
+            exit 0
+          fi
+          git commit -m 'feat: JUNJA LAND v2.8.5 holdem multi 5s auto-start'
+          git push origin HEAD:main
+
+      - name: Print server log on failure
+        if: failure()
+        run: cat /tmp/junja-v285.log || true
