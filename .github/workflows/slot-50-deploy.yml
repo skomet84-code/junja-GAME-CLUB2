@@ -32,7 +32,7 @@ jobs:
           grep -Fq 'slot_777_event_20260917_50pct_dockerfix_one_shot' slot-50pct-until-win-start.js
           grep -Fq 'JUNJA_SLOT_50_ONE_SHOT_DOCKER_20260917_V2' public/slot-event-deploy-marker.txt
 
-      - name: Trigger Render deployment
+      - name: Trigger Render deployment or fall back to Git auto-deploy
         env:
           RENDER_DEPLOY_HOOK: ${{ secrets.RENDER_DEPLOY_HOOK }}
           RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
@@ -51,8 +51,7 @@ jobs:
               -d '{}' >/tmp/render-deploy.json
             echo 'Render API deploy triggered.'
           else
-            echo '::error::No Render deploy hook/API secrets are configured in this repository.'
-            exit 2
+            echo 'No Render deploy secrets configured; relying on Render Git auto-deploy from this main push.'
           fi
 
       - name: Verify latest Docker image is live
