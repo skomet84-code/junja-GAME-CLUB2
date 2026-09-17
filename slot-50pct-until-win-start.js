@@ -4,8 +4,8 @@
 // 777 jackpot chance is exactly 50% per spin while this event is active.
 // After the first 777 jackpot winner, the event is persisted as inactive in
 // game_state and all following spins immediately return to the original odds.
-// A dedicated event key is used so any previous 20% event state cannot block
-// activation of this 50% test event.
+// A fresh event key is used for the Docker deployment fix so prior test state
+// cannot suppress activation after the corrected Render container starts.
 
 const fs = require('node:fs');
 const path = require('node:path');
@@ -14,7 +14,7 @@ const serverPath = path.resolve(__dirname, 'server.js');
 const originalReadFileSync = fs.readFileSync.bind(fs);
 
 const poolInitAnchor = "if(gameStateGet('slot_jackpot_pool',null)==null)gameStateSet('slot_jackpot_pool',SLOT_JACKPOT_BASE);";
-const eventStatePatch = `${poolInitAnchor}\n\nconst TEMP_SLOT_777_EVENT_KEY='slot_777_event_20260917_50pct_one_shot';\nif(gameStateGet(TEMP_SLOT_777_EVENT_KEY,null)==null){\n  gameStateSet(TEMP_SLOT_777_EVENT_KEY,{active:true,startedAt:Date.now(),targetPct:50});\n}\nfunction tempSlot777EventActive(){\n  const state=gameStateGet(TEMP_SLOT_777_EVENT_KEY,null);\n  return state===true||!!state?.active;\n}`;
+const eventStatePatch = `${poolInitAnchor}\n\nconst TEMP_SLOT_777_EVENT_KEY='slot_777_event_20260917_50pct_dockerfix_one_shot';\nif(gameStateGet(TEMP_SLOT_777_EVENT_KEY,null)==null){\n  gameStateSet(TEMP_SLOT_777_EVENT_KEY,{active:true,startedAt:Date.now(),targetPct:50});\n}\nfunction tempSlot777EventActive(){\n  const state=gameStateGet(TEMP_SLOT_777_EVENT_KEY,null);\n  return state===true||!!state?.active;\n}`;
 
 const oldGridBuild = "      const grid=Array.from({length:3},()=>Array.from({length:3},()=>pick()));";
 const temporaryGridBuild = `      // TEMP EVENT: exactly 50% total 777 jackpot chance until first winner.
