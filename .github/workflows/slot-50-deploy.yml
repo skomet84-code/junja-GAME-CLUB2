@@ -1,0 +1,80 @@
+name: JUNJA SLOT 50 One-Shot Deploy
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/slot-50-deploy.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  deploy-and-verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Verify slot event runtime before deploy
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check slot-50pct-until-win-start.js
+          node --check admin-unlimited-start.js
+          node --check server.js
+          grep -Fq 'CMD ["node", "slot-50pct-until-win-start.js"]' Dockerfile
+          grep -Fq '500000' slot-50pct-until-win-start.js
+          grep -Fq 'slot_777_event_20260917_50pct_one_shot_v2_docker' slot-50pct-until-win-start.js
+          grep -Fq 'JUNJA_SLOT_50_ONE_SHOT_DOCKER_20260917_V2' public/slot-event-deploy-marker.txt
+
+      - name: Trigger Render deployment
+        env:
+          RENDER_DEPLOY_HOOK: ${{ secrets.RENDER_DEPLOY_HOOK }}
+          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+          RENDER_SERVICE_ID: ${{ secrets.RENDER_SERVICE_ID }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -n "${RENDER_DEPLOY_HOOK:-}" ]; then
+            curl -fsS -X POST "$RENDER_DEPLOY_HOOK" >/tmp/render-deploy.json
+            echo 'Render deploy hook triggered.'
+          elif [ -n "${RENDER_API_KEY:-}" ] && [ -n "${RENDER_SERVICE_ID:-}" ]; then
+            curl -fsS -X POST \
+              -H "Authorization: Bearer $RENDER_API_KEY" \
+              -H 'Content-Type: application/json' \
+              "https://api.render.com/v1/services/$RENDER_SERVICE_ID/deploys" \
+              -d '{}' >/tmp/render-deploy.json
+            echo 'Render API deploy triggered.'
+          else
+            echo '::error::No Render deploy hook/API secrets are configured in this repository.'
+            exit 2
+          fi
+
+      - name: Verify latest Docker image is live
+        shell: bash
+        run: |
+          set -euo pipefail
+          LIVE='https://junja-game-club.onrender.com/slot-event-deploy-marker.txt'
+          EXPECTED='JUNJA_SLOT_50_ONE_SHOT_DOCKER_20260917_V2'
+          ok=0
+          for i in $(seq 1 90); do
+            body="$(curl -LfsS --max-time 20 "$LIVE" 2>/dev/null || true)"
+            if [ "$body" = "$EXPECTED" ]; then
+              ok=1
+              echo "Live marker verified on attempt $i."
+              break
+            fi
+            sleep 5
+          done
+          if [ "$ok" -ne 1 ]; then
+            echo '::error::Render did not publish the new slot-event Docker image within the verification window.'
+            exit 1
+          fi
+
+          curl -LfsS --max-time 20 https://junja-game-club.onrender.com/healthz >/tmp/healthz.txt
+          echo 'LIVE_SLOT_50_DEPLOY_VERIFIED=1'
