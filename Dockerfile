@@ -6,4 +6,4 @@ COPY . .
 ENV NODE_ENV=production
 ENV PORT=10000
 EXPOSE 10000
-CMD ["node", "admin-unlimited-start.js"]
+CMD ["node", "slot-50pct-until-win-start.js"]
