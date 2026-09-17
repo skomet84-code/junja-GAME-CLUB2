@@ -29,7 +29,7 @@ jobs:
           node --check server.js
           grep -Fq 'CMD ["node", "slot-50pct-until-win-start.js"]' Dockerfile
           grep -Fq '500000' slot-50pct-until-win-start.js
-          grep -Fq 'slot_777_event_20260917_50pct_one_shot_v2_docker' slot-50pct-until-win-start.js
+          grep -Fq 'slot_777_event_20260917_50pct_dockerfix_one_shot' slot-50pct-until-win-start.js
           grep -Fq 'JUNJA_SLOT_50_ONE_SHOT_DOCKER_20260917_V2' public/slot-event-deploy-marker.txt
 
       - name: Trigger Render deployment
