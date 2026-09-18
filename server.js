@@ -1586,6 +1586,15 @@ const server=http.createServer(async(req,res)=>{
     const url=new URL(req.url,`http://${req.headers.host||'localhost'}`);
     if(!sameOriginPost(req)){return json(res,403,{error:'잘못된 요청 출처입니다.'});}
     if(url.pathname==='/healthz')return json(res,200,{ok:true,rooms:rooms.size+baccaratRooms.size,online:onlineCount()});
+    if(url.pathname==='/audio/bright_song.mp3'&&req.method==='GET'){
+      try{
+        const upstream=await fetch('https://opengameart.org/sites/default/files/bright_song.mp3');
+        if(!upstream.ok)throw new Error('BGM upstream '+upstream.status);
+        const body=Buffer.from(await upstream.arrayBuffer());
+        res.writeHead(200,{'Content-Type':'audio/mpeg','Content-Length':body.length,'Cache-Control':'public, max-age=86400',...securityHeaders()});
+        return res.end(body);
+      }catch(e){console.warn('[BGM PROXY]',e.message);res.writeHead(502,securityHeaders());return res.end('BGM unavailable');}
+    }
 
     if(url.pathname==='/api/register'&&req.method==='POST'){
       const ip=req.socket.remoteAddress||'ip';if(!rateLimit('reg:'+ip,6,60000))return json(res,429,{error:'잠시 후 다시 시도하세요.'});
