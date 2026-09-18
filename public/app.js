@@ -654,10 +654,14 @@ function bindPokerPresets(root,h){
   })
 }
 function renderHoldem(room){
-  $('#holdemBrowser').classList.add('hidden');const root=$('#holdemRoom');root.classList.remove('hidden');const h=room.hand,deal=pokerShouldDeal(room,h),won=h?.result?.winners?.map(Number).includes(Number(me.id)),result=h?.result?`<div class="result-banner mega holdem-result ${won?'win':'lose'}">${won?'🏆 내가 이겼어!':h.result.timeoutUserId===me.id?'⏱ 시간 초과 · 자동 폴드':'상대 승리'}<small>${html(h.result.summary)} · POT ${money(h.result.pot)}</small></div>`:'';
+  $('#holdemBrowser').classList.add('hidden');const root=$('#holdemRoom');root.classList.remove('hidden');
+  // Preserve a raise amount while live multiplayer refreshes redraw the table.
+  const prevRaise=$('#raiseTo',root),raiseDraft=prevRaise?.value,raiseFocused=document.activeElement===prevRaise;
+  const h=room.hand,deal=pokerShouldDeal(room,h),won=h?.result?.winners?.map(Number).includes(Number(me.id)),result=h?.result?`<div class="result-banner mega holdem-result ${won?'win':'lose'}">${won?'🏆 내가 이겼어!':h.result.timeoutUserId===me.id?'⏱ 시간 초과 · 자동 폴드':'상대 승리'}<small>${html(h.result.summary)} · POT ${money(h.result.pot)}</small></div>`:'';
   const sec=h?.turnDeadlineAt?Math.max(0,Math.ceil((h.turnDeadlineAt-Date.now())/1000)):null,autoSec=room.autoStartAt?Math.max(0,Math.ceil((room.autoStartAt-Date.now())/1000)):null;root.innerHTML=`${roomToolbar(room)}${result}${room.status==='WAITING'&&autoSec!==null?`<div class="holdem-countdown">🃏 ${h?.phase==='complete'?'다음 핸드':'첫 핸드'} 자동 시작 <b>${autoSec}</b>초 · 전원 READY 유지 시 자동으로 시작합니다.</div>`:''}${h?.phase!=='complete'&&sec!==null?`<div class="holdem-countdown ${sec<=3?'urgent':''}">⏱ ${html(room.turnNickname||'플레이어')} 행동시간 <b>${sec}</b>초 · 0초면 자동 폴드</div>`:''}<div class="table-wrap"><div class="poker-panel panel">${pokerTableHtml(room,h,false,deal)}${holdemActions(h)}</div><div class="side-panel">${pokerStatusPanel(h)}<div class="players-card panel"><div class="section-head"><div><small>PLAYERS</small><h3>참가자 ${room.players.length}/${room.maxPlayers}</h3></div></div><div class="member-list">${room.players.map(p=>`<div class="member poker-member">${pokerFaceHtml(p)}<span>${html(p.nickname)}${room.hostId===p.userId?' 👑':''}</span><b>${money(p.stack)}</b></div>`).join('')}</div></div>${privacyPanelHtml()}</div></div>`;
   bindRoomCommon(root,room);bindPokerPresets(root,h);
-  $$('[data-poker]',root).forEach(b=>b.onclick=async()=>{const action=b.dataset.poker,raiseTo=Number($('#raiseTo',root)?.value||0);b.disabled=true;try{await api(`/api/rooms/${currentRoomId}/poker/action`,{method:'POST',body:JSON.stringify({action,raiseTo})});await loadCurrentRoom()}catch(e){toast(e.message);b.disabled=false}})
+  const nextRaise=$('#raiseTo',root);if(nextRaise&&raiseDraft!==undefined&&h?.turnUserId===me.id){const n=Number(raiseDraft);if(Number.isFinite(n))nextRaise.value=Math.max(Number(nextRaise.min||0),Math.min(Number(nextRaise.max||Number.MAX_SAFE_INTEGER),n));if(raiseFocused){try{nextRaise.focus({preventScroll:true})}catch{nextRaise.focus()}}}
+  $('[data-poker]',root).forEach(b=>b.onclick=async()=>{const action=b.dataset.poker,raiseTo=Number($('#raiseTo',root)?.value||0);b.disabled=true;try{await api(`/api/rooms/${currentRoomId}/poker/action`,{method:'POST',body:JSON.stringify({action,raiseTo})});await loadCurrentRoom()}catch(e){toast(e.message);b.disabled=false}})
 }
 function holdemActions(h,solo=false){
   if(!h)return `<div class="action-bar"><span class="waiting-text">게임 시작을 기다리는 중...</span></div>`;
@@ -779,7 +783,7 @@ async function playSoloYutReplay(g){
 
 // HORSE RACING · v2.2 SHARED LIVE VERTICAL MEET
 function stopHorseMeet(){clearInterval(horseMeetTimer);horseMeetTimer=null;if(horseAnimationFrame)cancelAnimationFrame(horseAnimationFrame);horseAnimationFrame=null;horseRacing=false}
-function startHorseMeet(){stopHorseMeet();loadHorseMeet(false);horseMeetTimer=setInterval(()=>{if(currentView==='horse'&&!document.hidden)loadHorseMeet(true)},850)}
+function startHorseMeet(){stopHorseMeet();loadHorseMeet(false);horseMeetTimer=setInterval(()=>{if(currentView==='horse'&&!document.hidden)loadHorseMeet(true)},1500)}
 async function loadHorseMeet(silent=true){try{const d=await api('/api/horse/meet');horseCardData=d.round.card;if(d.user){me=d.user;updateHeader()}renderHorseMeet(d.round);await maybeHorseAuto(d.round)}catch(e){if(!silent)toast(e.message)}}
 function horseSelectedIds(){return [Number($('#horsePick1')?.value||0),Number($('#horsePick2')?.value||0)].filter(Boolean)}
 function horseOddsFor(type,ids){if(!horseCardData||!ids.length)return 0;if(type==='win')return Number(horseCardData.horses.find(h=>h.id===ids[0])?.winOdds||0);if(ids.length<2)return 0;if(type==='quinella')return Number(horseCardData.quinellaOdds?.[[...ids].sort((a,b)=>a-b).join('-')]||0);return Number(horseCardData.exactaOdds?.[`${ids[0]}>${ids[1]}`]||0)}
