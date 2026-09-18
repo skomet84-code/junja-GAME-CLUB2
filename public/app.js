@@ -76,20 +76,8 @@ async function sendLiveReaction(key,btn){
 }
 function signedMoney(n){return (Number(n)>=0?'+':'')+money(n)}
 function toast(msg){const e=$('#toast');if(!e)return;e.textContent=msg;e.classList.add('show');clearTimeout(e._t);e._t=setTimeout(()=>e.classList.remove('show'),2400)}
-const BGM_STYLES={
-  lobby:{root:110,bpm:94,progression:[[0,3,7],[5,8,12],[3,7,10],[7,10,14]],arp:[0,1,2,1,0,2,1,2],lead:[12,null,10,null,7,null,8,null,7,null,5,null,3,null,7,null],bass:[0,0,5,5,3,3,7,7],wave:'triangle',pad:'sine',cutoff:2100,drive:.78,swing:.04},
-  slot:{root:130.81,bpm:112,progression:[[0,4,7],[5,9,12],[7,11,14],[3,7,10]],arp:[0,2,1,2,0,1,2,1],lead:[12,14,null,16,14,null,11,null,12,16,null,19,16,null,14,null],bass:[0,0,5,5,7,7,3,3],wave:'square',pad:'triangle',cutoff:2800,drive:.96,swing:.02},
-  holdem:{root:98,bpm:84,progression:[[0,3,7],[5,8,12],[2,5,9],[7,10,14]],arp:[0,1,2,1,2,1,0,1],lead:[null,10,null,7,null,8,null,3,null,7,null,5,null,3,null,2],bass:[0,0,5,5,2,2,7,7],wave:'triangle',pad:'sine',cutoff:1450,drive:.58,swing:.07},
-  sevenpoker:{root:103.83,bpm:88,progression:[[0,4,7],[2,5,9],[5,9,12],[7,11,14]],arp:[0,2,1,2,1,0,2,1],lead:[null,11,null,7,9,null,7,null,null,14,null,12,11,null,7,null],bass:[0,0,2,2,5,5,7,7],wave:'triangle',pad:'sine',cutoff:1650,drive:.62,swing:.06},
-  baccarat:{root:116.54,bpm:90,progression:[[0,3,7],[5,8,12],[8,12,15],[7,10,14]],arp:[0,1,2,1,0,1,2,1],lead:[12,null,10,null,8,null,7,null,15,null,12,null,10,null,7,null],bass:[0,0,5,5,8,8,7,7],wave:'sine',pad:'triangle',cutoff:1500,drive:.55,swing:.05},
-  yut:{root:146.83,bpm:106,progression:[[0,4,7],[2,7,9],[5,9,12],[7,11,14]],arp:[0,2,1,2,0,1,2,1],lead:[12,null,16,14,12,null,9,null,7,9,12,null,14,12,9,null],bass:[0,0,2,2,5,5,7,7],wave:'triangle',pad:'sine',cutoff:3000,drive:.88,swing:.08},
-  seotda:{root:123.47,bpm:98,progression:[[0,3,7],[3,7,10],[5,8,12],[7,10,14]],arp:[0,1,2,1,0,2,1,2],lead:[null,10,null,7,8,null,7,null,12,null,10,null,7,null,5,null],bass:[0,0,3,3,5,5,7,7],wave:'triangle',pad:'sine',cutoff:1750,drive:.66,swing:.08},
-  gostop:{root:138.59,bpm:108,progression:[[0,5,7],[2,7,9],[5,9,12],[7,12,14]],arp:[0,2,1,2,0,1,2,1],lead:[12,14,12,null,9,12,9,null,7,9,12,14,12,9,7,null],bass:[0,0,2,2,5,5,7,7],wave:'triangle',pad:'sine',cutoff:3200,drive:.92,swing:.09},
-  horse:{root:98,bpm:124,progression:[[0,4,7],[5,9,12],[7,11,14],[9,12,16]],arp:[0,1,2,1,2,1,0,2],lead:[12,null,16,null,19,16,14,null,12,14,16,null,19,21,19,null],bass:[0,0,5,5,7,7,9,9],wave:'sawtooth',pad:'triangle',cutoff:3600,drive:1.05,swing:.01},
-  bigwheel:{root:110,bpm:114,progression:[[0,3,7],[3,7,10],[5,8,12],[7,10,14]],arp:[0,2,1,2,0,1,2,1],lead:[12,15,null,17,15,null,12,null,10,12,null,15,17,null,15,null],bass:[0,0,3,3,5,5,7,7],wave:'square',pad:'triangle',cutoff:2900,drive:.96,swing:.02},
-  sicbo:{root:103.83,bpm:104,progression:[[0,5,8],[3,7,10],[5,8,12],[7,10,14]],arp:[0,1,2,1,2,0,1,2],lead:[12,null,15,null,12,10,null,8,10,null,12,15,17,null,15,null],bass:[0,0,3,3,5,5,7,7],wave:'triangle',pad:'sine',cutoff:2400,drive:.82,swing:.04},
-  roulette:{root:92.5,bpm:110,progression:[[0,3,7],[5,8,12],[7,10,14],[3,7,10]],arp:[0,2,1,2,0,1,2,1],lead:[12,null,15,14,null,12,10,null,7,10,12,null,15,14,12,null],bass:[0,0,5,5,7,7,3,3],wave:'triangle',pad:'sine',cutoff:2450,drive:.84,swing:.03}
-};
+const PIANO_STYLE={root:130.81,bpm:72,progression:[[0,4,7],[9,12,16],[5,9,12],[7,11,14]],arp:[0,1,2,1,0,2,1,2],lead:[12,null,null,16,null,14,null,null,9,null,12,null,11,null,7,null],bass:[0,0,9,9,5,5,7,7],wave:'sine',pad:'sine',cutoff:1900,drive:.42,swing:.025};
+const BGM_STYLES={lobby:PIANO_STYLE,slot:PIANO_STYLE,holdem:PIANO_STYLE,sevenpoker:PIANO_STYLE,baccarat:PIANO_STYLE,yut:PIANO_STYLE,seotda:PIANO_STYLE,gostop:PIANO_STYLE,horse:PIANO_STYLE,bigwheel:PIANO_STYLE,sicbo:PIANO_STYLE,roulette:PIANO_STYLE};
 let soundEnabled=storageGet('jgc_sound','1')!=='0',ambientNodes=[],bgmTimer=null,bgmStep=0,bgmMaster=null,bgmBus=null,bgmNoise=null,audioUnlocked=false,audioUnlocking=false;
 function audioContext(){try{const C=window.AudioContext||window.webkitAudioContext;if(!C)return null;if(!fx.ctx||fx.ctx.state==='closed')fx.ctx=new C();return fx.ctx}catch{return null}}
 function updateSoundButton(){
@@ -159,7 +147,7 @@ function bgmPulse(){
     if(lead!==null&&lead!==undefined&&(s%2===0||audioScene==='horse'||audioScene==='gostop')){
       bgmTone(c,bgmBus,{freq:bgmFreq(cfg.root,lead),start:t,dur:stepSec*(s%4===0?1.85:1.15),gain:.046*cfg.drive,type:audioScene==='horse'?'sawtooth':'triangle',cutoff:cfg.cutoff*1.15,pan:s<8?-.12:.12,attack:.018,detune:s%4===0?5:-3});
     }
-    bgmPercussion(c,bgmBus,cfg,step,t);
+    // Soft piano ambience: percussion intentionally disabled.
   }catch(e){console.warn('[BGM]',e)}
 }
 function startAudioScene(scene='lobby'){
@@ -169,7 +157,7 @@ function startAudioScene(scene='lobby'){
   const cfg=BGM_STYLES[scene]||BGM_STYLES.lobby;
   try{
     const compressor=c.createDynamicsCompressor();compressor.threshold.value=-18;compressor.knee.value=16;compressor.ratio.value=3.2;compressor.attack.value=.012;compressor.release.value=.22;
-    const master=c.createGain();master.gain.value=.32;
+    const master=c.createGain();master.gain.value=.24;
     const filter=c.createBiquadFilter();filter.type='lowpass';filter.frequency.value=Math.min(7200,cfg.cutoff*2.35);filter.Q.value=.35;
     const bus=c.createGain();bus.gain.value=.78;
     bus.connect(filter);filter.connect(compressor);compressor.connect(master);master.connect(c.destination);
