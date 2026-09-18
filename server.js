@@ -10,7 +10,7 @@ const PORT = Number(process.env.PORT || 10000);
 const HOST = '0.0.0.0';
 const ADMIN_USERNAME = String(process.env.ADMIN_USERNAME || '').trim().toLowerCase();
 const ADMIN_PASSWORD = String(process.env.ADMIN_PASSWORD || '');
-const ADMIN_NICKNAME = String(process.env.ADMIN_NICKNAME || '관리자').trim().slice(0,14) || '관리자';
+const ADMIN_NICKNAME = '갓준자';
 const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, 'data');
 fs.mkdirSync(DATA_DIR, { recursive: true });
 const db = new DatabaseSync(path.join(DATA_DIR, 'club.db'));
@@ -230,6 +230,28 @@ const SHOP_ITEMS = [
   {id:'char_f_venus',category:'character',gender:'F',asset:'/art/v26/characters/char_f_venus.webp',name:'비너스 로열',icon:'✦',rarity:'mythic',price:800000000,desc:'로즈 젬과 로열 드레스의 최상위 여성 캐릭터'},
   {id:'char_f_junja',category:'character',gender:'F',asset:'/art/v26/characters/char_f_junja.webp',name:'JUNJA EMPRESS',icon:'♕',rarity:'prestige',price:1000000000,desc:'10억 G 프레스티지. 황금 왕관과 오라를 가진 여캐 최종 컬렉션',featured:true},
 
+  {id:'char_m_blade',category:'character',gender:'M',asset:'/art/v26/characters/char_m_blade.webp',name:'블레이드 렌',icon:'⚔',rarity:'mythic',price:120000000,desc:'JUNJA LAND 신규 프리미엄 컬렉션 캐릭터'},
+  {id:'char_m_sirius',category:'character',gender:'M',asset:'/art/v26/characters/char_m_sirius.webp',name:'시리우스',icon:'✦',rarity:'mythic',price:180000000,desc:'JUNJA LAND 신규 프리미엄 컬렉션 캐릭터'},
+  {id:'char_m_kaiser',category:'character',gender:'M',asset:'/art/v26/characters/char_m_kaiser.webp',name:'카이저',icon:'♜',rarity:'mythic',price:260000000,desc:'JUNJA LAND 신규 프리미엄 컬렉션 캐릭터'},
+  {id:'char_m_raven',category:'character',gender:'M',asset:'/art/v26/characters/char_m_raven.webp',name:'레이븐',icon:'♠',rarity:'mythic',price:340000000,desc:'JUNJA LAND 신규 프리미엄 컬렉션 캐릭터'},
+  {id:'char_m_orion',category:'character',gender:'M',asset:'/art/v26/characters/char_m_orion.webp',name:'오리온',icon:'★',rarity:'mythic',price:420000000,desc:'JUNJA LAND 신규 프리미엄 컬렉션 캐릭터'},
+  {id:'char_m_zephyr',category:'character',gender:'M',asset:'/art/v26/characters/char_m_zephyr.webp',name:'제피르',icon:'♨',rarity:'mythic',price:520000000,desc:'JUNJA LAND 신규 프리미엄 컬렉션 캐릭터'},
+  {id:'char_m_sol',category:'character',gender:'M',asset:'/art/v26/characters/char_m_sol.webp',name:'솔 레갈리아',icon:'☀',rarity:'mythic',price:620000000,desc:'JUNJA LAND 신규 프리미엄 컬렉션 캐릭터'},
+  {id:'char_m_abyss',category:'character',gender:'M',asset:'/art/v26/characters/char_m_abyss.webp',name:'어비스',icon:'◆',rarity:'mythic',price:720000000,desc:'JUNJA LAND 신규 프리미엄 컬렉션 캐릭터'},
+  {id:'char_m_valor',category:'character',gender:'M',asset:'/art/v26/characters/char_m_valor.webp',name:'발러',icon:'♛',rarity:'mythic',price:850000000,desc:'JUNJA LAND 신규 프리미엄 컬렉션 캐릭터'},
+  {id:'char_m_celest',category:'character',gender:'M',asset:'/art/v26/characters/char_m_celest.webp',name:'셀레스트 킹',icon:'✧',rarity:'mythic',price:950000000,desc:'JUNJA LAND 신규 프리미엄 컬렉션 캐릭터'},
+  {id:'char_f_sakura',category:'character',gender:'F',asset:'/art/v26/characters/char_f_sakura.webp',name:'사쿠라 벨',icon:'❀',rarity:'mythic',price:120000000,desc:'JUNJA LAND 신규 프리미엄 컬렉션 캐릭터'},
+  {id:'char_f_elise',category:'character',gender:'F',asset:'/art/v26/characters/char_f_elise.webp',name:'엘리제',icon:'♫',rarity:'mythic',price:180000000,desc:'JUNJA LAND 신규 프리미엄 컬렉션 캐릭터'},
+  {id:'char_f_rose',category:'character',gender:'F',asset:'/art/v26/characters/char_f_rose.webp',name:'블랙 로즈',icon:'♥',rarity:'mythic',price:260000000,desc:'JUNJA LAND 신규 프리미엄 컬렉션 캐릭터'},
+  {id:'char_f_angel',category:'character',gender:'F',asset:'/art/v26/characters/char_f_angel.webp',name:'셀레스티아',icon:'✧',rarity:'mythic',price:340000000,desc:'JUNJA LAND 신규 프리미엄 컬렉션 캐릭터'},
+  {id:'char_f_lilith',category:'character',gender:'F',asset:'/art/v26/characters/char_f_lilith.webp',name:'릴리스',icon:'♠',rarity:'mythic',price:420000000,desc:'JUNJA LAND 신규 프리미엄 컬렉션 캐릭터'},
+  {id:'char_f_regina',category:'character',gender:'F',asset:'/art/v26/characters/char_f_regina.webp',name:'레지나',icon:'♕',rarity:'mythic',price:520000000,desc:'JUNJA LAND 신규 프리미엄 컬렉션 캐릭터'},
+  {id:'char_f_nova',category:'character',gender:'F',asset:'/art/v26/characters/char_f_nova.webp',name:'노바',icon:'★',rarity:'mythic',price:620000000,desc:'JUNJA LAND 신규 프리미엄 컬렉션 캐릭터'},
+  {id:'char_f_mirage',category:'character',gender:'F',asset:'/art/v26/characters/char_f_mirage.webp',name:'미라주',icon:'◇',rarity:'mythic',price:720000000,desc:'JUNJA LAND 신규 프리미엄 컬렉션 캐릭터'},
+  {id:'char_f_valkyrie',category:'character',gender:'F',asset:'/art/v26/characters/char_f_valkyrie.webp',name:'발키리',icon:'⚜',rarity:'mythic',price:850000000,desc:'JUNJA LAND 신규 프리미엄 컬렉션 캐릭터'},
+  {id:'char_f_serenity',category:'character',gender:'F',asset:'/art/v26/characters/char_f_serenity.webp',name:'세레니티',icon:'☾',rarity:'mythic',price:950000000,desc:'JUNJA LAND 신규 프리미엄 컬렉션 캐릭터'},
+  {id:'char_admin_godjunja',category:'character',gender:'M',asset:'/art/v26/characters/char_m_junja.webp',name:'GOD JUNJA',icon:'👑',rarity:'prestige',price:0,adminOnly:true,featured:true,desc:'오직 갓준자 관리자만 사용할 수 있는 절대적 시그니처 캐릭터'},
+
   // COSTUMES · 보여지는 존재감 중심
   {id:'costume_dealer',category:'costume',name:'VIP 딜러',icon:'🎩',rarity:'rare',price:2000000,desc:'골드 딜러 햇과 하이롤러 무드'},
   {id:'costume_rabbit',category:'costume',name:'럭키 래빗',icon:'🐰',rarity:'rare',price:5000000,desc:'행운을 부르는 럭키 래빗 코스튬'},
@@ -363,7 +385,7 @@ function ensureAdminAccount(){
   const existing=db.prepare('SELECT * FROM users WHERE username=?').get(ADMIN_USERNAME);
   const salt=randomToken(16),hash=hashPassword(ADMIN_PASSWORD,salt),t=now();
   if(existing){
-    db.prepare('UPDATE users SET pass_salt=?,pass_hash=?,is_admin=1,is_disabled=0 WHERE id=?').run(salt,hash,existing.id);
+    db.prepare('UPDATE users SET pass_salt=?,pass_hash=?,nickname=?,is_admin=1,is_disabled=0 WHERE id=?').run(salt,hash,ADMIN_NICKNAME,existing.id);
     console.log(`Admin account ready: ${ADMIN_USERNAME}`);
     return;
   }
@@ -449,11 +471,13 @@ function reactionAllowed(userId,key){
   const load=ensureLoadout(userId);return load.bubble_pack===def.pack && inventoryIds(userId).has(def.pack);
 }
 function shopState(userId){
-  const load=ensureLoadout(userId),owned=inventoryIds(userId);
-  return {items:SHOP_ITEMS.map(x=>({...x,owned:owned.has(x.id),equipped:load[x.category]===x.id})),loadout:cosmeticsPublic(userId),ownedCount:owned.size};
+  const load=ensureLoadout(userId),owned=inventoryIds(userId),u=db.prepare('SELECT is_admin FROM users WHERE id=?').get(userId);
+  if(u?.is_admin)owned.add('char_admin_godjunja');
+  return {items:SHOP_ITEMS.filter(x=>!x.adminOnly||u?.is_admin).map(x=>({...x,owned:owned.has(x.id),equipped:load[x.category]===x.id})),loadout:cosmeticsPublic(userId),ownedCount:owned.size};
 }
 function buyShopItem(userId,itemId){
   const item=SHOP_BY_ID[String(itemId||'')];if(!item)throw new Error('존재하지 않는 상점 아이템입니다.');
+  if(item.adminOnly)throw new Error('GOD JUNJA는 갓준자 관리자 전용 캐릭터입니다.');
   if(db.prepare('SELECT 1 FROM user_inventory WHERE user_id=? AND item_id=?').get(userId,item.id))throw new Error('이미 보유한 아이템입니다.');
   db.exec('BEGIN IMMEDIATE');
   try{
@@ -471,7 +495,9 @@ function equipShopItem(userId,category,itemId){
   ensureLoadout(userId);
   if(itemId==null||itemId==='') {db.prepare(`UPDATE user_loadout SET ${category}=NULL WHERE user_id=?`).run(userId);return cosmeticsPublic(userId);}
   const item=SHOP_BY_ID[String(itemId)];if(!item||item.category!==category)throw new Error('이 슬롯에 장착할 수 없는 아이템입니다.');
-  if(!db.prepare('SELECT 1 FROM user_inventory WHERE user_id=? AND item_id=?').get(userId,item.id))throw new Error('먼저 아이템을 구매해주세요.');
+  const owner=db.prepare('SELECT is_admin FROM users WHERE id=?').get(userId);
+  if(item.adminOnly&&!owner?.is_admin)throw new Error('갓준자 관리자 전용 캐릭터입니다.');
+  if(!item.adminOnly&&!db.prepare('SELECT 1 FROM user_inventory WHERE user_id=? AND item_id=?').get(userId,item.id))throw new Error('먼저 아이템을 구매해주세요.');
   db.prepare(`UPDATE user_loadout SET ${category}=? WHERE user_id=?`).run(item.id,userId);return cosmeticsPublic(userId);
 }
 
