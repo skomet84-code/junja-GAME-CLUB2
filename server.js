@@ -1588,7 +1588,7 @@ const server=http.createServer(async(req,res)=>{
     if(url.pathname==='/healthz')return json(res,200,{ok:true,rooms:rooms.size+baccaratRooms.size,online:onlineCount()});
     if(url.pathname==='/audio/bright_song.mp3'&&req.method==='GET'){
       try{
-        const upstream=await fetch('https://opengameart.org/sites/default/files/bright_song.mp3');
+        const upstream=await fetch('https://opengameart.org/sites/default/files/Sunflower-Valley-isaiah658_0.mp3');
         if(!upstream.ok)throw new Error('BGM upstream '+upstream.status);
         const body=Buffer.from(await upstream.arrayBuffer());
         res.writeHead(200,{'Content-Type':'audio/mpeg','Content-Length':body.length,'Cache-Control':'public, max-age=86400',...securityHeaders()});
