@@ -64,7 +64,7 @@ function startLiveFloor(game){
   if(liveGame&&liveGame!==game)leaveLiveFloor(liveGame);
   clearInterval(liveHeartbeatTimer);clearInterval(livePollTimer);liveGame=game;liveKnownIds=new Set();liveInitialized=false,sevenAutoTimer=null,baccaratAutoTimer=null,baccaratLastAutoRound=-1,networkDegraded=false,bigWheelAutoStop=false,sicboAutoStop=false,bigWheelAutoRunning=false,sicboAutoRunning=false,shopData=null,shopCategory='all',shopOwnedOnly=false;
   ensureLiveFloorMount(game);liveHeartbeat();refreshLiveFloor(true);
-  liveHeartbeatTimer=setInterval(liveHeartbeat,6000);livePollTimer=setInterval(()=>{if(!document.hidden)refreshLiveFloor(true)},1800);
+  liveHeartbeatTimer=setInterval(liveHeartbeat,10000);livePollTimer=setInterval(()=>{if(!document.hidden&&!currentRoomId&&currentView===liveGame)refreshLiveFloor(true)},4500);
 }
 function stopLiveFloor(){
   clearInterval(liveHeartbeatTimer);clearInterval(livePollTimer);liveHeartbeatTimer=null;livePollTimer=null;
@@ -557,7 +557,7 @@ async function runAutoSpins(count){
 
 // MULTI ROOMS v0.9 - READY / TURN / RECOVERY / POLLING
 function stopRoomPolling(){if(roomPollTimer){clearInterval(roomPollTimer);roomPollTimer=null}}
-function startRoomPolling(){stopRoomPolling();if(!currentRoomId)return;roomPollTimer=setInterval(()=>{if(!document.hidden&&currentRoomId)loadCurrentRoom(true).catch(()=>{})},1200)}
+function startRoomPolling(){stopRoomPolling();if(!currentRoomId)return;roomPollTimer=setInterval(()=>{if(!document.hidden&&currentRoomId&&currentView===currentGame)loadCurrentRoom(true).catch(()=>{})},2200)}
 async function resumeMyRoom(){
   try{
     const d=await api('/api/my-room');if(!d.room)return;
