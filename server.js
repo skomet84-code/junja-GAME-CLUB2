@@ -317,7 +317,9 @@ for(const item of SHOP_ITEMS){if(SHOP_PERKS[item.id])item.perk={...SHOP_PERKS[it
 const SHOP_BY_ID = Object.fromEntries(SHOP_ITEMS.map(x=>[x.id,Object.freeze({...x})]));
 const LOADOUT_FIELDS = new Set(['character','costume','frame','title','pet','table_skin','card_back','bubble_pack']);
 const SLOT_SYMBOLS = [
-  {s:'🍒',w:140},{s:'🍋',w:120},{s:'🍊',w:100},{s:'🔔',w:65},{s:'⭐',w:45},{s:'💎',w:25},{s:'7️⃣',w:7},{s:'J',w:1}
+  // v2.8.11: reduce common line-hit frequency while nudging 777 slightly upward.
+  // More symbol variety lowers repeated common triples; 7 weight gets only a small lift.
+  {s:'🍒',w:118},{s:'🍋',w:108},{s:'🍊',w:98},{s:'🔔',w:82},{s:'⭐',w:70},{s:'💎',w:58},{s:'🍀',w:48},{s:'👑',w:38},{s:'7️⃣',w:8},{s:'J',w:1}
 ];
 const SLOT_MULT = {'🍒':2,'🍋':3,'🍊':5,'🔔':8,'⭐':10,'💎':20,'7️⃣':1000,'J':800};
 const SLOT_LINES = [
