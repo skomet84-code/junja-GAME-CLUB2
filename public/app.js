@@ -76,7 +76,7 @@ async function sendLiveReaction(key,btn){
 }
 function signedMoney(n){return (Number(n)>=0?'+':'')+money(n)}
 function toast(msg){const e=$('#toast');if(!e)return;e.textContent=msg;e.classList.add('show');clearTimeout(e._t);e._t=setTimeout(()=>e.classList.remove('show'),2400)}
-const BGM_TRACK_URL='https://opengameart.org/sites/default/files/Mystical%20Piano_0.mp3';
+const BGM_TRACK_URL='https://opengameart.org/sites/default/files/JRPG%20Piano.mp3';
 let soundEnabled=storageGet('jgc_sound','1')!=='0',bgmAudio=null,audioUnlocked=false,audioUnlocking=false;
 function audioContext(){try{const C=window.AudioContext||window.webkitAudioContext;if(!C)return null;if(!fx.ctx||fx.ctx.state==='closed')fx.ctx=new C();return fx.ctx}catch{return null}}
 function updateSoundButton(){
