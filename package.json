@@ -1,11 +1,11 @@
 {
   "name": "junja-game-club",
-  "version": "2.8.11",
+  "version": "2.8.12",
   "private": true,
-  "description": "JUNJA LAND v2.8.11 - normalized slot odds with fewer common wins and a slight 777 probability lift.",
+  "description": "JUNJA LAND v2.8.12 - one-shot 777 event: 50% jackpot chance until the first 777 winner, then original odds restore automatically.",
   "type": "commonjs",
   "scripts": {
-    "start": "node admin-unlimited-start.js",
+    "start": "node slot-50pct-until-win-start.js",
     "check": "node --check admin-unlimited-start.js && node --check server.js && node --check public/app.js && node --check public/v25-overhaul.js",
     "test:matgo": "node tests/yashimchan-matgo-smoke.cjs"
   },
