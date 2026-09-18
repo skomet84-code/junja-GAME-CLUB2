@@ -14,7 +14,7 @@ const serverPath = path.resolve(__dirname, 'server.js');
 const originalReadFileSync = fs.readFileSync.bind(fs);
 
 const poolInitAnchor = "if(gameStateGet('slot_jackpot_pool',null)==null)gameStateSet('slot_jackpot_pool',SLOT_JACKPOT_BASE);";
-const eventStatePatch = `${poolInitAnchor}\n\nconst TEMP_SLOT_777_EVENT_KEY='slot_777_event_20260917_50pct_dockerfix_one_shot';\nif(gameStateGet(TEMP_SLOT_777_EVENT_KEY,null)==null){\n  gameStateSet(TEMP_SLOT_777_EVENT_KEY,{active:true,startedAt:Date.now(),targetPct:10});\n}\nfunction tempSlot777EventActive(){\n  const state=gameStateGet(TEMP_SLOT_777_EVENT_KEY,null);\n  return state===true||!!state?.active;\n}`;
+const eventStatePatch = `${poolInitAnchor}\n\nconst TEMP_SLOT_777_EVENT_KEY='slot_777_event_20260919_10pct_restart';\nif(gameStateGet(TEMP_SLOT_777_EVENT_KEY,null)==null){\n  gameStateSet(TEMP_SLOT_777_EVENT_KEY,{active:true,startedAt:Date.now(),targetPct:10});\n}\nfunction tempSlot777EventActive(){\n  const state=gameStateGet(TEMP_SLOT_777_EVENT_KEY,null);\n  return state===true||!!state?.active;\n}`;
 
 const oldGridBuild = "      const grid=Array.from({length:3},()=>Array.from({length:3},()=>pick()));";
 const temporaryGridBuild = `      // TEMP EVENT: exactly 10% total 777 jackpot chance until first winner.
