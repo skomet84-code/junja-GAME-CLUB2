@@ -108,12 +108,13 @@ const oldGameWager = "function gameWager(v,min=1000,max=5000000,step=1000){\n  c
 const newGameWager = "function gameWager(v,min=1000,max=Number.MAX_SAFE_INTEGER,step=1000){\n  const n=Math.floor(Number(v));\n  if(!Number.isSafeInteger(n)||n<min||n%step!==0) throw new Error(`금액은 최소 ${formatMoney(min)}G부터 ${formatMoney(step)}G 단위로 입력하세요.`);\n  return n;\n}";
 source = replaceOne(source, oldGameWager, newGameWager, 'global game wager ceiling');
 
-// Yut: when a piece reached the physical center from O5 (internal CA), allow
-// the next move to turn toward B4/B5/FINISH instead of forcing A4/A5/O15.
+// Yut: preserve the v2.8.8+ finish rule while applying the center shortcut.
+// A new piece starts at O1; a returning piece reaches HOME (START) first and
+// only the next step exits HOME to FINISH. The center shortcut must not bypass HOME.
 source = replaceOne(
   source,
-  "  const map={A1:['A2','A'],A2:['CA','A'],CA:['A4','A'],A4:['A5','A'],A5:['O15','outer'],B1:['B2','B'],B2:['CB','B'],CB:['B4','B'],B4:['B5','B'],B5:['FINISH','B']};",
-  "  if(node==='CA')return firstStep&&routeChoice!=='outer'?{node:'B4',route:'B'}:{node:'A4',route:'A'};\n  const map={A1:['A2','A'],A2:['CA','A'],CA:['A4','A'],A4:['A5','A'],A5:['O15','outer'],B1:['B2','B'],B2:['CB','B'],CB:['B4','B'],B4:['B5','B'],B5:['FINISH','B']};",
+  "  const map={A1:['A2','A'],A2:['CA','A'],CA:['A4','A'],A4:['A5','A'],A5:['O15','outer'],B1:['B2','B'],B2:['CB','B'],CB:['B4','B'],B4:['B5','B'],B5:['START','B']};",
+  "  if(node==='CA')return firstStep&&routeChoice!=='outer'?{node:'B4',route:'B'}:{node:'A4',route:'A'};\n  const map={A1:['A2','A'],A2:['CA','A'],CA:['A4','A'],A4:['A5','A'],A5:['O15','outer'],B1:['B2','B'],B2:['CB','B'],CB:['B4','B'],B4:['B5','B'],B5:['START','B']};",
   'yut center shortcut'
 );
 
