@@ -1,8 +1,8 @@
 {
   "name": "junja-game-club",
-  "version": "2.8.12",
+  "version": "2.8.13",
   "private": true,
-  "description": "JUNJA LAND v2.8.12 - one-shot 777 event: 50% jackpot chance until the first 777 winner, then original odds restore automatically.",
+  "description": "JUNJA LAND v2.8.13 - one-shot 777 event: 10% jackpot chance until the first 777 winner, then original odds restore automatically.",
   "type": "commonjs",
   "scripts": {
     "start": "node slot-50pct-until-win-start.js",
