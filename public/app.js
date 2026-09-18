@@ -76,115 +76,40 @@ async function sendLiveReaction(key,btn){
 }
 function signedMoney(n){return (Number(n)>=0?'+':'')+money(n)}
 function toast(msg){const e=$('#toast');if(!e)return;e.textContent=msg;e.classList.add('show');clearTimeout(e._t);e._t=setTimeout(()=>e.classList.remove('show'),2400)}
-const PIANO_STYLE={root:130.81,bpm:72,progression:[[0,4,7],[9,12,16],[5,9,12],[7,11,14]],arp:[0,1,2,1,0,2,1,2],lead:[12,null,null,16,null,14,null,null,9,null,12,null,11,null,7,null],bass:[0,0,9,9,5,5,7,7],wave:'sine',pad:'sine',cutoff:1900,drive:.42,swing:.025};
-const BGM_STYLES={lobby:PIANO_STYLE,slot:PIANO_STYLE,holdem:PIANO_STYLE,sevenpoker:PIANO_STYLE,baccarat:PIANO_STYLE,yut:PIANO_STYLE,seotda:PIANO_STYLE,gostop:PIANO_STYLE,horse:PIANO_STYLE,bigwheel:PIANO_STYLE,sicbo:PIANO_STYLE,roulette:PIANO_STYLE};
-let soundEnabled=storageGet('jgc_sound','1')!=='0',ambientNodes=[],bgmTimer=null,bgmStep=0,bgmMaster=null,bgmBus=null,bgmNoise=null,audioUnlocked=false,audioUnlocking=false;
+const BGM_TRACK_URL='https://opengameart.org/sites/default/files/Mystical%20Piano_0.mp3';
+let soundEnabled=storageGet('jgc_sound','1')!=='0',bgmAudio=null,audioUnlocked=false,audioUnlocking=false;
 function audioContext(){try{const C=window.AudioContext||window.webkitAudioContext;if(!C)return null;if(!fx.ctx||fx.ctx.state==='closed')fx.ctx=new C();return fx.ctx}catch{return null}}
 function updateSoundButton(){
   const b=$('#soundBtn');if(!b)return;
   if(!soundEnabled){b.textContent='🔇 BGM OFF';b.setAttribute('aria-pressed','false');return}
   b.textContent=audioUnlocked?'🎵 BGM ON':'▶ BGM START';b.setAttribute('aria-pressed','true');
 }
-function bgmFreq(root,semi=0){return root*Math.pow(2,semi/12)}
-function bgmPan(c,value=0){if(!c.createStereoPanner)return null;const p=c.createStereoPanner();p.pan.value=Math.max(-1,Math.min(1,value));return p}
-function bgmNoiseBuffer(c){
-  if(bgmNoise&&bgmNoise.sampleRate===c.sampleRate)return bgmNoise;
-  const len=Math.max(1,Math.floor(c.sampleRate*.6)),buf=c.createBuffer(1,len,c.sampleRate),d=buf.getChannelData(0);
-  for(let i=0;i<len;i++)d[i]=Math.random()*2-1;
-  bgmNoise=buf;return buf;
+function ensureBgmAudio(){
+  if(bgmAudio)return bgmAudio;
+  const a=new Audio(BGM_TRACK_URL);a.loop=true;a.preload='auto';a.volume=.22;a.playsInline=true;
+  a.addEventListener('error',()=>console.warn('[BGM] audio load failed'));
+  bgmAudio=a;return a;
 }
-function bgmTone(c,dest,{freq,start,dur=.25,gain=.08,type='triangle',cutoff=2600,pan=0,attack=.012,detune=0}){
-  const o=c.createOscillator(),g=c.createGain(),f=c.createBiquadFilter(),p=bgmPan(c,pan);
-  o.type=type;o.frequency.setValueAtTime(Math.max(28,freq),start);o.detune.value=detune;
-  f.type='lowpass';f.frequency.setValueAtTime(cutoff,start);f.Q.value=.7;
-  g.gain.setValueAtTime(.0001,start);g.gain.exponentialRampToValueAtTime(Math.max(.0002,gain),start+attack);
-  g.gain.exponentialRampToValueAtTime(.0001,start+Math.max(attack+.02,dur));
-  o.connect(f);f.connect(g);if(p){g.connect(p);p.connect(dest)}else g.connect(dest);
-  o.start(start);o.stop(start+dur+.04);
-}
-function bgmPad(c,dest,cfg,chord,start,dur){
-  chord.forEach((semi,i)=>{
-    bgmTone(c,dest,{freq:bgmFreq(cfg.root/2,semi),start:start+i*.008,dur:dur*.96,gain:.042,type:cfg.pad,cutoff:cfg.cutoff*.7,pan:(i-1)*.32,attack:.12,detune:i===1?4:i===2?-4:0});
-    bgmTone(c,dest,{freq:bgmFreq(cfg.root,semi),start:start+i*.012,dur:dur*.88,gain:.016,type:'sine',cutoff:cfg.cutoff*.8,pan:(1-i)*.22,attack:.18,detune:i===0?-6:6});
-  });
-}
-function bgmBass(c,dest,cfg,semi,start,stepSec){
-  bgmTone(c,dest,{freq:bgmFreq(cfg.root/2,semi),start,dur:stepSec*2.65,gain:.095,type:'triangle',cutoff:620,attack:.008});
-  bgmTone(c,dest,{freq:bgmFreq(cfg.root/4,semi),start,dur:stepSec*1.8,gain:.045,type:'sine',cutoff:420,attack:.004});
-}
-function bgmKick(c,dest,start,gain=.12){
-  const o=c.createOscillator(),g=c.createGain();o.type='sine';o.frequency.setValueAtTime(145,start);o.frequency.exponentialRampToValueAtTime(48,start+.11);
-  g.gain.setValueAtTime(gain,start);g.gain.exponentialRampToValueAtTime(.0001,start+.16);o.connect(g);g.connect(dest);o.start(start);o.stop(start+.18);
-}
-function bgmNoiseHit(c,dest,start,{gain=.025,dur=.05,cutoff=6500,type='highpass',pan=0}={}){
-  const src=c.createBufferSource(),f=c.createBiquadFilter(),g=c.createGain(),p=bgmPan(c,pan);src.buffer=bgmNoiseBuffer(c);f.type=type;f.frequency.value=cutoff;
-  g.gain.setValueAtTime(Math.max(.0002,gain),start);g.gain.exponentialRampToValueAtTime(.0001,start+dur);
-  src.connect(f);f.connect(g);if(p){g.connect(p);p.connect(dest)}else g.connect(dest);src.start(start);src.stop(start+dur+.03);
-}
-function bgmPercussion(c,dest,cfg,step,start){
-  const s=step%16,energy=cfg.drive||.8;
-  if(s===0||s===8||((audioScene==='horse'||audioScene==='slot')&&(s===4||s===12)))bgmKick(c,dest,start,.075*energy);
-  if(s===4||s===12){bgmNoiseHit(c,dest,start,{gain:.038*energy,dur:.095,cutoff:1550,type:'highpass'});bgmTone(c,dest,{freq:185,start,dur:.09,gain:.025*energy,type:'triangle',cutoff:900})}
-  if(s%2===0)bgmNoiseHit(c,dest,start,{gain:.014*energy,dur:.032,cutoff:7200,type:'highpass',pan:s%4===0?-.28:.28});
-  if((audioScene==='yut'||audioScene==='gostop')&&(s===3||s===7||s===11||s===15))bgmNoiseHit(c,dest,start,{gain:.022,dur:.045,cutoff:3100,type:'bandpass',pan:s%8===3?-.38:.38});
-}
-function stopAmbient(){
-  if(bgmTimer){clearInterval(bgmTimer);bgmTimer=null}
-  for(const n of ambientNodes){try{n.stop?.();n.disconnect?.()}catch{}}
-  ambientNodes=[];bgmMaster=null;bgmBus=null;bgmStep=0;bgmNoise=null;
-}
-function bgmPulse(){
-  if(!soundEnabled||!bgmMaster||!bgmBus||!me||!audioUnlocked)return;
-  const c=audioContext(),cfg=BGM_STYLES[audioScene]||BGM_STYLES.lobby;if(!c||c.state!=='running')return;
-  try{
-    const step=bgmStep++,s=step%16,stepSec=60/cfg.bpm/4;
-    const swing=(s%2?stepSec*cfg.swing:0),t=c.currentTime+.025+swing,chordIndex=Math.floor(step/8)%cfg.progression.length,chord=cfg.progression[chordIndex];
-    if(s%8===0)bgmPad(c,bgmBus,cfg,chord,t,stepSec*8.35);
-    const arpSemi=chord[cfg.arp[step%cfg.arp.length]%chord.length]+12;
-    bgmTone(c,bgmBus,{freq:bgmFreq(cfg.root,arpSemi),start:t,dur:stepSec*.82,gain:.032*cfg.drive,type:cfg.wave,cutoff:cfg.cutoff,pan:s%4<2?-.24:.24,attack:.008,detune:s%3===0?3:-2});
-    if(s%4===0){const bassSemi=cfg.bass[(Math.floor(step/4))%cfg.bass.length];bgmBass(c,bgmBus,cfg,bassSemi,t,stepSec)}
-    const lead=cfg.lead[s];
-    if(lead!==null&&lead!==undefined&&(s%2===0||audioScene==='horse'||audioScene==='gostop')){
-      bgmTone(c,bgmBus,{freq:bgmFreq(cfg.root,lead),start:t,dur:stepSec*(s%4===0?1.85:1.15),gain:.046*cfg.drive,type:audioScene==='horse'?'sawtooth':'triangle',cutoff:cfg.cutoff*1.15,pan:s<8?-.12:.12,attack:.018,detune:s%4===0?5:-3});
-    }
-    // Soft piano ambience: percussion intentionally disabled.
-  }catch(e){console.warn('[BGM]',e)}
-}
-function startAudioScene(scene='lobby'){
-  if(!soundEnabled||!me||!audioUnlocked)return false;
-  const c=audioContext();if(!c||c.state!=='running')return false;
-  stopAmbient();audioScene=scene;
-  const cfg=BGM_STYLES[scene]||BGM_STYLES.lobby;
-  try{
-    const compressor=c.createDynamicsCompressor();compressor.threshold.value=-18;compressor.knee.value=16;compressor.ratio.value=3.2;compressor.attack.value=.012;compressor.release.value=.22;
-    const master=c.createGain();master.gain.value=.24;
-    const filter=c.createBiquadFilter();filter.type='lowpass';filter.frequency.value=Math.min(7200,cfg.cutoff*2.35);filter.Q.value=.35;
-    const bus=c.createGain();bus.gain.value=.78;
-    bus.connect(filter);filter.connect(compressor);compressor.connect(master);master.connect(c.destination);
-    bgmMaster=master;bgmBus=bus;ambientNodes.push(bus,filter,compressor,master);
-    bgmPulse();const interval=Math.max(70,Math.round(60000/cfg.bpm/4));bgmTimer=setInterval(bgmPulse,interval);
-    updateSoundButton();return true;
-  }catch(e){console.warn('[BGM START]',e);return false}
+function stopAmbient(){if(bgmAudio){try{bgmAudio.pause()}catch{}}}
+async function startAudioScene(scene='lobby'){
+  audioScene=scene;if(!soundEnabled||!me)return false;
+  const a=ensureBgmAudio();
+  try{await a.play();audioUnlocked=true;updateSoundButton();return true}catch(e){audioUnlocked=false;updateSoundButton();return false}
 }
 async function ensureAudioUnlocked(startMusic=true){
-  if(audioUnlocking)return audioUnlocked;const c=audioContext();if(!c)return false;
-  audioUnlocking=true;
-  try{if(c.state!=='running')await c.resume();audioUnlocked=c.state==='running'}catch{audioUnlocked=false}
-  audioUnlocking=false;updateSoundButton();
-  if(audioUnlocked&&startMusic&&soundEnabled&&me&&!bgmTimer)startAudioScene(audioScene||currentView||'lobby');
-  return audioUnlocked;
+  if(audioUnlocking)return audioUnlocked;audioUnlocking=true;
+  try{const c=audioContext();if(c&&c.state!=='running')await c.resume()}catch{}
+  if(startMusic&&soundEnabled&&me)await startAudioScene(audioScene||currentView||'lobby');
+  audioUnlocking=false;updateSoundButton();return audioUnlocked;
 }
 function setAudioScene(scene='lobby'){
-  audioScene=scene;stopAmbient();if(!soundEnabled||!me){updateSoundButton();return}
-  const c=audioContext();if(!c){updateSoundButton();return}
-  if(c.state==='running'){audioUnlocked=true;startAudioScene(scene);return}
-  audioUnlocked=false;updateSoundButton();
-  ensureAudioUnlocked(false).then(ok=>{if(ok&&soundEnabled&&me&&audioScene===scene&&!bgmTimer)startAudioScene(scene)});
+  audioScene=scene;if(!soundEnabled||!me){stopAmbient();updateSoundButton();return}
+  startAudioScene(scene);
 }
 async function toggleSound(){
   soundEnabled=!soundEnabled;storageSet('jgc_sound',soundEnabled?'1':'0');
-  if(!soundEnabled){stopAmbient();updateSoundButton();return}
-  const ok=await ensureAudioUnlocked(false);if(ok)startAudioScene(currentView||'lobby');else updateSoundButton();
+  if(!soundEnabled){stopAmbient();audioUnlocked=false;updateSoundButton();return}
+  await startAudioScene(currentView||'lobby');
 }
 function fx(kind='click'){
   if(!soundEnabled)return;try{const c=audioContext();if(!c)return;if(c.state!=='running'){ensureAudioUnlocked(false);return}
