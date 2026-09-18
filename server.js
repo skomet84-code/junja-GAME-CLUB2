@@ -837,16 +837,16 @@ function yutFinished(p){return p?.node==='FINISH';}
 function yutNextStep(p,firstStep,routeChoice='shortcut'){
   const node=p.node,route=p.route||'outer';
   if(node==='FINISH')return yutClonePiece(p);
-  if(node==='READY')return {node:'START',route:'outer'};
-  if(node==='START')return {node:'O1',route:'outer'};
+  if(node==='READY')return {node:'O1',route:'outer'};
+  if(node==='START')return {node:'FINISH',route:'outer'};
   if(node==='O5')return firstStep&&routeChoice!=='outer'?{node:'A1',route:'A'}:{node:'O6',route:'outer'};
   if(node==='O10')return firstStep&&routeChoice!=='outer'?{node:'B1',route:'B'}:{node:'O11',route:'outer'};
   if(/^O\d+$/.test(node)){
     const n=Number(node.slice(1));
     if(n<20)return {node:`O${n+1}`,route:'outer'};
-    return {node:'FINISH',route:'outer'};
+    return {node:'START',route:'outer'};
   }
-  const map={A1:['A2','A'],A2:['CA','A'],CA:['A4','A'],A4:['A5','A'],A5:['O15','outer'],B1:['B2','B'],B2:['CB','B'],CB:['B4','B'],B4:['B5','B'],B5:['FINISH','B']};
+  const map={A1:['A2','A'],A2:['CA','A'],CA:['A4','A'],A4:['A5','A'],A5:['O15','outer'],B1:['B2','B'],B2:['CB','B'],CB:['B4','B'],B4:['B5','B'],B5:['START','B']};
   if(map[node])return {node:map[node][0],route:map[node][1]};
   return {node:'READY',route:'outer'};
 }
@@ -884,7 +884,7 @@ function yutCurrentPlayer(r,y){return orderedPlayers(r)[y.turnIndex%orderedPlaye
 function yutStart(r){
   if(r.players.length<2)throw new Error('2명 이상 필요합니다.');
   if((r.yutMode==='2v2'||r.yutMode==='3v3')&&r.players.length!==r.maxPlayers)throw new Error(`${yutModeLabel(r.yutMode)}은 ${r.maxPlayers}명이 모두 입장해야 시작할 수 있습니다.`);
-  r.yut={phase:'playing',turnIndex:0,sides:yutMakeSides(r),pending:[],awaitingThrow:true,captureBonus:0,last:null,winnerSideId:null,startedAt:now(),ruleSet:'club-standard-v08-home-counted'};
+  r.yut={phase:'playing',turnIndex:0,sides:yutMakeSides(r),pending:[],awaitingThrow:true,captureBonus:0,last:null,winnerSideId:null,startedAt:now(),ruleSet:'club-standard-v09-home-exit-finish'};
 }
 function yutThrow(r,userId){
   const y=r.yut;if(!y||y.phase!=='playing')throw new Error('게임이 진행 중이 아닙니다.');
@@ -1035,7 +1035,7 @@ function soloYutBestMove(s,side){
     const enemy=s.sides[other].filter(op=>yutPhysical(op)===to).length;if(enemy)score+=55+enemy*8;
     const friendly=s.sides[side].filter((op,i)=>i!==pi&&yutPhysical(op)===to&&to!=='READY').length;if(friendly)score+=20+friendly*5;
     // approximate progress preference
-    const prog={'READY':-1,'START':0,'O1':1,'O2':2,'O3':3,'O4':4,'O5':5,'A1':7,'A2':9,'CA':11,'A4':13,'A5':15,'O6':6,'O7':7,'O8':8,'O9':9,'O10':10,'B1':12,'B2':14,'CB':16,'B4':18,'B5':20,'O11':11,'O12':12,'O13':13,'O14':14,'O15':15,'O16':16,'O17':17,'O18':18,'O19':19,'O20':20,'FINISH':30}[adv.piece.node]||0;score+=prog;
+    const prog={'READY':-1,'START':29,'O1':1,'O2':2,'O3':3,'O4':4,'O5':5,'A1':7,'A2':9,'CA':11,'A4':13,'A5':15,'O6':6,'O7':7,'O8':8,'O9':9,'O10':10,'B1':12,'B2':14,'CB':16,'B4':18,'B5':20,'O11':11,'O12':12,'O13':13,'O14':14,'O15':15,'O16':16,'O17':17,'O18':18,'O19':19,'O20':20,'FINISH':30}[adv.piece.node]||0;score+=prog;
     if(score>best.score)best={pieceIndex:pi,moveIndex:mi,score};
   }));return best;
 }
