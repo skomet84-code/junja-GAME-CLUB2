@@ -76,55 +76,107 @@ async function sendLiveReaction(key,btn){
 }
 function signedMoney(n){return (Number(n)>=0?'+':'')+money(n)}
 function toast(msg){const e=$('#toast');if(!e)return;e.textContent=msg;e.classList.add('show');clearTimeout(e._t);e._t=setTimeout(()=>e.classList.remove('show'),2400)}
-const SOUND_SCENES={slot:[65,98],holdem:[55,82],sevenpoker:[58,87],baccarat:[62,93],yut:[73,110],seotda:[68,102],gostop:[70,105],horse:[49,73],bigwheel:[52,78],sicbo:[56,84],roulette:[47,71],lobby:[44,66]};
-const BGM_PATTERNS={
-  lobby:{root:110,bpm:92,notes:[0,7,12,7,3,7,10,7]},
-  slot:{root:130.81,bpm:108,notes:[0,7,12,15,12,7,10,14]},
-  holdem:{root:98,bpm:84,notes:[0,3,7,10,7,3,5,8]},
-  sevenpoker:{root:103.83,bpm:88,notes:[0,4,7,11,7,4,2,7]},
-  baccarat:{root:116.54,bpm:90,notes:[0,5,9,12,9,5,7,10]},
-  yut:{root:146.83,bpm:104,notes:[0,4,7,12,7,4,9,7]},
-  seotda:{root:123.47,bpm:98,notes:[0,3,7,10,7,3,8,5]},
-  gostop:{root:138.59,bpm:106,notes:[0,5,7,12,10,7,5,2]},
-  horse:{root:98,bpm:118,notes:[0,7,12,7,10,14,12,7]},
-  bigwheel:{root:110,bpm:112,notes:[0,3,7,12,7,10,15,12]},
-  sicbo:{root:103.83,bpm:102,notes:[0,5,8,12,8,5,10,7]},
-  roulette:{root:92.5,bpm:108,notes:[0,3,7,10,12,10,7,3]}
+const BGM_STYLES={
+  lobby:{root:110,bpm:94,progression:[[0,3,7],[5,8,12],[3,7,10],[7,10,14]],arp:[0,1,2,1,0,2,1,2],lead:[12,null,10,null,7,null,8,null,7,null,5,null,3,null,7,null],bass:[0,0,5,5,3,3,7,7],wave:'triangle',pad:'sine',cutoff:2100,drive:.78,swing:.04},
+  slot:{root:130.81,bpm:112,progression:[[0,4,7],[5,9,12],[7,11,14],[3,7,10]],arp:[0,2,1,2,0,1,2,1],lead:[12,14,null,16,14,null,11,null,12,16,null,19,16,null,14,null],bass:[0,0,5,5,7,7,3,3],wave:'square',pad:'triangle',cutoff:2800,drive:.96,swing:.02},
+  holdem:{root:98,bpm:84,progression:[[0,3,7],[5,8,12],[2,5,9],[7,10,14]],arp:[0,1,2,1,2,1,0,1],lead:[null,10,null,7,null,8,null,3,null,7,null,5,null,3,null,2],bass:[0,0,5,5,2,2,7,7],wave:'triangle',pad:'sine',cutoff:1450,drive:.58,swing:.07},
+  sevenpoker:{root:103.83,bpm:88,progression:[[0,4,7],[2,5,9],[5,9,12],[7,11,14]],arp:[0,2,1,2,1,0,2,1],lead:[null,11,null,7,9,null,7,null,null,14,null,12,11,null,7,null],bass:[0,0,2,2,5,5,7,7],wave:'triangle',pad:'sine',cutoff:1650,drive:.62,swing:.06},
+  baccarat:{root:116.54,bpm:90,progression:[[0,3,7],[5,8,12],[8,12,15],[7,10,14]],arp:[0,1,2,1,0,1,2,1],lead:[12,null,10,null,8,null,7,null,15,null,12,null,10,null,7,null],bass:[0,0,5,5,8,8,7,7],wave:'sine',pad:'triangle',cutoff:1500,drive:.55,swing:.05},
+  yut:{root:146.83,bpm:106,progression:[[0,4,7],[2,7,9],[5,9,12],[7,11,14]],arp:[0,2,1,2,0,1,2,1],lead:[12,null,16,14,12,null,9,null,7,9,12,null,14,12,9,null],bass:[0,0,2,2,5,5,7,7],wave:'triangle',pad:'sine',cutoff:3000,drive:.88,swing:.08},
+  seotda:{root:123.47,bpm:98,progression:[[0,3,7],[3,7,10],[5,8,12],[7,10,14]],arp:[0,1,2,1,0,2,1,2],lead:[null,10,null,7,8,null,7,null,12,null,10,null,7,null,5,null],bass:[0,0,3,3,5,5,7,7],wave:'triangle',pad:'sine',cutoff:1750,drive:.66,swing:.08},
+  gostop:{root:138.59,bpm:108,progression:[[0,5,7],[2,7,9],[5,9,12],[7,12,14]],arp:[0,2,1,2,0,1,2,1],lead:[12,14,12,null,9,12,9,null,7,9,12,14,12,9,7,null],bass:[0,0,2,2,5,5,7,7],wave:'triangle',pad:'sine',cutoff:3200,drive:.92,swing:.09},
+  horse:{root:98,bpm:124,progression:[[0,4,7],[5,9,12],[7,11,14],[9,12,16]],arp:[0,1,2,1,2,1,0,2],lead:[12,null,16,null,19,16,14,null,12,14,16,null,19,21,19,null],bass:[0,0,5,5,7,7,9,9],wave:'sawtooth',pad:'triangle',cutoff:3600,drive:1.05,swing:.01},
+  bigwheel:{root:110,bpm:114,progression:[[0,3,7],[3,7,10],[5,8,12],[7,10,14]],arp:[0,2,1,2,0,1,2,1],lead:[12,15,null,17,15,null,12,null,10,12,null,15,17,null,15,null],bass:[0,0,3,3,5,5,7,7],wave:'square',pad:'triangle',cutoff:2900,drive:.96,swing:.02},
+  sicbo:{root:103.83,bpm:104,progression:[[0,5,8],[3,7,10],[5,8,12],[7,10,14]],arp:[0,1,2,1,2,0,1,2],lead:[12,null,15,null,12,10,null,8,10,null,12,15,17,null,15,null],bass:[0,0,3,3,5,5,7,7],wave:'triangle',pad:'sine',cutoff:2400,drive:.82,swing:.04},
+  roulette:{root:92.5,bpm:110,progression:[[0,3,7],[5,8,12],[7,10,14],[3,7,10]],arp:[0,2,1,2,0,1,2,1],lead:[12,null,15,14,null,12,10,null,7,10,12,null,15,14,12,null],bass:[0,0,5,5,7,7,3,3],wave:'triangle',pad:'sine',cutoff:2450,drive:.84,swing:.03}
 };
-let soundEnabled=storageGet('jgc_sound','1')!=='0',ambientNodes=[],bgmTimer=null,bgmStep=0,bgmMaster=null,audioUnlocked=false,audioUnlocking=false;
+let soundEnabled=storageGet('jgc_sound','1')!=='0',ambientNodes=[],bgmTimer=null,bgmStep=0,bgmMaster=null,bgmBus=null,bgmNoise=null,audioUnlocked=false,audioUnlocking=false;
 function audioContext(){try{const C=window.AudioContext||window.webkitAudioContext;if(!C)return null;if(!fx.ctx||fx.ctx.state==='closed')fx.ctx=new C();return fx.ctx}catch{return null}}
 function updateSoundButton(){
   const b=$('#soundBtn');if(!b)return;
   if(!soundEnabled){b.textContent='🔇 BGM OFF';b.setAttribute('aria-pressed','false');return}
   b.textContent=audioUnlocked?'🎵 BGM ON':'▶ BGM START';b.setAttribute('aria-pressed','true');
 }
+function bgmFreq(root,semi=0){return root*Math.pow(2,semi/12)}
+function bgmPan(c,value=0){if(!c.createStereoPanner)return null;const p=c.createStereoPanner();p.pan.value=Math.max(-1,Math.min(1,value));return p}
+function bgmNoiseBuffer(c){
+  if(bgmNoise&&bgmNoise.sampleRate===c.sampleRate)return bgmNoise;
+  const len=Math.max(1,Math.floor(c.sampleRate*.6)),buf=c.createBuffer(1,len,c.sampleRate),d=buf.getChannelData(0);
+  for(let i=0;i<len;i++)d[i]=Math.random()*2-1;
+  bgmNoise=buf;return buf;
+}
+function bgmTone(c,dest,{freq,start,dur=.25,gain=.08,type='triangle',cutoff=2600,pan=0,attack=.012,detune=0}){
+  const o=c.createOscillator(),g=c.createGain(),f=c.createBiquadFilter(),p=bgmPan(c,pan);
+  o.type=type;o.frequency.setValueAtTime(Math.max(28,freq),start);o.detune.value=detune;
+  f.type='lowpass';f.frequency.setValueAtTime(cutoff,start);f.Q.value=.7;
+  g.gain.setValueAtTime(.0001,start);g.gain.exponentialRampToValueAtTime(Math.max(.0002,gain),start+attack);
+  g.gain.exponentialRampToValueAtTime(.0001,start+Math.max(attack+.02,dur));
+  o.connect(f);f.connect(g);if(p){g.connect(p);p.connect(dest)}else g.connect(dest);
+  o.start(start);o.stop(start+dur+.04);
+}
+function bgmPad(c,dest,cfg,chord,start,dur){
+  chord.forEach((semi,i)=>{
+    bgmTone(c,dest,{freq:bgmFreq(cfg.root/2,semi),start:start+i*.008,dur:dur*.96,gain:.042,type:cfg.pad,cutoff:cfg.cutoff*.7,pan:(i-1)*.32,attack:.12,detune:i===1?4:i===2?-4:0});
+    bgmTone(c,dest,{freq:bgmFreq(cfg.root,semi),start:start+i*.012,dur:dur*.88,gain:.016,type:'sine',cutoff:cfg.cutoff*.8,pan:(1-i)*.22,attack:.18,detune:i===0?-6:6});
+  });
+}
+function bgmBass(c,dest,cfg,semi,start,stepSec){
+  bgmTone(c,dest,{freq:bgmFreq(cfg.root/2,semi),start,dur:stepSec*2.65,gain:.095,type:'triangle',cutoff:620,attack:.008});
+  bgmTone(c,dest,{freq:bgmFreq(cfg.root/4,semi),start,dur:stepSec*1.8,gain:.045,type:'sine',cutoff:420,attack:.004});
+}
+function bgmKick(c,dest,start,gain=.12){
+  const o=c.createOscillator(),g=c.createGain();o.type='sine';o.frequency.setValueAtTime(145,start);o.frequency.exponentialRampToValueAtTime(48,start+.11);
+  g.gain.setValueAtTime(gain,start);g.gain.exponentialRampToValueAtTime(.0001,start+.16);o.connect(g);g.connect(dest);o.start(start);o.stop(start+.18);
+}
+function bgmNoiseHit(c,dest,start,{gain=.025,dur=.05,cutoff=6500,type='highpass',pan=0}={}){
+  const src=c.createBufferSource(),f=c.createBiquadFilter(),g=c.createGain(),p=bgmPan(c,pan);src.buffer=bgmNoiseBuffer(c);f.type=type;f.frequency.value=cutoff;
+  g.gain.setValueAtTime(Math.max(.0002,gain),start);g.gain.exponentialRampToValueAtTime(.0001,start+dur);
+  src.connect(f);f.connect(g);if(p){g.connect(p);p.connect(dest)}else g.connect(dest);src.start(start);src.stop(start+dur+.03);
+}
+function bgmPercussion(c,dest,cfg,step,start){
+  const s=step%16,energy=cfg.drive||.8;
+  if(s===0||s===8||((audioScene==='horse'||audioScene==='slot')&&(s===4||s===12)))bgmKick(c,dest,start,.075*energy);
+  if(s===4||s===12){bgmNoiseHit(c,dest,start,{gain:.038*energy,dur:.095,cutoff:1550,type:'highpass'});bgmTone(c,dest,{freq:185,start,dur:.09,gain:.025*energy,type:'triangle',cutoff:900})}
+  if(s%2===0)bgmNoiseHit(c,dest,start,{gain:.014*energy,dur:.032,cutoff:7200,type:'highpass',pan:s%4===0?-.28:.28});
+  if((audioScene==='yut'||audioScene==='gostop')&&(s===3||s===7||s===11||s===15))bgmNoiseHit(c,dest,start,{gain:.022,dur:.045,cutoff:3100,type:'bandpass',pan:s%8===3?-.38:.38});
+}
 function stopAmbient(){
   if(bgmTimer){clearInterval(bgmTimer);bgmTimer=null}
   for(const n of ambientNodes){try{n.stop?.();n.disconnect?.()}catch{}}
-  ambientNodes=[];bgmMaster=null;bgmStep=0;
+  ambientNodes=[];bgmMaster=null;bgmBus=null;bgmStep=0;bgmNoise=null;
 }
 function bgmPulse(){
-  if(!soundEnabled||!bgmMaster||!me||!audioUnlocked)return;
-  const c=audioContext(),cfg=BGM_PATTERNS[audioScene]||BGM_PATTERNS.lobby;if(!c||c.state!=='running')return;
+  if(!soundEnabled||!bgmMaster||!bgmBus||!me||!audioUnlocked)return;
+  const c=audioContext(),cfg=BGM_STYLES[audioScene]||BGM_STYLES.lobby;if(!c||c.state!=='running')return;
   try{
-    const step=bgmStep++,semi=cfg.notes[step%cfg.notes.length],freq=cfg.root*Math.pow(2,semi/12),t=c.currentTime+.012;
-    const lead=c.createOscillator(),lg=c.createGain();lead.type=step%4===0?'triangle':'sine';lead.frequency.setValueAtTime(freq,t);
-    lg.gain.setValueAtTime(.0001,t);lg.gain.exponentialRampToValueAtTime(step%4===0?.28:.19,t+.025);lg.gain.exponentialRampToValueAtTime(.0001,t+.30);
-    lead.connect(lg);lg.connect(bgmMaster);lead.start(t);lead.stop(t+.32);
-    if(step%2===0){const bass=c.createOscillator(),bg=c.createGain();bass.type='triangle';bass.frequency.value=cfg.root/2;bg.gain.setValueAtTime(.11,t);bg.gain.exponentialRampToValueAtTime(.0001,t+.42);bass.connect(bg);bg.connect(bgmMaster);bass.start(t);bass.stop(t+.44)}
-    if(step%4===2){const tick=c.createOscillator(),tg=c.createGain();tick.type='square';tick.frequency.value=880;tg.gain.setValueAtTime(.028,t);tg.gain.exponentialRampToValueAtTime(.0001,t+.035);tick.connect(tg);tg.connect(bgmMaster);tick.start(t);tick.stop(t+.04)}
-  }catch{}
+    const step=bgmStep++,s=step%16,stepSec=60/cfg.bpm/4;
+    const swing=(s%2?stepSec*cfg.swing:0),t=c.currentTime+.025+swing,chordIndex=Math.floor(step/8)%cfg.progression.length,chord=cfg.progression[chordIndex];
+    if(s%8===0)bgmPad(c,bgmBus,cfg,chord,t,stepSec*8.35);
+    const arpSemi=chord[cfg.arp[step%cfg.arp.length]%chord.length]+12;
+    bgmTone(c,bgmBus,{freq:bgmFreq(cfg.root,arpSemi),start:t,dur:stepSec*.82,gain:.032*cfg.drive,type:cfg.wave,cutoff:cfg.cutoff,pan:s%4<2?-.24:.24,attack:.008,detune:s%3===0?3:-2});
+    if(s%4===0){const bassSemi=cfg.bass[(Math.floor(step/4))%cfg.bass.length];bgmBass(c,bgmBus,cfg,bassSemi,t,stepSec)}
+    const lead=cfg.lead[s];
+    if(lead!==null&&lead!==undefined&&(s%2===0||audioScene==='horse'||audioScene==='gostop')){
+      bgmTone(c,bgmBus,{freq:bgmFreq(cfg.root,lead),start:t,dur:stepSec*(s%4===0?1.85:1.15),gain:.046*cfg.drive,type:audioScene==='horse'?'sawtooth':'triangle',cutoff:cfg.cutoff*1.15,pan:s<8?-.12:.12,attack:.018,detune:s%4===0?5:-3});
+    }
+    bgmPercussion(c,bgmBus,cfg,step,t);
+  }catch(e){console.warn('[BGM]',e)}
 }
 function startAudioScene(scene='lobby'){
   if(!soundEnabled||!me||!audioUnlocked)return false;
   const c=audioContext();if(!c||c.state!=='running')return false;
   stopAmbient();audioScene=scene;
-  const cfg=BGM_PATTERNS[scene]||BGM_PATTERNS.lobby;
+  const cfg=BGM_STYLES[scene]||BGM_STYLES.lobby;
   try{
-    const master=c.createGain();master.gain.value=.038;master.connect(c.destination);bgmMaster=master;ambientNodes.push(master);
-    const pad=c.createOscillator(),pg=c.createGain();pad.type='sine';pad.frequency.value=cfg.root/2;pg.gain.value=.045;pad.connect(pg);pg.connect(master);pad.start();ambientNodes.push(pad,pg);
-    bgmPulse();bgmTimer=setInterval(bgmPulse,Math.round(60000/cfg.bpm/2));updateSoundButton();return true;
-  }catch{return false}
+    const compressor=c.createDynamicsCompressor();compressor.threshold.value=-18;compressor.knee.value=16;compressor.ratio.value=3.2;compressor.attack.value=.012;compressor.release.value=.22;
+    const master=c.createGain();master.gain.value=.32;
+    const filter=c.createBiquadFilter();filter.type='lowpass';filter.frequency.value=Math.min(7200,cfg.cutoff*2.35);filter.Q.value=.35;
+    const bus=c.createGain();bus.gain.value=.78;
+    bus.connect(filter);filter.connect(compressor);compressor.connect(master);master.connect(c.destination);
+    bgmMaster=master;bgmBus=bus;ambientNodes.push(bus,filter,compressor,master);
+    bgmPulse();const interval=Math.max(70,Math.round(60000/cfg.bpm/4));bgmTimer=setInterval(bgmPulse,interval);
+    updateSoundButton();return true;
+  }catch(e){console.warn('[BGM START]',e);return false}
 }
 async function ensureAudioUnlocked(startMusic=true){
   if(audioUnlocking)return audioUnlocked;const c=audioContext();if(!c)return false;
