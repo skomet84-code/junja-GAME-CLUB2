@@ -824,7 +824,7 @@ function pokerView(r,userId){
   const players={};for(const rp of pokerHandPlayers(r)){const hp=h.p[rp.userId];players[rp.userId]={roundBet:hp.roundBet,totalBet:hp.totalBet,folded:hp.folded,allIn:hp.allIn,acted:hp.acted,hole:(rp.userId===userId||reveal&&!hp.folded)?hp.hole:['XX','XX']};}
   const me=players[userId];
   const myCards=me?[...(me.hole||[]),...(h.board||[])].filter(c=>c&&c!=='XX'):[];
-  return {phase:h.phase,startedAt:h.startedAt,turnStartedAt:h.turnStartedAt,turnDeadlineAt:r.solo?null:Number(h.turnStartedAt||now())+10000,board:h.board,players,currentBet:h.currentBet,minRaise:h.minRaise,turnUserId:h.turnUserId,pot:pokerPot(h),dealerSeat:h.dealerSeat,result:h.result,myHand:pokerHandStatus(myCards),legal:me&&h.turnUserId===userId?{toCall:Math.max(0,h.currentBet-me.roundBet),minRaiseTo:h.currentBet+h.minRaise,maxRaiseTo:(roomPlayer(r,userId)?.stack||0)+me.roundBet}:null};
+  return {phase:h.phase,startedAt:h.startedAt,turnStartedAt:h.turnStartedAt,turnDeadlineAt:r.solo?null:Number(h.turnStartedAt||now())+15000,board:h.board,players,currentBet:h.currentBet,minRaise:h.minRaise,turnUserId:h.turnUserId,pot:pokerPot(h),dealerSeat:h.dealerSeat,result:h.result,myHand:pokerHandStatus(myCards),legal:me&&h.turnUserId===userId?{toCall:Math.max(0,h.currentBet-me.roundBet),minRaiseTo:h.currentBet+h.minRaise,maxRaiseTo:(roomPlayer(r,userId)?.stack||0)+me.roundBet}:null};
 }
 
 // ---------- Yut engine v0.7: stacking / shortcuts / teams ----------
@@ -1129,10 +1129,10 @@ function horseAdvanceMeet(){
       try{const result=settleRace(uid,b.bet,b.type,b.picks,r.card,r.order);r.results.set(uid,result);}catch(e){console.error('[HORSE] settle failed',uid,e.message);}
       escrowDelete(`HORSE_${r.id}`,uid);
     }
-    pushRefresh();
+    /* Horse meet is isolated from the global SSE refresh bus. Horse clients poll the meet endpoint. */
   }
-  if(r.phase==='running'&&t>=r.finishAt){r.phase='result';r.resultUntil=t+HORSE_RESULT_MS;pushRefresh();}
-  if(r.phase==='result'&&t>=r.resultUntil){r=newHorseMeet();pushRefresh();}
+  if(r.phase==='running'&&t>=r.finishAt){r.phase='result';r.resultUntil=t+HORSE_RESULT_MS;}
+  if(r.phase==='result'&&t>=r.resultUntil){r=newHorseMeet();}
   return r;
 }
 function horseMeetPublic(userId){
@@ -1148,7 +1148,7 @@ function horsePlaceBet(user,body){
   const bet=gameWager(body.bet,1000,100000,1000);if(user.balance<bet)throw new Error('게임머니가 부족합니다.');
   const mult=raceMultiplier(type,picks,r.card);if(!mult)throw new Error('배당 정보를 확인할 수 없어.');
   walletChange(user.id,-bet,'horse_bet',`LIVE 경마 ${type} ${picks.join('/')} · x${mult} · ${formatMoney(bet)}G`);
-  r.bets.set(user.id,{userId:user.id,type,picks,bet,mult,placedAt:now()});escrowSet(`HORSE_${r.id}`,user.id,bet,'horse');pushRefresh();return horseMeetPublic(user.id);
+  r.bets.set(user.id,{userId:user.id,type,picks,bet,mult,placedAt:now()});escrowSet(`HORSE_${r.id}`,user.id,bet,'horse');/* Horse clients poll their own meet state; avoid waking every casino client for each bet. */return horseMeetPublic(user.id);
 }
 // ---------- European Roulette · v2.3 ----------
 const ROULETTE_WHEEL=[0,32,15,19,4,21,2,25,17,34,6,27,13,36,11,30,8,23,10,5,24,16,33,1,20,14,31,9,22,18,29,7,28,12,35,3,26];
@@ -1525,7 +1525,7 @@ function activeRoomReactions(r){
 
 function expirePokerTurn(r){
   const h=r?.hand;if(r?.solo||r?.game!=='holdem'||!h||h.phase==='complete'||!h.turnUserId)return;
-  if(now()-Number(h.turnStartedAt||h.startedAt||now())<10000)return;
+  if(now()-Number(h.turnStartedAt||h.startedAt||now())<15000)return;
   const expired=h.turnUserId;
   try{pokerAction(r,expired,'fold',0);if(h.result)h.result.timeoutUserId=expired;touchRoom(r);}catch(e){console.warn('[HOLDem timeout]',e.message);}
 }
