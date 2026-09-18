@@ -8,7 +8,7 @@
 <link rel="manifest" href="/manifest.webmanifest?v=290">
 <link rel="stylesheet" href="/style.css?v=290">
 <link rel="stylesheet" href="/v26-visual.css?v=290">
-<link rel="stylesheet" href="/v28-yut-horse.css?v=290">
+<link rel="stylesheet" href="/v28-yut-horse.css?v=290">\n<link rel="stylesheet" href="/worldtour.css?v=291">
 </head>
 <body>
 <div id="app">
@@ -52,7 +52,7 @@
           <button class="game-card yut" data-go="yut" type="button"><img class="game-art" src="/art/v26/games/yut.webp" alt="윷놀이"><div class="game-icon">윷</div><span class="dual-badge">MULTI + AI</span><div><small>KOREAN CLASSIC</small><h3>윷놀이</h3><p>친구 2~4인 또는 J-BOT 1:1</p></div></button>
           <button class="game-card seotda" data-go="seotda" type="button"><img class="game-art" src="/art/v26/games/seotda.webp" alt="섯다"><div class="game-icon">花</div><span class="dual-badge">MULTI + AI</span><div><small>KOREAN CARD DUEL</small><h3>3장 섯다</h3><p>추가 1장 · 공개 버리기 · 친구 1:1 / J-BOT</p></div></button>
           <button class="game-card gostop" data-go="gostop" type="button"><img class="game-art" src="/art/v26/games/gostop.webp" alt="야심찬 맞고"><div class="game-icon">광</div><span class="ai-badge">NEW · AI 1P</span><div><small>YASHIMCHAN MATGO</small><h3>야심찬 맞고</h3><p>정통 족보 · 박/고 배수 · 전략 AI</p></div></button>
-          <button class="game-card horse" data-go="horse" type="button"><img class="game-art" src="/art/v26/games/horse.webp" alt="경마"><div class="game-icon">🏇</div><span class="ai-badge">RACE</span><div><small>GRAND RACE</small><h3>경마</h3><p>단승 · 복승 · 쌍승 · 2위 위로금 · 라이브 레이스</p></div></button>
+          <button class="game-card worldtour" data-go="worldtour" type="button"><div class="game-icon">🌍</div><span class="dual-badge">NEW · AI + MULTI NEXT</span><div><small>JUNJA WORLD TOUR</small><h3>세계일주</h3><p>수도 매입 · 호텔 · 통행료 · 우주여행 🚀</p></div></button>\n          <button class="game-card horse" data-go="horse" type="button"><img class="game-art" src="/art/v26/games/horse.webp" alt="경마"><div class="game-icon">🏇</div><span class="ai-badge">RACE</span><div><small>GRAND RACE</small><h3>경마</h3><p>단승 · 복승 · 쌍승 · 2위 위로금 · 라이브 레이스</p></div></button>
           <button class="game-card bigwheel" data-go="bigwheel" type="button"><img class="game-art" src="/art/v26/games/bigwheel.webp" alt="빅휠"><div class="game-icon">◎</div><span class="ai-badge">LIVE WHEEL</span><div><small>FORTUNE WHEEL</small><h3>빅휠</h3><p>77칸 대형 휠 · JUNJA 스페셜 x100</p></div></button>
           <button class="game-card sicbo" data-go="sicbo" type="button"><img class="game-art" src="/art/v26/games/sicbo.webp" alt="다이사이"><div class="game-icon">⚂</div><span class="ai-badge">3 DICE</span><div><small>SIC BO</small><h3>다이사이</h3><p>BIG·SMALL·홀짝·합계·트리플</p></div></button>
           <button class="game-card roulette" data-go="roulette" type="button"><img class="game-art" src="/art/v26/games/roulette.webp" alt="룰렛"><div class="game-icon">◉</div><span class="dual-badge">EUROPEAN</span><div><small>ROYAL ROULETTE</small><h3>JUNJA 룰렛</h3><p>싱글제로 · 실제 배당 · 보유머니 한도 내 무제한</p></div></button>
@@ -61,7 +61,7 @@
         <div class="dashboard-grid"><div class="panel section-card"><div class="section-head"><div><small>CLUB RANKING</small><h3>게임머니 랭킹</h3></div><button class="ghost" id="refreshRank" type="button">새로고침</button></div><div id="leaderboard" class="rank-list"></div></div><div class="panel section-card accent-card"><div class="section-head"><div><small>MY RECORD</small><h3>내 기록</h3></div></div><div id="myStats" class="stat-grid"></div><button class="secondary full" data-go="ledger" type="button">게임머니 내역 보기</button></div></div>
       </section>
 
-      <section id="view-slot" class="view">
+\n      <section id="view-worldtour" class="view"><div class="view-head"><button class="back" data-go="lobby" type="button">←</button><div><small>WORLD CAPITAL BOARD</small><h2>🌍 JUNJA WORLD TOUR</h2></div><span class="dual-badge">AI 1P · MULTI COMING</span></div><div class="worldtour-stage"><div id="worldTourRoot"></div></div></section>\n\n      <section id="view-slot" class="view">
         <div class="view-head"><button class="back" data-go="lobby" type="button">←</button><div><small>ROYAL REELS</small><h2>3×3 슬롯 머신</h2></div><button class="secondary view-guide" data-open-help="slot" type="button">? 사용법</button></div>
         <div class="slot-stage panel">
           <div class="slot-machine deluxe-machine">
@@ -219,5 +219,5 @@
   </div>
 </div>
 <script src="/app.js?v=290"></script>
-</body>
+<script src="/worldtour.js?v=291"></script>\n</body>
 </html>
