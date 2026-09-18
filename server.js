@@ -830,13 +830,14 @@ function pokerView(r,userId){
 // ---------- Yut engine v0.7: stacking / shortcuts / teams ----------
 const YUT_SIDE_COLORS=['#f5cb58','#5ba8ff','#ff6f8e','#65d49a','#b784ff','#ff9b57'];
 function yutModeLabel(mode){return ({individual:'개인전','2v2':'2:2 팀전','3v3':'3:3 팀전'})[mode]||'개인전';}
-function yutNewPiece(){return {node:'START',route:'outer',path:[]};}
+function yutNewPiece(){return {node:'READY',route:'outer',path:[]};}
 function yutClonePiece(p){return {node:p.node,route:p.route||'outer',path:Array.isArray(p.path)?p.path.map(x=>({node:x.node,route:x.route||'outer'})):[]};}
-function yutPhysical(p){if(!p)return'START';if(p.node==='CA'||p.node==='CB')return'C';return p.node;}
+function yutPhysical(p){if(!p)return'READY';if(p.node==='CA'||p.node==='CB')return'C';return p.node||'READY';}
 function yutFinished(p){return p?.node==='FINISH';}
 function yutNextStep(p,firstStep,routeChoice='shortcut'){
   const node=p.node,route=p.route||'outer';
   if(node==='FINISH')return yutClonePiece(p);
+  if(node==='READY')return {node:'START',route:'outer'};
   if(node==='START')return {node:'O1',route:'outer'};
   if(node==='O5')return firstStep&&routeChoice!=='outer'?{node:'A1',route:'A'}:{node:'O6',route:'outer'};
   if(node==='O10')return firstStep&&routeChoice!=='outer'?{node:'B1',route:'B'}:{node:'O11',route:'outer'};
@@ -847,12 +848,12 @@ function yutNextStep(p,firstStep,routeChoice='shortcut'){
   }
   const map={A1:['A2','A'],A2:['CA','A'],CA:['A4','A'],A4:['A5','A'],A5:['O15','outer'],B1:['B2','B'],B2:['CB','B'],CB:['B4','B'],B4:['B5','B'],B5:['FINISH','B']};
   if(map[node])return {node:map[node][0],route:map[node][1]};
-  return {node:'START',route:'outer'};
+  return {node:'READY',route:'outer'};
 }
 function yutAdvance(piece,move,routeChoice='shortcut'){
   let p=yutClonePiece(piece);const trace=[];
   if(move<0){
-    if(p.node==='START'||p.node==='FINISH'||!p.path.length)return {piece:p,trace,legal:false};
+    if(p.node==='READY'||p.node==='FINISH'||!p.path.length)return {piece:p,trace,legal:false};
     const prev=p.path.pop();p={node:prev.node,route:prev.route||'outer',path:p.path};trace.push(yutPhysical(p));return {piece:p,trace,legal:true};
   }
   for(let i=0;i<move;i++){const history={node:p.node,route:p.route||'outer'};const next=yutNextStep(p,i===0,routeChoice);p={...next,path:[...p.path,history]};trace.push(yutPhysical(p));if(p.node==='FINISH')break;}
@@ -883,14 +884,14 @@ function yutCurrentPlayer(r,y){return orderedPlayers(r)[y.turnIndex%orderedPlaye
 function yutStart(r){
   if(r.players.length<2)throw new Error('2명 이상 필요합니다.');
   if((r.yutMode==='2v2'||r.yutMode==='3v3')&&r.players.length!==r.maxPlayers)throw new Error(`${yutModeLabel(r.yutMode)}은 ${r.maxPlayers}명이 모두 입장해야 시작할 수 있습니다.`);
-  r.yut={phase:'playing',turnIndex:0,sides:yutMakeSides(r),pending:[],awaitingThrow:true,captureBonus:0,last:null,winnerSideId:null,startedAt:now(),ruleSet:'club-standard-v07'};
+  r.yut={phase:'playing',turnIndex:0,sides:yutMakeSides(r),pending:[],awaitingThrow:true,captureBonus:0,last:null,winnerSideId:null,startedAt:now(),ruleSet:'club-standard-v08-home-counted'};
 }
 function yutThrow(r,userId){
   const y=r.yut;if(!y||y.phase!=='playing')throw new Error('게임이 진행 중이 아닙니다.');
   const cur=yutCurrentPlayer(r,y);if(!cur||cur.userId!==userId)throw new Error('지금은 당신 차례가 아닙니다.');
   if(!y.awaitingThrow)throw new Error('먼저 나온 윷 결과로 말을 이동하세요.');
   const result=throwYut(),side=yutSideForUser(y,userId);
-  if(result.backdo&&!y.pending.length&&!side.pieces.some(p=>!['START','FINISH'].includes(yutPhysical(p)))){
+  if(result.backdo&&!y.pending.length&&!side.pieces.some(p=>!['READY','FINISH'].includes(yutPhysical(p)))){
     y.awaitingThrow=true;y.turnIndex=(y.turnIndex+1)%orderedPlayers(r).length;
     y.last={type:'throw',userId,sideId:side?.id,name:result.name,move:result.move,sticks:result.sticks,backdo:true,skipped:true,message:'빽도! 이동할 말이 없어 이번 차례는 쉬어갑니다.',at:now()};return result;
   }
@@ -915,14 +916,14 @@ function yutMove(r,userId,pieceIndex,moveIndex=0,routeChoice='shortcut'){
   pieceIndex=clampInt(pieceIndex,0,3);moveIndex=clampInt(moveIndex,0,y.pending.length-1);
   const selected=side.pieces[pieceIndex];if(yutFinished(selected))throw new Error('이미 완주한 말입니다.');
   const moveResult=y.pending[moveIndex],fromPhysical=yutPhysical(selected);
-  if(moveResult.move<0&&['START','FINISH'].includes(fromPhysical))throw new Error('빽도는 판 위에 있는 말을 선택해야 합니다.');
-  const stackIndexes=fromPhysical==='START'? [pieceIndex] : side.pieces.map((p,i)=>yutPhysical(p)===fromPhysical&&!yutFinished(p)?i:-1).filter(i=>i>=0);
+  if(moveResult.move<0&&['READY','FINISH'].includes(fromPhysical))throw new Error('빽도는 판 위에 있는 말을 선택해야 합니다.');
+  const stackIndexes=fromPhysical==='READY'? [pieceIndex] : side.pieces.map((p,i)=>yutPhysical(p)===fromPhysical&&!yutFinished(p)?i:-1).filter(i=>i>=0);
   const advanced=yutAdvance(selected,moveResult.move,routeChoice);if(!advanced.legal)throw new Error('이 말은 뒤로 이동할 수 없습니다.');const dest=advanced.piece,destPhysical=yutPhysical(dest);
   stackIndexes.forEach(i=>side.pieces[i]=yutClonePiece(dest));
   // If the moving stack lands on friendly pieces, all pieces become one stack and inherit the incoming route.
-  if(destPhysical!=='START'&&destPhysical!=='FINISH') side.pieces.forEach((p,i)=>{if(yutPhysical(p)===destPhysical)side.pieces[i]=yutClonePiece(dest);});
+  if(destPhysical!=='READY'&&destPhysical!=='FINISH') side.pieces.forEach((p,i)=>{if(yutPhysical(p)===destPhysical)side.pieces[i]=yutClonePiece(dest);});
   const captured=[];
-  if(destPhysical!=='START'&&destPhysical!=='FINISH'){
+  if(destPhysical!=='READY'&&destPhysical!=='FINISH'){
     for(const other of y.sides){
       if(other.id===side.id)continue;
       other.pieces.forEach((p,i)=>{if(yutPhysical(p)===destPhysical){captured.push({sideId:other.id,pieceIndex:i});other.pieces[i]=yutNewPiece();}});
@@ -930,7 +931,7 @@ function yutMove(r,userId,pieceIndex,moveIndex=0,routeChoice='shortcut'){
   }
   y.pending.splice(moveIndex,1);
   if(captured.length)y.captureBonus++;
-  const stacked=destPhysical!=='START'&&destPhysical!=='FINISH'?side.pieces.filter(p=>yutPhysical(p)===destPhysical).length:stackIndexes.length;
+  const stacked=destPhysical!=='READY'&&destPhysical!=='FINISH'?side.pieces.filter(p=>yutPhysical(p)===destPhysical).length:stackIndexes.length;
   const message=captured.length?`상대 말 ${captured.length}개를 잡았다! 한 번 더!`:stacked>stackIndexes.length?`우리 말 ${stacked}개가 업혔다! 함께 이동!`:moveResult.backdo?'빽도! 한 칸 뒤로 이동!':`${moveResult.name} · ${Math.abs(moveResult.move)}칸 이동`;
   y.last={type:'move',userId,sideId:side.id,name:moveResult.name,move:moveResult.move,sticks:moveResult.sticks,backdo:!!moveResult.backdo,from:fromPhysical,to:destPhysical,trace:advanced.trace,captured,stacked,message,at:now()};
   if(side.pieces.every(yutFinished)){yutSettle(r,y,side);return;}
@@ -1005,13 +1006,13 @@ function soloYutPhysicalPieces(s,side,physical){return s.sides[side].map((p,i)=>
 function soloYutMoveSide(s,side,pieceIndex,moveIndex=0,routeChoice='shortcut'){
   if(!s.pending.length)throw new Error('먼저 윷을 던져야 합니다.');if(s.awaitingThrow)throw new Error('윷/모 보너스 던지기를 먼저 진행하세요.');
   pieceIndex=clampInt(pieceIndex,0,3);moveIndex=clampInt(moveIndex,0,s.pending.length-1);const piece=s.sides[side][pieceIndex];if(yutFinished(piece))throw new Error('이미 완주한 말입니다.');
-  const moveResult=s.pending[moveIndex],from=yutPhysical(piece);if(moveResult.move<0&&['START','FINISH'].includes(from))throw new Error('빽도는 판 위에 있는 말을 선택해야 합니다.');const stack=from==='START'?[pieceIndex]:soloYutPhysicalPieces(s,side,from),adv=yutAdvance(piece,moveResult.move,routeChoice);if(!adv.legal)throw new Error('이 말은 뒤로 이동할 수 없습니다.');const dest=adv.piece,to=yutPhysical(dest);
+  const moveResult=s.pending[moveIndex],from=yutPhysical(piece);if(moveResult.move<0&&['READY','FINISH'].includes(from))throw new Error('빽도는 판 위에 있는 말을 선택해야 합니다.');const stack=from==='READY'?[pieceIndex]:soloYutPhysicalPieces(s,side,from),adv=yutAdvance(piece,moveResult.move,routeChoice);if(!adv.legal)throw new Error('이 말은 뒤로 이동할 수 없습니다.');const dest=adv.piece,to=yutPhysical(dest);
   stack.forEach(i=>s.sides[side][i]=yutClonePiece(dest));
-  if(to!=='START'&&to!=='FINISH')s.sides[side].forEach((p,i)=>{if(yutPhysical(p)===to)s.sides[side][i]=yutClonePiece(dest)});
+  if(to!=='READY'&&to!=='FINISH')s.sides[side].forEach((p,i)=>{if(yutPhysical(p)===to)s.sides[side][i]=yutClonePiece(dest)});
   const other=side==='user'?'bot':'user',captured=[];
-  if(to!=='START'&&to!=='FINISH')s.sides[other].forEach((p,i)=>{if(yutPhysical(p)===to){s.sides[other][i]=yutNewPiece();captured.push(i)}});
+  if(to!=='READY'&&to!=='FINISH')s.sides[other].forEach((p,i)=>{if(yutPhysical(p)===to){s.sides[other][i]=yutNewPiece();captured.push(i)}});
   s.pending.splice(moveIndex,1);if(captured.length)s.captureBonus++;
-  const stacked=to!=='START'&&to!=='FINISH'?soloYutPhysicalPieces(s,side,to).length:stack.length;
+  const stacked=to!=='READY'&&to!=='FINISH'?soloYutPhysicalPieces(s,side,to).length:stack.length;
   const message=captured.length?`상대 말을 잡았다! 한 번 더!`:stacked>stack.length?`우리 말 ${stacked}개가 업혔다!`:moveResult.backdo?'빽도! 한 칸 뒤로 이동!':`${moveResult.name} · ${Math.abs(moveResult.move)}칸 이동`;
   s.last={type:'move',side,name:moveResult.name,move:moveResult.move,sticks:moveResult.sticks,backdo:!!moveResult.backdo,from,to,trace:adv.trace,captured,stacked,message,at:now()};if(side==='bot')s.replay.push({...s.last});
   if(s.sides[side].every(yutFinished)){s.phase='complete';s.winner=side;s.pending=[];s.awaitingThrow=false;return;}
@@ -1021,20 +1022,20 @@ function soloYutMoveSide(s,side,pieceIndex,moveIndex=0,routeChoice='shortcut'){
 }
 function soloYutThrowFor(s,side){
   if(!s.awaitingThrow)throw new Error('먼저 말을 이동하세요.');const r=throwYut();
-  if(r.backdo&&!s.pending.length&&!s.sides[side].some(p=>!['START','FINISH'].includes(yutPhysical(p)))){s.turn=side==='user'?'bot':'user';s.awaitingThrow=true;s.last={type:'throw',side,...r,skipped:true,message:'빽도! 이동할 말이 없어 차례를 넘깁니다.',at:now()};if(side==='bot')s.replay.push({...s.last});return r;}
+  if(r.backdo&&!s.pending.length&&!s.sides[side].some(p=>!['READY','FINISH'].includes(yutPhysical(p)))){s.turn=side==='user'?'bot':'user';s.awaitingThrow=true;s.last={type:'throw',side,...r,skipped:true,message:'빽도! 이동할 말이 없어 차례를 넘깁니다.',at:now()};if(side==='bot')s.replay.push({...s.last});return r;}
   s.pending.push(r);s.awaitingThrow=!!r.extra;s.last={type:'throw',side,...r,message:r.backdo?'빽도! 한 칸 뒤로!':`${r.name} · ${r.move}칸`,at:now()};if(side==='bot')s.replay.push({...s.last});return r;
 }
 function soloYutBestMove(s,side){
   const other=side==='user'?'bot':'user';let best={pieceIndex:0,moveIndex:0,score:-1e9};
   s.pending.forEach((mv,mi)=>s.sides[side].forEach((p,pi)=>{
-    if(yutFinished(p)||(mv.move<0&&yutPhysical(p)==='START'))return;const adv=yutAdvance(p,mv.move);if(!adv.legal)return;const to=yutPhysical(adv.piece);let score=adv.trace.length*2;
+    if(yutFinished(p)||(mv.move<0&&yutPhysical(p)==='READY'))return;const adv=yutAdvance(p,mv.move);if(!adv.legal)return;const to=yutPhysical(adv.piece);let score=adv.trace.length*2;
     if(to==='FINISH')score+=80;
     if(['O5','O10'].includes(to))score+=22;
     if(['A1','A2','CA','A4','A5','B1','B2','CB','B4','B5'].includes(adv.piece.node))score+=12;
     const enemy=s.sides[other].filter(op=>yutPhysical(op)===to).length;if(enemy)score+=55+enemy*8;
-    const friendly=s.sides[side].filter((op,i)=>i!==pi&&yutPhysical(op)===to&&to!=='START').length;if(friendly)score+=20+friendly*5;
+    const friendly=s.sides[side].filter((op,i)=>i!==pi&&yutPhysical(op)===to&&to!=='READY').length;if(friendly)score+=20+friendly*5;
     // approximate progress preference
-    const prog={'START':0,'O1':1,'O2':2,'O3':3,'O4':4,'O5':5,'A1':7,'A2':9,'CA':11,'A4':13,'A5':15,'O6':6,'O7':7,'O8':8,'O9':9,'O10':10,'B1':12,'B2':14,'CB':16,'B4':18,'B5':20,'O11':11,'O12':12,'O13':13,'O14':14,'O15':15,'O16':16,'O17':17,'O18':18,'O19':19,'O20':20,'FINISH':30}[adv.piece.node]||0;score+=prog;
+    const prog={'READY':-1,'START':0,'O1':1,'O2':2,'O3':3,'O4':4,'O5':5,'A1':7,'A2':9,'CA':11,'A4':13,'A5':15,'O6':6,'O7':7,'O8':8,'O9':9,'O10':10,'B1':12,'B2':14,'CB':16,'B4':18,'B5':20,'O11':11,'O12':12,'O13':13,'O14':14,'O15':15,'O16':16,'O17':17,'O18':18,'O19':19,'O20':20,'FINISH':30}[adv.piece.node]||0;score+=prog;
     if(score>best.score)best={pieceIndex:pi,moveIndex:mi,score};
   }));return best;
 }
