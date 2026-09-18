@@ -1,12 +1,12 @@
 {
   "name": "junja-game-club",
-  "version": "2.8.10",
+  "version": "2.8.11",
   "private": true,
-  "description": "JUNJA LAND v2.8.10 - production runtime sync hotfix preserving corrected Yut HOME rule and layered BGM.",
+  "description": "JUNJA LAND v2.8.11 - normalized slot odds with fewer common wins and a slight 777 probability lift.",
   "type": "commonjs",
   "scripts": {
-    "start": "node slot-50pct-until-win-start.js",
-    "check": "node --check slot-50pct-until-win-start.js && node --check admin-unlimited-start.js && node --check server.js && node --check public/app.js && node --check public/v25-overhaul.js",
+    "start": "node admin-unlimited-start.js",
+    "check": "node --check admin-unlimited-start.js && node --check server.js && node --check public/app.js && node --check public/v25-overhaul.js",
     "test:matgo": "node tests/yashimchan-matgo-smoke.cjs"
   },
   "engines": {
