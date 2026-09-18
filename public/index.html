@@ -5,10 +5,10 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#090b15">
 <title>JUNJA GAME CLUB</title>
-<link rel="manifest" href="/manifest.webmanifest?v=287">
-<link rel="stylesheet" href="/style.css?v=287">
-<link rel="stylesheet" href="/v26-visual.css?v=287">
-<link rel="stylesheet" href="/v28-yut-horse.css?v=287">
+<link rel="manifest" href="/manifest.webmanifest?v=288">
+<link rel="stylesheet" href="/style.css?v=288">
+<link rel="stylesheet" href="/v26-visual.css?v=288">
+<link rel="stylesheet" href="/v28-yut-horse.css?v=288">
 </head>
 <body>
 <div id="app">
@@ -28,7 +28,7 @@
   <div id="mainApp" class="main-app hidden">
     <header class="topbar glass">
       <div class="brand-inline" data-go="lobby"><span class="mini-mark">J</span><strong>JUNJA CLUB</strong></div>
-      <button id="helpBtn" class="help-pill" type="button">? 게임방법</button><button id="soundBtn" class="sound-pill" type="button" aria-pressed="true">🔊 SOUND</button><button id="shopBtn" class="shop-pill" data-go="shop" type="button">🛍️ BOUTIQUE</button>
+      <button id="helpBtn" class="help-pill" type="button">? 게임방법</button><button id="soundBtn" class="sound-pill" type="button" aria-pressed="true">▶ BGM START</button><button id="shopBtn" class="shop-pill" data-go="shop" type="button">🛍️ BOUTIQUE</button>
       <button id="adminBtn" class="admin-pill hidden" data-go="admin" type="button">⚙ ADMIN</button>
       <div class="wallet-pill"><span>보유머니</span><b id="walletBalance">0 G</b></div>
       <button id="profileBtn" class="profile-pill" type="button"><span id="avatarEmoji">😎</span><span><b id="nickName">-</b><small id="onlineCount">ONLINE 0</small></span></button>
@@ -38,7 +38,7 @@
     <main>
       <section id="view-lobby" class="view active">
         <div class="hero panel hero-upgraded">
-          <div class="hero-copy"><div class="eyebrow">JUNJA ARCADE · VERSION 2.8.7</div><h2>친구 대전도, 혼자 AI전도.</h2><p>슬롯 · 텍사스 홀덤 · 세븐포커 · 바카라 · 윷놀이 · 섯다 · 야심찬 맞고 · 경마 · 빅휠 · 다이사이까지 한 계정으로 플레이. 채팅 없이 실시간 참여자와 귀여운 말풍선 반응으로 같이 놀 수 있어.</p><div class="hero-actions"><button id="dailyBtn" class="daily-btn" type="button">🎁 출석 +50,000 G</button><button class="secondary" data-go="shop" type="button">🛍️ 아바타 상점</button><button class="secondary hero-guide" data-open-help="lobby" type="button">게임 가이드</button></div></div>
+          <div class="hero-copy"><div class="eyebrow">JUNJA ARCADE · VERSION 2.8.8</div><h2>친구 대전도, 혼자 AI전도.</h2><p>슬롯 · 텍사스 홀덤 · 세븐포커 · 바카라 · 윷놀이 · 섯다 · 야심찬 맞고 · 경마 · 빅휠 · 다이사이까지 한 계정으로 플레이. 채팅 없이 실시간 참여자와 귀여운 말풍선 반응으로 같이 놀 수 있어.</p><div class="hero-actions"><button id="dailyBtn" class="daily-btn" type="button">🎁 출석 +50,000 G</button><button class="secondary" data-go="shop" type="button">🛍️ 아바타 상점</button><button class="secondary hero-guide" data-open-help="lobby" type="button">게임 가이드</button></div></div>
           <div class="hero-character"><img src="/art/v26/games/host.webp" alt="게임 클럽 호스트"><div class="character-caption"><b>CLUB HOST J</b><span>오늘의 게임을 선택하세요</span></div></div>
         </div>
         <div class="lobby-live-now panel"><div class="live-orb"><i></i></div><div><small>CLUB LIVE NOW</small><b id="lobbyOnlineNow">ONLINE 0</b><span>현재 접속 중인 회원 · 닉네임, 플레이 위치, 게임중/대기중 상태를 실시간 표시</span></div><div id="lobbyLiveFaces" class="lobby-live-faces"></div></div>
@@ -204,7 +204,7 @@
       <article data-help-page="holdem"><div class="guide-hero"><span>♠️</span><div><h3>텍사스 홀덤</h3><p>친구방 2~6인 또는 AI 헤즈업. 체크·콜·레이즈·폴드로 진행.</p></div></div><div class="guide-list"><p><b>AI 모드</b> 바이인 후 J-BOT과 연속 핸드 가능</p><p><b>나가기</b> 남은 테이블 칩을 게임머니로 정산</p><p><b>승리</b> 마지막까지 남거나 가장 높은 5장 족보</p></div></article>
       <article data-help-page="sevenpoker"><div class="guide-hero"><span>🂡</span><div><h3>세븐포커</h3><p>7장의 개인 카드 중 가장 좋은 5장 족보로 승부하는 7 Card Stud 방식.</p></div></div><div class="guide-list"><p><b>3rd Street</b> 2장 비공개 + 1장 공개</p><p><b>4th~6th</b> 한 장씩 공개되며 매 Street 베팅</p><p><b>7th River</b> 마지막 한 장은 비공개</p><p><b>액션</b> 체크 · 콜 · ½ POT · MAX · 직접 레이즈 · 폴드</p><p><b>연속 플레이</b> 자동 다음 핸드를 켜면 종료 3초 뒤 같은 테이블 칩으로 다음 판</p></div></article>
       <article data-help-page="baccarat"><div class="guide-hero"><span>🃏</span><div><h3>바카라 대전</h3><p>친구 2명이 동일 금액을 걸고 Player/Banker 패로 직접 승부.</p></div></div><div class="guide-list"><p><b>한도</b> 고정 상한 없음. 두 사람 중 잔액이 낮은 사람의 보유머니가 최대 베팅</p><p><b>룰</b> 8덱 슈 · Natural 8/9 · 표준 Third Card Rule</p><p><b>역할</b> Player / Banker는 매 판 자동 교대해 장기적인 역할 편향을 줄임</p><p><b>승패</b> 승자는 상대 판돈만큼 순이익, TIE는 게임머니 변동 없음</p><p><b>연속 대전</b> 두 사람 모두 AUTO NEXT를 켜면 결과 확인 후 자동 다음 판</p></div></article>
-      <article data-help-page="yut"><div class="guide-hero"><span>🪵</span><div><h3>정통 윷놀이</h3><p>도1·개2·걸3·윷4·모5. 윷/모 또는 상대말 잡기 시 추가 던지기.</p></div></div><div class="guide-list"><p><b>업기</b> 같은 팀 말이 같은 지점에 만나면 한 묶음이 되어 함께 이동</p><p><b>지름길 선택</b> O5·O10 코너에 정확히 도착하면 다음 이동 때 지름길 / 외곽길을 직접 선택</p><p><b>팀전</b> 2:2 / 3:3에서 팀 공동 말 4개를 번갈아 운용</p><p><b>승리</b> 팀의 말 4개를 모두 FINISH</p></div></article>
+      <article data-help-page="yut"><div class="guide-hero"><span>🪵</span><div><h3>정통 윷놀이</h3><p>도1·개2·걸3·윷4·모5. 윷/모 또는 상대말 잡기 시 추가 던지기.</p></div></div><div class="guide-list"><p><b>업기</b> 같은 팀 말이 같은 지점에 만나면 한 묶음이 되어 함께 이동</p><p><b>지름길 선택</b> O5·O10 코너에 정확히 도착하면 다음 이동 때 지름길 / 외곽길을 직접 선택</p><p><b>팀전</b> 2:2 / 3:3에서 팀 공동 말 4개를 번갈아 운용</p><p><b>출발/골인</b> 새 말의 도는 1번 칸. 한 바퀴 돌아 HOME에 정확히 도착한 것은 아직 골인이 아니며, 다음 이동으로 HOME을 빠져나가야 FINISH</p><p><b>승리</b> 팀의 말 4개를 모두 FINISH</p></div></article>
       <article data-help-page="seotda"><div class="guide-hero"><span>🎴</span><div><h3>3장 섯다</h3><p>처음 2장 → 추가 1장 → 총 3장 중 1장을 공개로 버리고 남은 2장으로 승부.</p></div></div><div class="guide-list"><p><b>친구 1:1</b> 멀티방과 J-BOT 1인전을 모두 지원</p><p><b>공개 버림</b> 내가 버린 한 장은 상대가 볼 수 있어 심리전이 생김</p><p><b>족보 HUD</b> 현재 최적 족보와 전체 족보표를 항상 표시</p><p><b>상위</b> 38광땡 &gt; 18광땡 &gt; 13광땡 &gt; 땡 &gt; 특수 족보</p></div></article>
       <article data-help-page="gostop"><div class="guide-hero"><span>🌺</span><div><h3>야심찬 맞고</h3><p>10장씩 받고 바닥 8장. 같은 월을 맞춰 광·열끗·띠·피 족보를 완성해.</p></div></div><div class="guide-list"><p><b>점수</b> 삼광 3점(비삼광 2), 사광 4, 오광 15 · 열끗/띠 5장부터 1점 · 피 10장부터 1점</p><p><b>족보</b> 고도리 5점 · 홍단/청단/초단 각 3점 · 쌍피는 피 2장</p><p><b>승부</b> 7점부터 GO/STOP. 1·2고는 +1점, 3고부터 배수가 붙어.</p><p><b>박</b> 광박·피박·멍박·고박은 각각 최종 금액 2배. 여러 박은 중첩돼.</p><p><b>특수</b> 쪽·따닥·싹쓸이 때 상대 피 1장을 가져와. 같은 월 바닥패가 2장이면 먹을 패를 직접 선택해.</p></div></article>
       <article data-help-page="horse"><div class="guide-hero"><span>🏇</span><div><h3>경마</h3><p>경주 전에 말과 승식을 선택한 뒤 레이스를 관전해.</p></div></div><div class="guide-list"><p><b>단승</b> 1등 말 한 마리 적중</p><p><b>복승</b> 1·2등 두 마리를 순서 상관없이 적중 · 전체 조합 배당표 사전 공개</p><p><b>쌍승</b> 1등과 2등 순서까지 정확히 적중 · 고난도만큼 고배당</p><p><b>LIVE</b> 같은 경주에 접속한 유저가 함께 베팅하고 동일한 결과를 봅니다.</p><p><b>원터치 선택</b> 1~7번 말을 눌러 바로 PICK. 복승/쌍승은 두 마리를 차례로 선택</p><p><b>결과판</b> 선택마 순위·베팅액·지급액·손익을 다음 경주 전까지 계속 표시</p><p><b>배당</b> 말의 능력치와 당일 컨디션에 따라 매 경주 변동</p></div></article>
@@ -218,6 +218,6 @@
     <div id="toast" class="toast"></div>
   </div>
 </div>
-<script src="/app.js?v=287"></script>
+<script src="/app.js?v=288"></script>
 </body>
 </html>
