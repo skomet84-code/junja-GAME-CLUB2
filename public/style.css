@@ -1056,3 +1056,36 @@ button:not(:disabled){touch-action:manipulation}
    font-size:clamp(10.5px,3vw,13.5px)!important;
  }
 }
+
+
+/* v327 mobile: keep all four leaderboard columns inside viewport */
+@media(max-width:600px){
+ #leaderboard .rank-row{
+   grid-template-columns:24% 16% 27% 33%!important;
+   padding:4px 7px!important;
+   box-sizing:border-box!important;
+   overflow:hidden!important;
+ }
+ #leaderboard .rank-emblem-art{
+   width:68px!important;height:68px!important;
+   max-width:68px!important;max-height:68px!important;
+ }
+ #leaderboard .rank-row:first-child .rank-emblem-art{
+   width:74px!important;height:74px!important;
+   max-width:74px!important;max-height:74px!important;
+ }
+ #leaderboard .rank-name .rank-face{
+   width:70%!important;max-width:52px!important;
+ }
+ #leaderboard .rank-name>span{min-width:0!important;padding-left:1px!important}
+ #leaderboard .rank-status-slot{min-width:0!important;padding-left:1px!important}
+ #leaderboard .rank-status-badge{width:100%!important;max-width:126px!important}
+ #leaderboard .rank-money{
+   min-width:0!important;
+   max-width:100%!important;
+   justify-self:end!important;
+   padding:0 5px 0 2px!important;
+   font-size:clamp(9px,2.75vw,12.5px)!important;
+   letter-spacing:-.25px!important;
+ }
+}
