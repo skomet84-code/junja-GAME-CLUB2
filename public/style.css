@@ -942,3 +942,7 @@ button:not(:disabled){touch-action:manipulation}
  #leaderboard .rank-crest-icon{width:19px!important;height:19px!important;font-size:9px!important}
  #leaderboard .rank-money{justify-self:end!important;padding-right:3px!important;font-size:clamp(10px,3vw,14px)!important}
 }
+
+/* v322 header tap safety */
+#profileBtn{position:relative!important;z-index:60!important;pointer-events:auto!important;touch-action:manipulation!important;cursor:pointer!important}
+#profileBtn *{pointer-events:none!important}
