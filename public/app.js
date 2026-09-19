@@ -230,7 +230,7 @@ function updateHeader(){if(!me)return;$('#walletBalance').textContent=money(me.b
 function renderLobbyPresence(rows=[]){
   const root=$('#lobbyLiveFaces');if(!root)return;
   root.classList.add('presence-roster');
-  root.innerHTML=rows.length?rows.map(p=>'<button type="button" class="presence-person '+(p.state==='PLAYING'?'playing':'waiting')+'" data-friend-profile="'+html(p.nickname)+'">'+avatarImg(p.avatar,p.nickname,'presence-face',p.cosmetics)+'<div><b>'+html(p.nickname)+'</b><span>'+html(p.gameLabel||'로비')+(p.mode&&p.mode!=='LOBBY'?' · '+html(p.mode):'')+'</span></div><em>'+(p.state==='PLAYING'?'게임중':'대기중')+'</em></button>').join(''):'<div class="presence-empty">현재 다른 접속자가 없어.</div>';$('[data-friend-profile]',root).forEach(b=>b.onclick=()=>openFriendsHub(b.dataset.friendProfile));
+  root.innerHTML=rows.length?rows.map(p=>'<button type="button" class="presence-person '+(p.state==='PLAYING'?'playing':'waiting')+'" data-friend-profile="'+html(p.nickname)+'">'+avatarImg(p.avatar,p.nickname,'presence-face',p.cosmetics)+'<div><b>'+html(p.nickname)+'</b><span>'+html(p.gameLabel||'로비')+(p.mode&&p.mode!=='LOBBY'?' · '+html(p.mode):'')+'</span></div><em>'+(p.state==='PLAYING'?'게임중':'대기중')+'</em></button>').join(''):'<div class="presence-empty">현재 다른 접속자가 없어.</div>';root.querySelectorAll('[data-friend-profile]').forEach(b=>{b.onclick=()=>openFriendsHub(b.dataset.friendProfile)});
 }
 async function refreshMe(){const d=await api('/api/me');me=d.user;updateHeader();$('#onlineCount').textContent='ONLINE '+d.online;if($('#lobbyOnlineNow'))$('#lobbyOnlineNow').textContent='ONLINE '+d.online;renderLobbyPresence(d.presence||[]);return d}
 async function go(view){
