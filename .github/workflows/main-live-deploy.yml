@@ -55,8 +55,8 @@ jobs:
           need(server.includes("club-standard-v09-home-exit-finish"),'Yut v09 rule marker missing');
           need(runtime.includes("B5:['START','B']"),'runtime wrapper still expects old B5->FINISH');
           need(!runtime.includes("B5:['FINISH','B']"),'legacy runtime Yut B5->FINISH patch still present');
-          need(app.includes('const BGM_STYLES='),'layered BGM styles missing');
-          for(const fn of ['function bgmPad(','function bgmBass(','function bgmPercussion(','createDynamicsCompressor'])need(app.includes(fn),'BGM layer missing: '+fn);
+          need(app.includes("api('/api/leaderboard')"),'leaderboard API binding missing');
+          need(app.includes('/assets/rank-emblems/rank-'),'leaderboard artwork binding missing');
           need(index.includes('VERSION 2.8.10'),'index version marker missing');
           need(index.includes('app.js?v=290'),'app cache marker missing');
           need(sw.includes('v290'),'service worker cache marker missing');
@@ -89,8 +89,8 @@ jobs:
           fi
           grep -q 'VERSION 2.8.10' /tmp/local-index.html
           curl -fsS 'http://127.0.0.1:18080/app.js?v=290' >/tmp/local-app.js
-          grep -q 'const BGM_STYLES=' /tmp/local-app.js
-          grep -q 'function bgmPad(' /tmp/local-app.js
+          grep -q "api('/api/leaderboard')" /tmp/local-app.js
+          grep -q '/assets/rank-emblems/rank-' /tmp/local-app.js
           grep -q '출발 도=1번 칸' /tmp/local-app.js
           curl -fsS http://127.0.0.1:18080/healthz >/tmp/local-health.txt
           echo 'PRODUCTION_WRAPPER_BOOT_OK=1'
@@ -137,8 +137,8 @@ jobs:
             exit 1
           fi
           curl -LfsS --max-time 25 "$LIVE/app.js?v=290&deploy=$GITHUB_SHA" >/tmp/live-app.js
-          grep -q 'const BGM_STYLES=' /tmp/live-app.js
-          grep -q 'function bgmPad(' /tmp/live-app.js
+          grep -q "api('/api/leaderboard')" /tmp/live-app.js
+          grep -q '/assets/rank-emblems/rank-' /tmp/live-app.js
           grep -q '출발 도=1번 칸' /tmp/live-app.js
           curl -LfsS --max-time 25 "$LIVE/healthz?deploy=$GITHUB_SHA" >/tmp/live-health.txt
           echo 'LIVE_DEPLOY_VERIFIED=v2.8.10'
