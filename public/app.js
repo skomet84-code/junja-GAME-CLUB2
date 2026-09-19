@@ -196,7 +196,7 @@ function bindMain(){
     on('#dailyBtn','click',claimDaily);on('#soundBtn','click',toggleSound);updateSoundButton();
     const unlockFromGesture=()=>{if(soundEnabled&&me&&!audioUnlocked)ensureAudioUnlocked(true)};
     document.addEventListener('pointerdown',unlockFromGesture,{capture:true,passive:true});document.addEventListener('keydown',unlockFromGesture,{capture:true});
-    on('#refreshRank','click',loadLobby);on('#profileBtn','click',openProfile);on('#closeProfile','click',()=>$('#profileSheet')?.classList.add('hidden'));on('#profileSheet','click',e=>{if(e.target.id==='profileSheet')$('#profileSheet')?.classList.add('hidden')});on('#logoutBtn','click',logout);
+    on('#refreshRank','click',loadLobby);on('#friendsBtn','click',()=>openFriendsHub());on('#profileBtn','click',openProfile);on('#closeProfile','click',()=>$('#profileSheet')?.classList.add('hidden'));on('#profileSheet','click',e=>{if(e.target.id==='profileSheet')$('#profileSheet')?.classList.add('hidden')});on('#logoutBtn','click',logout);
     on('#refreshHoldem','click',()=>loadRooms('holdem'));on('#refreshYut','click',()=>loadRooms('yut'));on('#refreshSeotda','click',()=>loadRooms('seotda'));on('#refreshSevenpoker','click',()=>loadRooms('sevenpoker'));on('#refreshBaccarat','click',()=>loadBaccaratRooms());
     on('#createHoldem','click',()=>createRoom('holdem'));on('#createYut','click',()=>createRoom('yut'));on('#createSeotda','click',()=>createRoom('seotda'));on('#createSevenpoker','click',()=>createRoom('sevenpoker'));on('#createBaccarat','click',createBaccaratRoom);
     on('#yutMode','change',syncYutMode);on('#horseBetType','change',syncHorseBetUI);on('#horseStartBtn','click',startHorseRace);$$('[data-horse-auto]').forEach(b=>b.addEventListener('click',()=>startHorseAuto(Number(b.dataset.horseAuto))));on('#horseAutoStop','click',stopHorseAuto);
@@ -230,7 +230,7 @@ function updateHeader(){if(!me)return;$('#walletBalance').textContent=money(me.b
 function renderLobbyPresence(rows=[]){
   const root=$('#lobbyLiveFaces');if(!root)return;
   root.classList.add('presence-roster');
-  root.innerHTML=rows.length?rows.map(p=>'<div class="presence-person '+(p.state==='PLAYING'?'playing':'waiting')+'">'+avatarImg(p.avatar,p.nickname,'presence-face',p.cosmetics)+'<div><b>'+html(p.nickname)+'</b><span>'+html(p.gameLabel||'로비')+(p.mode&&p.mode!=='LOBBY'?' · '+html(p.mode):'')+'</span></div><em>'+(p.state==='PLAYING'?'게임중':'대기중')+'</em></div>').join(''):'<div class="presence-empty">현재 다른 접속자가 없어.</div>';
+  root.innerHTML=rows.length?rows.map(p=>'<button type="button" class="presence-person '+(p.state==='PLAYING'?'playing':'waiting')+'" data-friend-profile="'+html(p.nickname)+'">'+avatarImg(p.avatar,p.nickname,'presence-face',p.cosmetics)+'<div><b>'+html(p.nickname)+'</b><span>'+html(p.gameLabel||'로비')+(p.mode&&p.mode!=='LOBBY'?' · '+html(p.mode):'')+'</span></div><em>'+(p.state==='PLAYING'?'게임중':'대기중')+'</em></button>').join(''):'<div class="presence-empty">현재 다른 접속자가 없어.</div>';$('[data-friend-profile]',root).forEach(b=>b.onclick=()=>openFriendsHub(b.dataset.friendProfile));
 }
 async function refreshMe(){const d=await api('/api/me');me=d.user;updateHeader();$('#onlineCount').textContent='ONLINE '+d.online;if($('#lobbyOnlineNow'))$('#lobbyOnlineNow').textContent='ONLINE '+d.online;renderLobbyPresence(d.presence||[]);return d}
 async function go(view){
@@ -278,6 +278,19 @@ async function loadShop(){try{const d=await api('/api/shop');shopData=d;me=d.use
 async function buyShopItemUI(itemId,btn){const item=shopData?.items?.find(x=>x.id===itemId);if(!item)return;if(Number(me.balance)<Number(item.price)){toast('게임머니가 부족해.');return}if(!confirm(`${item.name}을 ${money(item.price)}에 구매할까?\n구매한 아이템은 영구 보유해.`))return;btn.disabled=true;try{let d=await api('/api/shop/buy',{method:'POST',body:JSON.stringify({itemId})});me=d.user;shopData=d.state;updateHeader();toast(`🛍️ ${item.name} 구매 완료!`);d=await api('/api/shop/equip',{method:'POST',body:JSON.stringify({category:item.category,itemId:item.id})});me=d.user;shopData=d.state;updateHeader();renderShop();fx('win')}catch(e){toast(e.message);await loadShop()}finally{btn.disabled=false}}
 async function equipShopItemUI(category,itemId,btn){if(btn)btn.disabled=true;try{const d=await api('/api/shop/equip',{method:'POST',body:JSON.stringify({category,itemId})});me=d.user;shopData=d.state;updateHeader();renderShop();toast(itemId?'장착 완료!':'장착 해제 완료')}catch(e){toast(e.message)}finally{if(btn)btn.disabled=false}}
 
+async function openFriendsHub(prefill=''){
+  await refreshMe();
+  $('#profileContent').innerHTML=`<div class="friends-hub">
+    <div class="friends-hub-title"><small>JUNJA SOCIAL CLUB</small><h2>👥 친구</h2><p>닉네임으로 친구를 찾아 캐릭터와 장착 아이템·컬렉션을 크게 보고, 송금이나 아이템 선물을 바로 할 수 있어.</p></div>
+    <div class="friend-transfer friend-hub-card">
+      <div class="friend-lookup-row"><input id="friendNickname" maxlength="14" placeholder="친구 닉네임 검색" autocomplete="off" value="${html(prefill)}"><button id="friendLookupBtn" class="secondary" type="button">친구 보기</button></div>
+      <div id="friendLookupResult" class="friend-lookup-result muted">친구를 검색하면 큰 캐릭터 프로필이 여기에 표시돼.</div>
+      <div class="friend-money-panel"><label>보낼 게임머니<div class="friend-amount-row"><input id="friendSendAmount" class="no-spinner" type="number" min="1" step="1000" value="10000" inputmode="numeric"><button id="friendMaxBtn" class="ghost" type="button">MAX</button></div></label><div class="friend-quick-row"><button type="button" data-friend-amount="10000">1만</button><button type="button" data-friend-amount="100000">10만</button><button type="button" data-friend-amount="1000000">100만</button><button type="button" data-friend-amount="10000000">1,000만</button></div><button id="friendSendBtn" class="primary full" type="button" disabled>선택한 친구에게 송금</button></div>
+    </div></div>`;
+  bindFriendTransfer();
+  $('#profileSheet').classList.remove('hidden');
+  if(prefill){const b=$('#friendLookupBtn');if(b)b.click()}
+}
 async function openProfile(){
   await refreshMe();
   const cc=me.cosmetics?.collection||{name:'NEW MEMBER',icon:'◇'};
