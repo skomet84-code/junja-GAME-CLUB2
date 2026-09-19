@@ -405,7 +405,7 @@ function showSlotJackpot(d){
   overlay.classList.remove('hidden','j-jackpot','seven-jackpot');overlay.classList.add(isSeven?'seven-jackpot':'j-jackpot');
   $('#jackpotTitle').textContent=isSeven?'RED 777 JACKPOT':'JUNJA J JACKPOT';
   $('#jackpotSymbol').textContent=isSeven?'777':'JJJ';
-  $('#jackpotPayout').textContent=isSeven&&d.poolJackpot?`누적 풀 ${money(d.jackpotAward)} + 기본 당첨 ${money(d.regularPayout)} = 총 ${money(d.payout)}`:`${money(d.payout)} · x${isSeven?1000:500}`;
+  $('#jackpotPayout').textContent=isSeven&&d.poolJackpot?`누적 풀 ${money(d.jackpotAward)} + 기본 당첨 ${money(d.regularPayout)} = 총 ${money(d.payout)}`:`${money(d.payout)} · x${isSeven?1000:800}`;
   document.body.classList.add('jackpot-open');fx('jackpot');jackpotConfetti();setTimeout(confetti,150);setTimeout(confetti,850);
 }
 function updateCurrentBetLabel(){if($('#currentBetLabel'))$('#currentBetLabel').textContent=money(selectedBet)}
