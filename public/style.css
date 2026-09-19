@@ -1024,3 +1024,35 @@ button:not(:disabled){touch-action:manipulation}
    max-width:90px!important;max-height:90px!important;
  }
 }
+
+
+/* v326 screenshot-final mobile alignment */
+@media(max-width:600px){
+ #leaderboard .rank-row{
+   grid-template-columns:25% 17% 30% 28%!important;
+   aspect-ratio:5.55/1!important;
+   padding:4px 10px!important;
+ }
+ #leaderboard .rank-emblem-art{
+   width:72px!important;height:72px!important;
+   max-width:72px!important;max-height:72px!important;
+ }
+ #leaderboard .rank-row:first-child{
+   min-height:88px!important;
+ }
+ #leaderboard .rank-row:first-child .rank-emblem-art{
+   width:80px!important;height:80px!important;
+   max-width:80px!important;max-height:80px!important;
+ }
+ #leaderboard .rank-name .rank-face{
+   width:74%!important;
+   max-width:56px!important;
+ }
+ #leaderboard .rank-name>span{padding-left:2px!important}
+ #leaderboard .rank-status-slot{padding-left:2px!important}
+ #leaderboard .rank-status-badge{height:23px!important;max-width:138px!important}
+ #leaderboard .rank-money{
+   padding-right:2px!important;
+   font-size:clamp(10.5px,3vw,13.5px)!important;
+ }
+}
