@@ -847,3 +847,25 @@ button:not(:disabled){touch-action:manipulation}
 #leaderboard .rank-money{position:static!important;transform:none!important;justify-self:end!important;white-space:nowrap!important}
 #leaderboard .rank-medal{display:none!important}
 @media(max-width:600px){#leaderboard .rank-row{grid-template-columns:72px minmax(92px,1fr) 92px!important;grid-template-areas:"emblem player money" "emblem status money"!important;gap:3px 6px!important;padding:9px 8px!important;min-height:102px!important}#leaderboard .rank-no{grid-area:emblem;width:70px!important;height:78px!important}#leaderboard .rank-emblem-art{width:68px;height:72px}#leaderboard .rank-name{grid-area:player;align-self:end!important}#leaderboard .rank-status-slot{grid-area:status;align-self:start!important}#leaderboard .rank-money{grid-area:money;align-self:center!important;font-size:13px!important}#leaderboard .rank-name .rank-face{width:42px!important;height:42px!important}#leaderboard .rank-name>span>b{font-size:12px!important}#leaderboard .rank-name>span>small{font-size:9px!important}#leaderboard .rank-status-slot .rank-status-badge{max-width:92px!important;min-width:0!important;height:28px!important;padding:3px 5px!important}#leaderboard .rank-status-slot .rank-status-badge span{font-size:9px!important}}
+
+
+/* v311 mobile leaderboard — approved clean ranking composition */
+@media(max-width:600px){
+  #view-lobby .section-head{position:relative!important;display:flex!important;align-items:center!important;justify-content:space-between!important;min-height:58px!important;padding:12px 14px!important}
+  #view-lobby .section-head>div{min-width:0!important}
+  #view-lobby .section-head .eyebrow{position:static!important;margin:0 0 3px!important;font-size:10px!important;letter-spacing:2px!important}
+  #view-lobby .section-head h2{position:static!important;margin:0!important;font-size:20px!important;line-height:1.15!important}
+  #leaderboard{display:grid!important;gap:10px!important}
+  #leaderboard .rank-row{grid-template-columns:78px minmax(0,1fr)!important;grid-template-areas:"emblem player" "emblem status" "emblem money"!important;column-gap:12px!important;row-gap:2px!important;min-height:126px!important;padding:13px 14px!important;border-radius:20px!important}
+  #leaderboard .rank-no{grid-area:emblem!important;width:78px!important;height:94px!important;align-self:center!important}
+  #leaderboard .rank-emblem-art{width:76px!important;height:88px!important;object-fit:contain!important}
+  #leaderboard .rank-name{grid-area:player!important;align-self:end!important;gap:9px!important}
+  #leaderboard .rank-name .rank-face{width:48px!important;height:48px!important;flex:0 0 48px!important}
+  #leaderboard .rank-name>span>b{font-size:16px!important;line-height:1.15!important}
+  #leaderboard .rank-name>span>small{font-size:10px!important;line-height:1.2!important;margin-top:3px!important}
+  #leaderboard .rank-status-slot{grid-area:status!important;align-self:center!important}
+  #leaderboard .rank-status-slot .rank-status-badge{width:auto!important;max-width:160px!important;min-width:118px!important;height:30px!important;padding:3px 9px!important;border-radius:8px!important}
+  #leaderboard .rank-status-slot .rank-status-badge:after{display:none!important}
+  #leaderboard .rank-status-slot .rank-status-badge span{font-size:10px!important}
+  #leaderboard .rank-money{grid-area:money!important;justify-self:start!important;align-self:start!important;font-size:16px!important;line-height:1.2!important;margin-top:2px!important;color:#ffe27d!important}
+}
