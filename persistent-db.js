@@ -35,7 +35,8 @@ const EXTRA_COLUMNS = {
   ],
   users: [
     ['is_admin','INTEGER NOT NULL DEFAULT 0'],
-    ['is_disabled','INTEGER NOT NULL DEFAULT 0']
+    ['is_disabled','INTEGER NOT NULL DEFAULT 0'],
+    ['rank_level','INTEGER NOT NULL DEFAULT 0']
   ],
   user_loadout: [
     ['character','TEXT']
