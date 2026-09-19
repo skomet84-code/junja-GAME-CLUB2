@@ -857,3 +857,22 @@ button:not(:disabled){touch-action:manipulation}
  #view-lobby .section-head{min-height:128px!important;background-image:url('/assets/leaderboard/header-casino.svg?v=313')!important}
  #leaderboard .rank-row{min-height:132px!important;background-size:100% 100%!important}
 }
+
+/* v314 mobile parity: artwork fills the approved wide-card composition */
+@media(max-width:600px){
+ #view-lobby .dashboard-grid{display:block!important}
+ #view-lobby .dashboard-grid>.section-card:first-child{padding:0!important;overflow:hidden!important;background:#07090d!important;border:1px solid #5b4524!important}
+ #view-lobby .dashboard-grid>.section-card:first-child>.section-head{border-radius:0!important;padding:18px 16px 16px!important}
+ #leaderboard{padding:8px 7px 12px!important}
+ #leaderboard .rank-row{grid-template-columns:92px 58px minmax(0,1fr)!important;grid-template-areas:"emblem player info" "emblem player status" "emblem player money"!important;column-gap:7px!important;row-gap:0!important;min-height:112px!important;padding:8px 10px!important}
+ #leaderboard .rank-no{grid-area:emblem!important;width:90px!important;height:94px!important}
+ #leaderboard .rank-emblem-art{width:90px!important;height:92px!important}
+ #leaderboard .rank-name{display:contents!important}
+ #leaderboard .rank-name .rank-face{grid-area:player!important;align-self:center!important;width:56px!important;height:66px!important;object-fit:cover!important}
+ #leaderboard .rank-name>span{grid-area:info!important;align-self:end!important;min-width:0!important}
+ #leaderboard .rank-name>span>b{font-size:16px!important}
+ #leaderboard .rank-name>span>small{font-size:9px!important}
+ #leaderboard .rank-status-slot{grid-area:status!important;align-self:center!important}
+ #leaderboard .rank-status-badge{width:128px!important;max-width:100%!important;height:27px!important;padding:2px 6px!important}
+ #leaderboard .rank-money{grid-area:money!important;align-self:start!important;justify-self:start!important;font-size:15px!important;margin:0!important}
+}
