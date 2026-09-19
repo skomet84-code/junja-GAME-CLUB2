@@ -1089,3 +1089,34 @@ button:not(:disabled){touch-action:manipulation}
    letter-spacing:-.25px!important;
  }
 }
+
+
+/* v328 mobile leaderboard — lock emblem geometry; keep 1st-place money inside card */
+@media(max-width:600px){
+  #leaderboard .rank-row{
+    grid-template-columns:24% 16% 27% 33%!important;
+    overflow:hidden!important;
+  }
+  #leaderboard .rank-row:first-child{
+    grid-template-columns:24% 16% 27% 33%!important;
+  }
+  #leaderboard .rank-row:first-child .rank-money{
+    grid-area:money!important;
+    justify-self:end!important;
+    align-self:center!important;
+    width:auto!important;
+    max-width:100%!important;
+    padding:0 5px 0 0!important;
+    margin:0!important;
+    font-size:clamp(8.5px,2.55vw,11.5px)!important;
+    letter-spacing:-.35px!important;
+    white-space:nowrap!important;
+    overflow:visible!important;
+    transform:none!important;
+    position:static!important;
+  }
+  #leaderboard .rank-row:first-child .rank-name>span,
+  #leaderboard .rank-row:first-child .rank-status-slot{
+    min-width:0!important;
+  }
+}
