@@ -905,3 +905,40 @@ button:not(:disabled){touch-action:manipulation}
  #leaderboard .rank-status-badge{width:132px!important;max-width:100%!important;height:27px!important}
  #leaderboard .rank-money{align-self:start!important;font-size:13.5px!important;line-height:18px!important}
 }
+
+/* v320 leaderboard rebuild — fixed-ratio game UI skin */
+#view-lobby .dashboard-grid{display:block!important}
+#view-lobby .dashboard-grid>.section-card:first-child{padding:0!important;overflow:hidden!important;background:#05070a!important;border:1px solid #76521d!important}
+#view-lobby .dashboard-grid>.section-card:first-child>.section-head{position:relative!important;min-height:150px!important;padding:24px 28px!important;border:0!important;border-radius:0!important;background:#080a0d url('/assets/leaderboard/header-casino.svg?v=320') center/cover no-repeat!important}
+#view-lobby .section-head .eyebrow{color:#e3c477!important;letter-spacing:4px!important}
+#view-lobby .section-head h3{color:#ffe8a6!important;font-size:30px!important}
+#leaderboard{display:grid!important;gap:8px!important;padding:10px!important;background:#05070a!important}
+#leaderboard .rank-row{position:relative!important;display:grid!important;grid-template-columns:180px 110px minmax(180px,1fr) 300px!important;grid-template-rows:54px 54px!important;grid-template-areas:"emblem avatar name money" "emblem avatar status money"!important;align-items:center!important;gap:0 14px!important;aspect-ratio:8/1!important;min-height:126px!important;padding:10px 24px!important;box-sizing:border-box!important;border:0!important;border-radius:0!important;background:transparent url('/assets/leaderboard/panel-gold.svg?v=320') center/100% 100% no-repeat!important;box-shadow:none!important;overflow:hidden!important}
+#leaderboard .rank-row:nth-child(even){background-image:url('/assets/leaderboard/panel-silver.svg?v=320')!important}
+#leaderboard .rank-no{grid-area:emblem!important;position:static!important;width:170px!important;height:108px!important;min-width:0!important;display:grid!important;place-items:center!important}
+#leaderboard .rank-emblem-art{display:block!important;width:160px!important;height:108px!important;object-fit:contain!important}
+#leaderboard .rank-name{display:contents!important}
+#leaderboard .rank-name .rank-face{grid-area:avatar!important;width:92px!important;height:92px!important;align-self:center!important;object-fit:cover!important;border-radius:13px!important;box-shadow:0 0 0 2px #d9a947,0 0 12px #a76d1c!important}
+#leaderboard .rank-name>span{grid-area:name!important;align-self:end!important;min-width:0!important}
+#leaderboard .rank-name>span>b{display:block!important;font-size:24px!important;line-height:28px!important;color:#fff!important;white-space:nowrap!important}
+#leaderboard .rank-name>span>small{display:none!important}
+#leaderboard .rank-status-slot{grid-area:status!important;align-self:start!important}
+#leaderboard .rank-status-badge{position:static!important;display:flex!important;align-items:center!important;gap:10px!important;width:220px!important;height:42px!important;padding:4px 12px!important;box-sizing:border-box!important;border-radius:7px!important;background:#090b0f!important;border:1px solid #d6a24b!important;color:#ffe3a0!important}
+#leaderboard .rank-row:nth-child(even) .rank-status-badge{border-color:#b9d4f3!important;color:#edf7ff!important}
+#leaderboard .rank-crest-icon{display:grid!important;place-items:center!important;width:30px!important;height:30px!important;border-radius:50%!important;border:1px solid currentColor!important;font-style:normal!important}
+#leaderboard .rank-money{grid-area:money!important;justify-self:end!important;align-self:center!important;font-size:26px!important;font-weight:900!important;line-height:1!important;color:#ffe29a!important;white-space:nowrap!important;text-shadow:0 0 8px #85510e!important}
+@media(max-width:600px){
+ #view-lobby .dashboard-grid>.section-card:first-child>.section-head{min-height:118px!important;padding:17px 16px!important}
+ #view-lobby .section-head h3{font-size:23px!important}
+ #leaderboard{gap:6px!important;padding:7px!important}
+ #leaderboard .rank-row{grid-template-columns:25% 18% 31% 26%!important;grid-template-rows:50% 50%!important;grid-template-areas:"emblem avatar name money" "emblem avatar status money"!important;aspect-ratio:5.05/1!important;min-height:0!important;height:auto!important;padding:5px 9px!important;gap:0!important}
+ #leaderboard .rank-no{width:100%!important;height:100%!important}
+ #leaderboard .rank-emblem-art{width:94%!important;height:94%!important}
+ #leaderboard .rank-name .rank-face{width:82%!important;height:auto!important;aspect-ratio:1/1!important;justify-self:center!important}
+ #leaderboard .rank-name>span{align-self:end!important;padding:0 3px 3px!important}
+ #leaderboard .rank-name>span>b{font-size:clamp(11px,3.5vw,16px)!important;line-height:1.05!important}
+ #leaderboard .rank-status-slot{align-self:start!important;padding:2px 3px 0!important;min-width:0!important}
+ #leaderboard .rank-status-badge{width:100%!important;height:25px!important;padding:2px 5px!important;gap:4px!important;font-size:9px!important}
+ #leaderboard .rank-crest-icon{width:19px!important;height:19px!important;font-size:9px!important}
+ #leaderboard .rank-money{justify-self:end!important;padding-right:3px!important;font-size:clamp(10px,3vw,14px)!important}
+}
