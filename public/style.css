@@ -794,3 +794,19 @@ button:not(:disabled){touch-action:manipulation}
 .rank-user-royal .rank-medal-1{animation:topRankGlow 1.5s ease-in-out infinite alternate}
 @keyframes topRankGlow{to{box-shadow:0 0 13px #fff6c2,0 0 34px rgba(255,181,25,.9);transform:scale(1.04)}}
 @media(max-width:600px){.rank-medal-1,.rank-medal-2,.rank-medal-3{width:42px;height:42px;font-size:21px}.rank-medal-1:before,.rank-medal-2:before,.rank-medal-3:before{top:-15px;font-size:17px}}
+
+.rank-status-badge.rank-crest{display:grid;grid-template-columns:24px auto;align-items:center;gap:5px;min-width:76px;max-width:none;padding:4px 7px;border-radius:10px}
+.rank-crest-icon{display:grid;place-items:center;width:24px;height:24px;border-radius:50%;font-style:normal;font-weight:900;background:radial-gradient(circle,#fff,#8795aa 28%,#273143 72%);border:1px solid #d8e2f0;box-shadow:0 0 9px rgba(220,235,255,.35)}
+.rank-crest-merchant,.rank-crest-count,.rank-crest-marquis{border-color:#d1a747!important;color:#f4d27b!important}
+.rank-crest-merchant .rank-crest-icon,.rank-crest-count .rank-crest-icon,.rank-crest-marquis .rank-crest-icon{background:radial-gradient(circle,#fff4b8,#c58a20 42%,#573100 76%);border-color:#f0ca63}
+.rank-crest-tycoon,.rank-crest-noble,.rank-crest-emperor{border-color:#a9c9ef!important;color:#e6f1ff!important}
+.rank-crest-tycoon .rank-crest-icon,.rank-crest-noble .rank-crest-icon,.rank-crest-emperor .rank-crest-icon{background:radial-gradient(circle,#fff,#86b8e8 38%,#294a70 75%);border-color:#cce6ff}
+.rank-crest-baron,.rank-crest-viscount,.rank-crest-king{border-color:#d7894e!important;color:#f2bd91!important}
+.rank-crest-baron .rank-crest-icon,.rank-crest-viscount .rank-crest-icon,.rank-crest-king .rank-crest-icon{background:radial-gradient(circle,#ffe0b7,#c16c34 42%,#54240c 76%);border-color:#f1aa72}
+.rank-crest-duke{border-color:#e2d6b8!important;color:#fff0c9!important}
+.rank-crest-duke .rank-crest-icon{background:radial-gradient(circle,#fff,#c8bb9a 38%,#655942 76%);border-color:#fff0c8}
+.rank-crest-royal{min-width:98px!important;border-color:#ffd65f!important;color:#ffeb9d!important;background:linear-gradient(135deg,#5a3405,#171008)!important;box-shadow:0 0 16px rgba(255,191,39,.42)!important}
+.rank-crest-royal .rank-crest-icon{width:28px;height:28px;border-radius:8px;background:linear-gradient(145deg,#fff6b8,#dfa32a 35%,#754100 70%,#ffd965);border-color:#ffe88f;color:#2a1500;font-family:Georgia,serif;font-size:17px;box-shadow:0 0 10px #ffeaa0,0 0 20px #e6a51d;animation:royalCrestGlow 1.5s ease-in-out infinite alternate}
+.rank-crest-royal span{font-family:Georgia,serif;font-weight:900;letter-spacing:.4px}
+@keyframes royalCrestGlow{to{box-shadow:0 0 13px #fff6c8,0 0 28px #ffb822;transform:scale(1.05)}}
+@media(max-width:600px){.rank-status-badge.rank-crest{grid-template-columns:21px auto;min-width:68px;padding:3px 5px}.rank-crest-icon{width:21px;height:21px}.rank-crest-royal{min-width:86px!important}.rank-crest-royal .rank-crest-icon{width:24px;height:24px;font-size:15px}}
