@@ -1807,7 +1807,7 @@ const server=http.createServer(async(req,res)=>{
       const hasJLine=winLines.some(w=>w.symbols?.[0]==='J');
       if(!hasJLine){
         const jCells=[];for(let r=0;r<3;r++)for(let c=0;c<3;c++)if(grid[r][c]==='J')jCells.push([r,c]);
-        if(jCells.length){const scatterMult=jCells.length*30;totalMultiplier+=scatterMult;winLines.push({label:'J SCATTER',cssClass:null,cells:jCells,symbols:jCells.map(()=> 'J'),mult:scatterMult,scatter:true});}
+        if(jCells.length){const scatterMult=jCells.length*1;totalMultiplier+=scatterMult;winLines.push({label:'J SCATTER',cssClass:null,cells:jCells,symbols:jCells.map(()=> 'J'),mult:scatterMult,scatter:true});}
       }
       if(winLines.filter(w=>!w.scatter).length>=3) totalMultiplier+=15;
       const regularPayout=Math.floor(bet*totalMultiplier);
