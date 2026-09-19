@@ -890,3 +890,18 @@ button:not(:disabled){touch-action:manipulation}
  #leaderboard .rank-status-badge{width:100%!important;max-width:138px!important;height:28px!important;box-sizing:border-box!important}
  #leaderboard .rank-money{align-self:center!important;font-size:14px!important;line-height:20px!important;white-space:nowrap!important;z-index:3!important}
 }
+
+/* v316 screenshot-tuned mobile card slots */
+@media(max-width:600px){
+ #leaderboard{gap:10px!important}
+ #leaderboard .rank-row{grid-template-columns:88px 62px minmax(0,1fr)!important;grid-template-rows:36px 31px 27px!important;min-height:118px!important;padding:10px 12px!important;column-gap:8px!important}
+ #leaderboard .rank-no{width:86px!important;height:94px!important}
+ #leaderboard .rank-emblem-art{width:84px!important;height:90px!important}
+ #leaderboard .rank-name .rank-face{width:58px!important;height:66px!important}
+ #leaderboard .rank-name>span{align-self:end!important;padding:0 0 2px 0!important}
+ #leaderboard .rank-name>span>b{font-size:15px!important;line-height:17px!important}
+ #leaderboard .rank-name>span>small{font-size:8.5px!important;line-height:11px!important}
+ #leaderboard .rank-status-slot{align-self:center!important}
+ #leaderboard .rank-status-badge{width:132px!important;max-width:100%!important;height:27px!important}
+ #leaderboard .rank-money{align-self:start!important;font-size:13.5px!important;line-height:18px!important}
+}
