@@ -811,61 +811,39 @@ button:not(:disabled){touch-action:manipulation}
 @keyframes royalCrestGlow{to{box-shadow:0 0 13px #fff6c8,0 0 28px #ffb822;transform:scale(1.05)}}
 @media(max-width:600px){.rank-status-badge.rank-crest{grid-template-columns:21px auto;min-width:68px;padding:3px 5px}.rank-crest-icon{width:21px;height:21px}.rank-crest-royal{min-width:86px!important}.rank-crest-royal .rank-crest-icon{width:24px;height:24px;font-size:15px}}
 
-/* v305: reference-matched royal leaderboard emblems */
-.rank-row{min-height:118px!important}
-.rank-no{min-width:150px!important;align-self:center;position:relative}
-.rank-medal{position:relative!important;display:flex!important;align-items:center!important;justify-content:center!important;width:112px!important;height:76px!important;margin-left:0!important;filter:drop-shadow(0 0 7px rgba(200,220,255,.35))}
-.rank-medal .medal-core{position:relative;z-index:2;display:grid;place-items:center;width:58px;height:64px;clip-path:polygon(50% 0,88% 16%,94% 70%,50% 100%,6% 70%,12% 16%);background:linear-gradient(145deg,#f8fbff,#8190a8 22%,#202b3c 62%,#a9b6ca);border-radius:24px;box-shadow:inset 0 0 0 2px #dce8f7,inset 0 0 15px #fff,0 0 14px rgba(185,211,245,.55)}
-.rank-medal .medal-core:before{content:'♛';position:absolute;top:-18px;color:#eaf3ff;font-size:22px;text-shadow:0 0 8px currentColor}
-.rank-medal .medal-core:after{content:'◆';position:absolute;bottom:3px;color:#dcecff;font-size:9px}
-.rank-medal .medal-core i{font-style:normal;font:900 29px Georgia,serif;color:white;text-shadow:0 2px 3px #142030,0 0 8px #fff}
-.rank-medal .medal-wing{position:absolute;z-index:1;top:16px;font-size:55px;line-height:1;color:#c8d4e6;text-shadow:0 0 8px #dceaff;transform:scaleX(.65)}
-.rank-medal .medal-wing.left{left:0;transform:scaleX(.65) rotate(-12deg)}
-.rank-medal .medal-wing.right{right:0;transform:scaleX(.65) rotate(12deg)}
-.rank-medal-1{filter:drop-shadow(0 0 10px #ffbd28)!important}
-.rank-medal-1 .medal-core{width:70px;height:72px;background:radial-gradient(circle at 35% 25%,#ffef96,#d6170b 30%,#7b0500 64%,#ffd55a);box-shadow:inset 0 0 0 3px #ffd75a,inset 0 0 16px #ffb42a,0 0 20px #ffb51e}
-.rank-medal-1 .medal-core:before{color:#ffd85d;font-size:27px;top:-22px}.rank-medal-1 .medal-core i{font-size:34px;color:#fff3a6}.rank-medal-1 .medal-wing{color:#e2a52b;text-shadow:0 0 9px #ffc53e}
-.rank-medal-2 .medal-core{background:radial-gradient(circle at 35% 25%,#fff,#90a8c7 34%,#26364e 67%,#e4efff)}
-.rank-medal-3,.rank-medal-5,.rank-medal-7,.rank-medal-9{filter:drop-shadow(0 0 7px rgba(239,135,62,.45))}
-.rank-medal-3 .medal-core,.rank-medal-5 .medal-core,.rank-medal-7 .medal-core,.rank-medal-9 .medal-core{background:radial-gradient(circle at 35% 25%,#ffe0b5,#c4662c 34%,#57240e 67%,#ef9a58);box-shadow:inset 0 0 0 2px #ef9c5a,inset 0 0 12px #ffd1a2,0 0 12px rgba(225,108,40,.5)}
-.rank-medal-3 .medal-wing,.rank-medal-5 .medal-wing,.rank-medal-7 .medal-wing,.rank-medal-9 .medal-wing{color:#d67a3b;text-shadow:0 0 7px #ef9a58}
-.rank-status-badge.rank-crest{position:absolute!important;left:105px;top:19px;z-index:5;min-width:104px!important;height:38px;padding:4px 10px!important;border-radius:5px!important;background:linear-gradient(90deg,#101722,#060a10)!important;border:1px solid #aab9cf!important;box-shadow:0 0 8px rgba(190,215,245,.25)!important}
-.rank-crest-icon{width:25px!important;height:25px!important}
-.rank-crest-royal{min-width:145px!important;background:linear-gradient(90deg,#4b2500,#160b00)!important;border-color:#ffc94e!important;box-shadow:0 0 12px #c88312!important}
-.rank-crest-royal:after{content:'전설 그 이상의 존재';position:absolute;top:40px;left:8px;color:#dcae55;font-size:9px;white-space:nowrap}
-.rank-crest-emperor:after{content:'세상을 지배하는 자'}.rank-crest-king:after{content:'군림하는 자'}.rank-crest-duke:after{content:'귀족의 품격'}.rank-crest-marquis:after{content:'명예로운 자'}.rank-crest-count:after{content:'탁월한 자'}.rank-crest-viscount:after{content:'강인한 자'}.rank-crest-baron:after{content:'도전하는 자'}.rank-crest-emperor:after,.rank-crest-king:after,.rank-crest-duke:after,.rank-crest-marquis:after,.rank-crest-count:after,.rank-crest-viscount:after,.rank-crest-baron:after{position:absolute;top:40px;left:8px;color:#c7ced9;font-size:9px;white-space:nowrap}
-@media(max-width:600px){.rank-row{min-height:112px!important}.rank-no{min-width:142px!important}.rank-medal{width:100px!important;height:70px!important}.rank-medal .medal-core{width:52px;height:58px}.rank-medal-1 .medal-core{width:62px;height:66px}.rank-medal .medal-wing{font-size:49px}.rank-status-badge.rank-crest{left:92px;top:17px;min-width:94px!important}.rank-crest-royal{min-width:132px!important}}
 
-/* v309 leaderboard: image artwork + isolated content slots */
-#leaderboard .rank-row{display:grid!important;grid-template-columns:84px minmax(108px,1fr) 116px auto!important;align-items:center!important;gap:8px!important;min-height:104px!important;padding:10px 14px!important}
-#leaderboard .rank-no{position:static!important;min-width:0!important;width:84px!important;height:80px!important;display:grid!important;place-items:center!important}
-#leaderboard .rank-emblem-art{display:block;width:80px;height:76px;object-fit:contain}
-#leaderboard .rank-name{position:static!important;display:flex!important;align-items:center!important;gap:8px!important;min-width:0!important}
-#leaderboard .rank-name>span{min-width:0!important}#leaderboard .rank-name>span>b{display:block!important;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#leaderboard .rank-name>span>small{display:block!important;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-#leaderboard .rank-status-slot{position:static!important;display:flex!important;align-items:center!important;min-width:0!important}
-#leaderboard .rank-status-slot .rank-status-badge{position:static!important;inset:auto!important;transform:none!important;margin:0!important;width:100%!important;max-width:116px!important}
-#leaderboard .rank-money{position:static!important;transform:none!important;justify-self:end!important;white-space:nowrap!important}
-#leaderboard .rank-medal{display:none!important}
-@media(max-width:600px){#leaderboard .rank-row{grid-template-columns:72px minmax(92px,1fr) 92px!important;grid-template-areas:"emblem player money" "emblem status money"!important;gap:3px 6px!important;padding:9px 8px!important;min-height:102px!important}#leaderboard .rank-no{grid-area:emblem;width:70px!important;height:78px!important}#leaderboard .rank-emblem-art{width:68px;height:72px}#leaderboard .rank-name{grid-area:player;align-self:end!important}#leaderboard .rank-status-slot{grid-area:status;align-self:start!important}#leaderboard .rank-money{grid-area:money;align-self:center!important;font-size:13px!important}#leaderboard .rank-name .rank-face{width:42px!important;height:42px!important}#leaderboard .rank-name>span>b{font-size:12px!important}#leaderboard .rank-name>span>small{font-size:9px!important}#leaderboard .rank-status-slot .rank-status-badge{max-width:92px!important;min-width:0!important;height:28px!important;padding:3px 5px!important}#leaderboard .rank-status-slot .rank-status-badge span{font-size:9px!important}}
-
-
-/* v311 mobile leaderboard — approved clean ranking composition */
+/* v312 approved artwork-first leaderboard */
+#view-lobby .section-head{border:0!important;background:linear-gradient(90deg,#100d09,#17130d)!important;border-radius:18px 18px 0 0!important;padding:20px 22px!important;box-shadow:inset 0 -1px #7d5a20}
+#view-lobby .section-head .eyebrow{color:#d9b86a!important;letter-spacing:4px!important}
+#view-lobby .section-head h2{color:#f8e2a5!important}
+#leaderboard{display:grid!important;gap:10px!important;background:#090b0f!important;padding:12px!important}
+#leaderboard .rank-row{display:grid!important;grid-template-columns:150px minmax(220px,1fr) minmax(190px,auto)!important;grid-template-areas:"emblem player money" "emblem status money"!important;align-items:center!important;gap:0 16px!important;min-height:118px!important;padding:10px 22px!important;border-radius:20px!important;background:linear-gradient(90deg,#17120c,#08090b 72%)!important;border:2px solid #b77725!important;box-shadow:inset 0 0 22px #000,0 0 10px #6e461c!important}
+#leaderboard .rank-row:nth-child(even){background:linear-gradient(90deg,#101a28,#070b12 72%)!important;border-color:#8197b7!important;box-shadow:inset 0 0 22px #000,0 0 10px #344b6d!important}
+#leaderboard .rank-row:first-child{background:linear-gradient(90deg,#35110b,#100b07 70%)!important;border-color:#efb83d!important;box-shadow:inset 0 0 25px #180000,0 0 16px #b66b15!important}
+#leaderboard .rank-no{grid-area:emblem!important;width:145px!important;height:100px!important;min-width:0!important;display:grid!important;place-items:center!important}
+#leaderboard .rank-emblem-art{display:block!important;width:140px!important;height:98px!important;object-fit:contain!important}
+#leaderboard .rank-name{grid-area:player!important;display:flex!important;align-items:center!important;gap:12px!important;align-self:end!important}
+#leaderboard .rank-name .rank-face{width:72px!important;height:72px!important;flex:0 0 72px!important;border-radius:14px!important;box-shadow:0 0 0 2px #d5a64d,0 0 12px #9c681d!important}
+#leaderboard .rank-name>span>b{font-size:22px!important;color:#fff!important}
+#leaderboard .rank-name>span>small{font-size:12px!important;color:#e4bf6d!important;letter-spacing:2px!important}
+#leaderboard .rank-status-slot{grid-area:status!important;align-self:start!important}
+#leaderboard .rank-status-badge{position:static!important;display:flex!important;align-items:center!important;gap:8px!important;width:210px!important;height:38px!important;padding:4px 12px!important;border-radius:6px!important;background:#090b10!important;border:1px solid #b9c8dd!important;color:#f6f7fb!important;box-shadow:inset 0 0 12px #000!important}
+#leaderboard .rank-row:nth-child(odd) .rank-status-badge{border-color:#c98b38!important;color:#ffe3a1!important}
+#leaderboard .rank-crest-icon{display:grid!important;place-items:center!important;width:28px!important;height:28px!important;border-radius:50%!important;border:1px solid currentColor!important;font-style:normal!important}
+#leaderboard .rank-money{grid-area:money!important;justify-self:end!important;white-space:nowrap!important;color:#ffe39a!important;font-size:24px!important;font-weight:900!important;text-shadow:0 0 8px #8b5a14!important}
 @media(max-width:600px){
-  #view-lobby .section-head{position:relative!important;display:flex!important;align-items:center!important;justify-content:space-between!important;min-height:58px!important;padding:12px 14px!important}
-  #view-lobby .section-head>div{min-width:0!important}
-  #view-lobby .section-head .eyebrow{position:static!important;margin:0 0 3px!important;font-size:10px!important;letter-spacing:2px!important}
-  #view-lobby .section-head h2{position:static!important;margin:0!important;font-size:20px!important;line-height:1.15!important}
-  #leaderboard{display:grid!important;gap:10px!important}
-  #leaderboard .rank-row{grid-template-columns:78px minmax(0,1fr)!important;grid-template-areas:"emblem player" "emblem status" "emblem money"!important;column-gap:12px!important;row-gap:2px!important;min-height:126px!important;padding:13px 14px!important;border-radius:20px!important}
-  #leaderboard .rank-no{grid-area:emblem!important;width:78px!important;height:94px!important;align-self:center!important}
-  #leaderboard .rank-emblem-art{width:76px!important;height:88px!important;object-fit:contain!important}
-  #leaderboard .rank-name{grid-area:player!important;align-self:end!important;gap:9px!important}
-  #leaderboard .rank-name .rank-face{width:48px!important;height:48px!important;flex:0 0 48px!important}
-  #leaderboard .rank-name>span>b{font-size:16px!important;line-height:1.15!important}
-  #leaderboard .rank-name>span>small{font-size:10px!important;line-height:1.2!important;margin-top:3px!important}
-  #leaderboard .rank-status-slot{grid-area:status!important;align-self:center!important}
-  #leaderboard .rank-status-slot .rank-status-badge{width:auto!important;max-width:160px!important;min-width:118px!important;height:30px!important;padding:3px 9px!important;border-radius:8px!important}
-  #leaderboard .rank-status-slot .rank-status-badge:after{display:none!important}
-  #leaderboard .rank-status-slot .rank-status-badge span{font-size:10px!important}
-  #leaderboard .rank-money{grid-area:money!important;justify-self:start!important;align-self:start!important;font-size:16px!important;line-height:1.2!important;margin-top:2px!important;color:#ffe27d!important}
+ #view-lobby .section-head{min-height:112px!important;padding:18px 16px!important;background:radial-gradient(circle at 85% 45%,#3b2410 0,#12100d 32%,#0b0d12 72%)!important}
+ #view-lobby .section-head .eyebrow{font-size:10px!important;margin-bottom:5px!important}
+ #view-lobby .section-head h2{font-size:23px!important}
+ #leaderboard{gap:8px!important;padding:8px!important}
+ #leaderboard .rank-row{grid-template-columns:105px minmax(0,1fr)!important;grid-template-areas:"emblem player" "emblem status" "emblem money"!important;column-gap:10px!important;min-height:132px!important;padding:10px 12px!important;border-radius:18px!important}
+ #leaderboard .rank-no{width:104px!important;height:108px!important}
+ #leaderboard .rank-emblem-art{width:102px!important;height:102px!important}
+ #leaderboard .rank-name{gap:8px!important}
+ #leaderboard .rank-name .rank-face{width:54px!important;height:54px!important;flex-basis:54px!important;border-radius:11px!important}
+ #leaderboard .rank-name>span>b{font-size:17px!important}
+ #leaderboard .rank-name>span>small{font-size:10px!important}
+ #leaderboard .rank-status-badge{width:150px!important;height:32px!important;padding:3px 8px!important}
+ #leaderboard .rank-crest-icon{width:23px!important;height:23px!important}
+ #leaderboard .rank-money{justify-self:start!important;font-size:17px!important;margin-top:2px!important}
 }
