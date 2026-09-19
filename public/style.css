@@ -835,3 +835,17 @@ button:not(:disabled){touch-action:manipulation}
 .rank-crest-royal:after{content:'전설 그 이상의 존재';position:absolute;top:40px;left:8px;color:#dcae55;font-size:9px;white-space:nowrap}
 .rank-crest-emperor:after{content:'세상을 지배하는 자'}.rank-crest-king:after{content:'군림하는 자'}.rank-crest-duke:after{content:'귀족의 품격'}.rank-crest-marquis:after{content:'명예로운 자'}.rank-crest-count:after{content:'탁월한 자'}.rank-crest-viscount:after{content:'강인한 자'}.rank-crest-baron:after{content:'도전하는 자'}.rank-crest-emperor:after,.rank-crest-king:after,.rank-crest-duke:after,.rank-crest-marquis:after,.rank-crest-count:after,.rank-crest-viscount:after,.rank-crest-baron:after{position:absolute;top:40px;left:8px;color:#c7ced9;font-size:9px;white-space:nowrap}
 @media(max-width:600px){.rank-row{min-height:112px!important}.rank-no{min-width:142px!important}.rank-medal{width:100px!important;height:70px!important}.rank-medal .medal-core{width:52px;height:58px}.rank-medal-1 .medal-core{width:62px;height:66px}.rank-medal .medal-wing{font-size:49px}.rank-status-badge.rank-crest{left:92px;top:17px;min-width:94px!important}.rank-crest-royal{min-width:132px!important}}
+
+/* v306 layout only: artwork is provided by SVG image assets, not CSS-drawn medals */
+.rank-row{display:grid!important;grid-template-columns:92px 104px minmax(120px,1fr) auto!important;align-items:center!important;gap:8px!important;min-height:104px!important;padding:10px 14px!important}
+.rank-emblem-cell{width:88px;height:82px;display:grid;place-items:center}
+.rank-emblem-img{display:block;width:86px;height:76px;object-fit:contain;filter:none!important}
+.rank-status-cell{display:flex;align-items:center;justify-content:flex-start;min-width:0}
+.rank-status-name{display:flex;align-items:center;gap:6px;width:100%;min-height:34px;padding:5px 8px;border:1px solid #8c9bb1;border-radius:6px;background:#080d15;color:#eef4ff;white-space:nowrap;overflow:hidden}
+.rank-status-name i{display:grid;place-items:center;width:24px;height:24px;font-style:normal;font-weight:900}.rank-status-name b{font-size:12px;overflow:hidden;text-overflow:ellipsis}
+.rank-status-royal{border-color:#f5bd3d;background:linear-gradient(90deg,#4a2500,#130a00);color:#ffe99a;box-shadow:0 0 10px rgba(245,189,61,.35)}
+.rank-status-royal i{border-radius:7px;background:linear-gradient(145deg,#fff1a2,#a75c00);color:#2b1500;font-family:Georgia,serif}
+.rank-player-cell{display:flex;align-items:center;gap:9px;min-width:0}.rank-player-cell>span{min-width:0}.rank-player-cell b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.rank-player-cell small{display:block}
+.rank-row>.rank-money{position:static!important;justify-self:end!important;white-space:nowrap!important}
+.rank-row>.rank-no,.rank-row>.rank-name,.rank-row .rank-status-badge,.rank-row .rank-medal{display:none!important}
+@media(max-width:600px){.rank-row{grid-template-columns:76px 92px minmax(86px,1fr) auto!important;gap:5px!important;padding:9px 8px!important;min-height:96px!important}.rank-emblem-cell{width:74px;height:70px}.rank-emblem-img{width:72px;height:66px}.rank-status-name{padding:4px 5px;gap:4px}.rank-status-name i{width:20px;height:20px}.rank-status-name b{font-size:10px}.rank-player-cell{gap:5px}.rank-player-cell .rank-face{width:48px!important;height:48px!important}.rank-row>.rank-money{font-size:14px!important}}
