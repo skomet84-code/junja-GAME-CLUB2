@@ -810,3 +810,28 @@ button:not(:disabled){touch-action:manipulation}
 .rank-crest-royal span{font-family:Georgia,serif;font-weight:900;letter-spacing:.4px}
 @keyframes royalCrestGlow{to{box-shadow:0 0 13px #fff6c8,0 0 28px #ffb822;transform:scale(1.05)}}
 @media(max-width:600px){.rank-status-badge.rank-crest{grid-template-columns:21px auto;min-width:68px;padding:3px 5px}.rank-crest-icon{width:21px;height:21px}.rank-crest-royal{min-width:86px!important}.rank-crest-royal .rank-crest-icon{width:24px;height:24px;font-size:15px}}
+
+/* v305: reference-matched royal leaderboard emblems */
+.rank-row{min-height:118px!important}
+.rank-no{min-width:150px!important;align-self:center;position:relative}
+.rank-medal{position:relative!important;display:flex!important;align-items:center!important;justify-content:center!important;width:112px!important;height:76px!important;margin-left:0!important;filter:drop-shadow(0 0 7px rgba(200,220,255,.35))}
+.rank-medal .medal-core{position:relative;z-index:2;display:grid;place-items:center;width:58px;height:64px;clip-path:polygon(50% 0,88% 16%,94% 70%,50% 100%,6% 70%,12% 16%);background:linear-gradient(145deg,#f8fbff,#8190a8 22%,#202b3c 62%,#a9b6ca);border-radius:24px;box-shadow:inset 0 0 0 2px #dce8f7,inset 0 0 15px #fff,0 0 14px rgba(185,211,245,.55)}
+.rank-medal .medal-core:before{content:'♛';position:absolute;top:-18px;color:#eaf3ff;font-size:22px;text-shadow:0 0 8px currentColor}
+.rank-medal .medal-core:after{content:'◆';position:absolute;bottom:3px;color:#dcecff;font-size:9px}
+.rank-medal .medal-core i{font-style:normal;font:900 29px Georgia,serif;color:white;text-shadow:0 2px 3px #142030,0 0 8px #fff}
+.rank-medal .medal-wing{position:absolute;z-index:1;top:16px;font-size:55px;line-height:1;color:#c8d4e6;text-shadow:0 0 8px #dceaff;transform:scaleX(.65)}
+.rank-medal .medal-wing.left{left:0;transform:scaleX(.65) rotate(-12deg)}
+.rank-medal .medal-wing.right{right:0;transform:scaleX(.65) rotate(12deg)}
+.rank-medal-1{filter:drop-shadow(0 0 10px #ffbd28)!important}
+.rank-medal-1 .medal-core{width:70px;height:72px;background:radial-gradient(circle at 35% 25%,#ffef96,#d6170b 30%,#7b0500 64%,#ffd55a);box-shadow:inset 0 0 0 3px #ffd75a,inset 0 0 16px #ffb42a,0 0 20px #ffb51e}
+.rank-medal-1 .medal-core:before{color:#ffd85d;font-size:27px;top:-22px}.rank-medal-1 .medal-core i{font-size:34px;color:#fff3a6}.rank-medal-1 .medal-wing{color:#e2a52b;text-shadow:0 0 9px #ffc53e}
+.rank-medal-2 .medal-core{background:radial-gradient(circle at 35% 25%,#fff,#90a8c7 34%,#26364e 67%,#e4efff)}
+.rank-medal-3,.rank-medal-5,.rank-medal-7,.rank-medal-9{filter:drop-shadow(0 0 7px rgba(239,135,62,.45))}
+.rank-medal-3 .medal-core,.rank-medal-5 .medal-core,.rank-medal-7 .medal-core,.rank-medal-9 .medal-core{background:radial-gradient(circle at 35% 25%,#ffe0b5,#c4662c 34%,#57240e 67%,#ef9a58);box-shadow:inset 0 0 0 2px #ef9c5a,inset 0 0 12px #ffd1a2,0 0 12px rgba(225,108,40,.5)}
+.rank-medal-3 .medal-wing,.rank-medal-5 .medal-wing,.rank-medal-7 .medal-wing,.rank-medal-9 .medal-wing{color:#d67a3b;text-shadow:0 0 7px #ef9a58}
+.rank-status-badge.rank-crest{position:absolute!important;left:105px;top:19px;z-index:5;min-width:104px!important;height:38px;padding:4px 10px!important;border-radius:5px!important;background:linear-gradient(90deg,#101722,#060a10)!important;border:1px solid #aab9cf!important;box-shadow:0 0 8px rgba(190,215,245,.25)!important}
+.rank-crest-icon{width:25px!important;height:25px!important}
+.rank-crest-royal{min-width:145px!important;background:linear-gradient(90deg,#4b2500,#160b00)!important;border-color:#ffc94e!important;box-shadow:0 0 12px #c88312!important}
+.rank-crest-royal:after{content:'전설 그 이상의 존재';position:absolute;top:40px;left:8px;color:#dcae55;font-size:9px;white-space:nowrap}
+.rank-crest-emperor:after{content:'세상을 지배하는 자'}.rank-crest-king:after{content:'군림하는 자'}.rank-crest-duke:after{content:'귀족의 품격'}.rank-crest-marquis:after{content:'명예로운 자'}.rank-crest-count:after{content:'탁월한 자'}.rank-crest-viscount:after{content:'강인한 자'}.rank-crest-baron:after{content:'도전하는 자'}.rank-crest-emperor:after,.rank-crest-king:after,.rank-crest-duke:after,.rank-crest-marquis:after,.rank-crest-count:after,.rank-crest-viscount:after,.rank-crest-baron:after{position:absolute;top:40px;left:8px;color:#c7ced9;font-size:9px;white-space:nowrap}
+@media(max-width:600px){.rank-row{min-height:112px!important}.rank-no{min-width:142px!important}.rank-medal{width:100px!important;height:70px!important}.rank-medal .medal-core{width:52px;height:58px}.rank-medal-1 .medal-core{width:62px;height:66px}.rank-medal .medal-wing{font-size:49px}.rank-status-badge.rank-crest{left:92px;top:17px;min-width:94px!important}.rank-crest-royal{min-width:132px!important}}
