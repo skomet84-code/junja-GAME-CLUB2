@@ -47,6 +47,7 @@ let pool = null;
 let saveChain = Promise.resolve();
 let lastSnapshotJson = '';
 let remoteReady = false;
+let restoreHealthy = false;
 
 function hasRemote(){ return !!String(process.env.DATABASE_URL || '').trim(); }
 
@@ -131,13 +132,19 @@ class DatabaseSync {
           }
         }
         this._native.exec('COMMIT; PRAGMA foreign_keys=ON;');
-        console.log(`[PERSIST] Restored ${TABLES.reduce((n,t)=>n+(snap.tables[t]?.length||0),0)} rows from Neon.`);
+        const restoredRows=TABLES.reduce((n,t)=>n+(snap.tables[t]?.length||0),0);
+        const restoredUsers=(snap.tables.users||[]).length;
+        if(hasRemote() && restoredUsers===0) throw new Error('Safety stop: remote snapshot contains zero users.');
+        restoreHealthy=true;
+        console.log(`[PERSIST] Restored ${restoredRows} rows from Neon (${restoredUsers} users).`);
       }catch(e){
         try{this._native.exec('ROLLBACK; PRAGMA foreign_keys=ON;');}catch{}
-        console.error('[PERSIST] Snapshot restore failed:',e);
+        restoreHealthy=false;
+        console.error('[PERSIST] Snapshot restore failed; remote writes DISABLED for safety:',e);
       }
     }else{
-      console.log(hasRemote()?'[PERSIST] Neon connected but no previous snapshot exists yet.':'[PERSIST] DATABASE_URL not set; local SQLite mode.');
+      restoreHealthy=!hasRemote();
+      console.log(hasRemote()?'[PERSIST] Neon connected but no previous snapshot exists; remote writes DISABLED for safety.':'[PERSIST] DATABASE_URL not set; local SQLite mode.');
     }
     this._restored=true;
     this._enabled=true;
@@ -176,13 +183,13 @@ class DatabaseSync {
   }
 
   _scheduleSave(){
-    if(!hasRemote()) return;
+    if(!hasRemote() || !restoreHealthy) return;
     clearTimeout(this._saveTimer);
     this._saveTimer=setTimeout(()=>this._queueSave(),60);
   }
 
   _queueSave(){
-    if(!hasRemote()) return saveChain;
+    if(!hasRemote() || !restoreHealthy) return saveChain;
     const snapshot=this._snapshot();
     const json=JSON.stringify(snapshot);
     if(json===lastSnapshotJson) return saveChain;
@@ -199,7 +206,7 @@ class DatabaseSync {
 
   async flush(){
     clearTimeout(this._saveTimer);
-    if(this._enabled) this._queueSave();
+    if(this._enabled && restoreHealthy) this._queueSave();
     await saveChain.catch(()=>{});
   }
 }
