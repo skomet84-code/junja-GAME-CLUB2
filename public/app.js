@@ -414,7 +414,7 @@ function syncSlotBetInput(input){const n=Math.floor(Number(input?.value));if(Num
 function normalizeSlotBetInput(input){if(!input)return;selectedBet=normalizeSlotBet(input.value);input.value=selectedBet;$$('.bet-chip').forEach(x=>x.classList.remove('active'));updateCurrentBetLabel()}
 function randomSlotSymbol(){return SLOT_SYMBOLS[Math.floor(Math.random()*SLOT_SYMBOLS.length)]}
 function slotCell(sym,r,c){
-  const face=sym==='7️⃣'?'<span class="vegas-seven" aria-label="7">7</span>':sym==='J'?'<span class="junja-j" aria-label="J">J</span>':`<span>${sym}</span>`;
+  const face=sym==='7️⃣'?'<span class="vegas-seven" aria-label="7">7</span>':sym==='J'?'<span class="junja-j" aria-label="J">J</span>':sym==='⭐'?'<span class="slot-star" aria-label="별">★</span>':`<span>${sym}</span>`;
   return `<div class="slot-cell ${SLOT_CELL_CLASS[sym]||''}" data-r="${r}" data-c="${c}">${face}</div>`
 }
 function renderSlotGrid(grid){if(!grid)return;for(let c=0;c<3;c++){const inner=$(`.slot-column[data-col="${c}"] .slot-column-inner`);if(!inner)continue;inner.innerHTML='';for(let r=0;r<3;r++)inner.insertAdjacentHTML('beforeend',slotCell(grid[r][c],r,c))}}
