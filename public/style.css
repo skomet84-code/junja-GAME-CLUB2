@@ -961,3 +961,26 @@ button:not(:disabled){touch-action:manipulation}
    transform:none!important;
  }
 }
+
+
+/* v324 mobile rank artwork fit — actual screenshot correction */
+@media(max-width:600px){
+ #leaderboard .rank-no{
+   width:100%!important;
+   height:100%!important;
+   overflow:visible!important;
+   display:flex!important;
+   align-items:center!important;
+   justify-content:center!important;
+ }
+ #leaderboard .rank-emblem-art{
+   width:76px!important;
+   height:76px!important;
+   max-width:76px!important;
+   max-height:76px!important;
+   object-fit:contain!important;
+   object-position:center!important;
+   margin:0 auto!important;
+   transform:none!important;
+ }
+}
