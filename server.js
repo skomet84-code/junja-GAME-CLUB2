@@ -1811,8 +1811,8 @@ const server=http.createServer(async(req,res)=>{
 
     if(url.pathname==='/api/solo/gostop/start'&&req.method==='POST'){const u=requireAuth(req,res);if(!u)return;const b=await readBody(req);let game;try{game=soloGostopStart(u,Number(b.bet))}catch(e){return json(res,400,{error:e.message})}return json(res,200,{game:publicGostop(game),user:userPublic(u.id)});}
     if(url.pathname==='/api/solo/gostop'&&req.method==='GET'){const u=requireAuth(req,res);if(!u)return;return json(res,200,{game:publicGostop(soloGostop.get(u.id)||null)});}
-    if(url.pathname==='/api/solo/gostop/play'&&req.method==='POST'){const u=requireAuth(req,res);if(!u)return;const b=await readBody(req);const game=soloGostopPlay(u.id,String(b.cardId||''),b.choiceId?String(b.choiceId):null);return json(res,200,{game:publicGostop(game),user:userPublic(u.id)});}
-    if(url.pathname==='/api/solo/gostop/decision'&&req.method==='POST'){const u=requireAuth(req,res);if(!u)return;const b=await readBody(req);const game=soloGostopDecision(u.id,b.decision);return json(res,200,{game:publicGostop(game),user:userPublic(u.id)});}
+    if(url.pathname==='/api/solo/gostop/play'&&req.method==='POST'){const u=requireAuth(req,res);if(!u)return;const b=await readBody(req);try{const game=soloGostopPlay(u.id,String(b.cardId||''),b.choiceId?String(b.choiceId):null);return json(res,200,{game:publicGostop(game),user:userPublic(u.id)});}catch(e){return json(res,409,{error:e.message,restartRequired:e.message==='진행 중인 맞고가 없습니다.'});}}
+    if(url.pathname==='/api/solo/gostop/decision'&&req.method==='POST'){const u=requireAuth(req,res);if(!u)return;const b=await readBody(req);try{const game=soloGostopDecision(u.id,b.decision);return json(res,200,{game:publicGostop(game),user:userPublic(u.id)});}catch(e){return json(res,409,{error:e.message,restartRequired:e.message==='진행 중인 맞고가 없습니다.'||e.message.includes('선택할 차례')});}}
     if(url.pathname==='/api/solo/gostop/reset'&&req.method==='POST'){const u=requireAuth(req,res);if(!u)return;const s=soloGostop.get(u.id);if(s&&s.phase!=='complete')return json(res,409,{error:'진행 중인 판은 초기화할 수 없습니다.'});soloGostop.delete(u.id);return json(res,200,{ok:true});}
 
 
