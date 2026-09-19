@@ -1120,3 +1120,52 @@ button:not(:disabled){touch-action:manipulation}
     min-width:0!important;
   }
 }
+
+
+/* v329 mobile — first-place row position only; artwork/content unchanged */
+@media(max-width:600px){
+ #leaderboard .rank-row:first-child{
+   grid-template-columns:24% 16% 27% 33%!important;
+   grid-template-rows:50% 50%!important;
+   padding:4px 7px!important;
+   min-height:0!important;
+   aspect-ratio:5.55/1!important;
+ }
+ #leaderboard .rank-row:first-child .rank-no{
+   grid-area:emblem!important;
+   align-self:center!important;
+   justify-self:center!important;
+   width:100%!important;
+   height:100%!important;
+   margin:0!important;
+ }
+ #leaderboard .rank-row:first-child .rank-emblem-art{
+   width:68px!important;
+   height:68px!important;
+   max-width:68px!important;
+   max-height:68px!important;
+   margin:0 auto!important;
+ }
+ #leaderboard .rank-row:first-child .rank-name .rank-face{
+   width:70%!important;
+   max-width:52px!important;
+   align-self:center!important;
+   justify-self:center!important;
+ }
+ #leaderboard .rank-row:first-child .rank-name>span{
+   align-self:end!important;
+   padding:0 0 2px 1px!important;
+ }
+ #leaderboard .rank-row:first-child .rank-status-slot{
+   align-self:start!important;
+   padding:2px 0 0 1px!important;
+ }
+ #leaderboard .rank-row:first-child .rank-money{
+   align-self:center!important;
+   justify-self:end!important;
+   padding:0 5px 0 2px!important;
+   margin:0!important;
+   font-size:clamp(9px,2.75vw,12.5px)!important;
+   letter-spacing:-.25px!important;
+ }
+}
