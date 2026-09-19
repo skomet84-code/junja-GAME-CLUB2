@@ -12,10 +12,10 @@ function ensure(){
  b.onclick=()=>openRank();modal.querySelector('.rank-backdrop').onclick=close;modal.querySelector('.rank-close').onclick=close;
 }
 function close(){document.getElementById('rankModal')?.classList.add('hidden')}
-function badge(rank,nick=''){return '<span class="social-rank rank-'+rank.className+'"><i>'+rank.icon+'</i><b>'+rank.name+'</b>'+(nick?'<em>'+nick+'</em>':'')+'</span>'}
+function badge(rank,nick=''){return '<span class="social-rank rank-'+rank.className+'"><i>'+(rank.className==='royal'?'<strong class="jr-mini">J</strong>':rank.icon)+'</i><b>'+rank.name+'</b>'+(nick?'<em>'+nick+'</em>':'')+'</span>'}
 function render(d){
  state=d;const r=d.rank,u=d.user,all=d.ranks||[];const next=r.next;
- const rows=all.map(x=>'<div class="rank-road '+(x.level===r.level?'current':'')+(x.level<r.level?' cleared':'')+'"><span>'+x.icon+'</span><b>'+x.name+'</b><small>'+(x.level===0?'START':fmt(x.cost)+' G')+'</small></div>').join('');
+ const rows=all.map(x=>'<div class="rank-road rank-'+x.className+' '+(x.level===r.level?'current':'')+(x.level<r.level?' cleared':'')+'"><span>'+(x.className==='royal'?'<strong class="jr-mini">J</strong>':x.icon)+'</span><b>'+x.name+'</b><small>'+(x.level===0?'START':fmt(x.cost)+' G')+'</small></div>').join('');
  document.getElementById('rankContent').innerHTML='<div class="rank-hero rank-'+r.className+'"><div class="rank-crown">'+r.icon+'</div><small>JUNJA SOCIAL STATUS</small><h2>'+r.name+'</h2><p>'+u.nickname+' · '+fmt(u.balance)+' G</p>'+badge(r)+'</div><div class="rank-copy"><b>신분은 돈으로 사는 명예 아이템</b><span>승급 비용은 즉시 소멸하며 계정에 영구 저장됩니다. 높은 신분일수록 프로필·로비에서 문장과 오라가 강해집니다.</span></div><div class="rank-roadmap">'+rows+'</div>'+(next?'<button id="rankPromote" class="rank-promote" type="button"><span>'+next.icon+' '+next.name+'으로 신분 상승</span><b>'+fmt(next.cost)+' G</b></button>':'<div class="rank-max">♛ JUNJA ROYAL · 최고 신분 달성</div>');
  document.getElementById('rankPromote')?.addEventListener('click',promote);
  decorate(u);
