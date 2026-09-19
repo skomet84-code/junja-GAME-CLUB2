@@ -342,7 +342,9 @@ const LOADOUT_FIELDS = new Set(['character','costume','frame','title','pet','tab
 const SLOT_SYMBOLS = [
   // v2.8.11: reduce common line-hit frequency while nudging 777 slightly upward.
   // More symbol variety lowers repeated common triples; 7 weight gets only a small lift.
-  {s:'🍒',w:118},{s:'🍋',w:108},{s:'🍊',w:98},{s:'🔔',w:82},{s:'⭐',w:70},{s:'💎',w:58},{s:'🍀',w:48},{s:'👑',w:38},{s:'7️⃣',w:8},{s:'J',w:1}
+  // v2.8.12: remove non-paytable clover/crown symbols and rebalance the six regular symbols.
+  // Jackpot weights stay rare; regular weights are spread across only valid paying symbols.
+  {s:'🍒',w:145},{s:'🍋',w:130},{s:'🍊',w:115},{s:'🔔',w:95},{s:'⭐',w:80},{s:'💎',w:65},{s:'7️⃣',w:8},{s:'J',w:1}
 ];
 const SLOT_MULT = {'🍒':2,'🍋':3,'🍊':5,'🔔':8,'⭐':10,'💎':20,'7️⃣':1000,'J':800};
 const SLOT_LINES = [
