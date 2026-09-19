@@ -847,3 +847,13 @@ button:not(:disabled){touch-action:manipulation}
  #leaderboard .rank-crest-icon{width:23px!important;height:23px!important}
  #leaderboard .rank-money{justify-self:start!important;font-size:17px!important;margin-top:2px!important}
 }
+
+/* v313: image-asset leaderboard. CSS only positions real artwork. */
+#view-lobby .section-head{background:#080a0d url('/assets/leaderboard/header-casino.svg?v=313') center/cover no-repeat!important;min-height:150px!important}
+#leaderboard .rank-row{background:#090b0f url('/assets/leaderboard/panel-gold.svg?v=313') center/100% 100% no-repeat!important;border:0!important;box-shadow:none!important}
+#leaderboard .rank-row:nth-child(even){background-image:url('/assets/leaderboard/panel-silver.svg?v=313')!important}
+#leaderboard .rank-row:first-child{background-image:url('/assets/leaderboard/panel-gold.svg?v=313')!important}
+@media(max-width:600px){
+ #view-lobby .section-head{min-height:128px!important;background-image:url('/assets/leaderboard/header-casino.svg?v=313')!important}
+ #leaderboard .rank-row{min-height:132px!important;background-size:100% 100%!important}
+}
