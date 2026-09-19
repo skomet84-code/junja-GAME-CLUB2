@@ -876,3 +876,17 @@ button:not(:disabled){touch-action:manipulation}
  #leaderboard .rank-status-badge{width:128px!important;max-width:100%!important;height:27px!important;padding:2px 6px!important}
  #leaderboard .rank-money{grid-area:money!important;align-self:start!important;justify-self:start!important;font-size:15px!important;margin:0!important}
 }
+
+/* v315 mobile overlap correction — preserve image artwork, correct content slots */
+@media(max-width:600px){
+ #leaderboard .rank-row{grid-template-columns:86px 58px minmax(0,1fr)!important;grid-template-rows:38px 32px 28px!important;grid-template-areas:"emblem player info" "emblem player status" "emblem player money"!important;min-height:116px!important;padding:9px 12px!important;column-gap:8px!important;overflow:hidden!important}
+ #leaderboard .rank-no{width:84px!important;height:96px!important;align-self:center!important}
+ #leaderboard .rank-emblem-art{width:82px!important;height:90px!important}
+ #leaderboard .rank-name .rank-face{width:54px!important;height:62px!important;align-self:center!important;z-index:2!important}
+ #leaderboard .rank-name>span{align-self:center!important;padding-left:0!important;z-index:3!important}
+ #leaderboard .rank-name>span>b{font-size:15px!important;line-height:18px!important;white-space:nowrap!important}
+ #leaderboard .rank-name>span>small{font-size:9px!important;line-height:12px!important;white-space:nowrap!important}
+ #leaderboard .rank-status-slot{align-self:center!important;min-width:0!important}
+ #leaderboard .rank-status-badge{width:100%!important;max-width:138px!important;height:28px!important;box-sizing:border-box!important}
+ #leaderboard .rank-money{align-self:center!important;font-size:14px!important;line-height:20px!important;white-space:nowrap!important;z-index:3!important}
+}
