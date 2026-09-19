@@ -123,6 +123,7 @@ ensureColumn('stats','roulette_wins','INTEGER NOT NULL DEFAULT 0');
 ensureColumn('stats','roulette_profit','INTEGER NOT NULL DEFAULT 0');
 ensureColumn('users','is_admin','INTEGER NOT NULL DEFAULT 0');
 ensureColumn('users','is_disabled','INTEGER NOT NULL DEFAULT 0');
+ensureColumn('users','rank_level','INTEGER NOT NULL DEFAULT 0');
 ensureColumn('user_loadout','character','TEXT');
 
 const SLOT_JACKPOT_BASE = 50000000;
@@ -501,6 +502,43 @@ function equipShopItem(userId,category,itemId){
   db.prepare(`UPDATE user_loadout SET ${category}=? WHERE user_id=?`).run(item.id,userId);return cosmeticsPublic(userId);
 }
 
+const SOCIAL_RANKS = [
+  {level:0,name:'평민',icon:'◇',cost:0,className:'commoner'},
+  {level:1,name:'상인',icon:'🪙',cost:100000000000,className:'merchant'},
+  {level:2,name:'부호',icon:'💎',cost:300000000000,className:'tycoon'},
+  {level:3,name:'귀족',icon:'✦',cost:700000000000,className:'noble'},
+  {level:4,name:'남작',icon:'♜',cost:1000000000000,className:'baron'},
+  {level:5,name:'자작',icon:'♞',cost:3000000000000,className:'viscount'},
+  {level:6,name:'백작',icon:'♛',cost:7000000000000,className:'count'},
+  {level:7,name:'후작',icon:'⚜',cost:15000000000000,className:'marquis'},
+  {level:8,name:'공작',icon:'👑',cost:30000000000000,className:'duke'},
+  {level:9,name:'왕',icon:'♔',cost:60000000000000,className:'king'},
+  {level:10,name:'황제',icon:'🏰',cost:100000000000000,className:'emperor'},
+  {level:11,name:'JUNJA ROYAL',icon:'J',cost:300000000000000,className:'royal'}
+];
+function socialRankPublic(userId){
+  const row=db.prepare('SELECT rank_level FROM users WHERE id=?').get(Number(userId));
+  const level=Math.max(0,Math.min(SOCIAL_RANKS.length-1,Number(row?.rank_level||0)));
+  const current=SOCIAL_RANKS[level],next=SOCIAL_RANKS[level+1]||null;
+  return {level,name:current.name,icon:current.icon,className:current.className,maxLevel:!next,next:next?{level:next.level,name:next.name,icon:next.icon,cost:next.cost,className:next.className}:null};
+}
+function promoteSocialRank(userId){
+  db.exec('BEGIN IMMEDIATE');
+  try{
+    const u=db.prepare('SELECT balance,rank_level FROM users WHERE id=?').get(userId);
+    if(!u)throw new Error('사용자를 찾을 수 없습니다.');
+    const level=Math.max(0,Math.min(SOCIAL_RANKS.length-1,Number(u.rank_level||0)));
+    const next=SOCIAL_RANKS[level+1];
+    if(!next)throw new Error('이미 JUNJA ROYAL 최고 신분입니다.');
+    if(u.balance<next.cost)throw new Error(`신분 상승에 ${formatMoney(next.cost)} G가 필요합니다.`);
+    const balance=u.balance-next.cost,t=now();
+    db.prepare('UPDATE users SET balance=?,rank_level=? WHERE id=?').run(balance,next.level,userId);
+    db.prepare('INSERT INTO ledger(user_id,amount,balance_after,type,memo,created_at) VALUES(?,?,?,?,?,?)').run(userId,-next.cost,balance,'rank_promotion',`신분 상승 · ${next.name}`,t);
+    db.exec('COMMIT');
+    return {balance,rank:socialRankPublic(userId)};
+  }catch(e){try{db.exec('ROLLBACK')}catch{};throw e;}
+}
+
 function userPublic(userId){
   const u=db.prepare(`SELECT u.id,u.username,u.nickname,u.balance,u.avatar,u.created_at,u.last_daily,u.is_admin,u.is_disabled,
     s.slot_spins,s.slot_wins,s.slot_profit,s.poker_hands,s.poker_wins,s.yut_games,s.yut_wins,
@@ -509,7 +547,7 @@ function userPublic(userId){
     s.seven_games,s.seven_wins,s.baccarat_games,s.baccarat_wins,s.baccarat_profit,s.roulette_plays,s.roulette_wins,s.roulette_profit
     FROM users u JOIN stats s ON s.user_id=u.id WHERE u.id=?`).get(userId);
   if(!u) return null;
-  return {...u, avatarEmoji:AVATARS[u.avatar%AVATARS.length], cosmetics:cosmeticsPublic(userId), dailyAvailable:u.last_daily!==kstDate()};
+  return {...u, avatarEmoji:AVATARS[u.avatar%AVATARS.length], cosmetics:cosmeticsPublic(userId), rank:socialRankPublic(userId), dailyAvailable:u.last_daily!==kstDate()};
 }
 
 function parseCookies(req){
@@ -1625,6 +1663,12 @@ const server=http.createServer(async(req,res)=>{
       const token=parseCookies(req).sid;if(token)db.prepare('DELETE FROM sessions WHERE token=?').run(token);return json(res,200,{ok:true},{'Set-Cookie':'sid=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0'});
     }
     if(url.pathname==='/api/me'&&req.method==='GET'){const u=requireAuth(req,res);if(!u)return;return json(res,200,{user:u,online:onlineCount(),presence:presenceSnapshot()});}
+    if(url.pathname==='/api/rank'&&req.method==='GET'){const u=requireAuth(req,res);if(!u)return;return json(res,200,{rank:socialRankPublic(u.id),user:userPublic(u.id),ranks:SOCIAL_RANKS});}
+    if(url.pathname==='/api/rank/promote'&&req.method==='POST'){
+      const u=requireAuth(req,res);if(!u)return;
+      if(!rateLimit('rank_promote:'+u.id,6,60000))return json(res,429,{error:'신분 상승 요청이 너무 빠릅니다.'});
+      try{const result=promoteSocialRank(u.id);pushRefresh();return json(res,200,{ok:true,...result,user:userPublic(u.id)});}catch(e){return json(res,400,{error:e.message});}
+    }
     if(url.pathname==='/api/shop'&&req.method==='GET'){const u=requireAuth(req,res);if(!u)return;return json(res,200,{...shopState(u.id),user:userPublic(u.id)});}
     if(url.pathname==='/api/shop/buy'&&req.method==='POST'){
       const u=requireAuth(req,res);if(!u)return;if(!rateLimit('shop_buy:'+u.id,20,60000))return json(res,429,{error:'구매를 너무 빠르게 반복하고 있어. 잠시 후 다시 시도해줘.'});
@@ -1641,7 +1685,7 @@ const server=http.createServer(async(req,res)=>{
       const target=db.prepare('SELECT id,nickname,avatar,is_disabled FROM users WHERE nickname=? COLLATE NOCASE').get(nickname);
       if(!target||target.is_disabled)return json(res,404,{error:'해당 닉네임의 친구를 찾을 수 없어.'});
       if(Number(target.id)===Number(u.id))return json(res,400,{error:'자기 자신에게는 보낼 수 없어.'});
-      const owned=inventoryIds(target.id);const ownedItems=SHOP_ITEMS.filter(x=>owned.has(x.id)&&!x.adminOnly).map(itemPublic).slice(0,60);return json(res,200,{user:{id:target.id,nickname:target.nickname,avatar:target.avatar,avatarEmoji:AVATARS[target.avatar%AVATARS.length],cosmetics:cosmeticsPublic(target.id),ownedCount:owned.size,ownedItems}});
+      const owned=inventoryIds(target.id);const ownedItems=SHOP_ITEMS.filter(x=>owned.has(x.id)&&!x.adminOnly).map(itemPublic).slice(0,60);return json(res,200,{user:{id:target.id,nickname:target.nickname,avatar:target.avatar,avatarEmoji:AVATARS[target.avatar%AVATARS.length],cosmetics:cosmeticsPublic(target.id),rank:socialRankPublic(target.id),ownedCount:owned.size,ownedItems}});
     }
     if(url.pathname==='/api/shop/gift'&&req.method==='POST'){
       const u=requireAuth(req,res);if(!u)return;
