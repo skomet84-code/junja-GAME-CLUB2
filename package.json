@@ -5,7 +5,7 @@
   "description": "JUNJA LAND v2.8.14 - canonical slot odds: 7 and J fixed at 2%, clover/crown removed, J scatter x2.",
   "type": "commonjs",
   "scripts": {
-    "start": "node slot-50pct-until-win-start.js",
+    "start": "node admin-unlimited-start.js",
     "check": "node --check admin-unlimited-start.js && node --check server.js && node --check public/app.js && node --check public/v25-overhaul.js",
     "test:matgo": "node tests/yashimchan-matgo-smoke.cjs"
   },
