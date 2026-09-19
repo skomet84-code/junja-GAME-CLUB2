@@ -340,11 +340,9 @@ for(const item of SHOP_ITEMS){if(SHOP_PERKS[item.id])item.perk={...SHOP_PERKS[it
 const SHOP_BY_ID = Object.fromEntries(SHOP_ITEMS.map(x=>[x.id,Object.freeze({...x})]));
 const LOADOUT_FIELDS = new Set(['character','costume','frame','title','pet','table_skin','card_back','bubble_pack']);
 const SLOT_SYMBOLS = [
-  // v2.8.11: reduce common line-hit frequency while nudging 777 slightly upward.
-  // More symbol variety lowers repeated common triples; 7 weight gets only a small lift.
-  // v2.8.12: remove non-paytable clover/crown symbols and rebalance the six regular symbols.
-  // Jackpot weights stay rare; regular weights are spread across only valid paying symbols.
-  {s:'🍒',w:145},{s:'🍋',w:130},{s:'🍊',w:115},{s:'🔔',w:95},{s:'⭐',w:80},{s:'💎',w:65},{s:'7️⃣',w:8},{s:'J',w:1}
+  // v2.8.13: canonical reel odds. 7 and J are fixed at exactly 2% each before any explicit equipped-item perk.
+  // 🍀/👑 remain removed. Regular symbols share the remaining 96%.
+  {s:'🍒',w:22},{s:'🍋',w:19},{s:'🍊',w:17},{s:'🔔',w:15},{s:'⭐',w:13},{s:'💎',w:10},{s:'7️⃣',w:2},{s:'J',w:2}
 ];
 const SLOT_MULT = {'🍒':2,'🍋':3,'🍊':5,'🔔':8,'⭐':10,'💎':20,'7️⃣':1000,'J':800};
 const SLOT_LINES = [
@@ -1797,7 +1795,7 @@ const server=http.createServer(async(req,res)=>{
       const u=requireAuth(req,res);if(!u)return;const b=await readBody(req);let bet;try{bet=gameWager(b.bet,1000,100000,1000)}catch(e){return json(res,400,{error:e.message})};
       if(u.balance<bet)return json(res,400,{error:'게임머니가 부족합니다.'});
       walletChange(u.id,-bet,'slot_bet',`슬롯 베팅 ${formatMoney(bet)}G`);
-      const slotLuck=Math.max(0,Math.min(1,Number(u.cosmetics?.perks?.slotLuckPct||0)));const pick=()=>{const weighted=SLOT_SYMBOLS.map(x=>({...x,w:x.w*((x.s==='J'||x.s==='7️⃣')?(1+slotLuck/100):1)})),total=weighted.reduce((s,x)=>s+x.w,0);let n=(crypto.randomInt(1000000)/1000000)*total;for(const x of weighted){if(n<x.w)return x.s;n-=x.w;}return '🍒';};
+      const slotLuck=0;const pick=()=>{const weighted=SLOT_SYMBOLS,total=100;let n=(crypto.randomInt(1000000)/1000000)*total;for(const x of weighted){if(n<x.w)return x.s;n-=x.w;}return '🍒';};
       const grid=Array.from({length:3},()=>Array.from({length:3},()=>pick()));
       const winLines=[];let totalMultiplier=0;
       for(const line of SLOT_LINES){
