@@ -9,7 +9,7 @@ function ensure(){
  const b=document.createElement('button');b.id='rankBtn';b.className='rank-pill';b.type='button';b.innerHTML='♛ 신분';shop.after(b);
  const modal=document.createElement('div');modal.id='rankModal';modal.className='rank-modal hidden';modal.innerHTML='<div class="rank-backdrop"></div><div class="rank-card panel"><button class="rank-close" type="button">×</button><div id="rankContent"></div></div>';
  document.body.appendChild(modal);
- b.onclick=()=>openRank();modal.querySelector('.rank-backdrop').onclick=close;modal.querySelector('.rank-close').onclick=close;
+ b.onclick=()=>openRank();b.addEventListener('touchend',e=>{e.preventDefault();openRank()},{passive:false});modal.querySelector('.rank-backdrop').onclick=close;modal.querySelector('.rank-close').onclick=close;
 }
 function close(){document.getElementById('rankModal')?.classList.add('hidden')}
 function badge(rank,nick=''){return '<span class="social-rank rank-'+rank.className+'"><i>'+(rank.className==='royal'?'<strong class="jr-mini">J</strong>':rank.icon)+'</i><b>'+rank.name+'</b>'+(nick?'<em>'+nick+'</em>':'')+'</span>'}
