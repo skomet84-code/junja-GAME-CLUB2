@@ -984,3 +984,43 @@ button:not(:disabled){touch-action:manipulation}
    transform:none!important;
  }
 }
+
+
+/* v325 approved-mockup mobile spacing */
+@media(max-width:600px){
+ #leaderboard{gap:5px!important;padding:7px 9px 10px!important}
+ #leaderboard .rank-row{
+   grid-template-columns:27% 18% 29% 26%!important;
+   aspect-ratio:5.25/1!important;
+   padding:4px 8px!important;
+ }
+ #leaderboard .rank-emblem-art{
+   width:82px!important;height:82px!important;
+   max-width:82px!important;max-height:82px!important;
+ }
+ #leaderboard .rank-name .rank-face{
+   width:78%!important;
+   max-width:62px!important;
+ }
+ #leaderboard .rank-name>span{padding-left:4px!important}
+ #leaderboard .rank-name>span>b{
+   font-size:clamp(12px,3.7vw,16px)!important;
+ }
+ #leaderboard .rank-status-slot{padding-left:4px!important}
+ #leaderboard .rank-status-badge{
+   max-width:145px!important;
+   height:25px!important;
+ }
+ #leaderboard .rank-money{
+   padding-right:4px!important;
+   font-size:clamp(11px,3.15vw,14px)!important;
+ }
+ #leaderboard .rank-row:first-child{
+   min-height:102px!important;
+   background-image:url('/assets/leaderboard/panel-gold.svg?v=325')!important;
+ }
+ #leaderboard .rank-row:first-child .rank-emblem-art{
+   width:90px!important;height:90px!important;
+   max-width:90px!important;max-height:90px!important;
+ }
+}
