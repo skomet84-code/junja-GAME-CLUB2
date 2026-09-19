@@ -315,7 +315,7 @@ function bindFriendTransfer(){
   send.onclick=async()=>{
     if(friendTransferBusy||!friendTransferTarget)return;const n=Math.trunc(Number(amount.value));if(!Number.isFinite(n)||n<1){toast('보낼 금액을 입력해줘.');return}if(n>Number(me?.balance||0)){toast('현재 보유 게임머니보다 많이 보낼 수 없어.');return}
     const ok=confirm(`${friendTransferTarget.nickname}님에게 ${money(n)}를 보낼까?\n전송 후에는 자동 취소되지 않아.`);if(!ok)return;
-    friendTransferBusy=true;send.disabled=true;send.textContent='보내는 중...';try{const d=await api('/api/wallet/transfer',{method:'POST',body:JSON.stringify({targetId:friendTransferTarget.id,amount:n})});me=d.user;updateHeader();$('#profileBalance').textContent=money(me.balance);toast(`🎁 ${friendTransferTarget.nickname}님에게 ${money(n)} 보냈어!`);amount.value=Math.min(10000,Number(me.balance||0));resetFriendTarget('전송 완료. 또 보내려면 친구를 다시 확인해줘.');nick.value='';fx('win')}catch(e){toast(e.message);send.disabled=false}finally{friendTransferBusy=false;send.textContent='선택한 친구에게 보내기'}
+    friendTransferBusy=true;send.disabled=true;send.textContent='보내는 중...';try{const d=await api('/api/wallet/transfer',{method:'POST',body:JSON.stringify({targetId:friendTransferTarget.id,amount:n})});me=d.user;updateHeader();const profileBalance=$('#profileBalance');if(profileBalance)profileBalance.textContent=money(me.balance);toast(`🎁 ${friendTransferTarget.nickname}님에게 ${money(n)} 보냈어!`);amount.value=Math.min(10000,Number(me.balance||0));resetFriendTarget('전송 완료. 또 보내려면 친구를 다시 확인해줘.');nick.value='';fx('win')}catch(e){toast(e.message);send.disabled=false}finally{friendTransferBusy=false;send.textContent='선택한 친구에게 보내기'}
   };
 }
 async function openFriendGiftPicker(target){
