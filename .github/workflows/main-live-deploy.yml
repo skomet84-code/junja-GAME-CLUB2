@@ -58,7 +58,7 @@ jobs:
           need(app.includes("api('/api/leaderboard')"),'leaderboard API binding missing');
           need(app.includes('/assets/rank-emblems/rank-'),'leaderboard artwork binding missing');
           need(index.includes('VERSION 2.8.10'),'index version marker missing');
-          need(index.includes('app.js?v=290'),'app cache marker missing');
+          need(index.includes('app.js?v=310'),'app cache marker missing');
           need(sw.includes('v290'),'service worker cache marker missing');
           need(version.includes('v2.8.10'),'VERSION.txt marker missing');
           console.log('SOURCE_CONTRACT_OK=v2.8.10');
@@ -88,7 +88,7 @@ jobs:
             exit 1
           fi
           grep -q 'VERSION 2.8.10' /tmp/local-index.html
-          curl -fsS 'http://127.0.0.1:18080/app.js?v=290' >/tmp/local-app.js
+          curl -fsS 'http://127.0.0.1:18080/app.js?v=310' >/tmp/local-app.js
           grep -q "api('/api/leaderboard')" /tmp/local-app.js
           grep -q '/assets/rank-emblems/rank-' /tmp/local-app.js
           grep -q '출발 도=1번 칸' /tmp/local-app.js
@@ -136,7 +136,7 @@ jobs:
             cat /tmp/live-curl.err 2>/dev/null || true
             exit 1
           fi
-          curl -LfsS --max-time 25 "$LIVE/app.js?v=290&deploy=$GITHUB_SHA" >/tmp/live-app.js
+          curl -LfsS --max-time 25 "$LIVE/app.js?v=310&deploy=$GITHUB_SHA" >/tmp/live-app.js
           grep -q "api('/api/leaderboard')" /tmp/live-app.js
           grep -q '/assets/rank-emblems/rank-' /tmp/live-app.js
           grep -q '출발 도=1번 칸' /tmp/live-app.js
