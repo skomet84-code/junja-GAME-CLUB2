@@ -190,6 +190,7 @@ function bindMain(){
   try{
     // Navigation is delegated so a single missing card/button can never disable the rest of the app.
     document.addEventListener('click',e=>{
+      const profile=e.target?.closest?.('#profileBtn');if(profile){e.preventDefault();openProfile();return;}
       const b=e.target?.closest?.('[data-go]');if(!b)return;
       e.preventDefault();go(b.dataset.go).catch(err=>{console.error('[JGC NAV]',err);toast(err?.message||'화면 이동 중 오류가 발생했어.')});
     });
