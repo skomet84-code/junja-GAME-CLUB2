@@ -773,3 +773,11 @@ button:not(:disabled){touch-action:manipulation}
 .friends-hub-title{padding:8px 2px 14px}.friends-hub-title small{color:#7ee2ff;font-size:9px;font-weight:1000;letter-spacing:.16em}.friends-hub-title h2{margin:4px 0;font-size:27px}.friends-hub-title p{margin:0;color:#9caabc;font-size:10px;line-height:1.55}.friend-hub-card{margin-top:0}.friend-money-panel{margin-top:14px;padding-top:12px;border-top:1px solid #ffffff12}
 .presence-person{width:100%;text-align:left;color:inherit;border:0;cursor:pointer}.presence-person:active{transform:scale(.985)}
 @media(max-width:700px){.friends-pill{padding:0 9px;font-size:11px}.topbar .brand-inline strong{display:none}.friends-hub-title h2{font-size:24px}}
+
+/* Social status badge beside money leaderboard position */
+.rank-no{min-width:94px}
+.rank-status-badge{display:flex;align-items:center;gap:5px;width:max-content;max-width:92px;margin-top:5px;padding:4px 7px;border:1px solid rgba(255,211,95,.3);border-radius:8px;background:rgba(10,12,20,.8);color:#e8d39b;font-size:10px!important;font-weight:900;line-height:1.1;white-space:nowrap}
+.rank-status-badge i{font-style:normal;font-size:12px}
+.rank-user-royal .rank-status-badge{color:#fff0a5;border-color:#ffd866;background:linear-gradient(135deg,#4c2c00,#16100a);box-shadow:0 0 15px rgba(255,193,46,.35);letter-spacing:.3px}
+.rank-user-emperor .rank-status-badge,.rank-user-king .rank-status-badge{color:#ffe3a0;border-color:rgba(255,200,80,.55)}
+@media(max-width:600px){.rank-no{min-width:78px}.rank-status-badge{max-width:76px;padding:3px 5px;font-size:9px!important}.rank-status-badge i{font-size:11px}}
