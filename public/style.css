@@ -946,3 +946,18 @@ button:not(:disabled){touch-action:manipulation}
 /* v322 header tap safety */
 #profileBtn{position:relative!important;z-index:60!important;pointer-events:auto!important;touch-action:manipulation!important;cursor:pointer!important}
 #profileBtn *{pointer-events:none!important}
+
+
+/* v323 final PNG emblem sizing — keep real artwork fully visible inside each row */
+@media(max-width:600px){
+ #leaderboard .rank-no{overflow:visible!important;display:flex!important;align-items:center!important;justify-content:center!important}
+ #leaderboard .rank-emblem-art{
+   width:74%!important;
+   height:82%!important;
+   max-width:118px!important;
+   max-height:96px!important;
+   object-fit:contain!important;
+   object-position:center!important;
+   transform:none!important;
+ }
+}
