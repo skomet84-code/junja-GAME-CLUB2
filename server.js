@@ -1641,7 +1641,28 @@ const server=http.createServer(async(req,res)=>{
       const target=db.prepare('SELECT id,nickname,avatar,is_disabled FROM users WHERE nickname=? COLLATE NOCASE').get(nickname);
       if(!target||target.is_disabled)return json(res,404,{error:'해당 닉네임의 친구를 찾을 수 없어.'});
       if(Number(target.id)===Number(u.id))return json(res,400,{error:'자기 자신에게는 보낼 수 없어.'});
-      return json(res,200,{user:{id:target.id,nickname:target.nickname,avatar:target.avatar,avatarEmoji:AVATARS[target.avatar%AVATARS.length],cosmetics:cosmeticsPublic(target.id)}});
+      const owned=inventoryIds(target.id);const ownedItems=SHOP_ITEMS.filter(x=>owned.has(x.id)&&!x.adminOnly).map(itemPublic).slice(0,60);return json(res,200,{user:{id:target.id,nickname:target.nickname,avatar:target.avatar,avatarEmoji:AVATARS[target.avatar%AVATARS.length],cosmetics:cosmeticsPublic(target.id),ownedCount:owned.size,ownedItems}});
+    }
+    if(url.pathname==='/api/shop/gift'&&req.method==='POST'){
+      const u=requireAuth(req,res);if(!u)return;
+      if(!rateLimit('shop_gift:'+u.id,10,60000))return json(res,429,{error:'아이템 선물을 너무 빠르게 반복하고 있어. 잠시 후 다시 시도해줘.'});
+      const b=await readBody(req),targetId=Number(b.targetId),item=SHOP_BY_ID[String(b.itemId||'')];
+      if(!Number.isInteger(targetId)||targetId<1||targetId===Number(u.id))return json(res,400,{error:'선물할 친구를 다시 확인해줘.'});
+      if(!item||item.adminOnly)return json(res,400,{error:'선물할 수 없는 아이템이야.'});
+      const target=db.prepare('SELECT id,nickname,is_disabled FROM users WHERE id=?').get(targetId);
+      if(!target||target.is_disabled)return json(res,404,{error:'선물 받을 친구를 찾을 수 없어.'});
+      if(db.prepare('SELECT 1 FROM user_inventory WHERE user_id=? AND item_id=?').get(targetId,item.id))return json(res,409,{error:'그 친구가 이미 보유한 아이템이야.'});
+      db.exec('BEGIN IMMEDIATE');
+      try{
+        const sender=db.prepare('SELECT balance FROM users WHERE id=?').get(u.id);if(!sender||sender.balance<item.price)throw new Error('게임머니가 부족해.');
+        const next=sender.balance-item.price,t=now();
+        db.prepare('UPDATE users SET balance=? WHERE id=?').run(next,u.id);
+        db.prepare('INSERT INTO user_inventory(user_id,item_id,purchase_price,purchased_at) VALUES(?,?,?,?)').run(targetId,item.id,0,t);
+        db.prepare('INSERT INTO ledger(user_id,amount,balance_after,type,memo,created_at) VALUES(?,?,?,?,?,?)').run(u.id,-item.price,next,'shop_gift',`선물 · ${target.nickname} · ${item.name}`,t);
+        const tb=db.prepare('SELECT balance FROM users WHERE id=?').get(targetId)?.balance||0;
+        db.prepare('INSERT INTO ledger(user_id,amount,balance_after,type,memo,created_at) VALUES(?,?,?,?,?,?)').run(targetId,0,tb,'gift_received',`선물 받음 · ${item.name}`,t);
+        db.exec('COMMIT');pushRefresh();return json(res,200,{ok:true,item:itemPublic(item),target:{id:target.id,nickname:target.nickname},user:userPublic(u.id)});
+      }catch(e){try{db.exec('ROLLBACK')}catch{};return json(res,400,{error:e.message});}
     }
     if(url.pathname==='/api/wallet/transfer'&&req.method==='POST'){
       const u=requireAuth(req,res);if(!u)return;
