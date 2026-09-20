@@ -351,9 +351,9 @@ for(const item of SHOP_ITEMS){if(SHOP_PERKS[item.id])item.perk={...SHOP_PERKS[it
 const SHOP_BY_ID = Object.fromEntries(SHOP_ITEMS.map(x=>[x.id,Object.freeze({...x})]));
 const LOADOUT_FIELDS = new Set(['character','costume','frame','title','pet','table_skin','card_back','bubble_pack']);
 const SLOT_SYMBOLS = [
-  // v2.8.13: canonical reel odds. 7 and J are fixed at exactly 2% each before any explicit equipped-item perk.
-  // 🍀/👑 remain removed. Regular symbols share the remaining 96%.
-  {s:'🍒',w:22},{s:'🍋',w:19},{s:'🍊',w:17},{s:'🔔',w:15},{s:'⭐',w:13},{s:'💎',w:10},{s:'7️⃣',w:2},{s:'J',w:2}
+  // v2.8.14: slightly lower slot hit rate. 7 and J are 1.5% each before any explicit equipped-item perk.
+  // 🍀/👑 remain removed. Regular symbols share the remaining 97%.
+  {s:'🍒',w:23},{s:'🍋',w:20},{s:'🍊',w:18},{s:'🔔',w:15},{s:'⭐',w:12},{s:'💎',w:9},{s:'7️⃣',w:1.5},{s:'J',w:1.5}
 ];
 const SLOT_MULT = {'🍒':2,'🍋':3,'🍊':5,'🔔':8,'⭐':10,'💎':20,'7️⃣':1000,'J':800};
 const SLOT_LINES = [
