@@ -355,7 +355,7 @@ const SLOT_SYMBOLS = [
   // 🍀/👑 remain removed. Regular symbols share the remaining 97%.
   {s:'🍒',w:23},{s:'🍋',w:20},{s:'🍊',w:18},{s:'🔔',w:15},{s:'⭐',w:12},{s:'💎',w:9},{s:'7️⃣',w:1.5},{s:'J',w:1.5}
 ];
-const SLOT_MULT = {'🍒':2,'🍋':3,'🍊':5,'🔔':8,'⭐':10,'💎':20,'7️⃣':1000,'J':800};
+const SLOT_MULT = {'🍒':1,'🍋':3,'🍊':5,'🔔':8,'⭐':10,'💎':20,'7️⃣':1000,'J':800};
 const SLOT_LINES = [
   { key:'top', label:'TOP', cssClass:'top', cells:[[0,0],[0,1],[0,2]] },
   { key:'mid', label:'MIDDLE', cssClass:'mid', cells:[[1,0],[1,1],[1,2]] },
