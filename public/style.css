@@ -1173,3 +1173,29 @@ button:not(:disabled){touch-action:manipulation}
 /* v331: iOS boutique purchase touch target hardening */
 .shop-item-foot,.shop-item-foot button,.buy-luxury{position:relative;z-index:20;pointer-events:auto!important;touch-action:manipulation!important;-webkit-tap-highlight-color:transparent}
 .shop-item-copy,.shop-character-preview{position:relative;z-index:2}
+
+
+/* v335: Seven Poker raise amount visibility on iOS/mobile */
+#sevenRaiseTo,
+.seven-raise input#sevenRaiseTo{
+  color:#fff !important;
+  -webkit-text-fill-color:#fff !important;
+  opacity:1 !important;
+  caret-color:#f5d26c !important;
+  background:#090c14 !important;
+  font-size:16px !important;
+  font-weight:900 !important;
+  text-shadow:none !important;
+}
+#sevenRaiseTo:focus,
+.seven-raise input#sevenRaiseTo:focus{
+  color:#fff !important;
+  -webkit-text-fill-color:#fff !important;
+  opacity:1 !important;
+}
+#sevenRaiseTo:disabled,
+#sevenRaiseTo[readonly]{
+  color:#fff !important;
+  -webkit-text-fill-color:#fff !important;
+  opacity:1 !important;
+}
