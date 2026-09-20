@@ -198,6 +198,7 @@ const ROOM_REACTIONS = {
 };
 
 const SHOP_ITEMS = [
+  {id:'char_f_happy_exclusive',category:'character',gender:'F',asset:'/art/special/happy-exclusive.svg',name:'HAPPY ♥',icon:'♥',rarity:'prestige',price:0,desc:'햅피 전용 · 사쿠라 핑크 애니메이션 미소녀 스페셜 캐릭터',happyOnly:true,featured:true},
   // PREMIUM CHARACTERS · 대표 아바타. 구매/장착 후 전 게임에서 사용
   {id:'char_m_luca',category:'character',gender:'M',asset:'/art/v26/characters/char_m_luca.webp',name:'루카',icon:'♠',rarity:'rare',price:5000000,desc:'부드러운 미소와 블루 수트. 부담 없이 시작하는 프리미엄 남캐'},
   {id:'char_m_jay',category:'character',gender:'M',asset:'/art/v26/characters/char_m_jay.webp',name:'제이',icon:'J',rarity:'rare',price:8000000,desc:'청록 네온 무드의 스트리트 하이롤러'},
@@ -463,7 +464,7 @@ function cosmeticsPublic(userId){
   if(!Number.isInteger(userId)||userId<1||!db.prepare('SELECT 1 FROM users WHERE id=?').get(userId))return empty();
   const load=ensureLoadout(userId),owned=inventoryIds(userId),count=owned.size;
   const out={ownedCount:count,collection:collectionTier(count)};let slotLuckPct=0,dailyBonusPct=0;
-  for(const f of LOADOUT_FIELDS){out[f]=load[f]?itemPublic(load[f]):null;const perk=out[f]?.perk||{};slotLuckPct+=Number(perk.slotLuckPct||0);dailyBonusPct+=Number(perk.dailyBonusPct||0);}
+  for(const f of LOADOUT_FIELDS){out[f]=load[f]?itemPublic(load[f]):null;if(out[f]?.happyOnly&&!isHappyUser(userId))out[f]=null;const perk=out[f]?.perk||{};slotLuckPct+=Number(perk.slotLuckPct||0);dailyBonusPct+=Number(perk.dailyBonusPct||0);}
   out.perks={slotLuckPct:Math.min(1,Math.round(slotLuckPct*100)/100),dailyBonusPct:Math.min(5,Math.round(dailyBonusPct*100)/100)};
   return out;
 }
@@ -471,14 +472,17 @@ function reactionAllowed(userId,key){
   const def=ROOM_REACTIONS[key];if(!def)return false;if(def.pack==='base')return true;
   const load=ensureLoadout(userId);return load.bubble_pack===def.pack && inventoryIds(userId).has(def.pack);
 }
+function isHappyUser(userId){const u=db.prepare('SELECT username,nickname FROM users WHERE id=?').get(userId);return !!u&&(String(u.username||'').trim().toLowerCase()==='햅피'||String(u.username||'').trim().toLowerCase()==='happy'||String(u.nickname||'').trim().toLowerCase()==='햅피'||String(u.nickname||'').trim().toLowerCase()==='happy');}
 function shopState(userId){
-  const load=ensureLoadout(userId),owned=inventoryIds(userId),u=db.prepare('SELECT is_admin FROM users WHERE id=?').get(userId);
+  const load=ensureLoadout(userId),owned=inventoryIds(userId),u=db.prepare('SELECT is_admin FROM users WHERE id=?').get(userId),happy=isHappyUser(userId);
   if(u?.is_admin)owned.add('char_admin_godjunja');
-  return {items:SHOP_ITEMS.filter(x=>!x.adminOnly||u?.is_admin).map(x=>({...x,owned:owned.has(x.id),equipped:load[x.category]===x.id})),loadout:cosmeticsPublic(userId),ownedCount:owned.size};
+  if(happy)owned.add('char_f_happy_exclusive');
+  return {items:SHOP_ITEMS.filter(x=>(!x.adminOnly||u?.is_admin)&&(!x.happyOnly||happy)).map(x=>({...x,owned:owned.has(x.id),equipped:load[x.category]===x.id})),loadout:cosmeticsPublic(userId),ownedCount:owned.size};
 }
 function buyShopItem(userId,itemId){
   const item=SHOP_BY_ID[String(itemId||'')];if(!item)throw new Error('존재하지 않는 상점 아이템입니다.');
   if(item.adminOnly)throw new Error('GOD JUNJA는 갓준자 관리자 전용 캐릭터입니다.');
+  if(item.happyOnly)throw new Error('HAPPY 캐릭터는 햅피 전용 캐릭터입니다.');
   if(db.prepare('SELECT 1 FROM user_inventory WHERE user_id=? AND item_id=?').get(userId,item.id))throw new Error('이미 보유한 아이템입니다.');
   db.exec('BEGIN IMMEDIATE');
   try{
@@ -498,7 +502,8 @@ function equipShopItem(userId,category,itemId){
   const item=SHOP_BY_ID[String(itemId)];if(!item||item.category!==category)throw new Error('이 슬롯에 장착할 수 없는 아이템입니다.');
   const owner=db.prepare('SELECT is_admin FROM users WHERE id=?').get(userId);
   if(item.adminOnly&&!owner?.is_admin)throw new Error('갓준자 관리자 전용 캐릭터입니다.');
-  if(!item.adminOnly&&!db.prepare('SELECT 1 FROM user_inventory WHERE user_id=? AND item_id=?').get(userId,item.id))throw new Error('먼저 아이템을 구매해주세요.');
+  if(item.happyOnly&&!isHappyUser(userId))throw new Error('HAPPY 캐릭터는 햅피 계정만 장착할 수 있습니다.');
+  if(!item.adminOnly&&!item.happyOnly&&!db.prepare('SELECT 1 FROM user_inventory WHERE user_id=? AND item_id=?').get(userId,item.id))throw new Error('먼저 아이템을 구매해주세요.');
   db.prepare(`UPDATE user_loadout SET ${category}=? WHERE user_id=?`).run(item.id,userId);return cosmeticsPublic(userId);
 }
 
