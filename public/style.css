@@ -1245,3 +1245,12 @@ button:not(:disabled){touch-action:manipulation}
  .deck-stack .hwatu-card.hwatu-real{width:38px!important;min-width:38px!important;height:auto!important}
  .captured-piles .hwatu-card.hwatu-real{width:28px!important;min-width:28px!important;height:auto!important}
 }
+
+
+/* v351: compact only board + player hand hwatu cards; captured piles unchanged */
+@media(max-width:620px){
+ .floor-cards .hwatu-card.hwatu-real{width:36px!important;min-width:36px!important;flex:0 0 36px!important}
+ .my-hand-row .hwatu-card.hwatu-real{width:37px!important;min-width:37px!important;flex:0 0 37px!important}
+ .floor-cards{gap:6px!important}
+ .my-hand-row{gap:4px!important;justify-content:center!important;overflow:visible!important}
+}
