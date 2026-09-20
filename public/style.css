@@ -1199,3 +1199,16 @@ button:not(:disabled){touch-action:manipulation}
   -webkit-text-fill-color:#fff !important;
   opacity:1 !important;
 }
+
+
+/* v336: Seven Poker chip/pot readability */
+.seven-pot{min-width:190px!important;padding:10px 14px!important;border:1px solid rgba(245,210,108,.38)!important;box-shadow:0 0 24px rgba(245,210,108,.12)!important}
+.seven-pot>small{color:#f5d26c!important;font-weight:900!important;letter-spacing:.06em}
+.seven-pot>b{display:block!important;font-size:24px!important;color:#fff3bd!important;text-shadow:0 0 12px rgba(245,210,108,.38)!important}
+.seven-pot-breakdown{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin:5px 0}
+.seven-pot-breakdown span{padding:4px 7px;border-radius:8px;background:rgba(0,0,0,.28);color:#bfc8d2;font-size:9px}
+.seven-pot-breakdown strong{color:#fff;font-size:10px}
+.seven-last-action{display:block;color:#dce4ea!important;font-weight:800}
+.seven-bank span{background:rgba(255,255,255,.055);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:6px 8px}
+.seven-bank span b{color:#ffe18a}
+@media(max-width:720px){.seven-pot{min-width:176px!important}.seven-pot>b{font-size:20px!important}.seven-pot-breakdown{gap:3px}.seven-bank{gap:5px!important}.seven-bank span{padding:5px 6px;font-size:9px}}
