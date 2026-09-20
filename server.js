@@ -199,6 +199,16 @@ const ROOM_REACTIONS = {
 
 const SHOP_ITEMS = [
   {id:'char_f_happy_exclusive',category:'character',gender:'F',asset:'/art/special/happy-exclusive.png',name:'HAPPY ♥',icon:'♥',rarity:'prestige',price:0,desc:'햅피 전용 · 사쿠라 핑크 애니메이션 미소녀 스페셜 캐릭터',happyOnly:true,featured:true},
+  {id:'char_lim_f_black_rose',category:'character',gender:'F',asset:'/art/special/limited-f-black-rose.webp',name:'블랙로즈 딜러',icon:'♠',rarity:'limited',price:10000000000,collection:'limited',featured:true,desc:'LIMITED COLLECTION · 기간 한정 스페셜 캐릭터'},
+  {id:'char_lim_f_sakura',category:'character',gender:'F',asset:'/art/special/limited-f-sakura.webp',name:'벚꽃 무녀',icon:'🌸',rarity:'limited',price:10000000000,collection:'limited',featured:true,desc:'LIMITED COLLECTION · 기간 한정 스페셜 캐릭터'},
+  {id:'char_lim_f_summer',category:'character',gender:'F',asset:'/art/special/limited-f-summer.webp',name:'여름의 여신',icon:'☀',rarity:'limited',price:10000000000,collection:'limited',featured:true,desc:'LIMITED COLLECTION · 기간 한정 스페셜 캐릭터'},
+  {id:'char_lim_f_halloween',category:'character',gender:'F',asset:'/art/special/limited-f-halloween.webp',name:'할로윈 마녀',icon:'🎃',rarity:'limited',price:10000000000,collection:'limited',featured:true,desc:'LIMITED COLLECTION · 기간 한정 스페셜 캐릭터'},
+  {id:'char_lim_f_winter',category:'character',gender:'F',asset:'/art/special/limited-f-winter.webp',name:'백야의 여제',icon:'❄',rarity:'limited',price:10000000000,collection:'limited',featured:true,desc:'LIMITED COLLECTION · 기간 한정 스페셜 캐릭터'},
+  {id:'char_lim_m_casino_king',category:'character',gender:'M',asset:'/art/special/limited-m-casino-king.webp',name:'카지노 킹',icon:'♛',rarity:'limited',price:10000000000,collection:'limited',featured:true,desc:'LIMITED COLLECTION · 기간 한정 스페셜 캐릭터'},
+  {id:'char_lim_m_white_knight',category:'character',gender:'M',asset:'/art/special/limited-m-white-knight.webp',name:'화이트 나이트',icon:'♞',rarity:'limited',price:10000000000,collection:'limited',featured:true,desc:'LIMITED COLLECTION · 기간 한정 스페셜 캐릭터'},
+  {id:'char_lim_m_summer',category:'character',gender:'M',asset:'/art/special/limited-m-summer.webp',name:'썸머 브레이커',icon:'☀',rarity:'limited',price:10000000000,collection:'limited',featured:true,desc:'LIMITED COLLECTION · 기간 한정 스페셜 캐릭터'},
+  {id:'char_lim_m_dark_devil',category:'character',gender:'M',asset:'/art/special/limited-m-dark-devil.webp',name:'다크 데빌',icon:'♠',rarity:'limited',price:10000000000,collection:'limited',featured:true,desc:'LIMITED COLLECTION · 기간 한정 스페셜 캐릭터'},
+  {id:'char_lim_m_golden_emperor',category:'character',gender:'M',asset:'/art/special/limited-m-golden-emperor.webp',name:'골든 엠페러',icon:'♛',rarity:'limited',price:10000000000,collection:'limited',featured:true,desc:'LIMITED COLLECTION · 기간 한정 스페셜 캐릭터'},
   // PREMIUM CHARACTERS · 대표 아바타. 구매/장착 후 전 게임에서 사용
   {id:'char_m_luca',category:'character',gender:'M',asset:'/art/v26/characters/char_m_luca.webp',name:'루카',icon:'♠',rarity:'rare',price:5000000,desc:'부드러운 미소와 블루 수트. 부담 없이 시작하는 프리미엄 남캐'},
   {id:'char_m_jay',category:'character',gender:'M',asset:'/art/v26/characters/char_m_jay.webp',name:'제이',icon:'J',rarity:'rare',price:8000000,desc:'청록 네온 무드의 스트리트 하이롤러'},
