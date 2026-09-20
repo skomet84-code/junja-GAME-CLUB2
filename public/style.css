@@ -1233,3 +1233,15 @@ button:not(:disabled){touch-action:manipulation}
 .hwatu-card.hwatu-image-card.clickable{cursor:pointer;transition:transform .12s ease,filter .12s ease}.hwatu-card.hwatu-image-card.clickable:active{transform:translateY(-5px) scale(1.04)}
 .hwatu-card.hwatu-image-card.choice-card{outline:3px solid #ffd34e;filter:drop-shadow(0 0 8px rgba(255,211,78,.9))}
 @media(max-width:700px){.hwatu-card.hwatu-image-card{min-width:42px;width:42px;height:auto}.my-hand-row .hwatu-card.hwatu-image-card{min-width:48px;width:48px}.floor-cards .hwatu-card.hwatu-image-card{min-width:44px;width:44px}.captured-piles .hwatu-card.hwatu-image-card{min-width:29px;width:29px}.hwatu-card.hwatu-image-card .hwatu-card-meta{font-size:7px;padding:1px}}
+
+
+/* v350: real hwatu SVG sizing */
+.hwatu-card.hwatu-real{padding:0!important;overflow:hidden;aspect-ratio:103.2/168.2;height:auto!important;background:#fff!important;border-radius:8px}
+.hwatu-card.hwatu-real img{display:block;width:100%;height:100%;object-fit:fill;pointer-events:none}
+@media(max-width:620px){
+ .floor-cards .hwatu-card.hwatu-real{width:43px!important;min-width:43px!important;height:auto!important}
+ .my-hand-row{flex-wrap:nowrap!important;overflow-x:auto;justify-content:flex-start;padding:4px 2px 8px}
+ .my-hand-row .hwatu-card.hwatu-real{width:44px!important;min-width:44px!important;height:auto!important;flex:0 0 44px}
+ .deck-stack .hwatu-card.hwatu-real{width:38px!important;min-width:38px!important;height:auto!important}
+ .captured-piles .hwatu-card.hwatu-real{width:28px!important;min-width:28px!important;height:auto!important}
+}
