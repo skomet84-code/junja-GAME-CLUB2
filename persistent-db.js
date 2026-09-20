@@ -75,7 +75,7 @@ function loadRemoteSnapshotSync(){
   if(!hasRemote()) return null;
   try{
     const out=execFileSync(process.execPath,[path.join(__dirname,'remote-load.js')],{
-      env:process.env,encoding:'utf8',stdio:['ignore','pipe','pipe'],timeout:30000,maxBuffer:20*1024*1024
+      env:process.env,encoding:'utf8',stdio:['ignore','pipe','pipe'],timeout:30000,maxBuffer:128*1024*1024
     }).trim();
     if(!out || out==='null') return null;
     return JSON.parse(out);
