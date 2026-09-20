@@ -1,5 +1,5 @@
 const $=(s,r=document)=>r.querySelector(s), $$=(s,r=document)=>[...r.querySelectorAll(s)];
-let me=null,currentView='lobby',currentRoomId=null,currentGame=null,events=null,selectedBet=10000,refreshTimer=null,slotSpinState=null,autoSpinRunning=false,autoSpinStop=false,slotSession={spins:0,wins:0,net:0,best:0,recent:[]},selectedYutMoveIndex=0,selectedSoloYutMoveIndex=0,horseCardData=null,horseRacing=false,horseLastResult=null,bigWheelSelected='x2',bigWheelSpinning=false,bigWheelAngle=0,sicboSelected='small',sicboRolling=false,roomPollTimer=null,roomRefreshBusy=false,lastRoomVersion=-1,roomSeenMembers=new Map(),liveGame=null,liveHeartbeatTimer=null,livePollTimer=null,liveKnownIds=new Set(),liveInitialized=false,sevenAutoTimer=null,holdemAutoTimer=null,baccaratAutoTimer=null,baccaratLastAutoRound=-1,networkDegraded=false,bigWheelAutoStop=false,sicboAutoStop=false,bigWheelAutoRunning=false,sicboAutoRunning=false,shopData=null,shopCategory='all',shopOwnedOnly=false,shopCharacterGender='all',horseMeetTimer=null,horseMeetData=null,horseAnimatedRoundId=null,horseAnimationFrame=null,horseAutoRemaining=0,horseAutoTotal=0,horseAutoBetRound=null,horseAutoBusy=false,slotJackpotPollTimer=null,rouletteMode='straight',rouletteChip=10000,rouletteBets=[],rouletteSpinning=false,rouletteWheelAngle=0,rouletteBallAngle=0,roulettePending=[],audioScene='lobby',soloYutReplayBusy=false;
+let me=null,currentView='lobby',currentRoomId=null,currentGame=null,events=null,selectedBet=10000,refreshTimer=null,slotSpinState=null,autoSpinRunning=false,autoSpinStop=false,slotSession={spins:0,wins:0,net:0,best:0,recent:[]},selectedYutMoveIndex=0,selectedSoloYutMoveIndex=0,horseCardData=null,horseRacing=false,horseLastResult=null,bigWheelSelected='x2',bigWheelSpinning=false,bigWheelAngle=0,sicboSelected='small',sicboRolling=false,roomPollTimer=null,roomRefreshBusy=false,lastRoomVersion=-1,roomSeenMembers=new Map(),liveGame=null,liveHeartbeatTimer=null,livePollTimer=null,liveKnownIds=new Set(),liveInitialized=false,liveRefreshBusy=false,resumeSyncBusy=false,lastResumeSyncAt=0,networkFailureStreak=0,sevenAutoTimer=null,holdemAutoTimer=null,baccaratAutoTimer=null,baccaratLastAutoRound=-1,networkDegraded=false,bigWheelAutoStop=false,sicboAutoStop=false,bigWheelAutoRunning=false,sicboAutoRunning=false,shopData=null,shopCategory='all',shopOwnedOnly=false,shopCharacterGender='all',horseMeetTimer=null,horseMeetData=null,horseAnimatedRoundId=null,horseAnimationFrame=null,horseAutoRemaining=0,horseAutoTotal=0,horseAutoBetRound=null,horseAutoBusy=false,slotJackpotPollTimer=null,rouletteMode='straight',rouletteChip=10000,rouletteBets=[],rouletteSpinning=false,rouletteWheelAngle=0,rouletteBallAngle=0,roulettePending=[],audioScene='lobby',soloYutReplayBusy=false;
 const SLOT_SYMBOLS=['🍒','🍋','🍊','🔔','⭐','💎','7️⃣','J'];
 const SLOT_CELL_CLASS={'🍒':'cherry','🍋':'lemon','🍊':'orange','🔔':'bell','⭐':'star','💎':'diamond','7️⃣':'seven','J':'junja'};
 const REACTION_META={frustrated:['😫','답답해!','base'],hurry:['⏩','빨리빨리!','base'],cry:['😭','으앙 ㅠㅠ','base'],laugh:['😂','ㅋㅋㅋㅋ','base'],wow:['😲','헐?!','base'],sad:['😢','슬퍼...','base'],nice:['😎','나이스~','base'],go:['🔥','가즈아!','base'],lucky:['🍀','오늘 느낌 온다!','bubble_hype'],gg:['🤝','굿게임!','bubble_hype'],boom:['💥','터졌다!','bubble_hype'],clutch:['🎯','딱 맞췄다!','bubble_hype'],heart:['💖','좋아좋아!','bubble_cute'],wink:['😉','찡긋~','bubble_cute'],pout:['🥺','한 번만...','bubble_cute'],clap:['👏','박수!','bubble_cute'],crown:['👑','품격 있게~','bubble_royal'],sparkle:['✨','클래스가 다르지','bubble_royal'],salute:['🫡','인정!','bubble_royal'],throne:['🪑','왕좌는 내 자리','bubble_royal'],bigbet:['💸','큰 판 간다!','bubble_highroller'],chips:['🪙','칩 쌓아!','bubble_highroller'],allin:['🔥','올인 감성!','bubble_highroller'],myday:['😎','오늘은 내 날','bubble_highroller'],legend:['⚡','전설 등장!','bubble_legend'],classup:['👑','이게 클래스','bubble_legend'],mood:['✨','분위기 잡았다','bubble_legend'],finish:['🏆','끝내자!','bubble_legend']};
@@ -34,14 +34,15 @@ function renderLiveFloor(game,members=[]){
   $$('[data-floor-reaction]',mount).forEach(b=>b.onclick=()=>sendLiveReaction(b.dataset.floorReaction,b));
 }
 async function refreshLiveFloor(silent=true){
-  if(!liveGame||currentView!==liveGame)return;
+  if(document.hidden||!liveGame||currentView!==liveGame||liveRefreshBusy)return;
+  liveRefreshBusy=true;
   try{
     const d=await api('/api/live?game='+encodeURIComponent(liveGame)),ids=new Set((d.members||[]).map(x=>Number(x.userId)));
     if(liveInitialized){
       for(const p of d.members||[]){const id=Number(p.userId);if(id!==Number(me?.id)&&!liveKnownIds.has(id))toast(`🎉 ${p.nickname}님이 ${LIVE_GAME_LABEL[liveGame]||'게임'}에 들어왔어!`)}
     }
     liveKnownIds=ids;liveInitialized=true;renderLiveFloor(liveGame,d.members||[]);
-  }catch(e){if(!silent)toast(e.message)}
+  }catch(e){if(!silent)toast(e.message)}finally{liveRefreshBusy=false}
 }
 function localPresenceState(){
   if(currentView==='slot')return autoSpinRunning||$('#spinBtn')?.disabled?'PLAYING':'WAITING';
@@ -63,8 +64,8 @@ function startLiveFloor(game){
   if(!LIVE_GAME_VIEWS.has(game)){stopLiveFloor();return}
   if(liveGame&&liveGame!==game)leaveLiveFloor(liveGame);
   clearInterval(liveHeartbeatTimer);clearInterval(livePollTimer);liveGame=game;liveKnownIds=new Set();liveInitialized=false,sevenAutoTimer=null,baccaratAutoTimer=null,baccaratLastAutoRound=-1,networkDegraded=false,bigWheelAutoStop=false,sicboAutoStop=false,bigWheelAutoRunning=false,sicboAutoRunning=false,shopData=null,shopCategory='all',shopOwnedOnly=false;
-  ensureLiveFloorMount(game);liveHeartbeat();refreshLiveFloor(true);
-  liveHeartbeatTimer=setInterval(liveHeartbeat,10000);livePollTimer=setInterval(()=>{if(!document.hidden&&!currentRoomId&&currentView===liveGame)refreshLiveFloor(true)},4500);
+  ensureLiveFloorMount(game);liveHeartbeat();
+  liveHeartbeatTimer=setInterval(liveHeartbeat,15000);livePollTimer=setInterval(()=>{if(!document.hidden&&!currentRoomId&&currentView===liveGame)refreshLiveFloor(true)},12000);
 }
 function stopLiveFloor(){
   clearInterval(liveHeartbeatTimer);clearInterval(livePollTimer);liveHeartbeatTimer=null;livePollTimer=null;
@@ -124,7 +125,8 @@ function setNetworkState(state='online',message=''){
   networkDegraded=true;bar.classList.remove('hidden','offline','degraded');bar.classList.add(state==='offline'?'offline':'degraded');text.textContent=message||(state==='offline'?'인터넷 연결이 끊겼어. 연결되면 자동 복구할게.':'서버 연결이 불안정해. 게임 상태를 다시 확인 중이야.');
 }
 async function mobileResumeSync(){
-  if(document.hidden||!me)return;try{await refreshMe();setNetworkState('online');if(currentRoomId)await loadCurrentRoom(true);else if(currentView==='sevenpoker')await loadSevenPoker(true);else if(currentView==='baccarat')await loadBaccaratRooms(true);if(liveGame)refreshLiveFloor(true);}catch{setNetworkState('degraded')}
+  const now=Date.now();if(document.hidden||!me||resumeSyncBusy||now-lastResumeSyncAt<1800)return;resumeSyncBusy=true;lastResumeSyncAt=now;
+  try{await refreshMe();setNetworkState('online');if(currentRoomId)await loadCurrentRoom(true);else if(currentView==='sevenpoker')await loadSevenPoker(true);else if(currentView==='baccarat')await loadBaccaratRooms(true);if(liveGame&&!currentRoomId)await refreshLiveFloor(true);}catch{if(++networkFailureStreak>=2)setNetworkState('degraded')}finally{resumeSyncBusy=false}
 }
 window.addEventListener('offline',()=>{bigWheelAutoStop=true;sicboAutoStop=true;autoSpinStop=true;clearTimeout(sevenAutoTimer);clearTimeout(baccaratAutoTimer);setNetworkState('offline')});
 window.addEventListener('online',()=>{setNetworkState('degraded','인터넷이 다시 연결됐어. 게임 상태 확인 중...');setTimeout(mobileResumeSync,250)});
@@ -138,10 +140,10 @@ async function api(url,opts={}){
     try{
       const res=await fetch(url,{cache:'no-store',credentials:'same-origin',headers:{'Content-Type':'application/json','Cache-Control':'no-cache',...(opts.headers||{})},...opts,signal:controller.signal});
       clearTimeout(timer);let data={};try{data=await res.json()}catch{}
-      if(!res.ok)throw new Error(data.error||'요청에 실패했습니다.');if(networkDegraded)setNetworkState('online');return data;
+      if(!res.ok)throw new Error(data.error||'요청에 실패했습니다.');networkFailureStreak=0;if(networkDegraded)setNetworkState('online');return data;
     }catch(e){clearTimeout(timer);lastErr=e;if(attempt+1<attempts)await sleep(250);}
   }
-  setNetworkState(navigator.onLine?'degraded':'offline');throw new Error(lastErr?.name==='AbortError'?'서버 응답이 늦습니다. 잠시 후 다시 시도해주세요.':(lastErr?.message||'네트워크 오류가 발생했습니다.'));
+  networkFailureStreak++;if(!navigator.onLine)setNetworkState('offline');else if(networkFailureStreak>=2)setNetworkState('degraded');throw new Error(lastErr?.name==='AbortError'?'서버 응답이 늦습니다. 잠시 후 다시 시도해주세요.':(lastErr?.message||'네트워크 오류가 발생했습니다.'));
 }
 
 function setAuthTab(tab){$$('[data-auth-tab]').forEach(b=>b.classList.toggle('active',b.dataset.authTab===tab));$('#loginForm')?.classList.toggle('hidden',tab!=='login');$('#registerForm')?.classList.toggle('hidden',tab!=='register');if($('#authMsg'))$('#authMsg').textContent='';}
