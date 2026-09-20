@@ -1218,3 +1218,9 @@ button:not(:disabled){touch-action:manipulation}
 .seven-opponents-grid .seven-opponent{position:relative!important;inset:auto!important;transform:none!important;min-width:0}
 .seven-opponents-grid .seven-cards{transform:scale(.82);transform-origin:center top;margin-bottom:-12px}
 @media(max-width:720px){.seven-opponents-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:5px}.seven-opponents-grid .seven-player-title{font-size:9px}.seven-opponents-grid .seven-cards{transform:scale(.64);transform-origin:left top;width:150%;margin-bottom:-24px}}
+
+/* LIMITED COLLECTION */
+.limited-collection{margin:18px 0;padding:18px;border:1px solid rgba(218,178,72,.55);background:linear-gradient(145deg,rgba(15,9,8,.96),rgba(55,20,17,.92));box-shadow:0 0 28px rgba(218,70,48,.14)}
+.limited-collection-head{text-align:center;margin-bottom:14px}.limited-collection-head small{letter-spacing:.18em;color:#e5c46b}.limited-collection-head h3{margin:5px 0;font-size:24px}.limited-collection-head p{margin:0;color:#d8c8b2}
+.limited-collection-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}.limited-collection-grid button{border:1px solid rgba(229,196,107,.45);background:rgba(0,0,0,.3);border-radius:14px;padding:8px;color:inherit;overflow:hidden}.limited-collection-grid img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:10px;display:block}.limited-collection-grid b,.limited-collection-grid span{display:block;margin-top:5px}.limited-collection-grid span{font-size:12px;color:#e5c46b}.rarity-limited{border-color:rgba(229,196,107,.62)!important;box-shadow:0 0 24px rgba(190,45,45,.12)}
+@media(max-width:720px){.limited-collection{padding:12px}.limited-collection-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.limited-collection-head h3{font-size:20px}}
