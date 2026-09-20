@@ -432,7 +432,7 @@ function transferGameMoney(senderId,targetId,amount){
   senderId=Number(senderId);targetId=Number(targetId);amount=Math.trunc(Number(amount));
   if(!Number.isInteger(senderId)||!Number.isInteger(targetId)||senderId<1||targetId<1) throw new Error('회원 정보가 올바르지 않습니다.');
   if(senderId===targetId) throw new Error('자기 자신에게는 보낼 수 없습니다.');
-  if(!Number.isInteger(amount)||amount<1||amount>1000000000) throw new Error('보낼 금액은 1~1,000,000,000 G 범위의 정수로 입력하세요.');
+  if(!Number.isSafeInteger(amount)||amount<1) throw new Error('보낼 금액은 1G 이상 보유 게임머니 범위의 정수로 입력하세요.');
   db.exec('BEGIN IMMEDIATE');
   try{
     const sender=db.prepare('SELECT id,nickname,balance,is_disabled FROM users WHERE id=?').get(senderId);
