@@ -1276,3 +1276,7 @@ button:not(:disabled){touch-action:manipulation}
 .floor-cards .hwatu-card{width:52px;height:80px}
 .my-hand-row .hwatu-real .hwatu-kind{background:linear-gradient(180deg,#ffe783,#f3c94d);color:#2b2107;border:1px solid #9f7518;box-shadow:0 1px 3px #0008;font-weight:1000}
 @media(max-width:620px){.floor-cards{padding:8px;gap:3px;min-height:126px}.floor-cards .hwatu-card{width:42px;height:65px}.my-hand-row .hwatu-real .hwatu-kind{font-size:7px!important;padding:2px 2px}}
+
+
+/* MATGO unified yellow label treatment · 2026-09-20 */
+.floor-cards .hwatu-real .hwatu-kind,.my-hand-row .hwatu-real .hwatu-kind{background:linear-gradient(180deg,#ffe783,#f3c94d);color:#2b2107;border:1px solid #9f7518;box-shadow:0 1px 3px #0008;font-weight:1000}
