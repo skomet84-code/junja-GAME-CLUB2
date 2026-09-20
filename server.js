@@ -198,7 +198,7 @@ const ROOM_REACTIONS = {
 };
 
 const SHOP_ITEMS = [
-  {id:'char_f_happy_exclusive',category:'character',gender:'F',asset:'/art/special/happy-profile.webp',name:'HAPPY ♥',icon:'♥',rarity:'prestige',price:0,desc:'햅피 전용 · 사쿠라 핑크 애니메이션 미소녀 스페셜 캐릭터',happyOnly:true,featured:true},
+  {id:'char_f_happy_exclusive',category:'character',gender:'F',asset:'/art/special/happy-exclusive.png',name:'HAPPY ♥',icon:'♥',rarity:'prestige',price:0,desc:'햅피 전용 · 사쿠라 핑크 애니메이션 미소녀 스페셜 캐릭터',happyOnly:true,featured:true},
   // PREMIUM CHARACTERS · 대표 아바타. 구매/장착 후 전 게임에서 사용
   {id:'char_m_luca',category:'character',gender:'M',asset:'/art/v26/characters/char_m_luca.webp',name:'루카',icon:'♠',rarity:'rare',price:5000000,desc:'부드러운 미소와 블루 수트. 부담 없이 시작하는 프리미엄 남캐'},
   {id:'char_m_jay',category:'character',gender:'M',asset:'/art/v26/characters/char_m_jay.webp',name:'제이',icon:'J',rarity:'rare',price:8000000,desc:'청록 네온 무드의 스트리트 하이롤러'},
