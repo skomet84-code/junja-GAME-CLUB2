@@ -1280,3 +1280,8 @@ button:not(:disabled){touch-action:manipulation}
 
 /* MATGO unified yellow label treatment · 2026-09-20 */
 .floor-cards .hwatu-real .hwatu-kind,.my-hand-row .hwatu-real .hwatu-kind{background:linear-gradient(180deg,#ffe783,#f3c94d);color:#2b2107;border:1px solid #9f7518;box-shadow:0 1px 3px #0008;font-weight:1000}
+
+
+/* MATGO wager input visibility fix · 2026-09-20 */
+#gostopMultiBuyIn,#gostopBet{color:#fff3b0!important;-webkit-text-fill-color:#fff3b0!important;caret-color:#ffd85f!important;background:#090c14!important;border-color:#d8aa3f88!important;font-weight:900!important}
+#gostopMultiBuyIn::placeholder,#gostopBet::placeholder{color:#b9a66f!important;-webkit-text-fill-color:#b9a66f!important;opacity:1}
