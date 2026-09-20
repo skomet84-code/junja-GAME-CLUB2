@@ -1200,38 +1200,45 @@ function settleRace(userId,bet,type,picks,card,order){
   return {won,placeBonus,finishRank,mult,payout,winMult};
 }
 let horseMeet=null;
-const HORSE_BET_WINDOW_MS=11000,HORSE_RUN_MS=6500,HORSE_RESULT_MS=4000;
+const HORSE_RUN_MS=6500,HORSE_RESULT_MS=5000;
 function newHorseMeet(){
-  const t=now();horseMeet={id:randomToken(5).toUpperCase(),card:horseCard(),phase:'betting',openedAt:t,bettingClosesAt:t+HORSE_BET_WINDOW_MS,startedAt:null,finishAt:null,resultUntil:null,order:null,bets:new Map(),results:new Map()};return horseMeet;
+  const t=now();horseMeet={id:randomToken(5).toUpperCase(),card:horseCard(),phase:'betting',openedAt:t,startedAt:null,finishAt:null,resultUntil:null,order:null,bets:new Map(),ready:new Set(),results:new Map()};return horseMeet;
+}
+function horseStartIfReady(r){
+  if(r.phase!=='betting'||r.bets.size<1)return r;
+  for(const uid of r.bets.keys())if(!r.ready.has(uid))return r;
+  const t=now();r.order=horseRun(r.card);r.phase='running';r.startedAt=t;r.finishAt=t+HORSE_RUN_MS;
+  for(const [uid,b] of r.bets){
+    try{const result=settleRace(uid,b.bet,b.type,b.picks,r.card,r.order);r.results.set(uid,result);}catch(e){console.error('[HORSE] settle failed',uid,e.message);}
+    escrowDelete(`HORSE_${r.id}`,uid);
+  }
+  return r;
 }
 function horseAdvanceMeet(){
-  let r=horseMeet||newHorseMeet(),t=now();
-  if(r.phase==='betting'&&t>=r.bettingClosesAt){
-    r.order=horseRun(r.card);r.phase='running';r.startedAt=t;r.finishAt=t+HORSE_RUN_MS;
-    for(const [uid,b] of r.bets){
-      try{const result=settleRace(uid,b.bet,b.type,b.picks,r.card,r.order);r.results.set(uid,result);}catch(e){console.error('[HORSE] settle failed',uid,e.message);}
-      escrowDelete(`HORSE_${r.id}`,uid);
-    }
-    /* Horse meet is isolated from the global SSE refresh bus. Horse clients poll the meet endpoint. */
-  }
+  let r=horseMeet||newHorseMeet(),t=now();horseStartIfReady(r);
   if(r.phase==='running'&&t>=r.finishAt){r.phase='result';r.resultUntil=t+HORSE_RESULT_MS;}
   if(r.phase==='result'&&t>=r.resultUntil){r=newHorseMeet();}
   return r;
 }
 function horseMeetPublic(userId){
-  const r=horseAdvanceMeet(),myBet=r.bets.get(Number(userId))||null,myResult=r.results.get(Number(userId))||null;
-  const participants=[...r.bets.entries()].map(([uid,b])=>{const u=userPublic(uid);return u?{userId:uid,nickname:u.nickname,avatar:u.avatar,cosmetics:u.cosmetics,type:b.type,picks:b.picks,bet:b.bet}:null}).filter(Boolean);
-  return {round:{id:r.id,phase:r.phase,openedAt:r.openedAt,bettingClosesAt:r.bettingClosesAt,startedAt:r.startedAt,finishAt:r.finishAt,resultUntil:r.resultUntil,card:r.card,order:r.order?r.order.map((h,i)=>({id:h.id,name:h.name,color:h.color,coat:h.coat,finish:i+1})):null,participants,myBet,myResult,serverNow:now()}};
+  const r=horseAdvanceMeet(),uid=Number(userId),myBet=r.bets.get(uid)||null,myResult=r.results.get(uid)||null;
+  const participants=[...r.bets.entries()].map(([id,b])=>{const u=userPublic(id);return u?{userId:id,nickname:u.nickname,avatar:u.avatar,cosmetics:u.cosmetics,type:b.type,picks:b.picks,bet:b.bet,ready:r.ready.has(id)}:null}).filter(Boolean);
+  return {round:{id:r.id,phase:r.phase,openedAt:r.openedAt,startedAt:r.startedAt,finishAt:r.finishAt,resultUntil:r.resultUntil,card:r.card,order:r.order?r.order.map((h,i)=>({id:h.id,name:h.name,color:h.color,coat:h.coat,finish:i+1})):null,participants,myBet,myReady:r.ready.has(uid),myResult,serverNow:now()}};
 }
 function horsePlaceBet(user,body){
-  const r=horseAdvanceMeet();if(r.phase!=='betting'||now()>=r.bettingClosesAt)throw new Error('이번 경주의 베팅이 마감됐어. 다음 경주를 기다려줘.');
+  const r=horseAdvanceMeet();if(r.phase!=='betting')throw new Error('현재 경주는 접수가 마감됐어. 다음 경주를 기다려줘.');
   if(r.bets.has(user.id))throw new Error('이번 경주에는 이미 베팅했어.');
   const type=['win','quinella','exacta'].includes(body.type)?body.type:'win';const picks=(Array.isArray(body.picks)?body.picks:[]).map(Number);const need=type==='win'?1:2;
   if(picks.length!==need||picks.some(x=>!r.card.horses.some(h=>h.id===x))||(need===2&&picks[0]===picks[1]))throw new Error('선택한 말을 확인해줘.');
-  const bet=gameWager(body.bet,1000,100000,1000);if(user.balance<bet)throw new Error('게임머니가 부족합니다.');
+  const bet=gameWager(body.bet,1000,10000000,1000);if(user.balance<bet)throw new Error('게임머니가 부족합니다.');
   const mult=raceMultiplier(type,picks,r.card);if(!mult)throw new Error('배당 정보를 확인할 수 없어.');
-  walletChange(user.id,-bet,'horse_bet',`LIVE 경마 ${type} ${picks.join('/')} · x${mult} · ${formatMoney(bet)}G`);
-  r.bets.set(user.id,{userId:user.id,type,picks,bet,mult,placedAt:now()});escrowSet(`HORSE_${r.id}`,user.id,bet,'horse');/* Horse clients poll their own meet state; avoid waking every casino client for each bet. */return horseMeetPublic(user.id);
+  walletChange(user.id,-bet,'horse_bet',`경마 ${type} ${picks.join('/')} · x${mult} · ${formatMoney(bet)}G`);
+  r.bets.set(user.id,{userId:user.id,type,picks,bet,mult,placedAt:now()});escrowSet(`HORSE_${r.id}`,user.id,bet,'horse');return horseMeetPublic(user.id);
+}
+function horseReady(user){
+  const r=horseAdvanceMeet();if(r.phase!=='betting')throw new Error('이미 경주가 시작됐어.');
+  if(!r.bets.has(user.id))throw new Error('먼저 베팅을 접수해줘.');
+  r.ready.add(user.id);horseStartIfReady(r);return horseMeetPublic(user.id);
 }
 // ---------- European Roulette · v2.3 ----------
 const ROULETTE_WHEEL=[0,32,15,19,4,21,2,25,17,34,6,27,13,36,11,30,8,23,10,5,24,16,33,1,20,14,31,9,22,18,29,7,28,12,35,3,26];
@@ -1985,6 +1992,9 @@ const server=http.createServer(async(req,res)=>{
     }
     if(url.pathname==='/api/horse/bet'&&req.method==='POST'){
       const u=requireAuth(req,res);if(!u)return;const b=await readBody(req);try{const out=horsePlaceBet(u,b);return json(res,200,{...out,user:userPublic(u.id)});}catch(e){return json(res,409,{error:e.message});}
+    }
+    if(url.pathname==='/api/horse/ready'&&req.method==='POST'){
+      const u=requireAuth(req,res);if(!u)return;try{const out=horseReady(u);return json(res,200,{...out,user:userPublic(u.id)});}catch(e){return json(res,409,{error:e.message});}
     }
     // Legacy endpoints are kept so an old cached PWA can still finish a race safely.
     if(url.pathname==='/api/horse/card'&&req.method==='GET'){
