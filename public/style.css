@@ -1212,3 +1212,9 @@ button:not(:disabled){touch-action:manipulation}
 .seven-bank span{background:rgba(255,255,255,.055);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:6px 8px}
 .seven-bank span b{color:#ffe18a}
 @media(max-width:720px){.seven-pot{min-width:176px!important}.seven-pot>b{font-size:20px!important}.seven-pot-breakdown{gap:3px}.seven-bank{gap:5px!important}.seven-bank span{padding:5px 6px;font-size:9px}}
+
+/* v337: Seven Poker 2-6 player table */
+.seven-opponents-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:8px;width:100%;align-items:start}
+.seven-opponents-grid .seven-opponent{position:relative!important;inset:auto!important;transform:none!important;min-width:0}
+.seven-opponents-grid .seven-cards{transform:scale(.82);transform-origin:center top;margin-bottom:-12px}
+@media(max-width:720px){.seven-opponents-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:5px}.seven-opponents-grid .seven-player-title{font-size:9px}.seven-opponents-grid .seven-cards{transform:scale(.64);transform-origin:left top;width:150%;margin-bottom:-24px}}
