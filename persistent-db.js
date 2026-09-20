@@ -45,7 +45,7 @@ const EXTRA_COLUMNS = {
 
 let pool = null;
 let saveChain = Promise.resolve();
-let lastSnapshotJson = '';
+let lastSnapshotMeta = '';
 let remoteReady = false;
 let restoreHealthy = false;
 
@@ -136,6 +136,7 @@ class DatabaseSync {
         const restoredUsers=(snap.tables.users||[]).length;
         if(hasRemote() && restoredUsers===0) throw new Error('Safety stop: remote snapshot contains zero users.');
         restoreHealthy=true;
+        this._restore=null;
         console.log(`[PERSIST] Restored ${restoredRows} rows from Neon (${restoredUsers} users).`);
       }catch(e){
         try{this._native.exec('ROLLBACK; PRAGMA foreign_keys=ON;');}catch{}
@@ -185,21 +186,22 @@ class DatabaseSync {
   _scheduleSave(){
     if(!hasRemote() || !restoreHealthy) return;
     clearTimeout(this._saveTimer);
-    this._saveTimer=setTimeout(()=>this._queueSave(),60);
+    this._saveTimer=setTimeout(()=>this._queueSave(),1500);
   }
 
   _queueSave(){
     if(!hasRemote() || !restoreHealthy) return saveChain;
-    const snapshot=this._snapshot();
-    const json=JSON.stringify(snapshot);
-    if(json===lastSnapshotJson) return saveChain;
-    lastSnapshotJson=json;
     saveChain=saveChain.then(async()=>{
+      const snapshot=this._snapshot();
+      const meta=String(snapshot.updatedAt)+':'+TABLES.map(t=>snapshot.tables[t]?.length||0).join(',');
+      const json=JSON.stringify(snapshot);
       try{
         const p=await getPool();
         await p.query(`INSERT INTO junja_club_state(id,payload,updated_at) VALUES(1,$1::jsonb,$2)
           ON CONFLICT(id) DO UPDATE SET payload=EXCLUDED.payload, updated_at=EXCLUDED.updated_at`,[json,Date.now()]);
+        lastSnapshotMeta=meta;
       }catch(e){console.error('[PERSIST] Neon save failed:',e.message);}
+      finally{ snapshot.tables=null; }
     });
     return saveChain;
   }
