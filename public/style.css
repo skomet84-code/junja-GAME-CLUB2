@@ -1285,3 +1285,13 @@ button:not(:disabled){touch-action:manipulation}
 /* MATGO wager input visibility fix · 2026-09-20 */
 #gostopMultiBuyIn,#gostopBet{color:#fff3b0!important;-webkit-text-fill-color:#fff3b0!important;caret-color:#ffd85f!important;background:#090c14!important;border-color:#d8aa3f88!important;font-weight:900!important}
 #gostopMultiBuyIn::placeholder,#gostopBet::placeholder{color:#b9a66f!important;-webkit-text-fill-color:#b9a66f!important;opacity:1}
+
+
+/* MATGO interaction stability · 2026-09-20 */
+.my-hand-row{min-height:112px;align-items:flex-start}
+.my-hand-row .hwatu-card{will-change:auto;transform:none!important}
+.matgo-net{display:block;margin:10px auto 12px;padding:10px 14px;border-radius:12px;font-size:18px;font-weight:1000;text-align:center}
+.matgo-net.plus{background:#173d2c;color:#83f0b5}.matgo-net.minus{background:#491f29;color:#ff9aaa}.matgo-net.zero{background:#292d38;color:#d6d9e2}
+.gostop-bottom-ready{width:100%;min-height:50px;margin-top:8px;font-weight:1000}
+@media (hover:hover) and (pointer:fine){.my-hand-row .hwatu-card.clickable:hover{transform:translateY(-5px)!important}}
+@media(max-width:620px){.my-hand-row{min-height:92px;flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;justify-content:flex-start;scrollbar-width:none;-webkit-overflow-scrolling:touch}.my-hand-row::-webkit-scrollbar{display:none}.my-hand-row .hwatu-card{flex:0 0 auto;width:56px;height:87px}.my-hand-row .hwatu-card.clickable:hover,.my-hand-row .hwatu-card.clickable:active{transform:none!important}}
