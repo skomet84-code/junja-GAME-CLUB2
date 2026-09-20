@@ -198,8 +198,8 @@ function bindMain(){
     const unlockFromGesture=()=>{if(soundEnabled&&me&&!audioUnlocked)ensureAudioUnlocked(true)};
     document.addEventListener('pointerdown',unlockFromGesture,{capture:true,passive:true});document.addEventListener('keydown',unlockFromGesture,{capture:true});
     on('#refreshRank','click',loadLobby);on('#friendsBtn','click',()=>openFriendsHub());on('#profileBtn','click',openProfile);on('#closeProfile','click',()=>$('#profileSheet')?.classList.add('hidden'));on('#profileSheet','click',e=>{if(e.target.id==='profileSheet')$('#profileSheet')?.classList.add('hidden')});on('#logoutBtn','click',logout);
-    on('#refreshHoldem','click',()=>loadRooms('holdem'));on('#refreshYut','click',()=>loadRooms('yut'));on('#refreshSeotda','click',()=>loadRooms('seotda'));on('#refreshSevenpoker','click',()=>loadRooms('sevenpoker'));on('#refreshBaccarat','click',()=>loadBaccaratRooms());
-    on('#createHoldem','click',()=>createRoom('holdem'));on('#createYut','click',()=>createRoom('yut'));on('#createSeotda','click',()=>createRoom('seotda'));on('#createSevenpoker','click',()=>createRoom('sevenpoker'));on('#createBaccarat','click',createBaccaratRoom);
+    on('#refreshHoldem','click',()=>loadRooms('holdem'));on('#refreshYut','click',()=>loadRooms('yut'));on('#refreshSeotda','click',()=>loadRooms('seotda'));on('#refreshSevenpoker','click',()=>loadRooms('sevenpoker'));on('#refreshGostop','click',()=>loadRooms('gostop'));on('#refreshBaccarat','click',()=>loadBaccaratRooms());
+    on('#createHoldem','click',()=>createRoom('holdem'));on('#createYut','click',()=>createRoom('yut'));on('#createSeotda','click',()=>createRoom('seotda'));on('#createSevenpoker','click',()=>createRoom('sevenpoker'));on('#createGostop','click',()=>createRoom('gostop'));on('#createBaccarat','click',createBaccaratRoom);
     on('#yutMode','change',syncYutMode);on('#horseBetType','change',syncHorseBetUI);on('#horseStartBtn','click',startHorseRace);$$('[data-horse-auto]').forEach(b=>b.addEventListener('click',()=>startHorseAuto(Number(b.dataset.horseAuto))));on('#horseAutoStop','click',stopHorseAuto);
     on('#bigWheelSpinBtn','click',()=>spinBigWheel(false));$$('[data-wheel-auto]').forEach(b=>b.addEventListener('click',()=>runBigWheelAuto(Number(b.dataset.wheelAuto))));on('#bigWheelAutoStop','click',()=>{bigWheelAutoStop=true});$$('[data-wheel-bet]').forEach(b=>b.addEventListener('click',()=>selectBigWheelBet(b.dataset.wheelBet)));
     on('#sicboRollBtn','click',()=>rollSicbo(false));$$('[data-sicbo-auto]').forEach(b=>b.addEventListener('click',()=>runSicboAuto(Number(b.dataset.sicboAuto))));on('#sicboAutoStop','click',()=>{sicboAutoStop=true});$$('[data-sicbo-bet]').forEach(b=>b.addEventListener('click',()=>selectSicboBet(b.dataset.sicboBet)));
@@ -523,12 +523,13 @@ async function createRoom(game){try{
   else if(game==='yut')body={game,buyIn:Number($('#yutBuyIn').value),maxPlayers:Number($('#yutMax').value),yutMode:$('#yutMode')?.value||'individual'};
   else if(game==='seotda')body={game,buyIn:normalizeWalletWagerInput('seotdaMultiBuyIn',5000),maxPlayers:2};
   else if(game==='sevenpoker')body={game,maxPlayers:2};
+  else if(game==='gostop')body={game,buyIn:normalizeWagerInput('gostopMultiBuyIn',5000,1000000),maxPlayers:2};
   else throw new Error('지원하지 않는 게임방이야.');
   const d=await api('/api/rooms',{method:'POST',body:JSON.stringify(body)});currentRoomId=d.room.id;currentGame=game;lastRoomVersion=d.room.version||0;renderRoom(d.room);startRoomPolling();await refreshMe();toast(`방 코드 ${d.room.id} 생성 완료 · READY를 눌러줘`)
 }catch(e){toast(e.message);if(/이미 다른 게임방/.test(e.message))resumeMyRoom()}}
 async function loadRooms(game){if(currentRoomId)return loadCurrentRoom(true);try{
   const d=await api('/api/rooms?game='+game),root=$('#'+game+'Rooms');if(!root)return;
-  const detail=r=>game==='holdem'?`BLIND ${money(r.smallBlind)}/${money(r.bigBlind)}`:game==='yut'?html(r.yutModeLabel||'개인전'):game==='seotda'?'3장 · 공개 버리기 · 1:1':'7 CARD STUD · 1:1';
+  const detail=r=>game==='holdem'?`BLIND ${money(r.smallBlind)}/${money(r.bigBlind)}`:game==='yut'?html(r.yutModeLabel||'개인전'):game==='seotda'?'3장 · 공개 버리기 · 1:1':game==='gostop'?'맞고 · 1:1':'7 CARD STUD · 1:1';
   root.innerHTML=d.rooms.map(r=>`<div class="room-row deluxe-room-row"><div class="room-row-main"><h4>${html(r.name)} <span class="status ${r.status==='PLAYING'?'play':'wait'}">${r.status}</span></h4><p>코드 ${r.id} · ${r.players}/${r.maxPlayers}명 · ${money(r.buyIn)} · ${detail(r)}</p><div class="room-mini-users">${(r.participants||[]).map(p=>`<span class="${p.ready?'ready':''}">${AVATAR_SAFE(p.avatar)} ${html(p.nickname)}${p.ready?' ✓':''}</span>`).join('')||'<span>아직 참가자 없음</span>'}</div></div><div class="room-row-actions"><b>${r.readyCount||0} READY</b><button class="secondary" data-join="${r.id}" ${r.status==='PLAYING'?'disabled':''} type="button">${r.status==='PLAYING'?'진행중':'입장'}</button></div></div>`).join('')||'<div class="empty">열린 방이 없어. 먼저 하나 만들어봐.</div>';
   $$('[data-join]',root).forEach(b=>b.onclick=()=>joinRoom(game,b.dataset.join));
 }catch(e){toast(e.message)}}
