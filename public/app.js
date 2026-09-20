@@ -271,8 +271,8 @@ function renderShop(){
   </div>`;
   $('#openMyCollection',root)?.addEventListener('click',()=>{shopCategory='all';shopOwnedOnly=true;renderShop();window.scrollTo({top:420,behavior:'smooth'})});
   $$('[data-shop-category]',root).forEach(b=>b.onclick=()=>{shopCategory=b.dataset.shopCategory;if(shopCategory!=='character')shopCharacterGender='all';renderShop()});$$('[data-char-gender]',root).forEach(b=>b.onclick=()=>{shopCharacterGender=b.dataset.charGender;renderShop()});$('#shopOwnedOnly',root)?.addEventListener('change',e=>{shopOwnedOnly=e.target.checked;renderShop()});
-  $('[data-limited-jump]',root).forEach(b=>b.onclick=()=>{shopCategory='character';shopCharacterGender=b.dataset.limitedJump;shopOwnedOnly=false;renderShop();window.scrollTo({top:420,behavior:'smooth'})});
-  $('[data-prestige-jump]',root).forEach(b=>b.onclick=()=>{shopCategory=b.dataset.prestigeJump;shopOwnedOnly=false;renderShop();window.scrollTo({top:420,behavior:'smooth'})});
+  $$('[data-limited-jump]',root).forEach(b=>b.onclick=()=>{shopCategory='character';shopCharacterGender=b.dataset.limitedJump;shopOwnedOnly=false;renderShop();window.scrollTo({top:420,behavior:'smooth'})});
+  $$('[data-prestige-jump]',root).forEach(b=>b.onclick=()=>{shopCategory=b.dataset.prestigeJump;shopOwnedOnly=false;renderShop();window.scrollTo({top:420,behavior:'smooth'})});
   $$('[data-shop-buy]',root).forEach(b=>{b.onclick=e=>{e.preventDefault();e.stopPropagation();buyShopItemUI(b.dataset.shopBuy,b)};b.ontouchend=e=>{e.preventDefault();e.stopPropagation();if(!b.disabled)buyShopItemUI(b.dataset.shopBuy,b)}});
   $$('[data-shop-equip]',root).forEach(b=>b.onclick=()=>equipShopItemUI(b.dataset.shopSlot,b.dataset.shopEquip,b));
   $$('[data-shop-unequip]',root).forEach(b=>b.onclick=()=>equipShopItemUI(b.dataset.shopUnequip,'',b));
