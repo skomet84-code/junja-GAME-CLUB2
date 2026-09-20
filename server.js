@@ -2008,7 +2008,7 @@ const server=http.createServer(async(req,res)=>{
       const u=requireAuth(req,res);if(!u)return;if(findUserRoom(u.id)||baccaratFindUser(u.id))return json(res,409,{error:'이미 다른 게임방에 참가 중입니다. 먼저 그 방에서 나와주세요.'});const b=await readBody(req),requested=String(b.game||'holdem'),game=['holdem','yut','seotda','sevenpoker','gostop'].includes(requested)?requested:'holdem';
       const yutMode=game==='yut'&&['individual','2v2','3v3'].includes(b.yutMode)?b.yutMode:'individual';const maxPlayers=(game==='holdem'||game==='sevenpoker')?clampInt(b.maxPlayers,2,6):game==='yut'?(yutMode==='2v2'?4:yutMode==='3v3'?6:clampInt(b.maxPlayers,2,6)):2;const chipGame=game==='holdem'||game==='sevenpoker';let buyIn;try{buyIn=chipGame?Math.floor(Number(u.balance||0)):game==='seotda'?walletWager(b.buyIn,u.balance,5000,1000):game==='gostop'?gameWager(b.buyIn,5000,1000000,1000):gameWager(b.buyIn,5000,100000,1000)}catch(e){return json(res,400,{error:e.message})};
       if(!Number.isSafeInteger(buyIn)||buyIn<1000)return json(res,400,{error:'포커 테이블 입장에는 최소 1,000G가 필요합니다.'});if(u.balance<buyIn)return json(res,400,{error:'방 참가금보다 보유 게임머니가 적습니다.'});
-      const id=makeRoomId();const name=game==='holdem'?`홀덤 테이블 ${id}`:game==='yut'?`윷놀이 방 ${id}`:game==='seotda'?`3장 섯다 듀얼 ${id}`:`세븐포커 테이블 ${id}`;walletChange(u.id,-buyIn,`${game}_buyin`,chipGame?`${name} 전액 스택 입장`:`${name} 참가금`);
+      const id=makeRoomId();const name=game==='holdem'?`홀덤 테이블 ${id}`:game==='yut'?`윷놀이 방 ${id}`:game==='seotda'?`3장 섯다 듀얼 ${id}`:game==='gostop'?`맞고 대전방 ${id}`:`세븐포커 테이블 ${id}`;walletChange(u.id,-buyIn,`${game}_buyin`,chipGame?`${name} 전액 스택 입장`:`${name} 참가금`);
       const t=now(),sb=game==='holdem'?Math.max(1000,Math.min(50000,Math.floor((buyIn*.002)/1000)*1000||1000)):0;const r={id,name,game,buyIn,maxPlayers,allWallet:chipGame,hostId:u.id,smallBlind:sb,bigBlind:game==='holdem'?sb*2:0,players:[{userId:u.id,nickname:u.nickname,avatar:u.avatar,seat:0,stack:chipGame?buyIn:0,ready:false,joinedAt:t}],createdAt:t,updatedAt:t,version:1,hand:null,seven:null,seotda:null,gostop:null,yut:null,yutMode,dealerSeat:null,reactions:{}};
       rooms.set(id,r);escrowSet(id,u.id,buyIn,game);pushRefresh(id);return json(res,201,{room:personalizedRoom(r,u.id)});
     }
@@ -2048,7 +2048,7 @@ const server=http.createServer(async(req,res)=>{
       }
       if(op==='leave'&&req.method==='POST'){
         const p=roomPlayer(r,u.id);if(!p)return json(res,200,{ok:true});if(roomStatus(r)==='PLAYING')return json(res,409,{error:'게임 진행 중에는 나갈 수 없습니다.'});
-        const refund=(r.game==='holdem'||r.game==='sevenpoker')?Math.max(0,p.stack):(r.game==='seotda'?(r.seotda?.phase==='complete'?0:r.buyIn):(r.yut?.phase==='complete'?0:r.buyIn)); if(refund>0)walletChange(u.id,refund,`${r.game}_cashout`,`${r.name} 퇴장 환급`);escrowDelete(r.id,u.id);r.players=r.players.filter(x=>x.userId!==u.id);
+        const refund=(r.game==='holdem'||r.game==='sevenpoker')?Math.max(0,p.stack):(r.game==='seotda'?(r.seotda?.phase==='complete'?0:r.buyIn):r.game==='gostop'?(r.gostop?.phase==='complete'?0:r.buyIn):(r.yut?.phase==='complete'?0:r.buyIn)); if(refund>0)walletChange(u.id,refund,`${r.game}_cashout`,`${r.name} 퇴장 환급`);escrowDelete(r.id,u.id);r.players=r.players.filter(x=>x.userId!==u.id);
         if(!r.players.length)rooms.delete(r.id);else {if(r.hostId===u.id)r.hostId=r.players[0].userId;touchRoom(r);}pushRefresh(r.id);return json(res,200,{ok:true});
       }
       if(op==='start'&&req.method==='POST'){
