@@ -623,11 +623,16 @@ function consumeRankFreePlay(userId,kind,useFree=false){
   if(info.changes!==1)throw new Error('무료권 사용 상태가 변경되었습니다. 다시 시도해주세요.');
   used++;return {free:true,used,limit,left:Math.max(0,limit-used)};
 }
+function rankFreePlayState(userId,kind){
+  const d=kstDate(),slot=kind==='slot',dateCol=slot?'rank_free_slot_date':'rank_free_wheel_date',usedCol=slot?'rank_free_slot_used':'rank_free_wheel_used',limit=Number(socialRankPerksForUser(userId)[slot?'freeSlots':'freeBigWheel']||0);
+  const row=db.prepare(`SELECT ${dateCol} d,${usedCol} used FROM users WHERE id=?`).get(Number(userId));const used=row?.d===d?Number(row?.used||0):0;
+  return {used,limit,left:Math.max(0,limit-used)};
+}
 function socialRankPublic(userId){
   const row=db.prepare('SELECT rank_level FROM users WHERE id=?').get(Number(userId));
   const level=Math.max(0,Math.min(SOCIAL_RANKS.length-1,Number(row?.rank_level||0)));
   const current=SOCIAL_RANKS[level],next=SOCIAL_RANKS[level+1]||null;
-  return {level,name:current.name,icon:current.icon,className:current.className,perks:socialRankPerks(level),maxLevel:!next,next:next?{level:next.level,name:next.name,icon:next.icon,cost:next.cost,className:next.className,perks:socialRankPerks(next.level)}:null};
+  return {level,name:current.name,icon:current.icon,className:current.className,perks:socialRankPerks(level),freePlay:{slot:rankFreePlayState(userId,'slot'),wheel:rankFreePlayState(userId,'wheel')},maxLevel:!next,next:next?{level:next.level,name:next.name,icon:next.icon,cost:next.cost,className:next.className,perks:socialRankPerks(next.level)}:null};
 }
 function promoteSocialRank(userId){
   db.exec('BEGIN IMMEDIATE');
