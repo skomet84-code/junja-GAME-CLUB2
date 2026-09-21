@@ -852,7 +852,7 @@ function renderGostopMulti(room){
   bindRoomCommon(root,room);
   $('.gostop-bottom-ready',root)?.addEventListener('click',toggleReady);
   $$('[data-hwatu]',root).forEach(b=>b.onclick=async()=>{try{b.disabled=true;const d=await api(`/api/rooms/${room.id}/gostop/play`,{method:'POST',body:JSON.stringify({cardId:b.dataset.hwatu})});renderRoom(d.room)}catch(e){toast(e.message)}finally{b.disabled=false}});
-  $$$('[data-hwatu-choice]',root).forEach(b=>b.onclick=async()=>{try{const d=await api(`/api/rooms/${room.id}/gostop/play`,{method:'POST',body:JSON.stringify({cardId:g.pendingChoice?.card?.id||'',choiceId:b.dataset.hwatuChoice})});renderRoom(d.room)}catch(e){toast(e.message)}});
+  $('[data-hwatu-choice]',root).forEach(b=>b.onclick=async()=>{try{const d=await api(`/api/rooms/${room.id}/gostop/play`,{method:'POST',body:JSON.stringify({cardId:g.pendingChoice?.card?.id||'',choiceId:b.dataset.hwatuChoice})});renderRoom(d.room)}catch(e){toast(e.message)}});
   $$('[data-mgdecision]',root).forEach(b=>b.onclick=async()=>{try{const d=await api(`/api/rooms/${room.id}/gostop/decision`,{method:'POST',body:JSON.stringify({decision:b.dataset.mgdecision})});renderRoom(d.room);if(d.room.gostop?.phase==='complete')await refreshMe()}catch(e){toast(e.message)}});
 }
 
