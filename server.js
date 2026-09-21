@@ -1396,8 +1396,12 @@ function gostopScore(captured){
 function takeOnePi(s,from,to){const pile=s.captured[from];let idx=pile.findIndex(c=>c.type==='피'&&!c.doublePi);if(idx<0)idx=pile.findIndex(c=>c.type==='피');if(idx<0)return false;const [card]=pile.splice(idx,1);s.captured[to].push(card);return true;}
 function matgoEvent(s,text,tone='normal'){s.events.unshift({text,tone,at:Date.now()});s.events=s.events.slice(0,7);}
 function matgoCapture(s,side,card,choiceId=null){const matches=s.floor.filter(c=>c.m===card.m);if(matches.length===2&&!choiceId)return {choice:matches};let picked=[];if(matches.length===1)picked=matches;else if(matches.length===2)picked=[matches.find(c=>c.id===choiceId)||matches[0]];else if(matches.length>=3)picked=matches;if(!picked.length){s.floor.push(card);return {matched:false};}const ids=new Set(picked.map(c=>c.id));s.floor=s.floor.filter(c=>!ids.has(c.id));s.captured[side].push(card,...picked);return {matched:true,count:picked.length};}
+function addMatgoBonusPi(s){const bonus=[{m:0,i:0,type:'피',id:'BONUS-2',name:'보너스 쌍피',doublePi:true,bonusPi:true},{m:0,i:1,type:'피',id:'BONUS-1',name:'보너스 피',doublePi:false,bonusPi:true}];for(const card of bonus){const at=Math.max(0,Math.min(s.deck.length,crypto.randomInt(s.deck.length+1)));s.deck.splice(at,0,card);}}
+function takeBonusPi(s,side,card){s.captured[side].push(card);takeOnePi(s,side==='user'?'bot':'user',side);matgoEvent(s,`${card.doublePi?'보너스 쌍피':'보너스 피'}! 상대 피 1장 획득`,'gold');}
+function matgoBomb(s,side,month){month=Number(month);const hand=s.hands[side].filter(c=>Number(c.m)===month),floor=s.floor.filter(c=>Number(c.m)===month);if(hand.length<3||floor.length!==1)throw new Error('폭탄 조건이 아닙니다.');const ids=new Set(hand.slice(0,3).map(c=>c.id));s.hands[side]=s.hands[side].filter(c=>!ids.has(c.id));s.floor=s.floor.filter(c=>Number(c.m)!==month);s.captured[side].push(...hand.slice(0,3),...floor);s.shakes[side]++;takeOnePi(s,side==='user'?'bot':'user',side);matgoEvent(s,`💣 ${month}월 폭탄! 상대 피 1장 획득 · 2배`,'red');gostopDrawAndCapture(s,side,{playedMonth:month,playMatched:true});}
+function matgoShake(s,side,month){month=Number(month);const hand=s.hands[side].filter(c=>Number(c.m)===month);if(hand.length<3)throw new Error('흔들기 조건이 아닙니다.');if((s.shakenMonths?.[side]||[]).includes(month))throw new Error('이미 흔든 패입니다.');s.shakenMonths[side].push(month);s.shakes[side]++;matgoEvent(s,`🔥 ${month}월 흔들기! 승리 시 2배`,'gold');}
 function matgoSweep(s,side){if(s.floor.length===0&&takeOnePi(s,side==='user'?'bot':'user',side))matgoEvent(s,'싹쓸이! 상대 피 1장 획득','gold');}
-function gostopDrawAndCapture(s,side,context={}){const card=s.deck.pop();if(!card)return {done:true};s.lastDraw=card;const matches=s.floor.filter(c=>c.m===card.m);let result;if(matches.length===2){const best=[...matches].sort((a,b)=>({광:4,'열끗':3,'띠':2,'피':1}[b.type]-({광:4,'열끗':3,'띠':2,'피':1}[a.type])))[0];result=matgoCapture(s,side,card,best.id);}else result=matgoCapture(s,side,card);if(context.playedMonth===card.m&&context.playMatched===false&&result.matched){if(takeOnePi(s,side==='user'?'bot':'user',side))matgoEvent(s,'쪽! 상대 피 1장 획득','red');}if(context.playedMonth===card.m&&context.playMatched&&result.matched){if(takeOnePi(s,side==='user'?'bot':'user',side))matgoEvent(s,'따닥! 상대 피 1장 획득','red');}if(result.count>=3&&takeOnePi(s,side==='user'?'bot':'user',side))matgoEvent(s,'판쓸이! 상대 피 1장 획득','gold');matgoSweep(s,side);return result;}
+function gostopDrawAndCapture(s,side,context={}){const card=s.deck.pop();if(!card)return {done:true};s.lastDraw=card;if(card.bonusPi){takeBonusPi(s,side,card);return gostopDrawAndCapture(s,side,context);}const matches=s.floor.filter(c=>c.m===card.m);let result;if(matches.length===2){const best=[...matches].sort((a,b)=>({광:4,'열끗':3,'띠':2,'피':1}[b.type]-({광:4,'열끗':3,'띠':2,'피':1}[a.type])))[0];result=matgoCapture(s,side,card,best.id);}else result=matgoCapture(s,side,card);if(context.playedMonth===card.m&&context.playMatched===false&&result.matched){if(takeOnePi(s,side==='user'?'bot':'user',side))matgoEvent(s,'쪽! 상대 피 1장 획득','red');}if(context.playedMonth===card.m&&context.playMatched&&result.matched){if(takeOnePi(s,side==='user'?'bot':'user',side))matgoEvent(s,'따닥! 상대 피 1장 획득','red');}if(result.count>=3&&takeOnePi(s,side==='user'?'bot':'user',side))matgoEvent(s,'판쓸이! 상대 피 1장 획득','gold');matgoSweep(s,side);return result;}
 function gostopCanDecision(s,side){const sc=gostopScore(s.captured[side]).score;return sc>=7&&sc>s.lastDecisionScore[side];}
 function matgoMultiplier(s,winner){const loser=winner==='user'?'bot':'user',ws=gostopScore(s.captured[winner]),ls=gostopScore(s.captured[loser]);let mult=1;const reasons=[];if(ws.g>=3&&ls.g===0){mult*=2;reasons.push('광박');}if(ws.p>=10&&ls.p>0&&ls.p<=7){mult*=2;reasons.push('피박');}if(ws.a>=7){mult*=2;reasons.push('멍박');}if(s.goCount[loser]>0){mult*=2;reasons.push('고박');}if(s.shakes[winner]>0){mult*=2**s.shakes[winner];reasons.push(`${s.shakes[winner]}흔들`);}if(s.goCount[winner]>=3){mult*=2**(s.goCount[winner]-2);reasons.push(`${s.goCount[winner]}고`);}return {mult,reasons,ws,ls};}
 function gostopFinish(userId,winner,reason){const s=soloGostop.get(userId);if(!s||s.phase==='complete')return;escrowDelete(`GOSTOP${userId}`,userId);s.phase='complete';s.winner=winner;const calc=matgoMultiplier(s,winner);let payout=0;const base=Math.max(1,calc.ws.score+s.goCount[winner]);if(winner==='user'){payout=s.bet*base*calc.mult;walletChange(userId,payout,'gostop_win',`야심찬 맞고 승리 ${base}점 x${calc.mult}`);}db.prepare('UPDATE stats SET gostop_games=gostop_games+1, gostop_wins=gostop_wins+? WHERE user_id=?').run(winner==='user'?1:0,userId);s.result={reason,payout,userScore:calc.ws,botScore:calc.ls,base,multiplier:calc.mult,bonuses:calc.reasons};matgoEvent(s,`${reason} · ${base}점 ×${calc.mult}`,'gold');}
@@ -1412,25 +1416,33 @@ function publicGostop(s){if(!s)return null;const {deck,...rest}=s;return {...res
 
 function roomGostopStart(r){
   if(r.players.length!==2)throw new Error('맞고는 2명이 있어야 시작할 수 있습니다.');
-  const ps=orderedPlayers(r),d=hwatuDeck(),s={bet:r.buyIn,phase:'playing',userA:ps[0].userId,userB:ps[1].userId,hands:{user:[],bot:[]},floor:[],captured:{user:[],bot:[]},deck:d,turn:'user',goCount:{user:0,bot:0},lastDecisionScore:{user:0,bot:0},needDecision:false,pendingChoice:null,shakes:{user:0,bot:0},events:[],lastDraw:null,winner:null,result:null};
-  for(let i=0;i<10;i++){s.hands.user.push(d.pop());s.hands.bot.push(d.pop())}for(let i=0;i<8;i++)s.floor.push(d.pop());matgoEvent(s,'실시간 맞고 시작 · 방장이 선','gold');r.gostop=s;for(const p of r.players)p.ready=false;
+  const ps=orderedPlayers(r),d=hwatuDeck(),s={bet:r.buyIn,phase:'playing',userA:ps[0].userId,userB:ps[1].userId,hands:{user:[],bot:[]},floor:[],captured:{user:[],bot:[]},deck:d,turn:'user',goCount:{user:0,bot:0},lastDecisionScore:{user:0,bot:0},needDecision:false,pendingChoice:null,shakes:{user:0,bot:0},shakenMonths:{user:[],bot:[]},events:[],lastDraw:null,winner:null,result:null};
+  for(let i=0;i<10;i++){s.hands.user.push(d.pop());s.hands.bot.push(d.pop())}for(let i=0;i<8;i++)s.floor.push(d.pop());addMatgoBonusPi(s);matgoEvent(s,'실시간 맞고 시작 · 방장이 선','gold');r.gostop=s;for(const p of r.players)p.ready=false;
 }
 function roomGostopSide(s,userId){if(Number(userId)===Number(s.userA))return'user';if(Number(userId)===Number(s.userB))return'bot';throw new Error('이 맞고방 참가자가 아닙니다.')}
 function roomGostopFinish(r,winner,reason){
  const s=r.gostop;if(!s||s.phase==='complete')return;s.phase='complete';s.winner=winner;const winnerId=winner==='user'?s.userA:winner==='bot'?s.userB:null;
- const us=gostopScore(s.captured.user),bs=gostopScore(s.captured.bot);s.result={reason,base:winner?Math.max(1,gostopScore(s.captured[winner]).score+s.goCount[winner]):0,multiplier:1,payout:winnerId?r.buyIn*2:0};
+ const us=gostopScore(s.captured.user),bs=gostopScore(s.captured.bot),calc=winner?matgoMultiplier(s,winner):null;
+ const base=winner?Math.max(1,calc.ws.score+s.goCount[winner]):0,multiplier=calc?calc.mult:1,netWin=winnerId?Math.floor(r.buyIn*base*multiplier):0;
+ s.result={reason,base,multiplier,payout:netWin,bonuses:calc?.reasons||[]};
  for(const p of r.players)escrowDelete(r.id,p.userId);
- if(winnerId){walletChange(winnerId,r.buyIn*2,'gostop_multi_win',`${r.name} 맞고 승리`);db.prepare('UPDATE stats SET gostop_games=gostop_games+1, gostop_wins=gostop_wins+? WHERE user_id=?').run(1,winnerId);const loserId=winnerId===s.userA?s.userB:s.userA;db.prepare('UPDATE stats SET gostop_games=gostop_games+1 WHERE user_id=?').run(loserId);}
- else {for(const p of r.players)walletChange(p.userId,r.buyIn,'gostop_multi_draw',`${r.name} 나가리 환급`);for(const p of r.players)db.prepare('UPDATE stats SET gostop_games=gostop_games+1 WHERE user_id=?').run(p.userId);}
- matgoEvent(s,reason,'gold');
+ if(winnerId){
+   const loserId=winnerId===s.userA?s.userB:s.userA,extra=Math.max(0,netWin-r.buyIn);
+   if(extra)walletChange(loserId,-extra,'gostop_multi_loss',`${r.name} 맞고 ${base}점 x${multiplier}`);
+   walletChange(winnerId,netWin+r.buyIn,'gostop_multi_win',`${r.name} 맞고 승리 ${base}점 x${multiplier}`);
+   db.prepare('UPDATE stats SET gostop_games=gostop_games+1, gostop_wins=gostop_wins+1 WHERE user_id=?').run(winnerId);
+   db.prepare('UPDATE stats SET gostop_games=gostop_games+1 WHERE user_id=?').run(loserId);
+ } else {for(const p of r.players)walletChange(p.userId,r.buyIn,'gostop_multi_draw',`${r.name} 나가리 환급`);for(const p of r.players)db.prepare('UPDATE stats SET gostop_games=gostop_games+1 WHERE user_id=?').run(p.userId);}
+ matgoEvent(s,`${reason}${winner?' · '+base+'점 ×'+multiplier:''}`,'gold');
 }
 function roomGostopAfterTurn(r,side){
  const s=r.gostop,sc=gostopScore(s.captured[side]).score;if(sc>=7&&sc>s.lastDecisionScore[side]){s.lastDecisionScore[side]=sc;s.needDecision=true;s.turn=side;return}
  if(!s.hands[side].length&&!s.deck.length){const us=gostopScore(s.captured.user).score,bs=gostopScore(s.captured.bot).score;if(Math.max(us,bs)<7)return roomGostopFinish(r,null,'나가리');return roomGostopFinish(r,us===bs?null:(us>bs?'user':'bot'),'패 소진')}
  s.turn=side==='user'?'bot':'user';
 }
-function roomGostopPlay(r,userId,cardId,choiceId=null){
+function roomGostopPlay(r,userId,cardId,choiceId=null,action=null,month=null){
  const s=r.gostop;if(!s||s.phase!=='playing')throw new Error('진행 중인 맞고가 없습니다.');const side=roomGostopSide(s,userId);if(s.turn!==side||s.needDecision)throw new Error('지금은 내 차례가 아닙니다.');
+ if(action==='bomb'){matgoBomb(s,side,month);roomGostopAfterTurn(r,side);return}if(action==='shake'){matgoShake(s,side,month);return}
  if(s.pendingChoice){if(s.pendingChoice.side!==side||!choiceId)throw new Error('먹을 바닥패를 선택해주세요.');const p=s.pendingChoice;s.pendingChoice=null;const played=matgoCapture(s,side,p.card,choiceId);gostopDrawAndCapture(s,side,{playedMonth:p.card.m,playMatched:played.matched});roomGostopAfterTurn(r,side);return}
  const idx=s.hands[side].findIndex(x=>x.id===cardId);if(idx<0)throw new Error('손패에 없는 카드입니다.');const card=s.hands[side].splice(idx,1)[0],matches=s.floor.filter(x=>x.m===card.m);if(matches.length===2){s.pendingChoice={side,card,options:matches};return}
  const played=matgoCapture(s,side,card);gostopDrawAndCapture(s,side,{playedMonth:card.m,playMatched:played.matched});roomGostopAfterTurn(r,side);
@@ -1441,7 +1453,7 @@ function roomGostopDecision(r,userId,decision){
 function roomGostopPublic(r,userId){
  const s=r.gostop;if(!s)return null;const my=roomGostopSide(s,userId),aSide=Number(s.userA)===Number(userId)?my:(my==='user'?'bot':'user'),map={a:'user',b:'bot'}; // a is always userA/internal user
  const conv=(side)=>s.phase==='complete'||side===my?s.hands[side]:s.hands[side].map(()=>({id:'XX'}));
- return {phase:s.phase,userA:s.userA,userB:s.userB,turn:s.turn==='user'?'a':'b',hands:{a:conv('user'),b:conv('bot')},floor:s.floor,captured:{a:s.captured.user,b:s.captured.bot},goCount:{a:s.goCount.user,b:s.goCount.bot},score:{a:gostopScore(s.captured.user),b:gostopScore(s.captured.bot)},needDecision:s.needDecision&&s.turn===my,pendingChoice:s.pendingChoice&&s.pendingChoice.side===my?{card:s.pendingChoice.card,options:s.pendingChoice.options}:null,deckCount:s.deck.length,winnerUserId:s.winner==='user'?s.userA:s.winner==='bot'?s.userB:null,result:s.result,events:s.events};
+ return {phase:s.phase,userA:s.userA,userB:s.userB,turn:s.turn==='user'?'a':'b',shakes:{a:s.shakes.user,b:s.shakes.bot},hands:{a:conv('user'),b:conv('bot')},floor:s.floor,captured:{a:s.captured.user,b:s.captured.bot},goCount:{a:s.goCount.user,b:s.goCount.bot},score:{a:gostopScore(s.captured.user),b:gostopScore(s.captured.bot)},needDecision:s.needDecision&&s.turn===my,pendingChoice:s.pendingChoice&&s.pendingChoice.side===my?{card:s.pendingChoice.card,options:s.pendingChoice.options}:null,deckCount:s.deck.length,winnerUserId:s.winner==='user'?s.userA:s.winner==='bot'?s.userB:null,result:s.result,events:s.events};
 }
 
 // ---------- Seven Poker (7-card stud) ----------
@@ -2099,7 +2111,7 @@ const server=http.createServer(async(req,res)=>{
         if(r.game!=='seotda')return json(res,400,{error:'섯다 방이 아닙니다.'});const b=await readBody(req);try{seotdaMultiDiscard(r,u.id,String(b.cardId||''));touchRoom(r);pushRefresh(r.id);return json(res,200,{room:personalizedRoom(r,u.id)});}catch(e){return json(res,409,{error:e.message});}
       }
       if(op==='gostop/play'&&req.method==='POST'){
-        if(r.game!=='gostop')return json(res,400,{error:'맞고 방이 아닙니다.'});const b=await readBody(req);try{roomGostopPlay(r,u.id,String(b.cardId||''),b.choiceId?String(b.choiceId):null);touchRoom(r);pushRefresh(r.id);return json(res,200,{room:personalizedRoom(r,u.id)});}catch(e){return json(res,409,{error:e.message});}
+        if(r.game!=='gostop')return json(res,400,{error:'맞고 방이 아닙니다.'});const b=await readBody(req);try{roomGostopPlay(r,u.id,String(b.cardId||''),b.choiceId?String(b.choiceId):null,b.action?String(b.action):null,b.month);touchRoom(r);pushRefresh(r.id);return json(res,200,{room:personalizedRoom(r,u.id)});}catch(e){return json(res,409,{error:e.message});}
       }
       if(op==='gostop/decision'&&req.method==='POST'){
         if(r.game!=='gostop')return json(res,400,{error:'맞고 방이 아닙니다.'});const b=await readBody(req);try{roomGostopDecision(r,u.id,String(b.decision||''));touchRoom(r);pushRefresh(r.id);return json(res,200,{room:personalizedRoom(r,u.id)});}catch(e){return json(res,409,{error:e.message});}
