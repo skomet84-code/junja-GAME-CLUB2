@@ -496,14 +496,16 @@ function transferGameMoney(senderId,targetId,amount){
     if(!sender) throw new Error('보내는 회원을 찾을 수 없습니다.');
     if(!target||target.is_disabled) throw new Error('받는 친구를 찾을 수 없습니다.');
     if(sender.is_disabled) throw new Error('현재 계정에서는 보낼 수 없습니다.');
-    if(sender.balance<amount) throw new Error(`보유 게임머니 ${formatMoney(sender.balance)}G보다 많이 보낼 수 없습니다.`);
-    const senderNext=sender.balance-amount,targetNext=target.balance+amount,t=now();
+    const feePct=Number(socialRankPerksForUser(senderId).transferFeePct||0),fee=Math.max(0,Math.floor(amount*feePct/100)),total=amount+fee;
+    if(sender.balance<total) throw new Error(`송금액과 수수료를 포함해 ${formatMoney(total)}G가 필요합니다.`);
+    const senderNext=sender.balance-total,targetNext=target.balance+amount,t=now();
+    if(!Number.isSafeInteger(senderNext)||!Number.isSafeInteger(targetNext))throw new Error('게임머니 한도를 초과합니다.');
     db.prepare('UPDATE users SET balance=? WHERE id=?').run(senderNext,senderId);
     db.prepare('UPDATE users SET balance=? WHERE id=?').run(targetNext,targetId);
-    db.prepare('INSERT INTO ledger(user_id,amount,balance_after,type,memo,created_at) VALUES(?,?,?,?,?,?)').run(senderId,-amount,senderNext,'friend_send',`${target.nickname}님에게 게임머니 보내기`,t);
+    db.prepare('INSERT INTO ledger(user_id,amount,balance_after,type,memo,created_at) VALUES(?,?,?,?,?,?)').run(senderId,-total,senderNext,'friend_send',`${target.nickname}님에게 게임머니 보내기 · 송금 ${formatMoney(amount)}G · 신분 수수료 ${formatMoney(fee)}G (${feePct}%)`,t);
     db.prepare('INSERT INTO ledger(user_id,amount,balance_after,type,memo,created_at) VALUES(?,?,?,?,?,?)').run(targetId,amount,targetNext,'friend_receive',`${sender.nickname}님에게 받은 게임머니`,t);
     db.exec('COMMIT');
-    return {senderBalance:senderNext,targetBalance:targetNext,target:{id:target.id,nickname:target.nickname}};
+    return {senderBalance:senderNext,targetBalance:targetNext,amount,fee,feePct,total,target:{id:target.id,nickname:target.nickname}};
   }catch(e){try{db.exec('ROLLBACK')}catch{};throw e;}
 }
 
@@ -1866,7 +1868,7 @@ const server=http.createServer(async(req,res)=>{
       const b=await readBody(req),targetId=Number(b.targetId),amount=Math.trunc(Number(b.amount));
       if(!Number.isInteger(targetId)||targetId<1)return json(res,400,{error:'받는 친구를 다시 확인해줘.'});
       if(!Number.isInteger(amount)||amount<1)return json(res,400,{error:'보낼 금액을 올바르게 입력해줘.'});
-      try{const result=transferGameMoney(u.id,targetId,amount);pushRefresh();return json(res,200,{ok:true,amount,target:result.target,user:userPublic(u.id)});}catch(e){return json(res,400,{error:e.message});}
+      try{const result=transferGameMoney(u.id,targetId,amount);pushRefresh();return json(res,200,{ok:true,amount,fee:result.fee,feePct:result.feePct,total:result.total,target:result.target,user:userPublic(u.id)});}catch(e){return json(res,400,{error:e.message});}
     }
     if(url.pathname==='/api/events'&&req.method==='GET'){
       const u=requireAuth(req,res);if(!u)return;
