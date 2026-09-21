@@ -1,6 +1,7 @@
 name: JUNJA LAND Main Live Deploy
 
 on:
+  # deploy-trigger-v2: keep main push deployment active
   push:
     branches: [main]
     paths:
