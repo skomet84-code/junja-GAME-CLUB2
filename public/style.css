@@ -1295,3 +1295,16 @@ button:not(:disabled){touch-action:manipulation}
 .gostop-bottom-ready{width:100%;min-height:50px;margin-top:8px;font-weight:1000}
 @media (hover:hover) and (pointer:fine){.my-hand-row .hwatu-card.clickable:hover{transform:translateY(-5px)!important}}
 @media(max-width:620px){.my-hand-row{min-height:92px;flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;justify-content:flex-start;scrollbar-width:none;-webkit-overflow-scrolling:touch}.my-hand-row::-webkit-scrollbar{display:none}.my-hand-row .hwatu-card{flex:0 0 auto;width:56px;height:87px}.my-hand-row .hwatu-card.clickable:hover,.my-hand-row .hwatu-card.clickable:active{transform:none!important}}
+
+/* JUNJA 77 DAILY DRAW */
+.daily-draw-launch{background:linear-gradient(135deg,#f6cf67,#ffecad);color:#17120a;border:0;border-radius:14px;padding:12px 16px;font-weight:900}
+.daily-draw-modal{position:fixed;inset:0;z-index:10020;background:#03050bd9;display:flex;align-items:center;justify-content:center;padding:14px;overflow:auto}
+.daily-draw-card{position:relative;width:min(720px,100%);max-height:92vh;overflow:auto;background:linear-gradient(180deg,#171d2e,#0b0f1b);border:1px solid #f6cf6755;border-radius:22px;padding:22px;box-shadow:0 28px 90px #000b}
+.daily-draw-close{position:absolute;right:12px;top:10px;width:44px;height:44px;border-radius:50%;border:1px solid #ffffff24;background:#ffffff0e;color:#fff;font-size:28px}
+.daily-draw-kicker{color:var(--gold);font-size:12px;font-weight:900;letter-spacing:.12em}.daily-draw-card h2{margin:6px 50px 8px 0}.daily-draw-desc{color:var(--muted);margin:0 0 14px}
+.daily-draw-prizes{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;margin-bottom:14px}.daily-draw-prizes>*{padding:9px 10px;border-radius:10px;background:#ffffff09;border:1px solid #ffffff10;font-size:13px}
+.daily-draw-status{padding:10px 12px;border-radius:12px;background:#f6cf6710;color:var(--gold2);font-weight:800;margin-bottom:10px}
+.daily-draw-grid{display:grid;grid-template-columns:repeat(11,minmax(0,1fr));gap:5px}.daily-draw-number{aspect-ratio:1;border-radius:8px;border:1px solid #ffffff1c;background:#151b2b;color:#fff;font-weight:800;min-width:0}.daily-draw-number.used{opacity:.28;text-decoration:line-through}.daily-draw-number.mine{opacity:1;background:#f6cf67;color:#17120a;border-color:#ffecad}
+.daily-draw-result{margin-top:14px;padding:16px;border-radius:14px;text-align:center;background:#f6cf6715;border:1px solid #f6cf6740}.daily-draw-result strong,.daily-draw-result span{display:block}.daily-draw-result strong{font-size:22px;color:var(--gold2)}.daily-draw-result span{margin-top:5px;font-weight:800}
+.daily-draw-done{width:100%;margin-top:10px;padding:13px;border:0;border-radius:12px;background:var(--gold);color:#17120a;font-weight:900}
+@media(max-width:560px){.daily-draw-card{padding:18px 12px}.daily-draw-grid{grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}.daily-draw-number{font-size:12px;border-radius:7px}.daily-draw-prizes{grid-template-columns:1fr 1fr;font-size:12px}}
