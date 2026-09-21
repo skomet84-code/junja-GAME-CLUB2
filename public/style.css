@@ -1308,3 +1308,16 @@ button:not(:disabled){touch-action:manipulation}
 .daily-draw-result{margin-top:14px;padding:16px;border-radius:14px;text-align:center;background:#f6cf6715;border:1px solid #f6cf6740}.daily-draw-result strong,.daily-draw-result span{display:block}.daily-draw-result strong{font-size:22px;color:var(--gold2)}.daily-draw-result span{margin-top:5px;font-weight:800}
 .daily-draw-done{width:100%;margin-top:10px;padding:13px;border:0;border-radius:12px;background:var(--gold);color:#17120a;font-weight:900}
 @media(max-width:560px){.daily-draw-card{padding:18px 12px}.daily-draw-grid{grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}.daily-draw-number{font-size:12px;border-radius:7px}.daily-draw-prizes{grid-template-columns:1fr 1fr;font-size:12px}}
+
+
+/* Social rank premium presence — cosmetic only, no game logic */
+.rank-user-noble .rank-name b,.rank-user-baron .rank-name b,.rank-user-viscount .rank-name b{color:#d9c7ff;text-shadow:0 0 8px rgba(190,156,255,.22)}
+.rank-user-count .rank-name b,.rank-user-marquis .rank-name b{color:#bde9ff;text-shadow:0 0 9px rgba(90,200,255,.35)}
+.rank-user-duke .rank-name b{color:#ffe49a;text-shadow:0 0 10px rgba(255,202,70,.38)}
+.rank-user-king .rank-name b,.rank-user-emperor .rank-name b{color:#fff0b0;text-shadow:0 0 7px #ffcf57,0 0 16px rgba(255,116,45,.42)}
+.rank-user-royal{position:relative;overflow:hidden;border-color:rgba(255,219,105,.4);box-shadow:inset 0 0 22px rgba(255,202,54,.08),0 0 16px rgba(255,193,46,.08)}
+.rank-user-royal:after{content:'✦';position:absolute;right:10px;top:5px;color:#ffe98d;font-size:11px;text-shadow:0 0 8px #ffd54a;animation:royalPresence 1.8s ease-in-out infinite alternate;pointer-events:none}
+.rank-user-royal .rank-name b{color:#fff4b8;text-shadow:0 0 7px #ffd34e,0 0 17px rgba(255,172,31,.65);letter-spacing:.02em}
+.rank-user-royal .rank-face{filter:drop-shadow(0 0 7px rgba(255,211,75,.55))}
+@keyframes royalPresence{from{opacity:.35;transform:scale(.82) rotate(-10deg)}to{opacity:1;transform:scale(1.18) rotate(10deg)}}
+@media(prefers-reduced-motion:reduce){.rank-user-royal:after{animation:none}}
