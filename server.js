@@ -1865,13 +1865,15 @@ const server=http.createServer(async(req,res)=>{
       db.exec('BEGIN IMMEDIATE');
       try{
         const sender=db.prepare('SELECT balance FROM users WHERE id=?').get(u.id);if(!sender||sender.balance<item.price)throw new Error('게임머니가 부족해.');
-        const next=sender.balance-item.price,t=now();
+        const giftBonusPct=Number(socialRankPerksForUser(u.id).giftBonusPct||0),giftBonus=Math.min(10000000,Math.max(0,Math.floor(item.price*giftBonusPct/100))),charged=Math.max(0,item.price-giftBonus);
+        if(sender.balance<charged)throw new Error('게임머니가 부족해.');
+        const next=sender.balance-charged,t=now();
         db.prepare('UPDATE users SET balance=? WHERE id=?').run(next,u.id);
         db.prepare('INSERT INTO user_inventory(user_id,item_id,purchase_price,purchased_at) VALUES(?,?,?,?)').run(targetId,item.id,0,t);
-        db.prepare('INSERT INTO ledger(user_id,amount,balance_after,type,memo,created_at) VALUES(?,?,?,?,?,?)').run(u.id,-item.price,next,'shop_gift',`선물 · ${target.nickname} · ${item.name}`,t);
+        db.prepare('INSERT INTO ledger(user_id,amount,balance_after,type,memo,created_at) VALUES(?,?,?,?,?,?)').run(u.id,-charged,next,'shop_gift',`선물 · ${target.nickname} · ${item.name}${giftBonus?` · 신분 혜택 ${formatMoney(giftBonus)}G 할인`:''}`,t);
         const tb=db.prepare('SELECT balance FROM users WHERE id=?').get(targetId)?.balance||0;
         db.prepare('INSERT INTO ledger(user_id,amount,balance_after,type,memo,created_at) VALUES(?,?,?,?,?,?)').run(targetId,0,tb,'gift_received',`선물 받음 · ${item.name}`,t);
-        db.exec('COMMIT');pushRefresh();return json(res,200,{ok:true,item:itemPublic(item),target:{id:target.id,nickname:target.nickname},user:userPublic(u.id)});
+        db.exec('COMMIT');pushRefresh();return json(res,200,{ok:true,item:itemPublic(item),target:{id:target.id,nickname:target.nickname},giftBonus,giftBonusPct,charged,user:userPublic(u.id)});
       }catch(e){try{db.exec('ROLLBACK')}catch{};return json(res,400,{error:e.message});}
     }
     if(url.pathname==='/api/wallet/transfer'&&req.method==='POST'){
