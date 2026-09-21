@@ -119,6 +119,7 @@ function ensureColumn(table, column, sql){
   const cols=db.prepare(`PRAGMA table_info(${table})`).all().map(x=>x.name);
   if(!cols.includes(column)) db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${sql}`);
 }
+ensureColumn('users','last_rank_salary','TEXT');
 ensureColumn('stats','seotda_games','INTEGER NOT NULL DEFAULT 0');
 ensureColumn('stats','seotda_wins','INTEGER NOT NULL DEFAULT 0');
 ensureColumn('stats','gostop_games','INTEGER NOT NULL DEFAULT 0');
@@ -1878,7 +1879,7 @@ const server=http.createServer(async(req,res)=>{
     if(url.pathname==='/api/daily-draw/pick'&&req.method==='POST'){const u=requireAuth(req,res);if(!u)return;if(!rateLimit('daily_draw:'+u.id,8,60000))return json(res,429,{error:'뽑기 요청이 너무 빠릅니다.'});const b=await readBody(req);try{const result=dailyDrawPick(u.id,b.number);pushRefresh();return json(res,200,{ok:true,...result,user:userPublic(u.id)});}catch(e){return json(res,409,{error:e.message,state:dailyDrawState(u.id)});}}
     if(url.pathname==='/api/daily'&&req.method==='POST'){
       const u=requireAuth(req,res);if(!u)return;const d=kstDate();if(u.last_daily===d)return json(res,409,{error:'오늘 출석 보너스는 이미 받았습니다.'});
-      const cosmeticPct=Number(cosmeticsPublic(u.id)?.perks?.dailyBonusPct||0),rankPct=Number(socialRankPerksForUser(u.id).dailyBonusPct||0),dailyPct=cosmeticPct+rankPct,dailyAmount=Math.floor(50000*(1+dailyPct/100));db.prepare('UPDATE users SET last_daily=? WHERE id=?').run(d,u.id);const bal=walletChange(u.id,dailyAmount,'daily',`오늘의 출석 보너스${dailyPct?` · 보너스 +${dailyPct}%`:''}`);pushRefresh();return json(res,200,{balance:bal,amount:dailyAmount,dailyBonusPct:dailyPct,rankBonusPct:rankPct});
+      const cosmeticPct=Number(cosmeticsPublic(u.id)?.perks?.dailyBonusPct||0),rankPerks=socialRankPerksForUser(u.id),rankPct=Number(rankPerks.dailyBonusPct||0),dailyPct=cosmeticPct+rankPct,dailyAmount=Math.floor(50000*(1+dailyPct/100)),salary=(u.last_rank_salary===d?0:Number(rankPerks.dailySalary||0)),total=dailyAmount+salary;db.exec('BEGIN IMMEDIATE');try{db.prepare('UPDATE users SET last_daily=?,last_rank_salary=? WHERE id=?').run(d,d,u.id);const bal=walletChange(u.id,total,'daily',`오늘의 출석 ${formatMoney(dailyAmount)}G${salary?` · 신분 월급 ${formatMoney(salary)}G`:''}`);db.exec('COMMIT');pushRefresh();return json(res,200,{balance:bal,amount:total,attendanceAmount:dailyAmount,rankSalary:salary,dailyBonusPct:dailyPct,rankBonusPct:rankPct});}catch(e){try{db.exec('ROLLBACK')}catch{}throw e;}
     }
     if(url.pathname==='/api/ledger'&&req.method==='GET'){
       const u=requireAuth(req,res);if(!u)return;const rows=db.prepare('SELECT amount,balance_after,type,memo,created_at FROM ledger WHERE user_id=? ORDER BY id DESC LIMIT 30').all(u.id);return json(res,200,{rows});
