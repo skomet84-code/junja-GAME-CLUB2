@@ -546,10 +546,10 @@ function reactionAllowed(userId,key){
 }
 function isHappyUser(userId){const u=db.prepare('SELECT username,nickname FROM users WHERE id=?').get(userId);return !!u&&(String(u.username||'').trim().toLowerCase()==='햅피'||String(u.username||'').trim().toLowerCase()==='happy'||String(u.nickname||'').trim().toLowerCase()==='햅피'||String(u.nickname||'').trim().toLowerCase()==='happy');}
 function shopState(userId){
-  const load=ensureLoadout(userId),owned=inventoryIds(userId),u=db.prepare('SELECT is_admin FROM users WHERE id=?').get(userId),happy=isHappyUser(userId);
+  const load=ensureLoadout(userId),owned=inventoryIds(userId),u=db.prepare('SELECT is_admin FROM users WHERE id=?').get(userId),happy=isHappyUser(userId),shopTier=Number(socialRankPerksForUser(userId).shopTier||0);
   if(u?.is_admin)owned.add('char_admin_godjunja');
   if(happy)owned.add('char_f_happy_exclusive');
-  return {items:SHOP_ITEMS.filter(x=>(!x.adminOnly||u?.is_admin)&&(!x.happyOnly||happy)).map(x=>({...x,owned:owned.has(x.id),equipped:load[x.category]===x.id})),loadout:cosmeticsPublic(userId),ownedCount:owned.size};
+  return {items:SHOP_ITEMS.filter(x=>(!x.adminOnly||u?.is_admin)&&(!x.happyOnly||happy)).map(x=>({...x,owned:owned.has(x.id),equipped:load[x.category]===x.id,rankShopUnlocked:shopTier>0,rankShopTier:shopTier})),loadout:cosmeticsPublic(userId),ownedCount:owned.size,rankShopTier:shopTier,rankShopUnlocked:shopTier>0};
 }
 function buyShopItem(userId,itemId){
   const item=SHOP_BY_ID[String(itemId||'')];if(!item)throw new Error('존재하지 않는 상점 아이템입니다.');
