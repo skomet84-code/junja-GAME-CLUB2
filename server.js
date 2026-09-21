@@ -613,11 +613,10 @@ function socialRankPerksForUser(userId){
   const row=db.prepare('SELECT rank_level FROM users WHERE id=?').get(Number(userId));
   return socialRankPerks(row?.rank_level||0);
 }
-function consumeRankFreePlay(userId,kind){
+function consumeRankFreePlay(userId,kind,useFree=false){
   const d=kstDate(),slot=kind==='slot',dateCol=slot?'rank_free_slot_date':'rank_free_wheel_date',usedCol=slot?'rank_free_slot_used':'rank_free_wheel_used',limit=Number(socialRankPerksForUser(userId)[slot?'freeSlots':'freeBigWheel']||0);
-  if(limit<1)return {free:false,used:0,limit,left:0};
-  const row=db.prepare(`SELECT ${dateCol} d,${usedCol} used FROM users WHERE id=?`).get(userId);let used=row?.d===d?Number(row.used||0):0;
-  if(used>=limit)return {free:false,used,limit,left:0};
+  const row=db.prepare(`SELECT ${dateCol} d,${usedCol} used FROM users WHERE id=?`).get(userId);let used=row?.d===d?Number(row?.used||0):0;
+  if(!useFree||limit<1||used>=limit)return {free:false,used,limit,left:Math.max(0,limit-used)};
   used++;db.prepare(`UPDATE users SET ${dateCol}=?,${usedCol}=? WHERE id=?`).run(d,used,userId);return {free:true,used,limit,left:Math.max(0,limit-used)};
 }
 function socialRankPublic(userId){
@@ -1362,14 +1361,14 @@ const BIG_WHEEL_DEFS = {
 const BIG_WHEEL_KEYS=['junja','x2','x3','x2','x3','x2','x3','x2','x3','x2','x3','x2','x3','x2','x5','x2','x3','x2','x5','x2','x3','x2','x5','x2','x3','x2','x5','x2','x3','x2','x5','x2','x3','x2','x5','x2','x3','x2','junja','x2','x5','x2','x3','x2','x5','x2','x3','x2','x10','x2','x5','x2','x3','x2','x15','x2','x10','x5','x3','x2','x15','x10','x5','x3','x2','x15','x10','x5','x3','x2','x15','x10','x5','x3','x2','x15','x10'];
 const BIG_WHEEL_SEGMENTS=BIG_WHEEL_KEYS.map(key=>BIG_WHEEL_DEFS[key]);
 const BIG_WHEEL_BETS = [...new Map(BIG_WHEEL_SEGMENTS.map(x=>[x.key,x])).values()];
-function bigWheelSpin(userId,bet,key){
+function bigWheelSpin(userId,bet,key,useRankFree=false){
   bet=gameWager(bet,1000,10000000,1000);if(bet>10000000)throw new Error('빅휠 최대 베팅은 10,000,000G입니다.');
-  const u=userPublic(userId);if(!u||u.balance<bet)throw new Error('게임머니가 부족합니다.');
+  const u=userPublic(userId);if(!u)throw new Error('사용자를 찾을 수 없습니다.');
   const target=BIG_WHEEL_BETS.find(x=>x.key===key);if(!target)throw new Error('배당 선택을 확인해주세요.');
-  const freePlay=consumeRankFreePlay(userId,'wheel');if(!freePlay.free)walletChange(userId,-bet,'bigwheel_bet',`빅휠 ${target.label} 베팅 ${formatMoney(bet)}G`);
+  const freePlay=consumeRankFreePlay(userId,'wheel',!!useRankFree);if(freePlay.free)bet=1000;if(!freePlay.free&&u.balance<bet)throw new Error('게임머니가 부족합니다.');if(!freePlay.free)walletChange(userId,-bet,'bigwheel_bet',`빅휠 ${target.label} 베팅 ${formatMoney(bet)}G`);
   const index=crypto.randomInt(BIG_WHEEL_SEGMENTS.length),landed=BIG_WHEEL_SEGMENTS[index],won=landed.key===target.key,payout=won?bet*target.mult:0;
   if(payout)walletChange(userId,payout,'bigwheel_win',`빅휠 ${target.label} 적중 x${target.mult}`);
-  db.prepare('UPDATE stats SET bigwheel_plays=bigwheel_plays+1, bigwheel_wins=bigwheel_wins+?, bigwheel_profit=bigwheel_profit+? WHERE user_id=?').run(won?1:0,payout-bet,userId);
+  db.prepare('UPDATE stats SET bigwheel_plays=bigwheel_plays+1, bigwheel_wins=bigwheel_wins+?, bigwheel_profit=bigwheel_profit+? WHERE user_id=?').run(won?1:0,payout-(freePlay.free?0:bet),userId);
   return {index,landed,target,won,payout,profit:payout-(freePlay.free?0:bet),segments:BIG_WHEEL_SEGMENTS.length,rankFreePlay:freePlay};
 }
 const SICBO_TOTAL_GROSS={4:51,5:19,6:15,7:13,8:9,9:7,10:6,11:6,12:7,13:9,14:13,15:15,16:19,17:51};
@@ -1963,7 +1962,7 @@ const server=http.createServer(async(req,res)=>{
     }
     if(url.pathname==='/api/slot/spin'&&req.method==='POST'){
       const u=requireAuth(req,res);if(!u)return;const b=await readBody(req);let bet;try{bet=gameWager(b.bet,1000,100000,1000)}catch(e){return json(res,400,{error:e.message})};
-      const freePlay=consumeRankFreePlay(u.id,'slot');if(!freePlay.free&&u.balance<bet)return json(res,400,{error:'게임머니가 부족합니다.'});
+      const freePlay=consumeRankFreePlay(u.id,'slot',!!b.useRankFree);if(freePlay.free)bet=1000;if(!freePlay.free&&u.balance<bet)return json(res,400,{error:'게임머니가 부족합니다.'});
       if(!freePlay.free)walletChange(u.id,-bet,'slot_bet',`슬롯 베팅 ${formatMoney(bet)}G`);
       const slotLuck=0;const pick=()=>{const weighted=SLOT_SYMBOLS,total=100;let n=(crypto.randomInt(1000000)/1000000)*total;for(const x of weighted){if(n<x.w)return x.s;n-=x.w;}return '🍒';};
       const grid=Array.from({length:3},()=>Array.from({length:3},()=>pick()));
@@ -1989,11 +1988,11 @@ const server=http.createServer(async(req,res)=>{
         jackpotAward=pool;if(jackpotAward>0)walletChange(u.id,jackpotAward,'slot_jackpot_pool',`777 누적 JACKPOT ${formatMoney(jackpotAward)}G`);
         pool=gameStateSet('slot_jackpot_pool',SLOT_JACKPOT_BASE);
       }else{
-        const actualLoss=Math.max(0,bet-regularPayout);jackpotContribution=Math.floor(actualLoss*.13);
+        const actualLoss=freePlay.free?0:Math.max(0,bet-regularPayout);jackpotContribution=Math.floor(actualLoss*.13);
         if(jackpotContribution>0)pool=gameStateSet('slot_jackpot_pool',pool+jackpotContribution);
       }
       const payout=regularPayout+jackpotAward,profit=payout-(freePlay.free?0:bet);
-      db.prepare('UPDATE stats SET slot_spins=slot_spins+1, slot_wins=slot_wins+?, slot_profit=slot_profit+? WHERE user_id=?').run(payout>bet?1:0,profit,u.id);pushRefresh();
+      db.prepare('UPDATE stats SET slot_spins=slot_spins+1, slot_wins=slot_wins+?, slot_profit=slot_profit+? WHERE user_id=?').run(payout>(freePlay.free?0:bet)?1:0,profit,u.id);pushRefresh();
       const jackpotLine=winLines.find(w=>!w.scatter&&(w.symbols?.[0]==='7️⃣'||w.symbols?.[0]==='J'));
       return json(res,200,{grid,bet,payout,regularPayout,profit,totalMultiplier,winLines,user:userPublic(u.id),jackpot:!!jackpotLine,jackpotSymbol:jackpotLine?.symbols?.[0]||null,poolJackpot:sevenJackpot,jackpotAward,jackpotContribution,jackpotPool:pool,jackpotBase:SLOT_JACKPOT_BASE,slotLuckPct:slotLuck,rankFreePlay:freePlay});
     }
@@ -2032,7 +2031,7 @@ const server=http.createServer(async(req,res)=>{
 
     if(url.pathname==='/api/bigwheel/spin'&&req.method==='POST'){
       const u=requireAuth(req,res);if(!u)return;const b=await readBody(req);let result;
-      try{result=bigWheelSpin(u.id,Number(b.bet),String(b.key||''));}catch(e){return json(res,400,{error:e.message});}
+      try{result=bigWheelSpin(u.id,Number(b.bet),String(b.key||''),!!b.useRankFree);}catch(e){return json(res,400,{error:e.message});}
       pushRefresh();return json(res,200,{result,user:userPublic(u.id)});
     }
     if(url.pathname==='/api/sicbo/roll'&&req.method==='POST'){
