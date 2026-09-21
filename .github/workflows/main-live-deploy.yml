@@ -1,7 +1,7 @@
 name: JUNJA LAND Main Live Deploy
 
 on:
-  # deploy-trigger-v7: fix live matgo verification
+  # deploy-trigger-v8: fix workflow yaml quoting
   push:
     branches: [main]
     paths:
@@ -62,7 +62,7 @@ need(server.includes('netWin=winnerId?Math.floor(r.buyIn*base*multiplier):0'),'m
 need(server.includes('function addMatgoBonusPi'),'multiplayer matgo bonus pi missing');
 need(server.includes('function matgoBomb'),'multiplayer matgo bomb missing');
 need(server.includes('function matgoShake'),'multiplayer matgo shake missing');
-need(app.includes('data-mgspecial="bomb"') && app.includes('data-mgspecial="shake"'),'multiplayer matgo special action UI missing');
+need(app.includes('data-mgspecial=\\"bomb\\"') && app.includes('data-mgspecial=\\"shake\\"'),'multiplayer matgo special action UI missing');
 need(app.includes('g.result?.payout||room.buyIn'),'multiplayer matgo result payout UI missing');
           need(index.includes('VERSION 2.8.10'),'index version marker missing');
           need(index.includes('app.js?v=351'),'app cache marker missing');
