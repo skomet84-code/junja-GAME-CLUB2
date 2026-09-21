@@ -590,7 +590,17 @@ function socialRankPerks(level){
   level=Math.max(0,Math.min(11,Number(level)||0));
   const extraDraws=level>=11?4:level>=9?3:level>=6?2:level>=3?1:0;
   const dailyBonusPct=[0,5,10,15,20,30,40,50,65,80,100,150][level]||0;
-  return {extraDraws,dailyBonusPct,dailyDraws:1+extraDraws};
+  const dailySalary=[0,100000,300000,1000000,3000000,7000000,15000000,30000000,60000000,120000000,250000000,500000000][level]||0;
+  const transferFeePct=[2,2,1.8,1.6,1.4,1.2,1,0.8,0.6,0.4,0.2,0][level]||0;
+  const freeSlots=[0,0,0,1,1,2,2,3,3,4,5,7][level]||0;
+  const freeBigWheel=[0,0,0,0,1,1,1,2,2,2,3,3][level]||0;
+  const horseWinBonusPct=[0,0,0,0,0,2,3,4,5,6,8,10][level]||0;
+  const gameEntryDiscountPct=[0,0,0,0,2,3,4,5,6,8,10,12][level]||0;
+  const giftBonusPct=[0,0,0,0,0,2,3,4,5,6,8,10][level]||0;
+  const dailyInterestPct=[0,0,0,0,0,0,0,0.001,0.002,0.003,0.004,0.005][level]||0;
+  const shopTier=level>=11?5:level>=10?4:level>=9?3:level>=7?2:level>=4?1:0;
+  const appearanceTier=level>=11?5:level>=10?4:level>=9?3:level>=7?2:level>=4?1:0;
+  return {extraDraws,dailyBonusPct,dailyDraws:1+extraDraws,dailySalary,transferFeePct,freeSlots,freeBigWheel,horseWinBonusPct,gameEntryDiscountPct,giftBonusPct,dailyInterestPct,shopTier,appearanceTier};
 }
 function socialRankPerksForUser(userId){
   const row=db.prepare('SELECT rank_level FROM users WHERE id=?').get(Number(userId));
