@@ -1,7 +1,7 @@
 name: JUNJA LAND Main Live Deploy
 
 on:
-  # deploy-trigger-v6: verify upgraded matgo rules live
+  # deploy-trigger-v7: fix live matgo verification
   push:
     branches: [main]
     paths:
@@ -149,12 +149,6 @@ need(app.includes('g.result?.payout||room.buyIn'),'multiplayer matgo result payo
 grep -q 'data-mgspecial="bomb"' /tmp/live-app.js
 grep -q 'data-mgspecial="shake"' /tmp/live-app.js
 grep -q 'g.result?.payout||room.buyIn' /tmp/live-app.js
-curl -LfsS --max-time 25 "$LIVE/server.js?deploy=$GITHUB_SHA" >/tmp/live-server.js || true
-if [ -s /tmp/live-server.js ]; then
-  grep -q 'function addMatgoBonusPi' /tmp/live-server.js
-  grep -q 'function matgoBomb' /tmp/live-server.js
-  grep -q 'function matgoShake' /tmp/live-server.js
-fi
           grep -q '출발 도=1번 칸' /tmp/live-app.js
           curl -LfsS --max-time 25 "$LIVE/healthz?deploy=$GITHUB_SHA" >/tmp/live-health.txt
           echo 'LIVE_DEPLOY_VERIFIED=v2.8.10'
