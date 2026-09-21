@@ -525,7 +525,7 @@ async function createRoom(game){try{
   else if(game==='yut')body={game,buyIn:Number($('#yutBuyIn').value),maxPlayers:Number($('#yutMax').value),yutMode:$('#yutMode')?.value||'individual'};
   else if(game==='seotda')body={game,buyIn:normalizeWalletWagerInput('seotdaMultiBuyIn',5000),maxPlayers:2};
   else if(game==='sevenpoker')body={game,maxPlayers:2};
-  else if(game==='gostop')body={game,buyIn:normalizeWagerInput('gostopMultiBuyIn',5000,1000000),maxPlayers:2};
+  else if(game==='gostop')body={game,buyIn:normalizeWagerInput('gostopMultiBuyIn',5000,Number.MAX_SAFE_INTEGER),maxPlayers:2};
   else throw new Error('지원하지 않는 게임방이야.');
   const d=await api('/api/rooms',{method:'POST',body:JSON.stringify(body)});currentRoomId=d.room.id;currentGame=game;lastRoomVersion=d.room.version||0;renderRoom(d.room);startRoomPolling();await refreshMe();toast(`방 코드 ${d.room.id} 생성 완료 · READY를 눌러줘`)
 }catch(e){toast(e.message);if(/이미 다른 게임방/.test(e.message))resumeMyRoom()}}
