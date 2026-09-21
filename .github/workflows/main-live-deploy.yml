@@ -1,7 +1,7 @@
 name: JUNJA LAND Main Live Deploy
 
 on:
-  # deploy-trigger-v5: upgraded matgo rules
+  # deploy-trigger-v6: verify upgraded matgo rules live
   push:
     branches: [main]
     paths:
@@ -58,6 +58,12 @@ jobs:
           need(!runtime.includes("B5:['FINISH','B']"),'legacy runtime Yut B5->FINISH patch still present');
           need(app.includes("api('/api/leaderboard')"),'leaderboard API binding missing');
           need(app.includes('/assets/rank-emblems/rank-'),'leaderboard artwork binding missing');
+need(server.includes('netWin=winnerId?Math.floor(r.buyIn*base*multiplier):0'),'multiplayer matgo point payout missing');
+need(server.includes('function addMatgoBonusPi'),'multiplayer matgo bonus pi missing');
+need(server.includes('function matgoBomb'),'multiplayer matgo bomb missing');
+need(server.includes('function matgoShake'),'multiplayer matgo shake missing');
+need(app.includes('data-mgspecial="bomb"') && app.includes('data-mgspecial="shake"'),'multiplayer matgo special action UI missing');
+need(app.includes('g.result?.payout||room.buyIn'),'multiplayer matgo result payout UI missing');
           need(index.includes('VERSION 2.8.10'),'index version marker missing');
           need(index.includes('app.js?v=351'),'app cache marker missing');
           need(sw.includes('v290'),'service worker cache marker missing');
@@ -140,6 +146,15 @@ jobs:
           curl -LfsS --max-time 25 "$LIVE/app.js?v=351&deploy=$GITHUB_SHA" >/tmp/live-app.js
           grep -q "api('/api/leaderboard')" /tmp/live-app.js
           grep -q '/assets/rank-emblems/rank-' /tmp/live-app.js
+grep -q 'data-mgspecial="bomb"' /tmp/live-app.js
+grep -q 'data-mgspecial="shake"' /tmp/live-app.js
+grep -q 'g.result?.payout||room.buyIn' /tmp/live-app.js
+curl -LfsS --max-time 25 "$LIVE/server.js?deploy=$GITHUB_SHA" >/tmp/live-server.js || true
+if [ -s /tmp/live-server.js ]; then
+  grep -q 'function addMatgoBonusPi' /tmp/live-server.js
+  grep -q 'function matgoBomb' /tmp/live-server.js
+  grep -q 'function matgoShake' /tmp/live-server.js
+fi
           grep -q '출발 도=1번 칸' /tmp/live-app.js
           curl -LfsS --max-time 25 "$LIVE/healthz?deploy=$GITHUB_SHA" >/tmp/live-health.txt
           echo 'LIVE_DEPLOY_VERIFIED=v2.8.10'
