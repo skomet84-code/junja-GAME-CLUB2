@@ -102,6 +102,17 @@ CREATE TABLE IF NOT EXISTS daily_draw_picks (
   PRIMARY KEY(draw_date, number),
   UNIQUE(draw_date, user_id)
 );
+CREATE TABLE IF NOT EXISTS daily_draw_bonus_picks (
+  draw_date TEXT NOT NULL,
+  number INTEGER NOT NULL,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  pick_slot INTEGER NOT NULL,
+  rank INTEGER NOT NULL,
+  prize INTEGER NOT NULL,
+  picked_at INTEGER NOT NULL,
+  PRIMARY KEY(draw_date, number),
+  UNIQUE(draw_date, user_id, pick_slot)
+);
 `);
 
 function ensureColumn(table, column, sql){
@@ -427,8 +438,33 @@ function dailyDrawRanks(date){
   if(Array.isArray(ranks)&&ranks.length===77)return ranks;
   ranks=Array.from({length:77},(_,i)=>i+1);for(let i=ranks.length-1;i>0;i--){const j=crypto.randomInt(i+1);[ranks[i],ranks[j]]=[ranks[j],ranks[i]];}gameStateSet(key,ranks);return ranks;
 }
-function dailyDrawState(userId){const date=kstDate(),ranks=dailyDrawRanks(date),used=db.prepare('SELECT number,user_id,rank,prize,picked_at FROM daily_draw_picks WHERE draw_date=? ORDER BY number').all(date),mine=used.find(x=>Number(x.user_id)===Number(userId))||null;return {date,usedNumbers:used.map(x=>x.number),mine:mine?{number:mine.number,rank:mine.rank,prize:mine.prize,pickedAt:mine.picked_at}:null,remaining:77-used.length,prizes:{1:100000000000,2:50000000000,3:1000000000,other:10000000}};}
-function dailyDrawPick(userId,number){number=Number(number);if(!Number.isInteger(number)||number<1||number>77)throw new Error('1~77번 중 하나를 선택해주세요.');const date=kstDate(),ranks=dailyDrawRanks(date);db.exec('BEGIN IMMEDIATE');try{if(db.prepare('SELECT 1 FROM daily_draw_picks WHERE draw_date=? AND user_id=?').get(date,userId))throw new Error('오늘의 77 뽑기는 이미 참여했습니다.');if(db.prepare('SELECT 1 FROM daily_draw_picks WHERE draw_date=? AND number=?').get(date,number))throw new Error('이미 다른 유저가 선택한 번호입니다.');const rank=Number(ranks[number-1]),prize=dailyDrawPrize(rank),pickedAt=now();db.prepare('INSERT INTO daily_draw_picks(draw_date,number,user_id,rank,prize,picked_at) VALUES(?,?,?,?,?,?)').run(date,number,userId,rank,prize,pickedAt);const u=db.prepare('SELECT balance FROM users WHERE id=?').get(userId),next=Number(u.balance)+prize;if(!Number.isSafeInteger(next))throw new Error('보유 게임머니 한도를 초과합니다.');db.prepare('UPDATE users SET balance=? WHERE id=?').run(next,userId);db.prepare('INSERT INTO ledger(user_id,amount,balance_after,type,memo,created_at) VALUES(?,?,?,?,?,?)').run(userId,prize,next,'daily_draw',`77 출석 뽑기 ${number}번 · ${rank}등`,pickedAt);db.exec('COMMIT');return {number,rank,prize,balance:next,state:dailyDrawState(userId)};}catch(e){try{db.exec('ROLLBACK')}catch{}throw e;}}
+function dailyDrawState(userId){
+  const date=kstDate(),ranks=dailyDrawRanks(date),perks=socialRankPerksForUser(userId);
+  const base=db.prepare('SELECT number,user_id,rank,prize,picked_at FROM daily_draw_picks WHERE draw_date=? ORDER BY picked_at').all(date);
+  const bonus=db.prepare('SELECT number,user_id,pick_slot,rank,prize,picked_at FROM daily_draw_bonus_picks WHERE draw_date=? ORDER BY picked_at').all(date);
+  const used=[...base,...bonus].sort((a,b)=>a.picked_at-b.picked_at),mine=used.filter(x=>Number(x.user_id)===Number(userId));
+  return {date,usedNumbers:used.map(x=>x.number),mine:mine.length?{number:mine[mine.length-1].number,rank:mine[mine.length-1].rank,prize:mine[mine.length-1].prize,pickedAt:mine[mine.length-1].picked_at}:null,
+    myPicks:mine.map(x=>({number:x.number,rank:x.rank,prize:x.prize,pickedAt:x.picked_at})),usedAttempts:mine.length,maxAttempts:perks.dailyDraws,attemptsLeft:Math.max(0,perks.dailyDraws-mine.length),
+    remaining:77-used.length,rankPerks:perks,prizes:{1:100000000000,2:50000000000,3:1000000000,other:10000000}};
+}
+function dailyDrawPick(userId,number){
+  number=Number(number);if(!Number.isInteger(number)||number<1||number>77)throw new Error('1~77번 중 하나를 선택해주세요.');
+  const date=kstDate(),ranks=dailyDrawRanks(date),perks=socialRankPerksForUser(userId);db.exec('BEGIN IMMEDIATE');
+  try{
+    const baseMine=db.prepare('SELECT COUNT(*) n FROM daily_draw_picks WHERE draw_date=? AND user_id=?').get(date,userId).n;
+    const bonusMine=db.prepare('SELECT COUNT(*) n FROM daily_draw_bonus_picks WHERE draw_date=? AND user_id=?').get(date,userId).n;
+    const usedAttempts=Number(baseMine)+Number(bonusMine);
+    if(usedAttempts>=perks.dailyDraws)throw new Error(`오늘의 77 뽑기 ${perks.dailyDraws}회를 모두 사용했습니다.`);
+    if(db.prepare('SELECT 1 FROM daily_draw_picks WHERE draw_date=? AND number=?').get(date,number)||db.prepare('SELECT 1 FROM daily_draw_bonus_picks WHERE draw_date=? AND number=?').get(date,number))throw new Error('이미 다른 유저가 선택한 번호입니다.');
+    const rank=Number(ranks[number-1]),prize=dailyDrawPrize(rank),pickedAt=now();
+    if(usedAttempts===0)db.prepare('INSERT INTO daily_draw_picks(draw_date,number,user_id,rank,prize,picked_at) VALUES(?,?,?,?,?,?)').run(date,number,userId,rank,prize,pickedAt);
+    else db.prepare('INSERT INTO daily_draw_bonus_picks(draw_date,number,user_id,pick_slot,rank,prize,picked_at) VALUES(?,?,?,?,?,?,?)').run(date,number,userId,usedAttempts+1,rank,prize,pickedAt);
+    const u=db.prepare('SELECT balance FROM users WHERE id=?').get(userId),next=Number(u.balance)+prize;if(!Number.isSafeInteger(next))throw new Error('보유 게임머니 한도를 초과합니다.');
+    db.prepare('UPDATE users SET balance=? WHERE id=?').run(next,userId);
+    db.prepare('INSERT INTO ledger(user_id,amount,balance_after,type,memo,created_at) VALUES(?,?,?,?,?,?)').run(userId,prize,next,'daily_draw',`77 출석 뽑기 ${number}번 · ${rank}등 · ${usedAttempts+1}/${perks.dailyDraws}회`,pickedAt);
+    db.exec('COMMIT');return {number,rank,prize,balance:next,state:dailyDrawState(userId)};
+  }catch(e){try{db.exec('ROLLBACK')}catch{}throw e;}
+}
 
 function walletChange(userId, amount, type, memo){
   const tx = db.transaction ? db.transaction : null;
@@ -550,11 +586,21 @@ const SOCIAL_RANKS = [
   {level:10,name:'황제',icon:'🏰',cost:10000000000000,className:'emperor'},
   {level:11,name:'JUNJA ROYAL',icon:'J',cost:30000000000000,className:'royal'}
 ];
+function socialRankPerks(level){
+  level=Math.max(0,Math.min(11,Number(level)||0));
+  const extraDraws=level>=11?4:level>=9?3:level>=6?2:level>=3?1:0;
+  const dailyBonusPct=[0,5,10,15,20,30,40,50,65,80,100,150][level]||0;
+  return {extraDraws,dailyBonusPct,dailyDraws:1+extraDraws};
+}
+function socialRankPerksForUser(userId){
+  const row=db.prepare('SELECT rank_level FROM users WHERE id=?').get(Number(userId));
+  return socialRankPerks(row?.rank_level||0);
+}
 function socialRankPublic(userId){
   const row=db.prepare('SELECT rank_level FROM users WHERE id=?').get(Number(userId));
   const level=Math.max(0,Math.min(SOCIAL_RANKS.length-1,Number(row?.rank_level||0)));
   const current=SOCIAL_RANKS[level],next=SOCIAL_RANKS[level+1]||null;
-  return {level,name:current.name,icon:current.icon,className:current.className,maxLevel:!next,next:next?{level:next.level,name:next.name,icon:next.icon,cost:next.cost,className:next.className}:null};
+  return {level,name:current.name,icon:current.icon,className:current.className,perks:socialRankPerks(level),maxLevel:!next,next:next?{level:next.level,name:next.name,icon:next.icon,cost:next.cost,className:next.className,perks:socialRankPerks(next.level)}:null};
 }
 function promoteSocialRank(userId){
   db.exec('BEGIN IMMEDIATE');
@@ -1822,7 +1868,7 @@ const server=http.createServer(async(req,res)=>{
     if(url.pathname==='/api/daily-draw/pick'&&req.method==='POST'){const u=requireAuth(req,res);if(!u)return;if(!rateLimit('daily_draw:'+u.id,8,60000))return json(res,429,{error:'뽑기 요청이 너무 빠릅니다.'});const b=await readBody(req);try{const result=dailyDrawPick(u.id,b.number);pushRefresh();return json(res,200,{ok:true,...result,user:userPublic(u.id)});}catch(e){return json(res,409,{error:e.message,state:dailyDrawState(u.id)});}}
     if(url.pathname==='/api/daily'&&req.method==='POST'){
       const u=requireAuth(req,res);if(!u)return;const d=kstDate();if(u.last_daily===d)return json(res,409,{error:'오늘 출석 보너스는 이미 받았습니다.'});
-      const dailyPct=Number(cosmeticsPublic(u.id)?.perks?.dailyBonusPct||0),dailyAmount=Math.floor(50000*(1+dailyPct/100));db.prepare('UPDATE users SET last_daily=? WHERE id=?').run(d,u.id);const bal=walletChange(u.id,dailyAmount,'daily',`오늘의 출석 보너스${dailyPct?` · CLUB PERK +${dailyPct}%`:''}`);pushRefresh();return json(res,200,{balance:bal,amount:dailyAmount,dailyBonusPct:dailyPct});
+      const cosmeticPct=Number(cosmeticsPublic(u.id)?.perks?.dailyBonusPct||0),rankPct=Number(socialRankPerksForUser(u.id).dailyBonusPct||0),dailyPct=cosmeticPct+rankPct,dailyAmount=Math.floor(50000*(1+dailyPct/100));db.prepare('UPDATE users SET last_daily=? WHERE id=?').run(d,u.id);const bal=walletChange(u.id,dailyAmount,'daily',`오늘의 출석 보너스${dailyPct?` · 보너스 +${dailyPct}%`:''}`);pushRefresh();return json(res,200,{balance:bal,amount:dailyAmount,dailyBonusPct:dailyPct,rankBonusPct:rankPct});
     }
     if(url.pathname==='/api/ledger'&&req.method==='GET'){
       const u=requireAuth(req,res);if(!u)return;const rows=db.prepare('SELECT amount,balance_after,type,memo,created_at FROM ledger WHERE user_id=? ORDER BY id DESC LIMIT 30').all(u.id);return json(res,200,{rows});
