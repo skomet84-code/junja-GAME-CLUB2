@@ -369,7 +369,12 @@ const SHOP_ITEMS = [
   {id:'bubble_cute',category:'bubble_pack',name:'큐트 팩',icon:'💖',rarity:'rare',price:2000000,desc:'좋아좋아! · 찡긋~ · 한 번만... · 박수!'},
   {id:'bubble_royal',category:'bubble_pack',name:'로열 팩',icon:'👑',rarity:'epic',price:5000000,desc:'품격 있게~ · 클래스가 다르지 · 인정! · 왕좌는 내 자리'},
   {id:'bubble_highroller',category:'bubble_pack',name:'하이롤러 팩',icon:'💸',rarity:'legendary',price:10000000,desc:'큰 판 간다 · 칩 쌓아 · 올인 감성 · 오늘은 내 날'},
-  {id:'bubble_legend',category:'bubble_pack',name:'레전드 팩',icon:'⚡',rarity:'mythic',price:25000000,desc:'전설 등장 · 이게 클래스 · 분위기 잡았다 · 끝내자'}
+  {id:'bubble_legend',category:'bubble_pack',name:'레전드 팩',icon:'⚡',rarity:'mythic',price:25000000,desc:'전설 등장 · 이게 클래스 · 분위기 잡았다 · 끝내자'},
+  {id:'title_rank_baron',category:'title',name:'골든 남작',icon:'♜',rarity:'epic',price:50000000,rankTier:1,desc:'신분 상점 TIER 1 · 남작 이상 전용 칭호'},
+  {id:'title_rank_marquis',category:'title',name:'로열 후작',icon:'⚜',rarity:'legendary',price:200000000,rankTier:2,desc:'신분 상점 TIER 2 · 후작 이상 전용 칭호'},
+  {id:'title_rank_king',category:'title',name:'카지노 킹',icon:'♔',rarity:'legendary',price:500000000,rankTier:3,desc:'신분 상점 TIER 3 · 왕 이상 전용 칭호'},
+  {id:'title_rank_emperor',category:'title',name:'황금 황제',icon:'🏰',rarity:'mythic',price:1000000000,rankTier:4,desc:'신분 상점 TIER 4 · 황제 이상 전용 칭호'},
+  {id:'title_rank_royal',category:'title',name:'JUNJA ROYAL',icon:'J',rarity:'prestige',price:3000000000,rankTier:5,desc:'신분 상점 TIER 5 · JUNJA ROYAL 전용 칭호'}
 ]
 // v2.3 Luxury perks: equipped premium pieces provide tiny transparent benefits, hard-capped.
 const SHOP_PERKS={char_m_junja:{slotLuckPct:.4,dailyBonusPct:2},char_f_junja:{slotLuckPct:.4,dailyBonusPct:2},char_m_royal:{slotLuckPct:.2},char_f_empress:{slotLuckPct:.2},frame_legend:{slotLuckPct:.3},frame_junjaroyal:{slotLuckPct:.2},pet_guardian:{slotLuckPct:.3,dailyBonusPct:2},pet_phoenix:{slotLuckPct:.15},title_thejunja:{dailyBonusPct:1}};
@@ -549,12 +554,13 @@ function shopState(userId){
   const load=ensureLoadout(userId),owned=inventoryIds(userId),u=db.prepare('SELECT is_admin FROM users WHERE id=?').get(userId),happy=isHappyUser(userId),shopTier=Number(socialRankPerksForUser(userId).shopTier||0);
   if(u?.is_admin)owned.add('char_admin_godjunja');
   if(happy)owned.add('char_f_happy_exclusive');
-  return {items:SHOP_ITEMS.filter(x=>(!x.adminOnly||u?.is_admin)&&(!x.happyOnly||happy)).map(x=>({...x,owned:owned.has(x.id),equipped:load[x.category]===x.id,rankShopUnlocked:shopTier>0,rankShopTier:shopTier})),loadout:cosmeticsPublic(userId),ownedCount:owned.size,rankShopTier:shopTier,rankShopUnlocked:shopTier>0};
+  return {items:SHOP_ITEMS.filter(x=>(!x.adminOnly||u?.is_admin)&&(!x.happyOnly||happy)).map(x=>({...x,owned:owned.has(x.id),equipped:load[x.category]===x.id,rankShopUnlocked:shopTier>=Number(x.rankTier||0),rankShopTier:shopTier})),loadout:cosmeticsPublic(userId),ownedCount:owned.size,rankShopTier:shopTier,rankShopUnlocked:shopTier>0};
 }
 function buyShopItem(userId,itemId){
   const item=SHOP_BY_ID[String(itemId||'')];if(!item)throw new Error('존재하지 않는 상점 아이템입니다.');
   if(item.adminOnly)throw new Error('GOD JUNJA는 갓준자 관리자 전용 캐릭터입니다.');
   if(item.happyOnly)throw new Error('HAPPY 캐릭터는 햅피 전용 캐릭터입니다.');
+  if(Number(item.rankTier||0)>Number(socialRankPerksForUser(userId).shopTier||0))throw new Error(`현재 신분으로는 구매할 수 없는 신분 전용 아이템입니다.`);
   if(db.prepare('SELECT 1 FROM user_inventory WHERE user_id=? AND item_id=?').get(userId,item.id))throw new Error('이미 보유한 아이템입니다.');
   db.exec('BEGIN IMMEDIATE');
   try{
@@ -575,6 +581,7 @@ function equipShopItem(userId,category,itemId){
   const owner=db.prepare('SELECT is_admin FROM users WHERE id=?').get(userId);
   if(item.adminOnly&&!owner?.is_admin)throw new Error('갓준자 관리자 전용 캐릭터입니다.');
   if(item.happyOnly&&!isHappyUser(userId))throw new Error('HAPPY 캐릭터는 햅피 계정만 장착할 수 있습니다.');
+  if(Number(item.rankTier||0)>Number(socialRankPerksForUser(userId).shopTier||0)&&!db.prepare('SELECT 1 FROM user_inventory WHERE user_id=? AND item_id=?').get(userId,item.id))throw new Error('현재 신분으로는 장착할 수 없는 신분 전용 아이템입니다.');
   if(!item.adminOnly&&!item.happyOnly&&!db.prepare('SELECT 1 FROM user_inventory WHERE user_id=? AND item_id=?').get(userId,item.id))throw new Error('먼저 아이템을 구매해주세요.');
   db.prepare(`UPDATE user_loadout SET ${category}=? WHERE user_id=?`).run(item.id,userId);return cosmeticsPublic(userId);
 }
@@ -1868,6 +1875,7 @@ const server=http.createServer(async(req,res)=>{
       if(!item||item.adminOnly)return json(res,400,{error:'선물할 수 없는 아이템이야.'});
       const target=db.prepare('SELECT id,nickname,is_disabled FROM users WHERE id=?').get(targetId);
       if(!target||target.is_disabled)return json(res,404,{error:'선물 받을 친구를 찾을 수 없어.'});
+      if(Number(item.rankTier||0)>Number(socialRankPerksForUser(targetId).shopTier||0))return json(res,403,{error:'친구의 현재 신분으로는 받을 수 없는 신분 전용 아이템이야.'});
       if(db.prepare('SELECT 1 FROM user_inventory WHERE user_id=? AND item_id=?').get(targetId,item.id))return json(res,409,{error:'그 친구가 이미 보유한 아이템이야.'});
       db.exec('BEGIN IMMEDIATE');
       try{
