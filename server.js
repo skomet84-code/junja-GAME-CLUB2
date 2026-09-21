@@ -1415,10 +1415,12 @@ function publicGostop(s){if(!s)return null;const {deck,...rest}=s;return {...res
 
 
 
+function matgoOpeningValue(card){return (({'광':4,'열끗':3,'띠':2,'피':1}[card?.type]||0)*100)+Number(card?.m||0)}
+function matgoOpeningDraw(d){let a=d.pop(),b=d.pop();while(matgoOpeningValue(a)===matgoOpeningValue(b)){d.push(b);shuffle(d);b=d.pop()}const starter=matgoOpeningValue(a)>matgoOpeningValue(b)?'user':'bot';const opening={user:a,bot:b,starter};d.push(a,b);shuffle(d);return opening}
 function roomGostopStart(r){
   if(r.players.length!==2)throw new Error('맞고는 2명이 있어야 시작할 수 있습니다.');
-  const ps=orderedPlayers(r),d=hwatuDeck(),s={bet:r.buyIn,phase:'playing',userA:ps[0].userId,userB:ps[1].userId,hands:{user:[],bot:[]},floor:[],captured:{user:[],bot:[]},deck:d,turn:'user',goCount:{user:0,bot:0},lastDecisionScore:{user:0,bot:0},needDecision:false,pendingChoice:null,shakes:{user:0,bot:0},shakenMonths:{user:[],bot:[]},events:[],lastDraw:null,winner:null,result:null};
-  for(let i=0;i<10;i++){s.hands.user.push(d.pop());s.hands.bot.push(d.pop())}for(let i=0;i<8;i++)s.floor.push(d.pop());addMatgoBonusPi(s);matgoEvent(s,'실시간 맞고 시작 · 방장이 선','gold');r.gostop=s;for(const p of r.players)p.ready=false;
+  const ps=orderedPlayers(r),previousWinner=r.gostop?.phase==='complete'?r.gostop.winner:null,d=hwatuDeck(),opening=previousWinner?null:matgoOpeningDraw(d),starter=previousWinner||opening.starter,s={bet:r.buyIn,phase:'playing',userA:ps[0].userId,userB:ps[1].userId,hands:{user:[],bot:[]},floor:[],captured:{user:[],bot:[]},deck:d,turn:starter,goCount:{user:0,bot:0},lastDecisionScore:{user:0,bot:0},needDecision:false,pendingChoice:null,shakes:{user:0,bot:0},shakenMonths:{user:[],bot:[]},events:[],lastDraw:null,winner:null,result:null,opening};
+  for(let i=0;i<10;i++){s.hands.user.push(d.pop());s.hands.bot.push(d.pop())}for(let i=0;i<8;i++)s.floor.push(d.pop());addMatgoBonusPi(s);matgoEvent(s,opening?`선 정하기 · ${opening.user.m}월 vs ${opening.bot.m}월 · 높은 패가 선`:`지난 판 승자가 선`,'gold');r.gostop=s;for(const p of r.players)p.ready=false;
 }
 function roomGostopSide(s,userId){if(Number(userId)===Number(s.userA))return'user';if(Number(userId)===Number(s.userB))return'bot';throw new Error('이 맞고방 참가자가 아닙니다.')}
 function roomGostopFinish(r,winner,reason){
@@ -1454,7 +1456,7 @@ function roomGostopDecision(r,userId,decision){
 function roomGostopPublic(r,userId){
  const s=r.gostop;if(!s)return null;const my=roomGostopSide(s,userId),aSide=Number(s.userA)===Number(userId)?my:(my==='user'?'bot':'user'),map={a:'user',b:'bot'}; // a is always userA/internal user
  const conv=(side)=>s.phase==='complete'||side===my?s.hands[side]:s.hands[side].map(()=>({id:'XX'}));
- return {phase:s.phase,userA:s.userA,userB:s.userB,turn:s.turn==='user'?'a':'b',shakes:{a:s.shakes.user,b:s.shakes.bot},hands:{a:conv('user'),b:conv('bot')},floor:s.floor,captured:{a:s.captured.user,b:s.captured.bot},goCount:{a:s.goCount.user,b:s.goCount.bot},score:{a:gostopScore(s.captured.user),b:gostopScore(s.captured.bot)},needDecision:s.needDecision&&s.turn===my,pendingChoice:s.pendingChoice&&s.pendingChoice.side===my?{card:s.pendingChoice.card,options:s.pendingChoice.options}:null,deckCount:s.deck.length,winnerUserId:s.winner==='user'?s.userA:s.winner==='bot'?s.userB:null,result:s.result,events:s.events};
+ return {phase:s.phase,userA:s.userA,userB:s.userB,turn:s.turn==='user'?'a':'b',opening:s.opening,shakes:{a:s.shakes.user,b:s.shakes.bot},hands:{a:conv('user'),b:conv('bot')},floor:s.floor,captured:{a:s.captured.user,b:s.captured.bot},goCount:{a:s.goCount.user,b:s.goCount.bot},score:{a:gostopScore(s.captured.user),b:gostopScore(s.captured.bot)},needDecision:s.needDecision&&s.turn===my,pendingChoice:s.pendingChoice&&s.pendingChoice.side===my?{card:s.pendingChoice.card,options:s.pendingChoice.options}:null,deckCount:s.deck.length,winnerUserId:s.winner==='user'?s.userA:s.winner==='bot'?s.userB:null,result:s.result,events:s.events};
 }
 
 // ---------- Seven Poker (7-card stud) ----------
@@ -2044,6 +2046,8 @@ const server=http.createServer(async(req,res)=>{
         const p=roomPlayer(r,u.id);if(!p)return json(res,403,{error:'이 방 참가자가 아닙니다.'});p.ready=!p.ready;
         if(r.game==='seotda'&&r.seotda?.phase==='complete'&&r.players.length===2&&r.players.every(x=>x.ready)){
           try{seotdaMultiRematch(r);}catch(e){p.ready=false;touchRoom(r);pushRefresh(r.id);return json(res,409,{error:e.message,room:personalizedRoom(r,u.id)});}
+        }else if(r.game==='gostop'&&r.gostop?.phase==='complete'&&r.players.length===2&&r.players.every(x=>x.ready)){
+          try{for(const rp of r.players){const pu=userPublic(rp.userId);if(!pu||pu.balance<r.buyIn)throw new Error(`${rp.nickname}의 게임머니가 부족합니다.`)}for(const rp of r.players){walletChange(rp.userId,-r.buyIn,'gostop_rebuy',`${r.name} 재경기 참가금`);escrowSet(r.id,rp.userId,r.buyIn,'gostop')}roomGostopStart(r);touchRoom(r);}catch(e){p.ready=false;touchRoom(r);pushRefresh(r.id);return json(res,409,{error:e.message,room:personalizedRoom(r,u.id)});}
         }else touchRoom(r);
         pushRefresh(r.id);return json(res,200,{room:personalizedRoom(r,u.id)});
       }
