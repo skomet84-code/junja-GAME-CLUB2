@@ -1863,7 +1863,7 @@ const server=http.createServer(async(req,res)=>{
       if(db.prepare('SELECT 1 FROM user_inventory WHERE user_id=? AND item_id=?').get(targetId,item.id))return json(res,409,{error:'그 친구가 이미 보유한 아이템이야.'});
       db.exec('BEGIN IMMEDIATE');
       try{
-        const sender=db.prepare('SELECT balance FROM users WHERE id=?').get(u.id);if(!sender||sender.balance<item.price)throw new Error('게임머니가 부족해.');
+        const sender=db.prepare('SELECT balance FROM users WHERE id=?').get(u.id);if(!sender)throw new Error('사용자를 찾을 수 없습니다.');
         const giftBonusPct=Number(socialRankPerksForUser(u.id).giftBonusPct||0),giftBonus=Math.min(10000000,Math.max(0,Math.floor(item.price*giftBonusPct/100))),charged=Math.max(0,item.price-giftBonus);
         if(sender.balance<charged)throw new Error('게임머니가 부족해.');
         const next=sender.balance-charged,t=now();
