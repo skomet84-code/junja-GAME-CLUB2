@@ -1286,9 +1286,8 @@ function settleRace(userId,bet,type,picks,card,order){
   } else if(type==='quinella'){
     const top=[order[0].id,order[1].id].sort((a,b)=>a-b).join(',');won=top===[Number(picks[0]),Number(picks[1])].sort((a,b)=>a-b).join(',');
   } else if(type==='exacta')won=order[0].id===Number(picks[0])&&order[1].id===Number(picks[1]);
-  const winMult=raceMultiplier(type,picks,card),mult=won?winMult:(placeBonus?.5:0),basePayout=won?Math.floor(bet*winMult):(placeBonus?Math.floor(bet*.5):0),rankBonusPct=won?Number(socialRankPerksForUser(userId).horseWinBonusPct||0):0,rankBonus=won?Math.floor(basePayout*rankBonusPct/100):0,payout=basePayout+rankBonus;
-  if(basePayout>0)walletChange(userId,basePayout,won?'horse_win':'horse_place_bonus',won?`경마 ${type} 적중 x${winMult}`:'경마 단승 2위 위로금 x0.5');
-  if(rankBonus>0)walletChange(userId,rankBonus,'horse_rank_bonus',`신분 경마 적중 보너스 +${rankBonusPct}%`);
+  const winMult=raceMultiplier(type,picks,card),mult=won?winMult:(placeBonus?.5:0),basePayout=won?Math.floor(bet*winMult):(placeBonus?Math.floor(bet*.5):0),rankBonusPct=won?Number(socialRankPerksForUser(userId).horseWinBonusPct||0):0,rankBonus=won?Math.floor(Math.max(0,basePayout-bet)*rankBonusPct/100):0,payout=basePayout+rankBonus;
+  if(payout>0)walletChange(userId,payout,won?'horse_win':'horse_place_bonus',won?`경마 ${type} 적중 x${winMult}${rankBonus?` · 신분 순이익 보너스 +${rankBonusPct}%`:''}`:'경마 단승 2위 위로금 x0.5');
   db.prepare('UPDATE stats SET horse_races=horse_races+1, horse_wins=horse_wins+?, horse_profit=horse_profit+? WHERE user_id=?').run(won?1:0,payout-bet,userId);
   return {won,placeBonus,finishRank,mult,payout,basePayout,rankBonus,rankBonusPct,winMult};
 }
