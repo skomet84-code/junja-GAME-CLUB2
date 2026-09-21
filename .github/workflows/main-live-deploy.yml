@@ -1,7 +1,7 @@
 name: JUNJA LAND Main Live Deploy
 
 on:
-  # deploy-trigger-v2: keep main push deployment active
+  # deploy-trigger-v3: deploy multiplayer matgo selector fix
   push:
     branches: [main]
     paths:
