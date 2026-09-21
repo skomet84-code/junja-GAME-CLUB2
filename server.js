@@ -616,8 +616,12 @@ function socialRankPerksForUser(userId){
 function consumeRankFreePlay(userId,kind,useFree=false){
   const d=kstDate(),slot=kind==='slot',dateCol=slot?'rank_free_slot_date':'rank_free_wheel_date',usedCol=slot?'rank_free_slot_used':'rank_free_wheel_used',limit=Number(socialRankPerksForUser(userId)[slot?'freeSlots':'freeBigWheel']||0);
   const row=db.prepare(`SELECT ${dateCol} d,${usedCol} used FROM users WHERE id=?`).get(userId);let used=row?.d===d?Number(row?.used||0):0;
-  if(!useFree||limit<1||used>=limit)return {free:false,used,limit,left:Math.max(0,limit-used)};
-  used++;db.prepare(`UPDATE users SET ${dateCol}=?,${usedCol}=? WHERE id=?`).run(d,used,userId);return {free:true,used,limit,left:Math.max(0,limit-used)};
+  if(!useFree)return {free:false,used,limit,left:Math.max(0,limit-used)};
+  if(limit<1)throw new Error('현재 신분에는 사용할 수 있는 무료권이 없습니다.');
+  if(used>=limit)throw new Error('오늘 사용할 수 있는 신분 무료권을 모두 사용했습니다.');
+  const info=db.prepare(`UPDATE users SET ${dateCol}=?,${usedCol}=? WHERE id=? AND (${dateCol} IS NULL OR ${dateCol}<>? OR ${usedCol}<?)`).run(d,used+1,userId,d,limit);
+  if(info.changes!==1)throw new Error('무료권 사용 상태가 변경되었습니다. 다시 시도해주세요.');
+  used++;return {free:true,used,limit,left:Math.max(0,limit-used)};
 }
 function socialRankPublic(userId){
   const row=db.prepare('SELECT rank_level FROM users WHERE id=?').get(Number(userId));
