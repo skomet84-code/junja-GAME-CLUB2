@@ -50,6 +50,8 @@ module.exports=function createTreasureRaid(deps){
     if(url.pathname==='/api/treasure-raid/rooms'&&req.method==='POST'){
       if(hasUser(u.id)||isUserBusy?.(u.id)){json(res,409,{error:'이미 다른 게임방에 참가 중이야. 먼저 그 방에서 나와줘.'});return true}
       let b;try{b=await readBody(req)}catch(e){json(res,400,{error:e.message});return true}
+      // readBody yields to the event loop. Re-check room occupancy before charging to block duplicate/twin create requests.
+      if(hasUser(u.id)||isUserBusy?.(u.id)){json(res,409,{error:'이미 다른 게임방에 참가 중이야. 먼저 그 방에서 나와줘.'});return true}
       let entry;try{entry=normalizeEntry(b.entry)}catch(e){json(res,400,{error:e.message});return true}
       const maxPlayers=Math.max(2,Math.min(6,Math.floor(Number(b.maxPlayers)||4)));if(Number(u.balance)<entry){json(res,400,{error:'게임머니가 부족해.'});return true}
       const id=makeId(),name=`보물 원정대 ${id}`,t=now();
@@ -73,7 +75,10 @@ module.exports=function createTreasureRaid(deps){
       r.phase='playing';for(const x of r.players){x.status='choosing';x.round=1;x.bank=r.entry;x.lastChest=null;x.lastOutcome=null;x.payout=0}touch(r);pushRefresh();json(res,200,{room:roomPublic(r,u.id),user:userPublic(u.id)});return true;
     }
     if(op==='pick'&&req.method==='POST'){
-      if(r.phase!=='playing'||p.status!=='choosing'){json(res,409,{error:'지금은 상자를 선택할 차례가 아니야.'});return true}let b;try{b=await readBody(req)}catch(e){json(res,400,{error:e.message});return true}const chest=Number(b.chest);if(!Number.isInteger(chest)||chest<1||chest>8){json(res,400,{error:'1~8번 보물상자 중 하나를 선택해줘.'});return true}
+      if(r.phase!=='playing'||p.status!=='choosing'){json(res,409,{error:'지금은 상자를 선택할 차례가 아니야.'});return true}let b;try{b=await readBody(req)}catch(e){json(res,400,{error:e.message});return true}
+      // A second tap can arrive while the first request is awaiting its body. Re-check state before applying any multiplier.
+      if(r.phase!=='playing'||p.status!=='choosing'){json(res,409,{error:'이미 상자 선택이 처리됐어.'});return true}
+      const chest=Number(b.chest);if(!Number.isInteger(chest)||chest<1||chest>8){json(res,400,{error:'1~8번 보물상자 중 하나를 선택해줘.'});return true}
       const outcome=drawOutcome(p.round);p.lastChest=chest;p.lastOutcome=outcome;
       if(outcome.key==='trap'){p.bank=0;p.status='eliminated';escrowDelete(r.id,p.userId);touch(r);maybeComplete(r);pushRefresh();json(res,200,{room:roomPublic(r,u.id),user:userPublic(u.id)});return true}
       if(outcome.key==='jackpot')p.bank=r.entry*MAX_MULT;else p.bank=Math.max(1,Math.min(r.entry*MAX_MULT,Math.floor(Number(p.bank||r.entry)*outcome.mult)));
