@@ -6,7 +6,7 @@ const { execFileSync } = require('node:child_process');
 const { DatabaseSync: NativeDatabaseSync } = require('node:sqlite');
 let PoolCtor = null;
 
-const TABLES = ['users','stats','sessions','ledger','admin_audit','user_inventory','user_loadout','game_state','room_escrow'];
+const TABLES = ['users','stats','sessions','ledger','admin_audit','user_inventory','user_loadout','game_state','room_escrow','daily_draw_picks','daily_draw_bonus_picks'];
 const EXTRA_COLUMNS = {
   stats: [
     ['seotda_games','INTEGER NOT NULL DEFAULT 0'],
@@ -123,7 +123,7 @@ class DatabaseSync {
     if(snap && snap.tables){
       try{
         this._native.exec('PRAGMA foreign_keys=OFF; BEGIN IMMEDIATE;');
-        for(const table of ['room_escrow','game_state','user_loadout','user_inventory','admin_audit','ledger','sessions','stats','users']){
+        for(const table of ['daily_draw_bonus_picks','daily_draw_picks','room_escrow','game_state','user_loadout','user_inventory','admin_audit','ledger','sessions','stats','users']){
           try{this._native.exec(`DELETE FROM ${table}`);}catch{}
         }
         for(const table of TABLES){
