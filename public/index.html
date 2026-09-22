@@ -10,7 +10,7 @@
 <link rel="stylesheet" href="/v26-visual.css?v=346">
 <link rel="stylesheet" href="/v28-yut-horse.css?v=346">
 <link rel="stylesheet" href="/rank-system.css?v=346">
-<link rel="stylesheet" href="/treasure-raid.css?v=2">
+<link rel="stylesheet" href="/treasure-raid.css?v=3">
 </head>
 <body>
 <div id="app">
@@ -58,7 +58,7 @@
           <button class="game-card bigwheel" data-go="bigwheel" type="button"><img class="game-art" src="/art/v26/games/bigwheel.webp" alt="빅휠"><div class="game-icon">◎</div><span class="ai-badge">LIVE WHEEL</span><div><small>FORTUNE WHEEL</small><h3>빅휠</h3><p>77칸 대형 휠 · JUNJA 스페셜 x100</p></div></button>
           <button class="game-card sicbo" data-go="sicbo" type="button"><img class="game-art" src="/art/v26/games/sicbo.webp" alt="다이사이"><div class="game-icon">⚂</div><span class="ai-badge">3 DICE</span><div><small>SIC BO</small><h3>다이사이</h3><p>BIG·SMALL·홀짝·합계·트리플</p></div></button>
           <button class="game-card roulette" data-go="roulette" type="button"><img class="game-art" src="/art/v26/games/roulette.webp" alt="룰렛"><div class="game-icon">◉</div><span class="dual-badge">EUROPEAN</span><div><small>ROYAL ROULETTE</small><h3>JUNJA 룰렛</h3><p>싱글제로 · 실제 배당 · 보유머니 한도 내 무제한</p></div></button>
-          <button class="game-card treasure" data-go="treasure" type="button"><div class="game-art treasure-card-art" aria-hidden="true"></div><div class="game-icon">♛</div><span class="dual-badge">NEW · 2–6P</span><div><small>TREASURE RAID</small><h3>JUNJA 보물 레이드</h3><p>보물상자 · 탈출/도전 · 최대 ×100</p></div></button>
+          <button class="game-card treasure" data-go="treasure" type="button"><img class="game-art" src="/art/v26/games/treasure.webp?v=3" alt="JUNJA 보물 레이드"><div class="game-icon">♛</div><span class="dual-badge">NEW · 1–6P</span><div><small>TREASURE RAID</small><h3>JUNJA 보물 레이드</h3><p>각자 배팅 · 30초 자동탈출 · 최대 ×100</p></div></button>
         </div>
 
         <div class="dashboard-grid"><div class="panel section-card"><div class="section-head"><div><small>CLUB RANKING</small><h3>게임머니 랭킹</h3></div><button class="ghost" id="refreshRank" type="button">새로고침</button></div><div id="leaderboard" class="rank-list"></div></div><div class="panel section-card accent-card"><div class="section-head"><div><small>MY RECORD</small><h3>내 기록</h3></div></div><div id="myStats" class="stat-grid"></div><button class="secondary full" data-go="ledger" type="button">게임머니 내역 보기</button></div></div>
@@ -247,7 +247,7 @@
     <div id="toast" class="toast"></div>
   </div>
 </div>
-<script src="/treasure-raid.js?v=2"></script>
+<script src="/treasure-raid.js?v=3"></script>
 <script src="/app.js?v=356"></script>
 <script src="/rank-system.js?v=346"></script>
 <div id="dailyDrawModal" class="daily-draw-modal hidden" role="dialog" aria-modal="true" aria-labelledby="dailyDrawTitle">
