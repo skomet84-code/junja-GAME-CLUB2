@@ -330,7 +330,7 @@ function bindFriendTransfer(){
   const transferPreview=()=>{const n=Math.max(0,Math.trunc(Number(amount.value)||0)),pct=Number(me?.rank?.perks?.transferFeePct||0),fee=Math.floor(n*pct/100),total=n+fee,info=$('#friendTransferInfo');if(info)info.textContent=`신분 수수료 ${pct}% · ${money(fee)} · 총 차감 ${money(total)}`;return {n,pct,fee,total}};
   amount.addEventListener('input',transferPreview);transferPreview();
   const friendAmountButtons=[...document.querySelectorAll('[data-friend-amount]')];
-  friendAmountButtons.forEach(b=>b.onclick=()=>b.onclick=()
+  friendAmountButtons.forEach(b=>{b.onclick=()=>{const pct=Number(me?.rank?.perks?.transferFeePct||0),maxSend=Math.floor(Number(me?.balance||0)/(1+pct/100));amount.value=Math.min(Number(b.dataset.friendAmount),maxSend);transferPreview();fx()}});
   max.onclick=()=>{const pct=Number(me?.rank?.perks?.transferFeePct||0);amount.value=Math.max(0,Math.floor(Number(me?.balance||0)/(1+pct/100)));transferPreview();fx()};
   send.onclick=async()=>{
     if(friendTransferBusy||!friendTransferTarget)return;const n=Math.trunc(Number(amount.value));if(!Number.isFinite(n)||n<1){toast('보낼 금액을 입력해줘.');return}if(n>Number(me?.balance||0)){toast('현재 보유 게임머니보다 많이 보낼 수 없어.');return}
