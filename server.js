@@ -588,7 +588,7 @@ function buyShopItem(userId,itemId){
   if(Number(item.rankTier||0)>Number(socialRankPerksForUser(userId).shopTier||0))throw new Error(`현재 신분으로는 구매할 수 없는 신분 전용 아이템입니다.`);
   if(db.prepare('SELECT 1 FROM user_inventory WHERE user_id=? AND item_id=?').get(userId,item.id))throw new Error('이미 보유한 아이템입니다.');
   const oldMemo=`JUNJA BOUTIQUE · ${item.name} 구매`,newMemo=`${oldMemo} · 자동 장착`;
-  const priorPurchase=db.prepare("SELECT amount,created_at FROM ledger WHERE user_id=? AND type='shop_purchase' AND (memo=? OR memo=?) ORDER BY id DESC LIMIT 1").get(userId,oldMemo,newMemo);
+  const priorPurchase=db.prepare("SELECT amount,created_at FROM ledger WHERE user_id=? AND type='shop_purchase' AND amount=? AND (memo=? OR memo=?) ORDER BY id DESC LIMIT 1").get(userId,-item.price,oldMemo,newMemo);
   if(priorPurchase){
     db.exec('BEGIN IMMEDIATE');
     try{
@@ -625,7 +625,7 @@ function equipShopItem(userId,category,itemId){
   if(item.happyOnly&&!isHappyUser(userId))throw new Error('HAPPY 캐릭터는 햅피 계정만 장착할 수 있습니다.');
   if(Number(item.rankTier||0)>Number(socialRankPerksForUser(userId).shopTier||0)&&!db.prepare('SELECT 1 FROM user_inventory WHERE user_id=? AND item_id=?').get(userId,item.id))throw new Error('현재 신분으로는 장착할 수 없는 신분 전용 아이템입니다.');
   if(!item.adminOnly&&!item.happyOnly&&!db.prepare('SELECT 1 FROM user_inventory WHERE user_id=? AND item_id=?').get(userId,item.id))throw new Error('먼저 아이템을 구매해주세요.');
-  db.prepare(`UPDATE user_loadout SET ${category}=? WHERE user_id=?`).run(item.id,userId);return cosmeticsPublic(userId);
+  db.prepare(`UPDATE user_loadout SET ${category}=? WHERE user_id=?`).run(item.id,userId);const saved=ensureLoadout(userId);if(saved[category]!==item.id)throw new Error('장착 저장 검증에 실패했습니다.');return cosmeticsPublic(userId);
 }
 
 const SOCIAL_RANKS = [
