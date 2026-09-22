@@ -587,6 +587,18 @@ function buyShopItem(userId,itemId){
   if(item.happyOnly)throw new Error('HAPPY 캐릭터는 햅피 전용 캐릭터입니다.');
   if(Number(item.rankTier||0)>Number(socialRankPerksForUser(userId).shopTier||0))throw new Error(`현재 신분으로는 구매할 수 없는 신분 전용 아이템입니다.`);
   if(db.prepare('SELECT 1 FROM user_inventory WHERE user_id=? AND item_id=?').get(userId,item.id))throw new Error('이미 보유한 아이템입니다.');
+  const oldMemo=`JUNJA BOUTIQUE · ${item.name} 구매`,newMemo=`${oldMemo} · 자동 장착`;
+  const priorPurchase=db.prepare("SELECT amount,created_at FROM ledger WHERE user_id=? AND type='shop_purchase' AND (memo=? OR memo=?) ORDER BY id DESC LIMIT 1").get(userId,oldMemo,newMemo);
+  if(priorPurchase){
+    db.exec('BEGIN IMMEDIATE');
+    try{
+      db.prepare('INSERT INTO user_inventory(user_id,item_id,purchase_price,purchased_at) VALUES(?,?,?,?)').run(userId,item.id,Math.abs(Number(priorPurchase.amount||item.price)),Number(priorPurchase.created_at||now()));
+      ensureLoadout(userId);
+      if(LOADOUT_FIELDS.has(item.category))db.prepare(`UPDATE user_loadout SET ${item.category}=? WHERE user_id=?`).run(item.id,userId);
+      db.exec('COMMIT');
+      return {balance:db.prepare('SELECT balance FROM users WHERE id=?').get(userId)?.balance||0,item,recovered:true};
+    }catch(e){try{db.exec('ROLLBACK')}catch{};throw e;}
+  }
   db.exec('BEGIN IMMEDIATE');
   try{
     const u=db.prepare('SELECT balance FROM users WHERE id=?').get(userId);if(!u)throw new Error('사용자를 찾을 수 없습니다.');
@@ -1914,7 +1926,7 @@ const server=http.createServer(async(req,res)=>{
       const b=await readBody(req);try{const r=buyShopItem(u.id,b.itemId);await db.flush();pushRefresh();return json(res,200,{ok:true,item:r.item,user:userPublic(u.id),state:shopState(u.id)});}catch(e){return json(res,400,{error:e.message});}
     }
     if(url.pathname==='/api/shop/equip'&&req.method==='POST'){
-      const u=requireAuth(req,res);if(!u)return;const b=await readBody(req);try{const cosmetics=equipShopItem(u.id,b.category,b.itemId);pushRefresh();return json(res,200,{ok:true,cosmetics,user:userPublic(u.id),state:shopState(u.id)});}catch(e){return json(res,400,{error:e.message});}
+      const u=requireAuth(req,res);if(!u)return;const b=await readBody(req);try{const cosmetics=equipShopItem(u.id,b.category,b.itemId);await db.flush();pushRefresh();return json(res,200,{ok:true,cosmetics,user:userPublic(u.id),state:shopState(u.id)});}catch(e){return json(res,400,{error:e.message});}
     }
     if(url.pathname==='/api/member/lookup'&&req.method==='GET'){
       const u=requireAuth(req,res);if(!u)return;
