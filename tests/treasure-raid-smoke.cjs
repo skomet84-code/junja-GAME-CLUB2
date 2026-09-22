@@ -8,6 +8,7 @@ const users=new Map([
   [2,{id:2,nickname:'행운이',avatar:1,balance:START}],
   [3,{id:3,nickname:'더블클릭',avatar:2,balance:START}],
   [4,{id:4,nickname:'잠수맨',avatar:3,balance:START}],
+  [5,{id:5,nickname:'10억테스트',avatar:4,balance:2_000_000_000}],
 ]);
 const escrows=new Map();
 let ints=[];
@@ -43,6 +44,14 @@ async function call(userId,method,path,body={},delay=0){
 }
 
 (async()=>{
+  // 10억G is a valid Treasure Raid stake and refunds correctly before start.
+  const maxBetRoom=await call(5,'POST','/api/treasure-raid/rooms',{entry:1_000_000_000,maxPlayers:1});
+  assert.equal(maxBetRoom.code,201);
+  assert.equal(users.get(5).balance,1_000_000_000);
+  assert.equal(maxBetRoom.data.room.players[0].entry,1_000_000_000);
+  await call(5,'POST',`/api/treasure-raid/rooms/${maxBetRoom.data.room.id}/leave`);
+  assert.equal(users.get(5).balance,2_000_000_000);
+
   // 1P room can start without another player and returns secured money on manual quit.
   const solo=await call(3,'POST','/api/treasure-raid/rooms',{entry:1_000_000,maxPlayers:1});
   assert.equal(solo.code,201);
