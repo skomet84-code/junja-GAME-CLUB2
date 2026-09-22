@@ -251,6 +251,14 @@ const SHOP_ITEMS = [
   {id:'char_treasure_mirea',category:'character',gender:'F',asset:'/art/special/treasure-mirea.webp',name:'미레아',icon:'🔥',rarity:'prestige',price:50000000000,rankTier:2,collection:'treasure',featured:true,desc:'TREASURE EXPLORER · 프리미엄 탐험가 컬렉션'},
   {id:'char_treasure_shana',category:'character',gender:'F',asset:'/art/special/treasure-shana.webp',name:'샤나',icon:'🏺',rarity:'prestige',price:50000000000,rankTier:2,collection:'treasure',featured:true,desc:'TREASURE EXPLORER · 프리미엄 탐험가 컬렉션'},
 
+  // ROYAL CLUB · 왕 이상 전용 한정 컬렉션
+  {id:'char_royalclub_m1',category:'character',gender:'M',asset:'/art/special/royal-club-m1.webp',name:'ROYAL CLUB M01',icon:'♔',rarity:'prestige',price:100000000000,rankTier:3,collection:'royalclub',featured:true,hideName:true,desc:'ROYAL CLUB · 왕 이상 전용 한정 컬렉션'},
+  {id:'char_royalclub_m2',category:'character',gender:'M',asset:'/art/special/royal-club-m2.webp',name:'ROYAL CLUB M02',icon:'♔',rarity:'prestige',price:100000000000,rankTier:3,collection:'royalclub',featured:true,hideName:true,desc:'ROYAL CLUB · 왕 이상 전용 한정 컬렉션'},
+  {id:'char_royalclub_m3',category:'character',gender:'M',asset:'/art/special/royal-club-m3.webp',name:'ROYAL CLUB M03',icon:'♔',rarity:'prestige',price:100000000000,rankTier:3,collection:'royalclub',featured:true,hideName:true,desc:'ROYAL CLUB · 왕 이상 전용 한정 컬렉션'},
+  {id:'char_royalclub_f1',category:'character',gender:'F',asset:'/art/special/royal-club-f1.webp',name:'ROYAL CLUB F01',icon:'♔',rarity:'prestige',price:100000000000,rankTier:3,collection:'royalclub',featured:true,hideName:true,desc:'ROYAL CLUB · 왕 이상 전용 한정 컬렉션'},
+  {id:'char_royalclub_f2',category:'character',gender:'F',asset:'/art/special/royal-club-f2.webp',name:'ROYAL CLUB F02',icon:'♔',rarity:'prestige',price:100000000000,rankTier:3,collection:'royalclub',featured:true,hideName:true,desc:'ROYAL CLUB · 왕 이상 전용 한정 컬렉션'},
+  {id:'char_royalclub_f3',category:'character',gender:'F',asset:'/art/special/royal-club-f3.webp',name:'ROYAL CLUB F03',icon:'♔',rarity:'prestige',price:100000000000,rankTier:3,collection:'royalclub',featured:true,hideName:true,desc:'ROYAL CLUB · 왕 이상 전용 한정 컬렉션'},
+
   // PREMIUM CHARACTERS · 대표 아바타. 구매/장착 후 전 게임에서 사용
   {id:'char_m_luca',category:'character',gender:'M',asset:'/art/v26/characters/char_m_luca.webp',name:'루카',icon:'♠',rarity:'rare',price:5000000,desc:'부드러운 미소와 블루 수트. 부담 없이 시작하는 프리미엄 남캐'},
   {id:'char_m_jay',category:'character',gender:'M',asset:'/art/v26/characters/char_m_jay.webp',name:'제이',icon:'J',rarity:'rare',price:8000000,desc:'청록 네온 무드의 스트리트 하이롤러'},
