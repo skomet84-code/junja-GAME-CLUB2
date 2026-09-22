@@ -1365,3 +1365,19 @@ button:not(:disabled){touch-action:manipulation}
 .shop-character-preview.preview-prestige>img{position:absolute!important;inset:0!important;width:100%!important;height:100%!important;max-width:none!important;max-height:none!important;object-fit:cover!important;object-position:50% 22%!important;border-radius:inherit!important;transform:none!important;filter:none!important;background:transparent!important}
 .shop-item:hover .shop-character-preview.preview-prestige>img{transform:none!important;filter:none!important}
 .shop-character-preview.preview-prestige>.character-preview-meta{z-index:4!important}
+
+
+/* v3.1.2 remove broken prestige overlay on character shop cards */
+.shop-character-preview.preview-prestige:before,
+.shop-character-preview.preview-prestige:after{
+  content:none!important;
+  display:none!important;
+  background:none!important;
+  box-shadow:none!important;
+}
+.shop-character-preview.preview-prestige>img{
+  z-index:2!important;
+}
+.shop-character-preview.preview-prestige>.character-preview-meta{
+  z-index:4!important;
+}
