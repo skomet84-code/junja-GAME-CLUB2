@@ -22,7 +22,7 @@
   function ensureRoot(){state.root=document.getElementById('treasureRaidRoot');return !!state.root}
   async function enter(me){state.me=me||state.me;if(!ensureRoot())return;renderLoading();await loadRooms();startPoll()}
   function leaveView(){stopPoll()}
-  function startPoll(){stopPoll();state.poll=setInterval(()=>{if(document.getElementById('view-treasure')?.classList.contains('active'))refresh(false).catch(()=>{})},1600)}
+  function startPoll(){stopPoll();state.poll=setInterval(()=>{if(document.hidden)return;if(document.getElementById('view-treasure')?.classList.contains('active'))refresh(false).catch(()=>{})},2500)}
   function stopPoll(){if(state.poll){clearInterval(state.poll);state.poll=null}}
   function renderLoading(){state.root.innerHTML='<div class="treasure-shell"><div class="tr-hero"><span class="tr-hero-tag">LOADING TREASURE RAID...</span></div><div class="tr-panel tr-empty" style="margin-top:14px">보물 레이드를 불러오는 중...</div></div>'}
   async function refresh(render=true){if(state.busy)return;if(state.room){try{const d=await api('/api/treasure-raid/rooms/'+state.room.id);state.room=d.room;state.me=d.user||state.me;if(render)renderGame()}catch(e){state.room=null;await loadRooms()}}else await loadRooms(render)}
