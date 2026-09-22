@@ -1595,7 +1595,7 @@ function sevenDealCard(s,side,faceUp){ s.cards[side].push(s.deck.pop());s.faceUp
 function sevenBeginHand(s){
   if(s.stack.user<1000)throw new Error('테이블 칩이 1,000G 미만이야. 칩 정산 후 다시 입장해줘.');
   if(s.stack.bot<1000)s.stack.bot=Math.max(s.buyIn,s.stack.user);
-  s.handNo=(s.handNo||0)+1;s.street=3;s.phase='playing';s.complete=false;s.result=null;s.pot=0;s.deck=shuffle(cardDeck());
+  s.handNo=(s.handNo||0)+1;s.handStartStack=Number(s.stack.user||0);s.street=3;s.phase='playing';s.complete=false;s.result=null;s.pot=0;s.deck=shuffle(cardDeck());
   s.cards={user:[],bot:[]};s.faceUp={user:[],bot:[]};s.roundBet={user:0,bot:0};s.handContrib={user:0,bot:0};s.currentBet=0;s.minRaise=Math.max(1000,Math.floor(s.buyIn/20/1000)*1000);s.acted={user:false,bot:false};s.folded={user:false,bot:false};s.lastAction='새 핸드';s.startedAt=now();
   const ante=Math.max(1000,Math.min(5000,Math.floor(s.buyIn/50/1000)*1000||1000));s.ante=ante;
   sevenPay(s,'user',Math.min(ante,s.stack.user));sevenPay(s,'bot',Math.min(ante,s.stack.bot));
@@ -1612,7 +1612,8 @@ function sevenRoundDone(s){
 }
 function sevenFinishFold(s,winner){
   s.stack[winner]+=s.pot;s.phase='complete';s.complete=true;s.turn=null;
-  s.result={winner,reason:`${winner==='user'?'J-BOT':'내가'} 폴드`,pot:s.pot,userRank:null,botRank:null,text:winner==='user'?'내 승리! 상대가 폴드했어.':'J-BOT 승리 · 내가 폴드'};
+  const userNet=Number(s.stack.user||0)-Number(s.handStartStack||0),sessionNet=Number(s.stack.user||0)-Number(s.buyIn||0);
+  s.result={winner,reason:`${winner==='user'?'J-BOT':'내가'} 폴드`,pot:s.pot,userRank:null,botRank:null,userNet,sessionNet,text:winner==='user'?'내 승리! 상대가 폴드했어.':'J-BOT 승리 · 내가 폴드'};
   db.prepare('UPDATE stats SET seven_games=seven_games+1, seven_wins=seven_wins+? WHERE user_id=?').run(winner==='user'?1:0,s.userId);
   escrowSet(sevenKey(s.userId),s.userId,s.stack.user,'seven_poker');
 }
@@ -1621,7 +1622,8 @@ function sevenShowdown(s){
   const ur=eval7(s.cards.user),br=eval7(s.cards.bot),cmp=compareRank(ur,br);let winner='tie';
   if(cmp>0){winner='user';s.stack.user+=s.pot;}else if(cmp<0){winner='bot';s.stack.bot+=s.pot;}else{const half=Math.floor(s.pot/2);s.stack.user+=half;s.stack.bot+=s.pot-half;}
   s.phase='complete';s.complete=true;s.turn=null;
-  s.result={winner,pot:s.pot,userRank:handName(ur),botRank:handName(br),userRankLevel:ur[0],botRankLevel:br[0],text:winner==='user'?`승리 · ${handName(ur)}`:winner==='bot'?`J-BOT 승리 · ${handName(br)}`:`무승부 · ${handName(ur)}`};
+  const userNet=Number(s.stack.user||0)-Number(s.handStartStack||0),sessionNet=Number(s.stack.user||0)-Number(s.buyIn||0);
+  s.result={winner,pot:s.pot,userRank:handName(ur),botRank:handName(br),userRankLevel:ur[0],botRankLevel:br[0],userNet,sessionNet,text:winner==='user'?`승리 · ${handName(ur)}`:winner==='bot'?`J-BOT 승리 · ${handName(br)}`:`무승부 · ${handName(ur)}`};
   db.prepare('UPDATE stats SET seven_games=seven_games+1, seven_wins=seven_wins+? WHERE user_id=?').run(winner==='user'?1:0,s.userId);
   escrowSet(sevenKey(s.userId),s.userId,s.stack.user,'seven_poker');
 }
@@ -1703,20 +1705,24 @@ function sevenMDeal(s,uid,faceUp){s.cards[uid].push(s.deck.pop());s.faceUp[uid].
 function sevenMStart(r){
   if(r.players.length<2||r.players.length>6)throw new Error('세븐포커 멀티는 2~6명이 필요합니다.');if(r.seven&&!r.seven.complete)throw new Error('이미 핸드가 진행 중입니다.');
   const ids=sevenMIds(r);if(ids.some(id=>(roomPlayer(r,id)?.stack||0)<1000))throw new Error('모든 플레이어에게 최소 1,000G 이상의 테이블 칩이 필요합니다.');
-  const ante=Math.max(1000,Math.min(5000,Math.floor(r.buyIn/40/1000)*1000||1000)),s={phase:'playing',complete:false,handNo:(r.seven?.handNo||0)+1,street:3,deck:shuffle(cardDeck()),cards:{},faceUp:{},roundBet:{},committed:{},allIn:{},acted:{},folded:{},currentBet:0,minRaise:ante,turnUserId:null,lastAction:'3RD STREET · 카드 배분',result:null,ante,startedAt:now()};
+  const ante=Math.max(1000,Math.min(5000,Math.floor(r.buyIn/40/1000)*1000||1000)),handStartStacks=Object.fromEntries(ids.map(id=>[id,Number(roomPlayer(r,id)?.stack||0)])),s={phase:'playing',complete:false,handNo:(r.seven?.handNo||0)+1,street:3,deck:shuffle(cardDeck()),cards:{},faceUp:{},roundBet:{},committed:{},allIn:{},acted:{},folded:{},handStartStacks,currentBet:0,minRaise:ante,turnUserId:null,lastAction:'3RD STREET · 카드 배분',result:null,ante,startedAt:now()};
   for(const id of ids){s.cards[id]=[];s.faceUp[id]=[];s.roundBet[id]=0;s.committed[id]=0;s.allIn[id]=false;s.acted[id]=false;s.folded[id]=false;sevenMPay(r,s,id,ante);}
   for(let i=0;i<2;i++)for(const id of ids)sevenMDeal(s,id,false);for(const id of ids)sevenMDeal(s,id,true);s.currentBet=0;for(const id of ids)s.roundBet[id]=0;s.turnUserId=sevenMOpening(r,s);r.seven=s;r.players.forEach(p=>p.ready=false);touchRoom(r);return s;
 }
 function sevenMRoundDone(r,s){const ids=sevenMIds(r).filter(id=>!s.folded[id]),actors=ids.filter(id=>!s.allIn[id]);if(ids.length<=1||actors.length<=1)return true;return actors.every(id=>s.acted[id]&&s.roundBet[id]===s.currentBet);}
 function sevenMFinish(r,winnerId,type='fold'){
-  const s=r.seven,pot=sevenMPot(s),winner=roomPlayer(r,winnerId);if(winner)winner.stack+=pot;s.phase='complete';s.complete=true;s.turnUserId=null;s.result={type,winnerId,pot,summary:`${winner?.nickname||'승자'} 승리`,ranks:{}};sevenMAfterHand(r,winnerId?[winnerId]:[]);
+  const s=r.seven,pot=sevenMPot(s),winner=roomPlayer(r,winnerId);if(winner)winner.stack+=pot;s.phase='complete';s.complete=true;s.turnUserId=null;
+  const netByUser=Object.fromEntries(r.players.map(p=>[p.userId,Number(p.stack||0)-Number(s.handStartStacks?.[p.userId]||0)]));
+  s.result={type,winnerId,pot,summary:`${winner?.nickname||'승자'} 승리`,ranks:{},netByUser};sevenMAfterHand(r,winnerId?[winnerId]:[]);
 }
 function sevenMShowdown(r){
   const s=r.seven,ids=sevenMIds(r).filter(id=>!s.folded[id]);while((s.cards[ids[0]]||[]).length<7){const faceUp=(s.cards[ids[0]].length)<6;for(const id of ids)sevenMDeal(s,id,faceUp);}
   const ranks={};for(const id of ids)ranks[id]=eval7(s.cards[id]);let best=null,winners=[];for(const id of ids){const rk=ranks[id];if(!best||compareRank(rk,best)>0){best=rk;winners=[id];}else if(compareRank(rk,best)===0)winners.push(id);}
-  const pot=sevenMPot(s),share=Math.floor(pot/winners.length),rem=pot-share*winners.length;winners.forEach((id,i)=>{roomPlayer(r,id).stack+=share+(i<rem?1:0)});s.phase='complete';s.complete=true;s.turnUserId=null;s.result={type:'showdown',winnerIds:winners,pot,ranks:Object.fromEntries(ids.map(id=>[id,{rank:ranks[id],name:handName(ranks[id])}])),summary:`${winners.map(id=>roomPlayer(r,id)?.nickname).join(', ')} · ${handName(best)}`};sevenMAfterHand(r,winners);
+  const pot=sevenMPot(s),share=Math.floor(pot/winners.length),rem=pot-share*winners.length;winners.forEach((id,i)=>{roomPlayer(r,id).stack+=share+(i<rem?1:0)});s.phase='complete';s.complete=true;s.turnUserId=null;
+  const netByUser=Object.fromEntries(r.players.map(p=>[p.userId,Number(p.stack||0)-Number(s.handStartStacks?.[p.userId]||0)]));
+  s.result={type:'showdown',winnerIds:winners,pot,ranks:Object.fromEntries(ids.map(id=>[id,{rank:ranks[id],name:handName(ranks[id])}])),netByUser,summary:`${winners.map(id=>roomPlayer(r,id)?.nickname).join(', ')} · ${handName(best)}`};sevenMAfterHand(r,winners);
 }
-function sevenMAfterHand(r,winners){for(const p of r.players){db.prepare('UPDATE stats SET seven_games=seven_games+1, seven_wins=seven_wins+? WHERE user_id=?').run(winners.includes(p.userId)?1:0,p.userId);escrowSet(r.id,p.userId,Math.max(0,p.stack),'sevenpoker');p.ready=false;}touchRoom(r);pushRefresh(r.id);}
+function sevenMAfterHand(r,winners){for(const p of r.players){if(p.sevenSessionStart==null)p.sevenSessionStart=Number(r.seven?.handStartStacks?.[p.userId]??p.stack??0);db.prepare('UPDATE stats SET seven_games=seven_games+1, seven_wins=seven_wins+? WHERE user_id=?').run(winners.includes(p.userId)?1:0,p.userId);escrowSet(r.id,p.userId,Math.max(0,p.stack),'sevenpoker');p.ready=false;}touchRoom(r);pushRefresh(r.id);}
 function sevenMAdvance(r){const s=r.seven;if(sevenMIds(r).some(id=>s.allIn[id])){sevenMShowdown(r);return;}if(s.street>=7){sevenMShowdown(r);return;}s.street++;for(const id of sevenMIds(r))sevenMDeal(s,id,s.street<7);for(const id of sevenMIds(r)){s.roundBet[id]=0;s.acted[id]=false;}s.currentBet=0;s.turnUserId=sevenMOpening(r,s);s.lastAction=`${s.street===7?'7TH · RIVER':s.street+'TH STREET'} 카드 배분`;}
 function sevenMAction(r,userId,action,raiseTo){
   const s=r.seven,uid=Number(userId);if(!s||s.complete)throw new Error('진행 중인 세븐포커 핸드가 없습니다.');if(s.turnUserId!==uid)throw new Error('지금은 내 차례가 아닙니다.');if(s.folded[uid]||s.allIn[uid])throw new Error('행동할 수 없습니다.');const other=sevenMOther(r,uid),call=Math.max(0,s.currentBet-s.roundBet[uid]);
@@ -1731,7 +1737,8 @@ function sevenMAction(r,userId,action,raiseTo){
 function sevenMPublic(r,userId){
   const s=r.seven;if(!s)return null;const reveal=s.complete&&s.result?.type==='showdown',cards={},statuses={};for(const p of r.players){const id=p.userId;cards[id]=(s.cards[id]||[]).map((c,i)=>id===userId||reveal&&!s.folded[id]||s.faceUp[id]?.[i]?c:'XX');statuses[id]=id===userId?pokerHandStatus(s.cards[id]||[]):pokerHandStatus(sevenMVisible(s,id));}
   const meId=Number(userId),p=roomPlayer(r,meId),myRound=Number(s.roundBet?.[meId]||0),call=Math.max(0,s.currentBet-myRound),maxRaiseTo=sevenMMaxRaiseTo(r,s,meId),allInAmount=Math.max(0,maxRaiseTo-myRound),rawMin=s.currentBet===0?s.minRaise:s.currentBet+s.minRaise;
-  return {phase:s.phase,complete:s.complete,handNo:s.handNo,street:s.street,ante:s.ante,pot:sevenMPot(s),turnUserId:s.turnUserId,lastAction:s.lastAction,cards,faceUp:s.faceUp,roundBet:s.roundBet,currentBet:s.currentBet,minRaise:s.minRaise,folded:s.folded,allIn:s.allIn,result:s.result,statuses,legal:s.turnUserId===meId&&!s.complete?{toCall:call,minRaiseTo:Math.min(maxRaiseTo,rawMin),maxRaiseTo,allInAmount,canRaise:maxRaiseTo>s.currentBet,tableStack:Number(p?.stack||0)}:null};
+  const sessionStart=Number(p?.sevenSessionStart??s.handStartStacks?.[meId]??p?.stack??0),sessionNet=s.complete?Number(p?.stack||0)-sessionStart:null;
+  return {phase:s.phase,complete:s.complete,handNo:s.handNo,street:s.street,ante:s.ante,pot:sevenMPot(s),turnUserId:s.turnUserId,lastAction:s.lastAction,cards,faceUp:s.faceUp,roundBet:s.roundBet,currentBet:s.currentBet,minRaise:s.minRaise,folded:s.folded,allIn:s.allIn,result:s.result,statuses,sessionNet,legal:s.turnUserId===meId&&!s.complete?{toCall:call,minRaiseTo:Math.min(maxRaiseTo,rawMin),maxRaiseTo,allInAmount,canRaise:maxRaiseTo>s.currentBet,tableStack:Number(p?.stack||0)}:null};
 }
 
 // ---------- Baccarat Duel (2-player, equal virtual stakes) ----------
