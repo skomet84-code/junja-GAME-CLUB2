@@ -451,8 +451,8 @@ function showSlotJackpot(d){
   document.body.classList.add('jackpot-open');fx('jackpot');jackpotConfetti();setTimeout(confetti,150);setTimeout(confetti,850);
 }
 function updateCurrentBetLabel(){if($('#currentBetLabel'))$('#currentBetLabel').textContent=money(selectedBet)}
-function normalizeSlotBet(v){v=Math.floor(Number(v)||1000);v=Math.max(1000,Math.min(100000000,v));return Math.floor(v/1000)*1000}
-function syncSlotBetInput(input){const n=Math.floor(Number(input?.value));if(Number.isFinite(n)&&n>=1000&&n<=100000000&&n%1000===0){selectedBet=n;$$('.bet-chip').forEach(x=>x.classList.remove('active'));updateCurrentBetLabel()}}
+function normalizeSlotBet(v){v=Math.floor(Number(v)||1000);v=Math.max(1000,Math.min(1000000000,v));return Math.floor(v/1000)*1000}
+function syncSlotBetInput(input){const n=Math.floor(Number(input?.value));if(Number.isFinite(n)&&n>=1000&&n<=1000000000&&n%1000===0){selectedBet=n;$$('.bet-chip').forEach(x=>x.classList.remove('active'));updateCurrentBetLabel()}}
 function normalizeSlotBetInput(input){if(!input)return;selectedBet=normalizeSlotBet(input.value);input.value=selectedBet;$$('.bet-chip').forEach(x=>x.classList.remove('active'));updateCurrentBetLabel()}
 function randomSlotSymbol(){return SLOT_SYMBOLS[Math.floor(Math.random()*SLOT_SYMBOLS.length)]}
 function slotCell(sym,r,c){
