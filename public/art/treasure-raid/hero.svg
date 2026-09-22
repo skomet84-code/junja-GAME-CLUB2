@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1400 140">
+<defs>
+ <linearGradient id="bg" x2="1" y2="1"><stop stop-color="#090807"/><stop offset=".5" stop-color="#2b1607"/><stop offset="1" stop-color="#08090b"/></linearGradient>
+ <radialGradient id="fire"><stop stop-color="#fff7a8"/><stop offset=".28" stop-color="#ffbf2f"/><stop offset=".7" stop-color="#e34d09" stop-opacity=".8"/><stop offset="1" stop-color="#281006" stop-opacity="0"/></radialGradient>
+ <linearGradient id="gold" x2="0" y2="1"><stop stop-color="#fff4a6"/><stop offset=".22" stop-color="#ffd45d"/><stop offset=".55" stop-color="#c87812"/><stop offset=".78" stop-color="#7d3d05"/><stop offset="1" stop-color="#f0b83e"/></linearGradient>
+ <filter id="glow"><feGaussianBlur stdDeviation="5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+</defs>
+<rect width="1400" height="140" fill="url(#bg)"/>
+<path d="M0 118 42 78 90 92 132 47 196 83 244 32 305 84 365 43 432 89 495 48 560 92 629 36 700 78 772 38 836 85 906 45 980 91 1047 42 1116 88 1185 48 1242 87 1313 38 1400 82V140H0Z" fill="#16120e"/>
+<g opacity=".5" fill="#7b4515"><circle cx="92" cy="115" r="19"/><circle cx="127" cy="122" r="23"/><circle cx="1210" cy="120" r="22"/><circle cx="1260" cy="113" r="18"/></g>
+<g filter="url(#glow)"><circle cx="255" cy="68" r="45" fill="url(#fire)"/><circle cx="1145" cy="68" r="45" fill="url(#fire)"/></g>
+<g fill="#4a2a0c" stroke="#d18a24" stroke-width="3"><rect x="245" y="65" width="20" height="55" rx="5"/><rect x="1135" y="65" width="20" height="55" rx="5"/></g>
+<text x="700" y="46" text-anchor="middle" fill="#f0bd43" font-size="20" font-weight="900" letter-spacing="5">JUNJA</text>
+<text x="700" y="92" text-anchor="middle" fill="url(#gold)" stroke="#3c1d05" stroke-width="3" paint-order="stroke" font-family="Georgia,serif" font-size="48" font-weight="900">TREASURE RAID</text>
+<text x="700" y="119" text-anchor="middle" fill="#fff1bf" font-family="system-ui,sans-serif" font-size="16" font-weight="800">함께 찾는 보물, 마지막까지 살아남아라!</text>
+<g transform="translate(1240 10)">
+ <circle cx="54" cy="54" r="44" fill="#f0ad61" stroke="#3b210d" stroke-width="6"/>
+ <path d="M18 50Q23 10 55 8Q88 11 93 51Z" fill="#6f3a16" stroke="#d89b42" stroke-width="5"/>
+ <path d="M28 30H82" stroke="#f1bb57" stroke-width="7"/><circle cx="55" cy="29" r="9" fill="#e5a42e" stroke="#55300e" stroke-width="3"/>
+ <circle cx="40" cy="56" r="5" fill="#171717"/><circle cx="69" cy="56" r="5" fill="#171717"/><path d="M43 72Q55 82 68 72" fill="none" stroke="#8f3c2b" stroke-width="4" stroke-linecap="round"/>
+ <path d="M25 93Q54 76 84 93L91 130H18Z" fill="#5f3517" stroke="#bc7727" stroke-width="5"/>
+ <circle cx="95" cy="80" r="18" fill="#ffc95b" opacity=".85"/>
+</g>
+</svg>
