@@ -270,7 +270,7 @@ async function refreshMe(){const d=await api('/api/me');me=d.user;updateHeader()
 async function go(view){
   if(view==='admin'&&!me?.is_admin){toast('관리자 권한이 필요합니다.');return}
   if(currentRoomId&&view!==currentGame){toast('먼저 멀티 게임방에서 나가기를 눌러줘.');return}
-  const prevView=currentView;if(prevView==='treasure'&&view!=='treasure')window.JunjaTreasureRaid?.leaveView?.();currentView=view;$('.view').forEach(v=>v.classList.remove('active'));$('#view-'+view)?.classList.add('active');window.scrollTo({top:0,behavior:'smooth'});
+  const prevView=currentView;if(prevView==='treasure'&&view!=='treasure')window.JunjaTreasureRaid?.leaveView?.();currentView=view;document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));$('#view-'+view)?.classList.add('active');window.scrollTo({top:0,behavior:'smooth'});
   if(LIVE_GAME_VIEWS.has(view))startLiveFloor(view);else if(LIVE_GAME_VIEWS.has(prevView)||liveGame)stopLiveFloor();
   if(prevView==='horse'&&view!=='horse')stopHorseMeet();if(view==='lobby')await loadLobby();if(view==='shop')await loadShop();if(view==='slot'){initSlotMachine();refreshSlotJackpot(true)}if(view==='holdem')await loadRooms('holdem');if(view==='sevenpoker')await loadRooms('sevenpoker');if(view==='baccarat')await loadBaccaratRooms();if(view==='yut')await loadRooms('yut');if(view==='ledger')await loadLedger();if(view==='seotda')await loadRooms('seotda');if(view==='gostop')await loadGostop();if(view==='horse')startHorseMeet();if(view==='bigwheel')initBigWheel();if(view==='sicbo')initSicbo();if(view==='roulette')initRoulette();if(view==='treasure')await window.JunjaTreasureRaid?.enter?.(me);if(view==='admin')await loadAdmin('');setAudioScene(LIVE_GAME_VIEWS.has(view)?view:'lobby');
 }
