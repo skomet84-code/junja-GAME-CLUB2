@@ -2019,10 +2019,15 @@ const server=http.createServer(async(req,res)=>{
       const admin=requireAdmin(req,res);if(!admin)return;const r=findRoom(adminRoomClose[1]);if(r){closeRoomAndRefund(r,'관리자 강제 종료 환급');return json(res,200,{ok:true});}const br=baccaratRooms.get(adminRoomClose[1]);if(br){baccaratClose(br);return json(res,200,{ok:true});}return json(res,404,{error:'방을 찾을 수 없습니다.'});
     }
 
-    if(url.pathname==='/api/admin/slot-777-event'&&req.method==='POST'){
+    if(url.pathname==='/api/admin/slot-777-event'&&req.method==='GET'){
       const admin=requireAdmin(req,res);if(!admin)return;
-      gameStateSet('slot_777_event_active',true);pushRefresh();
-      return json(res,200,{ok:true,active:true,chance:SLOT_777_EVENT_CHANCE});
+      return json(res,200,{ok:true,active:slot777EventActive(),chance:SLOT_777_EVENT_CHANCE});
+    }
+    if(url.pathname==='/api/admin/slot-777-event'&&req.method==='POST'){
+      const admin=requireAdmin(req,res);if(!admin)return;const b=await readBody(req);
+      const active=b.active===false?false:true;
+      gameStateSet('slot_777_event_active',active);pushRefresh();
+      return json(res,200,{ok:true,active,chance:SLOT_777_EVENT_CHANCE});
     }
     if(url.pathname==='/api/slot/jackpot'&&req.method==='GET'){
       const u=requireAuth(req,res);if(!u)return;return json(res,200,{pool:slotJackpotPool(),base:SLOT_JACKPOT_BASE});
