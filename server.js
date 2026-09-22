@@ -236,6 +236,18 @@ const SHOP_ITEMS = [
   
   
   
+  // TREASURE EXPLORERS · 프리미엄 세로형 컬렉션
+  {id:'char_treasure_elisia',category:'character',gender:'F',asset:'/art/special/treasure-elisia.webp',name:'엘리시아',icon:'🧭',rarity:'mythic',price:30000000000,collection:'treasure',featured:true,desc:'TREASURE EXPLORER · 프리미엄 탐험가 컬렉션'},
+  {id:'char_treasure_serena',category:'character',gender:'F',asset:'/art/special/treasure-serena.webp',name:'세레나',icon:'🗺️',rarity:'mythic',price:30000000000,collection:'treasure',featured:true,desc:'TREASURE EXPLORER · 프리미엄 탐험가 컬렉션'},
+  {id:'char_treasure_kaira',category:'character',gender:'F',asset:'/art/special/treasure-kaira.webp',name:'카이라',icon:'💎',rarity:'mythic',price:30000000000,collection:'treasure',featured:true,desc:'TREASURE EXPLORER · 프리미엄 탐험가 컬렉션'},
+  {id:'char_treasure_ruby',category:'character',gender:'F',asset:'/art/special/treasure-ruby.webp',name:'루비',icon:'🏮',rarity:'mythic',price:30000000000,collection:'treasure',featured:true,desc:'TREASURE EXPLORER · 프리미엄 탐험가 컬렉션'},
+  {id:'char_treasure_bella',category:'character',gender:'F',asset:'/art/special/treasure-bella.webp',name:'벨라',icon:'🔮',rarity:'mythic',price:30000000000,collection:'treasure',featured:true,desc:'TREASURE EXPLORER · 프리미엄 탐험가 컬렉션'},
+  {id:'char_treasure_natsu',category:'character',gender:'F',asset:'/art/special/treasure-natsu.webp',name:'나츠',icon:'⚙️',rarity:'prestige',price:50000000000,collection:'treasure',featured:true,desc:'TREASURE EXPLORER · 프리미엄 탐험가 컬렉션'},
+  {id:'char_treasure_arne',category:'character',gender:'F',asset:'/art/special/treasure-arne.webp',name:'아르네',icon:'📜',rarity:'prestige',price:50000000000,collection:'treasure',featured:true,desc:'TREASURE EXPLORER · 프리미엄 탐험가 컬렉션'},
+  {id:'char_treasure_camilla',category:'character',gender:'F',asset:'/art/special/treasure-camilla.webp',name:'카밀라',icon:'🏴‍☠️',rarity:'prestige',price:50000000000,collection:'treasure',featured:true,desc:'TREASURE EXPLORER · 프리미엄 탐험가 컬렉션'},
+  {id:'char_treasure_mirea',category:'character',gender:'F',asset:'/art/special/treasure-mirea.webp',name:'미레아',icon:'🔥',rarity:'prestige',price:50000000000,collection:'treasure',featured:true,desc:'TREASURE EXPLORER · 프리미엄 탐험가 컬렉션'},
+  {id:'char_treasure_shana',category:'character',gender:'F',asset:'/art/special/treasure-shana.webp',name:'샤나',icon:'🏺',rarity:'prestige',price:50000000000,collection:'treasure',featured:true,desc:'TREASURE EXPLORER · 프리미엄 탐험가 컬렉션'},
+
   // PREMIUM CHARACTERS · 대표 아바타. 구매/장착 후 전 게임에서 사용
   {id:'char_m_luca',category:'character',gender:'M',asset:'/art/v26/characters/char_m_luca.webp',name:'루카',icon:'♠',rarity:'rare',price:5000000,desc:'부드러운 미소와 블루 수트. 부담 없이 시작하는 프리미엄 남캐'},
   {id:'char_m_jay',category:'character',gender:'M',asset:'/art/v26/characters/char_m_jay.webp',name:'제이',icon:'J',rarity:'rare',price:8000000,desc:'청록 네온 무드의 스트리트 하이롤러'},
