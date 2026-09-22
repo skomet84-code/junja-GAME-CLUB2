@@ -485,8 +485,9 @@ async function spin({manual=false,fast=false}={}){
   try{
     const useRankFree=rankFreeSlotNext;rankFreeSlotNext=false;updateRankFreeUi();const d=await api('/api/slot/spin',{method:'POST',body:JSON.stringify({bet:selectedBet,useRankFree})});
     await sleep(fast?90:250);await stopSlotSpin(d.grid,fast);applySlotHighlights(d.winLines||[]);
-    if(d.payout>0){$('#slotResult').textContent=`${d.jackpot?'🔥 JACKPOT! ':''}${money(d.payout)} 당첨 · x${d.totalMultiplier}`;fx(d.jackpot?'jackpot':'win');if(d.jackpot||(d.winLines||[]).length>1)confetti()}
-    else $('#slotResult').textContent=`-${money(d.bet)} · 다음 SPIN 도전`;
+    const beforeBalance=Number(me?.balance||0),afterBalance=Number(d.user?.balance||0),netChange=afterBalance-beforeBalance;
+    if(d.payout>0){$('#slotResult').innerHTML=`<strong>${d.jackpot?'🔥 JACKPOT! ':''}${money(d.payout)} 당첨 · x${d.totalMultiplier}</strong><span>잔액 ${money(beforeBalance)} → ${money(afterBalance)} (${netChange>=0?'+':''}${money(netChange)})</span>`;fx(d.jackpot?'jackpot':'win');if(d.jackpot||(d.winLines||[]).length>1)confetti()}
+    else $('#slotResult').innerHTML=`<strong>-${money(d.bet)} · 다음 SPIN 도전</strong><span>잔액 ${money(beforeBalance)} → ${money(afterBalance)} (${money(netChange)})</span>`;
     me=d.user;updateHeader();if($('#slotJackpotAmount'))$('#slotJackpotAmount').textContent=money(d.jackpotPool);if($('#lobbyJackpotAmount'))$('#lobbyJackpotAmount').textContent=money(d.jackpotPool);updateSlotSession(d);if(d.jackpot)showSlotJackpot(d);return d
   }catch(e){
     (slotSpinState?.timers||[]).forEach(clearInterval);(slotSpinState?.animations||[]).forEach(a=>a.cancel());slotSpinState=null;
