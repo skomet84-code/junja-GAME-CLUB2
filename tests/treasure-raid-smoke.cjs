@@ -108,9 +108,28 @@ async function call(userId,method,path,body={},delay=0){
   assert.equal(timed2.status,'escaped');
   assert.equal(users.get(1).balance,START+1_000_000);
   assert.equal(users.get(2).balance,START);
+  assert.equal(afterTimeout.data.room.phase,'complete');
+
+  // Finished multiplayer room can immediately ready up and replay without leaving/recreating.
+  const replayReady1=await call(1,'POST',`/api/treasure-raid/rooms/${id}/ready`);
+  assert.equal(replayReady1.code,200);
+  assert.equal(replayReady1.data.room.phase,'waiting');
+  assert.equal(replayReady1.data.room.players.find(x=>x.userId===1).ready,true);
+  assert.equal(users.get(1).balance,START+1_000_000);
+  const replayReady2=await call(2,'POST',`/api/treasure-raid/rooms/${id}/ready`);
+  assert.equal(replayReady2.code,200);
+  const replayStart=await call(1,'POST',`/api/treasure-raid/rooms/${id}/start`);
+  assert.equal(replayStart.code,200);
+  assert.equal(replayStart.data.room.phase,'playing');
+  assert.equal(users.get(1).balance,START);
+  assert.equal(users.get(2).balance,START-10_000_000);
+  assert.equal(replayStart.data.room.players.find(x=>x.userId===1).entry,1_000_000);
+  assert.equal(replayStart.data.room.players.find(x=>x.userId===2).entry,10_000_000);
 
   await call(1,'POST',`/api/treasure-raid/rooms/${id}/leave`);
   await call(2,'POST',`/api/treasure-raid/rooms/${id}/leave`);
+  assert.equal(users.get(1).balance,START+1_000_000);
+  assert.equal(users.get(2).balance,START);
 
   // Host can start with ready players and refund/remove AFK unready players.
   const f1=await call(1,'POST','/api/treasure-raid/rooms',{entry:1_000_000,maxPlayers:3});
