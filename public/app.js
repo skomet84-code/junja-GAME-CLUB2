@@ -318,12 +318,29 @@ function renderShop(){
   $$('[data-shop-category]',root).forEach(b=>b.onclick=()=>{shopCategory=b.dataset.shopCategory;if(shopCategory!=='character')shopCharacterGender='all';renderShop()});$$('[data-char-gender]',root).forEach(b=>b.onclick=()=>{shopCharacterGender=b.dataset.charGender;renderShop()});$('#shopOwnedOnly',root)?.addEventListener('change',e=>{shopOwnedOnly=e.target.checked;renderShop()});
   $$('[data-limited-jump]',root).forEach(b=>b.onclick=()=>{shopCategory='character';shopCharacterGender=b.dataset.limitedJump;shopOwnedOnly=false;renderShop();window.scrollTo({top:420,behavior:'smooth'})});
   $$('[data-prestige-jump]',root).forEach(b=>b.onclick=()=>{shopCategory=b.dataset.prestigeJump;shopOwnedOnly=false;renderShop();window.scrollTo({top:420,behavior:'smooth'})});
-  $$('[data-shop-buy]',root).forEach(b=>{b.onclick=e=>{e.preventDefault();e.stopPropagation();buyShopItemUI(b.dataset.shopBuy,b)};b.ontouchend=e=>{e.preventDefault();e.stopPropagation();if(!b.disabled)buyShopItemUI(b.dataset.shopBuy,b)}});
+  $('[data-shop-buy]',root).forEach(b=>{b.onclick=e=>{e.preventDefault();e.stopPropagation();if(!b.disabled)buyShopItemUI(b.dataset.shopBuy,b)}});
   $$('[data-shop-equip]',root).forEach(b=>b.onclick=()=>equipShopItemUI(b.dataset.shopSlot,b.dataset.shopEquip,b));
   $$('[data-shop-unequip]',root).forEach(b=>b.onclick=()=>equipShopItemUI(b.dataset.shopUnequip,'',b));
 }
 async function loadShop(){try{const d=await api('/api/shop');shopData=d;me=d.user;updateHeader();renderShop()}catch(e){toast(e.message)}}
-async function buyShopItemUI(itemId,btn){const item=shopData?.items?.find(x=>x.id===itemId);if(!item)return;if(item.rankTier&&!item.rankShopUnlocked){toast(`신분 상점 TIER ${item.rankTier}부터 구매할 수 있어.`);return}if(Number(me.balance)<Number(item.price)){toast('게임머니가 부족해.');return}const ask=`${item.name}을 ${money(item.price)}에 구매할까?\n구매한 아이템은 영구 보유해.`;let ok=true;try{if(typeof window.confirm==='function')ok=window.confirm(ask)}catch{ok=true}if(!ok)return;btn.disabled=true;try{let d=await api('/api/shop/buy',{method:'POST',body:JSON.stringify({itemId})});me=d.user;shopData=d.state;updateHeader();toast(`🛍️ ${item.name} 구매 완료!`);try{d=await api('/api/shop/equip',{method:'POST',body:JSON.stringify({category:item.category,itemId:item.id})});me=d.user;shopData=d.state;updateHeader();toast(`🛍️ ${item.name} 구매 · 장착 완료!`)}catch(e){toast(`구매 완료 · 장착은 MY COLLECTION에서 해줘. ${e.message||''}`)}renderShop();fx('win')}catch(e){toast(e.message||'구매 처리에 실패했어.');await loadShop()}finally{btn.disabled=false}}
+async function buyShopItemUI(itemId,btn){
+  const item=shopData?.items?.find(x=>x.id===itemId);if(!item)return;
+  if(item.rankTier&&!item.rankShopUnlocked){toast(`신분 상점 TIER ${item.rankTier}부터 구매할 수 있어.`);return}
+  if(Number(me.balance)<Number(item.price)){toast('게임머니가 부족해.');return}
+  const ask=`${item.name}을 ${money(item.price)}에 구매할까?\n구매 즉시 보유 처리되고 자동 장착돼.`;
+  let ok=true;try{if(typeof window.confirm==='function')ok=window.confirm(ask)}catch{ok=true}if(!ok)return;
+  btn.disabled=true;
+  try{
+    const d=await api('/api/shop/buy',{method:'POST',body:JSON.stringify({itemId})});
+    me=d.user;shopData=d.state;updateHeader();renderShop();
+    const saved=shopData?.items?.find(x=>x.id===itemId);
+    if(!saved?.owned||!saved?.equipped)throw new Error('구매 저장 확인에 실패했어. 다시 구매하지 말고 새로고침 후 확인해줘.');
+    toast(`🛍️ ${item.name} 구매 · 저장 · 장착 완료!`);fx('win');
+  }catch(e){
+    toast(e.message||'구매 처리에 실패했어.');
+    try{await loadShop()}catch{}
+  }finally{btn.disabled=false}
+}
 async function equipShopItemUI(category,itemId,btn){if(btn)btn.disabled=true;try{const d=await api('/api/shop/equip',{method:'POST',body:JSON.stringify({category,itemId})});me=d.user;shopData=d.state;updateHeader();renderShop();toast(itemId?'장착 완료!':'장착 해제 완료')}catch(e){toast(e.message)}finally{if(btn)btn.disabled=false}}
 
 async function openFriendsHub(prefill=''){
