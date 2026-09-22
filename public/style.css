@@ -1360,3 +1360,8 @@ button:not(:disabled){touch-action:manipulation}
 .shop-character-preview.treasure-character-preview>img{position:absolute!important;inset:0!important;width:100%!important;height:100%!important;max-width:none!important;max-height:none!important;object-fit:cover!important;object-position:50% 22%!important;border-radius:inherit!important;transform:none!important;filter:none!important}
 .shop-item:hover .shop-character-preview.treasure-character-preview>img{transform:none!important;filter:none!important}
 .shop-character-preview.treasure-character-preview>.character-preview-meta{z-index:4!important}
+
+/* v3.1.1 shop prestige portrait hotfix — keep premium character art full-bleed on mobile */
+.shop-character-preview.preview-prestige>img{position:absolute!important;inset:0!important;width:100%!important;height:100%!important;max-width:none!important;max-height:none!important;object-fit:cover!important;object-position:50% 22%!important;border-radius:inherit!important;transform:none!important;filter:none!important;background:transparent!important}
+.shop-item:hover .shop-character-preview.preview-prestige>img{transform:none!important;filter:none!important}
+.shop-character-preview.preview-prestige>.character-preview-meta{z-index:4!important}
