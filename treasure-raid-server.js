@@ -3,7 +3,7 @@
 module.exports=function createTreasureRaid(deps){
   const {crypto,now,readBody,requireAuth,json,walletChange,userPublic,escrowSet,escrowDelete,pushRefresh,formatMoney,rateLimit,isUserBusy}=deps;
   const rooms=new Map();
-  const MAX_ROUNDS=5,MIN_ENTRY=1000000,MAX_ENTRY=100000000,ENTRY_STEP=1000000,MAX_MULT=100,CHOICE_MS=30000;
+  const MAX_ROUNDS=5,MIN_ENTRY=1000000,MAX_ENTRY=1000000000,ENTRY_STEP=1000000,MAX_MULT=100,CHOICE_MS=30000;
   const OUTCOMES={
     trap:{key:'trap',label:'☠ 함정',mult:0},half:{key:'half',label:'🪙 절반',mult:.5},base:{key:'base',label:'◎ 기본',mult:1},
     x2:{key:'x2',label:'💰 행운',mult:2},x5:{key:'x5',label:'🧰 대박',mult:5},x10:{key:'x10',label:'✨ 초대박',mult:10},jackpot:{key:'jackpot',label:'💎 JACKPOT',mult:100}
@@ -19,7 +19,7 @@ module.exports=function createTreasureRaid(deps){
   function makeId(){let id;do{id=crypto.randomBytes(2).toString('hex').toUpperCase()}while(rooms.has(id));return id}
   function normalizeEntry(v){
     const n=Math.floor(Number(v));
-    if(!Number.isSafeInteger(n)||n<MIN_ENTRY||n>MAX_ENTRY||n%ENTRY_STEP!==0)throw new Error('배팅금액은 100만G~1억G, 100만G 단위로 설정해줘.');
+    if(!Number.isSafeInteger(n)||n<MIN_ENTRY||n>MAX_ENTRY||n%ENTRY_STEP!==0)throw new Error('배팅금액은 100만G~10억G, 100만G 단위로 설정해줘.');
     return n;
   }
   function roomPlayer(r,uid){return r.players.find(p=>Number(p.userId)===Number(uid))||null}
