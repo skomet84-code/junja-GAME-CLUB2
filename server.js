@@ -1637,6 +1637,10 @@ function sevenAfterAction(s,side){
   s.turn=sevenOther(side);
   if(sevenAllIn(s,s.turn)){ if(sevenRoundDone(s))sevenAdvanceStreet(s); else s.turn=side; }
 }
+function sevenEffectiveMaxTo(s,side){
+  const other=sevenOther(side),mine=(s.roundBet?.[side]||0)+(s.stack?.[side]||0),cover=(s.roundBet?.[other]||0)+(s.stack?.[other]||0);
+  return Math.max(Number(s.currentBet||0),Math.min(mine,cover));
+}
 function sevenAction(s,side,action,raiseTo){
   if(!s||s.complete||s.phase!=='playing')throw new Error('진행 중인 세븐포커 핸드가 없어.');
   if(s.turn!==side)throw new Error('지금은 네 차례가 아니야.');
@@ -1648,9 +1652,11 @@ function sevenAction(s,side,action,raiseTo){
   }
   if(action==='raise'){
     let target=Math.floor(Number(raiseTo));if(!Number.isFinite(target))throw new Error('레이즈 금액을 확인해줘.');
-    const maxTarget=s.roundBet[side]+s.stack[side];const minTarget=s.currentBet===0?s.minRaise:s.currentBet+s.minRaise;target=Math.min(maxTarget,target);
-    if(target<=s.currentBet&&maxTarget>s.currentBet)throw new Error(`최소 ${formatMoney(minTarget)}G 이상으로 레이즈해줘.`);
-    if(target<minTarget&&target!==maxTarget)throw new Error(`최소 ${formatMoney(minTarget)}G 이상으로 레이즈해줘.`);
+    const maxTarget=sevenEffectiveMaxTo(s,side),minTarget=s.currentBet===0?s.minRaise:s.currentBet+s.minRaise;
+    if(maxTarget<=s.currentBet)throw new Error('상대가 더 이상 받을 수 있는 칩이 없어. CALL 또는 CHECK를 선택해줘.');
+    target=Math.min(maxTarget,target);
+    if(target<=s.currentBet&&maxTarget>s.currentBet)throw new Error(`최소 ${formatMoney(Math.min(minTarget,maxTarget))}G 이상으로 레이즈해줘.`);
+    if(target<minTarget&&target!==maxTarget)throw new Error(`최소 ${formatMoney(Math.min(minTarget,maxTarget))}G 이상으로 레이즈해줘.`);
     const pay=target-s.roundBet[side];sevenPay(s,side,pay);const old=s.currentBet;s.currentBet=Math.max(s.currentBet,s.roundBet[side]);if(s.currentBet>old)s.minRaise=Math.max(s.minRaise,s.currentBet-old);s.acted={user:false,bot:false};s.acted[side]=true;s.lastAction=`${side==='user'?'나':'J-BOT'} 레이즈 ${formatMoney(s.currentBet)}G`;sevenAfterAction(s,side);return;
   }
   throw new Error('지원하지 않는 액션이야.');
@@ -1666,7 +1672,9 @@ function sevenBotDrive(s){
 }
 function sevenPublic(s){
   if(!s)return null;const botCards=s.cards.bot.map((c,i)=>s.complete||s.faceUp.bot[i]?c:'XX');
-  return {buyIn:s.buyIn,handNo:s.handNo,phase:s.phase,complete:s.complete,street:s.street,pot:s.pot,ante:s.ante,turn:s.turn,lastAction:s.lastAction,stack:s.stack,roundBet:s.roundBet,currentBet:s.currentBet,minRaise:s.minRaise,cards:{user:s.cards.user,bot:botCards},faceUp:s.faceUp,result:s.result,userStatus:sevenCurrentStatus(s,'user'),botVisibleStatus:pokerHandStatus(sevenVisibleCards(s,'bot'))};
+  const call=Math.max(0,Number(s.currentBet||0)-Number(s.roundBet?.user||0)),maxRaiseTo=sevenEffectiveMaxTo(s,'user'),rawMin=Number(s.currentBet||0)===0?Number(s.minRaise||1000):Number(s.currentBet||0)+Number(s.minRaise||1000);
+  const legal=s.turn==='user'&&!s.complete?{toCall:call,maxRaiseTo,minRaiseTo:Math.min(maxRaiseTo,rawMin),canRaise:maxRaiseTo>Number(s.currentBet||0)}:null;
+  return {buyIn:s.buyIn,handNo:s.handNo,phase:s.phase,complete:s.complete,street:s.street,pot:s.pot,ante:s.ante,turn:s.turn,lastAction:s.lastAction,stack:s.stack,roundBet:s.roundBet,currentBet:s.currentBet,minRaise:s.minRaise,legal,cards:{user:s.cards.user,bot:botCards},faceUp:s.faceUp,result:s.result,userStatus:sevenCurrentStatus(s,'user'),botVisibleStatus:pokerHandStatus(sevenVisibleCards(s,'bot'))};
 }
 function sevenStart(user){
   const buyIn=Math.floor(Number(user.balance||0));if(!Number.isSafeInteger(buyIn)||buyIn<1000)throw new Error('세븐포커 테이블 입장에는 최소 1,000G가 필요해.');if(soloSeven.has(user.id))throw new Error('이미 세븐포커 테이블에 앉아 있어.');
@@ -1678,6 +1686,12 @@ function sevenCashout(userId){const s=soloSeven.get(userId);if(!s)return 0;if(!s
 // ---------- Seven Poker multiplayer · 2-player stud table ----------
 function sevenMIds(r){return orderedPlayers(r).map(p=>p.userId);}
 function sevenMOther(r,uid){return sevenMIds(r).find(id=>id!==Number(uid));}
+function sevenMMaxRaiseTo(r,s,uid){
+  uid=Number(uid);const p=roomPlayer(r,uid),mine=Number(s.roundBet?.[uid]||0)+Number(p?.stack||0);
+  const covers=sevenMIds(r).filter(id=>id!==uid&&!s.folded?.[id]).map(id=>Number(s.roundBet?.[id]||0)+Number(roomPlayer(r,id)?.stack||0));
+  const cover=covers.length?Math.max(...covers):mine;
+  return Math.max(Number(s.currentBet||0),Math.min(mine,cover));
+}
 function sevenMPot(s){return Object.values(s.committed||{}).reduce((a,b)=>a+Number(b||0),0);}
 function sevenMVisible(s,uid){return (s.cards[uid]||[]).filter((_,i)=>s.faceUp[uid]?.[i]);}
 function sevenMOpening(r,s){
@@ -1710,13 +1724,14 @@ function sevenMAction(r,userId,action,raiseTo){
   if(action==='check'){if(call>0)throw new Error('상대 베팅이 있어 체크할 수 없습니다.');s.acted[uid]=true;s.lastAction=`${roomPlayer(r,uid)?.nickname} 체크`;}
   else if(action==='call'){const paid=sevenMPay(r,s,uid,call);s.acted[uid]=true;s.lastAction=`${roomPlayer(r,uid)?.nickname} ${paid?`콜 ${formatMoney(paid)}G`:'체크'}`;}
   else if(action==='raise'){
-    const p=roomPlayer(r,uid),maxTo=s.roundBet[uid]+p.stack;let target=Math.floor(Number(raiseTo)),minTo=s.currentBet===0?s.minRaise:s.currentBet+s.minRaise;if(!Number.isFinite(target))throw new Error('레이즈 금액을 확인해주세요.');target=Math.min(maxTo,target);if(target<=s.currentBet&&maxTo>s.currentBet)throw new Error(`최소 ${formatMoney(minTo)}G 이상 레이즈해주세요.`);if(target<minTo&&target!==maxTo)throw new Error(`최소 ${formatMoney(minTo)}G 이상 레이즈해주세요.`);const old=s.currentBet;sevenMPay(r,s,uid,target-s.roundBet[uid]);s.currentBet=Math.max(s.currentBet,s.roundBet[uid]);if(s.currentBet>old)s.minRaise=Math.max(s.minRaise,s.currentBet-old);for(const id of sevenMIds(r))if(id!==uid&&!s.folded[id]&&!s.allIn[id])s.acted[id]=false;s.acted[uid]=true;s.lastAction=`${p.nickname} 레이즈 ${formatMoney(s.currentBet)}G`;
+    const p=roomPlayer(r,uid),maxTo=sevenMMaxRaiseTo(r,s,uid);let target=Math.floor(Number(raiseTo)),minTo=s.currentBet===0?s.minRaise:s.currentBet+s.minRaise;if(!Number.isFinite(target))throw new Error('레이즈 금액을 확인해주세요.');if(maxTo<=s.currentBet)throw new Error('상대가 더 이상 받을 수 있는 칩이 없습니다. CALL 또는 CHECK를 선택해주세요.');target=Math.min(maxTo,target);if(target<=s.currentBet&&maxTo>s.currentBet)throw new Error(`최소 ${formatMoney(Math.min(minTo,maxTo))}G 이상 레이즈해주세요.`);if(target<minTo&&target!==maxTo)throw new Error(`최소 ${formatMoney(Math.min(minTo,maxTo))}G 이상 레이즈해주세요.`);const old=s.currentBet;sevenMPay(r,s,uid,target-s.roundBet[uid]);s.currentBet=Math.max(s.currentBet,s.roundBet[uid]);if(s.currentBet>old)s.minRaise=Math.max(s.minRaise,s.currentBet-old);for(const id of sevenMIds(r))if(id!==uid&&!s.folded[id]&&!s.allIn[id])s.acted[id]=false;s.acted[uid]=true;s.lastAction=`${p.nickname} 레이즈 ${formatMoney(s.currentBet)}G`;
   } else throw new Error('지원하지 않는 액션입니다.');
   if(sevenMRoundDone(r,s)){sevenMAdvance(r);return;}const ids=sevenMIds(r),idx=ids.indexOf(uid);let next=null;for(let step=1;step<=ids.length;step++){const id=ids[(idx+step)%ids.length];if(!s.folded[id]&&!s.allIn[id]){next=id;break;}}s.turnUserId=next;if(!next)sevenMAdvance(r);touchRoom(r);
 }
 function sevenMPublic(r,userId){
   const s=r.seven;if(!s)return null;const reveal=s.complete&&s.result?.type==='showdown',cards={},statuses={};for(const p of r.players){const id=p.userId;cards[id]=(s.cards[id]||[]).map((c,i)=>id===userId||reveal&&!s.folded[id]||s.faceUp[id]?.[i]?c:'XX');statuses[id]=id===userId?pokerHandStatus(s.cards[id]||[]):pokerHandStatus(sevenMVisible(s,id));}
-  const meId=Number(userId),p=roomPlayer(r,meId),call=Math.max(0,s.currentBet-(s.roundBet[meId]||0));return {phase:s.phase,complete:s.complete,handNo:s.handNo,street:s.street,ante:s.ante,pot:sevenMPot(s),turnUserId:s.turnUserId,lastAction:s.lastAction,cards,faceUp:s.faceUp,roundBet:s.roundBet,currentBet:s.currentBet,minRaise:s.minRaise,folded:s.folded,allIn:s.allIn,result:s.result,statuses,legal:s.turnUserId===meId&&!s.complete?{toCall:call,minRaiseTo:s.currentBet===0?s.minRaise:s.currentBet+s.minRaise,maxRaiseTo:(s.roundBet[meId]||0)+(p?.stack||0)}:null};
+  const meId=Number(userId),p=roomPlayer(r,meId),call=Math.max(0,s.currentBet-(s.roundBet[meId]||0)),maxRaiseTo=sevenMMaxRaiseTo(r,s,meId),rawMin=s.currentBet===0?s.minRaise:s.currentBet+s.minRaise;
+  return {phase:s.phase,complete:s.complete,handNo:s.handNo,street:s.street,ante:s.ante,pot:sevenMPot(s),turnUserId:s.turnUserId,lastAction:s.lastAction,cards,faceUp:s.faceUp,roundBet:s.roundBet,currentBet:s.currentBet,minRaise:s.minRaise,folded:s.folded,allIn:s.allIn,result:s.result,statuses,legal:s.turnUserId===meId&&!s.complete?{toCall:call,minRaiseTo:Math.min(maxRaiseTo,rawMin),maxRaiseTo,canRaise:maxRaiseTo>s.currentBet,tableStack:Number(p?.stack||0)}:null};
 }
 
 // ---------- Baccarat Duel (2-player, equal virtual stakes) ----------
