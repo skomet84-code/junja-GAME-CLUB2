@@ -63,7 +63,7 @@
   }
   function bindGame(){
     state.root.querySelectorAll('[data-tr-back]').forEach(b=>b.addEventListener('click',()=>window.go?.('lobby')));
-    state.root.querySelectorAll('[data-tr-chest]').forEach(b=>b.addEventListener('click',()=>act(async()=>{const d=await api('/api/treasure-raid/rooms/'+state.room.id+'/pick',{method:'POST',body:JSON.stringify({chest:Number(b.dataset.trChest)})});state.room=d.room;await syncUser(d.user);renderGame()})));
+    state.root.querySelectorAll('[data-tr-chest]').forEach(b=>b.addEventListener('click',()=>{if(state.busy||b.disabled)return;state.root.querySelectorAll('[data-tr-chest]').forEach(x=>x.disabled=true);b.classList.add('selected');act(async()=>{const d=await api('/api/treasure-raid/rooms/'+state.room.id+'/pick',{method:'POST',body:JSON.stringify({chest:Number(b.dataset.trChest)})});state.room=d.room;await syncUser(d.user);renderGame()})}));
     q('#trReady')?.addEventListener('click',()=>roomAction('ready'));
     q('#trStart')?.addEventListener('click',()=>roomAction('start'));
     q('#trContinue')?.addEventListener('click',()=>roomAction('continue'));
