@@ -1,8 +1,8 @@
 {
   "name": "junja-game-club",
-  "version": "2.8.14",
+  "version": "2.8.15",
   "private": true,
-  "description": "JUNJA LAND v2.8.14 - canonical slot odds: 7 and J fixed at 2%, clover/crown removed, J scatter x2.",
+  "description": "JUNJA LAND v2.8.15 - Royal Club collection, randomized BGM playlist, and prestige shop mobile rendering fixes.",
   "type": "commonjs",
   "scripts": {
     "start": "node slot-50pct-until-win-start.js",
