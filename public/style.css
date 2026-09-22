@@ -1321,3 +1321,9 @@ button:not(:disabled){touch-action:manipulation}
 .rank-user-royal .rank-face{filter:drop-shadow(0 0 7px rgba(255,211,75,.55))}
 @keyframes royalPresence{from{opacity:.35;transform:scale(.82) rotate(-10deg)}to{opacity:1;transform:scale(1.18) rotate(10deg)}}
 @media(prefers-reduced-motion:reduce){.rank-user-royal:after{animation:none}}
+
+
+/* Seven Poker only: hand/session profit summary */
+.seven-profit{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:10px}
+.seven-profit span{display:inline-flex;gap:6px;align-items:center;padding:7px 11px;border-radius:10px;background:rgba(255,255,255,.06);font-size:12px;font-weight:800}
+.seven-profit b{font-size:13px;color:#ffe08a}
