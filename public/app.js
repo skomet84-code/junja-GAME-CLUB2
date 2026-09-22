@@ -78,11 +78,13 @@ async function sendLiveReaction(key,btn){
 function signedMoney(n){return (Number(n)>=0?'+':'')+money(n)}
 function toast(msg){const e=$('#toast');if(!e)return;e.textContent=msg;e.classList.add('show');clearTimeout(e._t);e._t=setTimeout(()=>e.classList.remove('show'),2400)}
 const BGM_TRACKS=[
-  '/audio/junja-lobby-bgm.mp3.mp3',
-  '/audio/junja-lobby-bgm2.mp3',
-  '/audio/junja-lobby-bgm3.mp3',
-  '/audio/junja-lobby-bgm4.mp3',
-  '/audio/junja-lobby-bgm5.mp3'
+  "/audio/junja-lobby-bgm.mp3.mp3",
+  "/audio/junja-lobby-bgm2.mp3",
+  "/audio/junja-lobby-bgm3.mp3",
+  "/audio/junja-lobby-bgm4.mp3",
+  "/audio/junja-lobby-bgm5.mp3",
+  "/audio/junja-lobby-bgm6.mp3",
+  "/audio/junja-lobby-bgm7.mp3"
 ];
 function randomBgmIndex(exclude=-1){
   if(BGM_TRACKS.length<=1)return 0;
