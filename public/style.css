@@ -1343,3 +1343,11 @@ button:not(:disabled){touch-action:manipulation}
 #leaderboard .rank-name .rank-face>.character-portrait{width:100%!important;height:100%!important;object-fit:cover!important;object-position:50% 22%!important}
 .shop-character-preview{overflow:hidden}
 .shop-character-preview img{object-fit:cover}
+
+
+/* v2.8.16 hard fix: premium portrait dimensions in header / presence */
+#avatarEmoji{width:36px!important;height:36px!important;min-width:36px!important;display:flex!important;align-items:center!important;justify-content:center!important;overflow:hidden!important;border-radius:11px!important}
+#avatarEmoji>.styled-avatar.header-face{width:34px!important;height:34px!important;min-width:34px!important;max-width:34px!important;min-height:34px!important;max-height:34px!important;aspect-ratio:1/1!important;overflow:hidden!important;border-radius:10px!important}
+#avatarEmoji>.styled-avatar.header-face>.game-face.character-portrait{position:absolute!important;inset:0!important;width:100%!important;height:100%!important;min-width:0!important;min-height:0!important;max-width:100%!important;max-height:100%!important;object-fit:cover!important;object-position:50% 20%!important;border-radius:inherit!important}
+.presence-person>.styled-avatar.presence-face{position:relative!important;width:38px!important;height:38px!important;min-width:38px!important;max-width:38px!important;min-height:38px!important;max-height:38px!important;aspect-ratio:1/1!important;overflow:hidden!important;border-radius:50%!important}
+.presence-person>.styled-avatar.presence-face>.game-face.character-portrait{position:absolute!important;inset:0!important;width:100%!important;height:100%!important;min-width:0!important;min-height:0!important;max-width:100%!important;max-height:100%!important;object-fit:cover!important;object-position:50% 20%!important;border-radius:50%!important}
