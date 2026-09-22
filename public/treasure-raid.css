@@ -1,8 +1,9 @@
 /* JUNJA Treasure Raid - isolated styles. All selectors are scoped to #view-treasure or .treasure-card. */
 :root{--tr-gold:#f4c85b;--tr-gold2:#ff9e21;--tr-ink:#080a0d;--tr-panel:rgba(10,11,13,.91);--tr-line:rgba(244,200,91,.32);}
 .game-card.treasure{position:relative;overflow:hidden;border-color:rgba(244,200,91,.38)}
-.game-card.treasure .treasure-card-art{position:absolute;inset:0;width:100%;height:100%;background-image:linear-gradient(180deg,rgba(0,0,0,.05),rgba(0,0,0,.72)),url("/art/treasure-raid/hero.svg?v=1");background-size:cover;background-position:center;opacity:.88}
-.game-card.treasure>div:not(.treasure-card-art),.game-card.treasure>span{position:relative;z-index:2}
+.game-card.treasure .game-art{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 58%;filter:saturate(1.08) contrast(1.06);opacity:.96;z-index:0}
+.game-card.treasure::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.02) 20%,rgba(0,0,0,.18) 48%,rgba(0,0,0,.82) 100%);pointer-events:none;z-index:1}
+.game-card.treasure>div,.game-card.treasure>span{position:relative;z-index:2}
 .game-card.treasure .game-icon{background:linear-gradient(145deg,#3e2205,#f3b334);color:#fff5cb;box-shadow:0 0 22px rgba(255,166,0,.22)}
 #view-treasure{--tr-hero:url("/art/treasure-raid/hero.svg?v=1");--tr-cave:url("/art/treasure-raid/cave.svg?v=1");--tr-closed:url("/art/treasure-raid/chest-closed.svg?v=1");--tr-selected:url("/art/treasure-raid/chest-selected.svg?v=1");--tr-open:url("/art/treasure-raid/chest-open.svg?v=1");--tr-trap:url("/art/treasure-raid/chest-trap.svg?v=1");--tr-jackpot:url("/art/treasure-raid/chest-jackpot.svg?v=1");--tr-miner:url("/art/treasure-raid/miner.svg?v=1");}
 #view-treasure .treasure-shell{max-width:1480px;margin:0 auto;padding-bottom:28px;color:#fff7df}
