@@ -594,7 +594,12 @@ function buyShopItem(userId,itemId){
     const next=u.balance-item.price,t=now();
     db.prepare('UPDATE users SET balance=? WHERE id=?').run(next,userId);
     db.prepare('INSERT INTO user_inventory(user_id,item_id,purchase_price,purchased_at) VALUES(?,?,?,?)').run(userId,item.id,item.price,t);
-    db.prepare('INSERT INTO ledger(user_id,amount,balance_after,type,memo,created_at) VALUES(?,?,?,?,?,?)').run(userId,-item.price,next,'shop_purchase',`JUNJA BOUTIQUE · ${item.name} 구매`,t);
+    ensureLoadout(userId);
+    if(LOADOUT_FIELDS.has(item.category))db.prepare(`UPDATE user_loadout SET ${item.category}=? WHERE user_id=?`).run(item.id,userId);
+    db.prepare('INSERT INTO ledger(user_id,amount,balance_after,type,memo,created_at) VALUES(?,?,?,?,?,?)').run(userId,-item.price,next,'shop_purchase',`JUNJA BOUTIQUE · ${item.name} 구매 · 자동 장착`,t);
+    const ownedNow=!!db.prepare('SELECT 1 FROM user_inventory WHERE user_id=? AND item_id=?').get(userId,item.id);
+    const loadNow=ensureLoadout(userId);
+    if(!ownedNow||LOADOUT_FIELDS.has(item.category)&&loadNow[item.category]!==item.id)throw new Error('구매 저장 검증에 실패했습니다. 결제는 취소됩니다.');
     db.exec('COMMIT');return {balance:next,item};
   }catch(e){try{db.exec('ROLLBACK')}catch{};throw e;}
 }
@@ -1906,7 +1911,7 @@ const server=http.createServer(async(req,res)=>{
     if(url.pathname==='/api/shop'&&req.method==='GET'){const u=requireAuth(req,res);if(!u)return;return json(res,200,{...shopState(u.id),user:userPublic(u.id)});}
     if(url.pathname==='/api/shop/buy'&&req.method==='POST'){
       const u=requireAuth(req,res);if(!u)return;if(!rateLimit('shop_buy:'+u.id,20,60000))return json(res,429,{error:'구매를 너무 빠르게 반복하고 있어. 잠시 후 다시 시도해줘.'});
-      const b=await readBody(req);try{const r=buyShopItem(u.id,b.itemId);pushRefresh();return json(res,200,{ok:true,item:r.item,user:userPublic(u.id),state:shopState(u.id)});}catch(e){return json(res,400,{error:e.message});}
+      const b=await readBody(req);try{const r=buyShopItem(u.id,b.itemId);await db.flush();pushRefresh();return json(res,200,{ok:true,item:r.item,user:userPublic(u.id),state:shopState(u.id)});}catch(e){return json(res,400,{error:e.message});}
     }
     if(url.pathname==='/api/shop/equip'&&req.method==='POST'){
       const u=requireAuth(req,res);if(!u)return;const b=await readBody(req);try{const cosmetics=equipShopItem(u.id,b.category,b.itemId);pushRefresh();return json(res,200,{ok:true,cosmetics,user:userPublic(u.id),state:shopState(u.id)});}catch(e){return json(res,400,{error:e.message});}
