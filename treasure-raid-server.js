@@ -81,7 +81,7 @@ module.exports=function createTreasureRaid(deps){
       let b;try{b=await readBody(req)}catch(e){json(res,400,{error:e.message});return true}
       if(hasUser(u.id)||isUserBusy?.(u.id)){json(res,409,{error:'이미 다른 게임방에 참가 중이야. 먼저 그 방에서 나와줘.'});return true}
       let entry;try{entry=normalizeEntry(b.entry)}catch(e){json(res,400,{error:e.message});return true}
-      const maxPlayers=Math.max(1,Math.min(6,Math.floor(Number(b.maxPlayers)||4));
+      const maxPlayers=Math.max(1,Math.min(6,Math.floor(Number(b.maxPlayers)||4)));
       if(Number(u.balance)<entry){json(res,400,{error:'게임머니가 부족해.'});return true}
       const id=makeId(),name=`보물 원정대 ${id}`,t=now();
       try{
