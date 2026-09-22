@@ -6,8 +6,9 @@
   "type": "commonjs",
   "scripts": {
     "start": "node slot-50pct-until-win-start.js",
-    "check": "node --check admin-unlimited-start.js && node --check server.js && node --check public/app.js && node --check public/v25-overhaul.js",
-    "test:matgo": "node tests/yashimchan-matgo-smoke.cjs"
+    "check": "node --check admin-unlimited-start.js && node --check server.js && node --check treasure-raid-server.js && node --check public/app.js && node --check public/treasure-raid.js && node --check public/v25-overhaul.js",
+    "test:matgo": "node tests/yashimchan-matgo-smoke.cjs",
+    "test:treasure": "node tests/treasure-raid-smoke.cjs"
   },
   "engines": {
     "node": ">=22.5.0"
