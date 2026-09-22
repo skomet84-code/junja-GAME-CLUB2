@@ -610,7 +610,7 @@ function socialRankPerks(level){
   const transferFeePct=[2,2,1.8,1.6,1.4,1.2,1,0.8,0.6,0.4,0.2,0][level]||0;
   const freeSlots=[0,0,0,5,8,12,18,25,35,50,70,100][level]||0;
   const freeSlotBet=[0,0,0,100000,200000,300000,500000,1000000,2000000,3000000,5000000,10000000][level]||0;
-  const freeBigWheel=[0,0,0,0,1,1,1,2,2,2,3,3][level]||0;
+  const freeBigWheel=[0,0,0,5,8,12,18,25,35,50,70,100][level]||0;
   const horseWinBonusPct=[0,0,0,0,0,2,3,4,5,6,8,10][level]||0;
   const gameEntryDiscountPct=[0,0,0,0,2,3,4,5,6,8,10,12][level]||0;
   const giftBonusPct=[0,0,0,0,0,2,3,4,5,6,8,10][level]||0;
