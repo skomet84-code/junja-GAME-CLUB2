@@ -453,7 +453,8 @@ function dailyDrawState(userId){
   const base=db.prepare('SELECT number,user_id,rank,prize,picked_at FROM daily_draw_picks WHERE draw_date=? ORDER BY picked_at').all(date);
   const bonus=db.prepare('SELECT number,user_id,pick_slot,rank,prize,picked_at FROM daily_draw_bonus_picks WHERE draw_date=? ORDER BY picked_at').all(date);
   const used=[...base,...bonus].sort((a,b)=>a.picked_at-b.picked_at),mine=used.filter(x=>Number(x.user_id)===Number(userId));
-  return {date,usedNumbers:used.map(x=>x.number),mine:mine.length?{number:mine[mine.length-1].number,rank:mine[mine.length-1].rank,prize:mine[mine.length-1].prize,pickedAt:mine[mine.length-1].picked_at}:null,
+  const top3=used.filter(x=>Number(x.rank)>=1&&Number(x.rank)<=3).sort((a,b)=>Number(a.rank)-Number(b.rank)).map(x=>{const u=db.prepare('SELECT nickname FROM users WHERE id=?').get(Number(x.user_id));return {rank:Number(x.rank),number:Number(x.number),prize:Number(x.prize),nickname:u?.nickname||'알 수 없음'};});
+  return {date,usedNumbers:used.map(x=>x.number),top3,mine:mine.length?{number:mine[mine.length-1].number,rank:mine[mine.length-1].rank,prize:mine[mine.length-1].prize,pickedAt:mine[mine.length-1].picked_at}:null,
     myPicks:mine.map(x=>({number:x.number,rank:x.rank,prize:x.prize,pickedAt:x.picked_at})),usedAttempts:mine.length,maxAttempts:perks.dailyDraws,attemptsLeft:Math.max(0,perks.dailyDraws-mine.length),
     remaining:77-used.length,rankPerks:perks,prizes:{1:100000000000,2:50000000000,3:1000000000,other:10000000}};
 }
