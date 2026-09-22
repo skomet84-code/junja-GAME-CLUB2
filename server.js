@@ -169,6 +169,9 @@ function slotJackpotPool(){
   return Number.isSafeInteger(n)&&n>=SLOT_JACKPOT_BASE?n:SLOT_JACKPOT_BASE;
 }
 if(gameStateGet('slot_jackpot_pool',null)==null)gameStateSet('slot_jackpot_pool',SLOT_JACKPOT_BASE);
+const SLOT_777_EVENT_CHANCE = 0.10;
+function slot777EventActive(){return gameStateGet('slot_777_event_active',false)===true;}
+
 
 // If the server restarted while rooms were active, return virtual chips safely.
 const staleEscrows = db.prepare('SELECT room_id,user_id,amount,game FROM room_escrow').all();
@@ -2016,6 +2019,11 @@ const server=http.createServer(async(req,res)=>{
       const admin=requireAdmin(req,res);if(!admin)return;const r=findRoom(adminRoomClose[1]);if(r){closeRoomAndRefund(r,'관리자 강제 종료 환급');return json(res,200,{ok:true});}const br=baccaratRooms.get(adminRoomClose[1]);if(br){baccaratClose(br);return json(res,200,{ok:true});}return json(res,404,{error:'방을 찾을 수 없습니다.'});
     }
 
+    if(url.pathname==='/api/admin/slot-777-event'&&req.method==='POST'){
+      const admin=requireAdmin(req,res);if(!admin)return;
+      gameStateSet('slot_777_event_active',true);pushRefresh();
+      return json(res,200,{ok:true,active:true,chance:SLOT_777_EVENT_CHANCE});
+    }
     if(url.pathname==='/api/slot/jackpot'&&req.method==='GET'){
       const u=requireAuth(req,res);if(!u)return;return json(res,200,{pool:slotJackpotPool(),base:SLOT_JACKPOT_BASE});
     }
@@ -2024,7 +2032,12 @@ const server=http.createServer(async(req,res)=>{
       const freePlay=consumeRankFreePlay(u.id,'slot',!!b.useRankFree);if(freePlay.free)bet=Number(socialRankPerksForUser(u.id).freeSlotBet||10000000);if(!freePlay.free&&u.balance<bet)return json(res,400,{error:'게임머니가 부족합니다.'});
       if(!freePlay.free)walletChange(u.id,-bet,'slot_bet',`슬롯 베팅 ${formatMoney(bet)}G`);
       const slotLuck=0;const pick=()=>{const weighted=SLOT_SYMBOLS,total=100;let n=(crypto.randomInt(1000000)/1000000)*total;for(const x of weighted){if(n<x.w)return x.s;n-=x.w;}return '🍒';};
-      const grid=Array.from({length:3},()=>Array.from({length:3},()=>pick()));
+      let grid=Array.from({length:3},()=>Array.from({length:3},()=>pick()));
+      const slot777EventTriggered=slot777EventActive()&&(crypto.randomInt(1000000)/1000000)<SLOT_777_EVENT_CHANCE;
+      if(slot777EventTriggered){
+        const eventLine=SLOT_LINES[crypto.randomInt(SLOT_LINES.length)];
+        for(const [r,c] of eventLine.cells)grid[r][c]='7️⃣';
+      }
       const winLines=[];let totalMultiplier=0;
       for(const line of SLOT_LINES){
         const symbols=line.cells.map(([r,c])=>grid[r][c]);
@@ -2046,6 +2059,7 @@ const server=http.createServer(async(req,res)=>{
       if(sevenJackpot){
         jackpotAward=pool;if(jackpotAward>0)walletChange(u.id,jackpotAward,'slot_jackpot_pool',`777 누적 JACKPOT ${formatMoney(jackpotAward)}G`);
         pool=gameStateSet('slot_jackpot_pool',SLOT_JACKPOT_BASE);
+        if(slot777EventActive())gameStateSet('slot_777_event_active',false);
       }else{
         const actualLoss=freePlay.free?0:Math.max(0,bet-regularPayout);jackpotContribution=Math.floor(actualLoss*.13);
         if(jackpotContribution>0)pool=gameStateSet('slot_jackpot_pool',pool+jackpotContribution);
