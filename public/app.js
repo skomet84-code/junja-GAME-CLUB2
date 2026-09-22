@@ -428,8 +428,8 @@ function showSlotJackpot(d){
   document.body.classList.add('jackpot-open');fx('jackpot');jackpotConfetti();setTimeout(confetti,150);setTimeout(confetti,850);
 }
 function updateCurrentBetLabel(){if($('#currentBetLabel'))$('#currentBetLabel').textContent=money(selectedBet)}
-function normalizeSlotBet(v){v=Math.floor(Number(v)||1000);v=Math.max(1000,Math.min(100000,v));return Math.floor(v/1000)*1000}
-function syncSlotBetInput(input){const n=Math.floor(Number(input?.value));if(Number.isFinite(n)&&n>=1000&&n<=100000&&n%1000===0){selectedBet=n;$$('.bet-chip').forEach(x=>x.classList.remove('active'));updateCurrentBetLabel()}}
+function normalizeSlotBet(v){v=Math.floor(Number(v)||1000);v=Math.max(1000,Math.min(100000000,v));return Math.floor(v/1000)*1000}
+function syncSlotBetInput(input){const n=Math.floor(Number(input?.value));if(Number.isFinite(n)&&n>=1000&&n<=100000000&&n%1000===0){selectedBet=n;$$('.bet-chip').forEach(x=>x.classList.remove('active'));updateCurrentBetLabel()}}
 function normalizeSlotBetInput(input){if(!input)return;selectedBet=normalizeSlotBet(input.value);input.value=selectedBet;$$('.bet-chip').forEach(x=>x.classList.remove('active'));updateCurrentBetLabel()}
 function randomSlotSymbol(){return SLOT_SYMBOLS[Math.floor(Math.random()*SLOT_SYMBOLS.length)]}
 function slotCell(sym,r,c){
@@ -485,7 +485,7 @@ async function spin({manual=false,fast=false}={}){
   try{
     const useRankFree=rankFreeSlotNext;rankFreeSlotNext=false;updateRankFreeUi();const d=await api('/api/slot/spin',{method:'POST',body:JSON.stringify({bet:selectedBet,useRankFree})});
     await sleep(fast?90:250);await stopSlotSpin(d.grid,fast);applySlotHighlights(d.winLines||[]);
-    const beforeBalance=Number(me?.balance||0),afterBalance=Number(d.user?.balance||0),netChange=afterBalance-beforeBalance;
+    const serverBet=Number(d.bet||0),beforeBalance=Number(me?.balance||0),afterBalance=Number(d.user?.balance||0),netChange=afterBalance-beforeBalance;if(!useRankFree&&serverBet!==selectedBet){throw new Error(`베팅금액 확인 오류 · 요청 ${money(selectedBet)} / 서버 ${money(serverBet)}`)}
     if(d.payout>0){$('#slotResult').innerHTML=`<strong>${d.jackpot?'🔥 JACKPOT! ':''}${money(d.payout)} 당첨 · x${d.totalMultiplier}</strong><span>잔액 ${money(beforeBalance)} → ${money(afterBalance)} (${netChange>=0?'+':''}${money(netChange)})</span>`;fx(d.jackpot?'jackpot':'win');if(d.jackpot||(d.winLines||[]).length>1)confetti()}
     else $('#slotResult').innerHTML=`<strong>-${money(d.bet)} · 다음 SPIN 도전</strong><span>잔액 ${money(beforeBalance)} → ${money(afterBalance)} (${money(netChange)})</span>`;
     me=d.user;updateHeader();if($('#slotJackpotAmount'))$('#slotJackpotAmount').textContent=money(d.jackpotPool);if($('#lobbyJackpotAmount'))$('#lobbyJackpotAmount').textContent=money(d.jackpotPool);updateSlotSession(d);if(d.jackpot)showSlotJackpot(d);return d
