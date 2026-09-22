@@ -284,7 +284,7 @@ const SHOP_CATEGORY_LABELS={all:'전체',character:'캐릭터',frame:'프로필 
 const SHOP_RARITY_LABELS={common:'COMMON',rare:'RARE',epic:'EPIC',legendary:'LEGEND',mythic:'MYTHIC',prestige:'PRESTIGE 1B',limited:'LIMITED'};
 function shopPreview(item){
   const current={...(me?.cosmetics||{})};current[item.category]=item;
-  if(item.category==='character')return `<div class="shop-character-preview preview-${item.rarity}"><img src="${html(item.asset)}" alt="${html(item.name)}"><div class="character-preview-meta"><span>${item.gender==='F'?'WOMAN':'MAN'}</span><b>${html(item.name)}</b></div></div>`;
+  if(item.category==='character')return `<div class="shop-character-preview preview-${item.rarity} ${item.collection==='treasure'?'treasure-character-preview':''}"><img src="${html(item.asset)}" alt="${html(item.name)}"><div class="character-preview-meta"><span>${item.gender==='F'?'WOMAN':'MAN'}</span><b>${html(item.name)}</b></div></div>`;
   if(item.category==='costume')return `<div class="shop-avatar-preview preview-${item.rarity}">${avatarImg(me.avatar,me.nickname,'shop-face',current)}</div>`;
   if(item.category==='frame')return `<div class="shop-frame-preview preview-${item.rarity}">${avatarImg(me.avatar,me.nickname,'shop-face',current)}<span class="frame-preview-label">PROFILE BORDER</span></div>`;
   if(item.category==='title')return `<div class="shop-title-preview preview-${item.rarity}"><b>${html(me.nickname)}</b><span>${html(item.name)}</span></div>`;
