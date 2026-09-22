@@ -63,3 +63,31 @@
 @media(max-width:1050px){#view-treasure .tr-game{grid-template-columns:1fr}#view-treasure .tr-roster,#view-treasure .tr-info{min-height:0}#view-treasure .tr-roster{order:2}#view-treasure .tr-stage{order:1}#view-treasure .tr-info{order:3}#view-treasure .tr-player-list{display:grid;grid-template-columns:repeat(2,1fr);gap:0 10px}#view-treasure .tr-rewards{grid-template-columns:repeat(7,1fr)}#view-treasure .tr-mascot{display:none}}
 @media(max-width:720px){#view-treasure .treasure-shell{padding:0 0 18px}#view-treasure .tr-hero{min-height:108px;border-radius:14px;background-size:auto 108px;background-repeat:no-repeat;background-color:#08090b}#view-treasure .tr-hero-tag{font-size:10px;left:10px;bottom:8px}#view-treasure .tr-browser-grid{grid-template-columns:1fr}#view-treasure .tr-rules{grid-template-columns:repeat(2,1fr)}#view-treasure .tr-stage{min-height:560px}#view-treasure .tr-stage-top{padding:12px}#view-treasure .tr-round{padding:6px 14px}#view-treasure .tr-round b{font-size:23px}#view-treasure .tr-chests{grid-template-columns:repeat(4,1fr);gap:5px;padding:8px}#view-treasure .tr-chest{min-height:105px}#view-treasure .tr-chest span{font-size:14px}#view-treasure .tr-actions{display:grid;grid-template-columns:1fr 1fr;padding:10px}#view-treasure .tr-actions button{min-width:0;padding:13px 8px}#view-treasure .tr-player-list{grid-template-columns:1fr}#view-treasure .tr-rewards{grid-template-columns:repeat(4,1fr)}#view-treasure .tr-info{padding:12px}}
 @media(max-width:430px){#view-treasure .tr-chests{grid-template-columns:repeat(2,1fr)}#view-treasure .tr-chest{min-height:125px}#view-treasure .tr-rewards{grid-template-columns:repeat(2,1fr)}#view-treasure .tr-form-row{grid-template-columns:1fr}}
+
+/* v3: AFK timer + jackpot cinematic */
+#view-treasure .tr-timer{position:relative;z-index:3;margin:0 auto 7px;width:max-content;max-width:calc(100% - 24px);display:flex;align-items:baseline;justify-content:center;gap:6px;padding:7px 14px;border-radius:999px;background:rgba(5,6,8,.88);border:1px solid rgba(255,211,93,.45);box-shadow:0 8px 22px rgba(0,0,0,.35)}
+#view-treasure .tr-timer span{font-size:11px;font-weight:900;color:#b9ad98;letter-spacing:.08em}
+#view-treasure .tr-timer b{font-size:26px;line-height:1;color:#ffe07b;min-width:28px;text-align:center}
+#view-treasure .tr-timer em{font-style:normal;color:#d9c38c;font-weight:900}
+#view-treasure .tr-timer small{font-size:10px;color:#9d9487;margin-left:4px}
+#view-treasure .tr-timer.urgent{border-color:#ff695e;box-shadow:0 0 26px rgba(255,59,48,.3);animation:trTimerPulse .8s ease-in-out infinite alternate}
+#view-treasure .tr-timer.urgent b{color:#ff7b70}
+#view-treasure .tr-result-card.is-jackpot{border-color:#ffe56f;background:radial-gradient(circle at 50% 0%,rgba(255,221,80,.26),rgba(20,12,3,.93) 68%);box-shadow:0 0 38px rgba(255,188,24,.3)}
+@keyframes trTimerPulse{to{transform:scale(1.035)}}
+
+.tr-jackpot-fx{position:fixed;inset:0;z-index:99999;display:grid;place-items:center;overflow:hidden;background:radial-gradient(circle at 50% 50%,rgba(83,41,0,.35),rgba(0,0,0,.9) 68%);backdrop-filter:blur(4px)}
+.tr-jackpot-rays{position:absolute;width:110vmax;height:110vmax;background:repeating-conic-gradient(from 0deg,rgba(255,226,104,.22) 0 5deg,transparent 5deg 13deg);animation:trRays 7s linear infinite}
+.tr-jackpot-burst{position:absolute;inset:0;pointer-events:none}
+.tr-jackpot-burst i{position:absolute;left:var(--x);top:-8%;width:9px;height:22px;border-radius:3px;background:#ffd63d;transform:rotate(var(--r));animation:trConfetti calc(2.2s + var(--d)) cubic-bezier(.2,.75,.25,1) infinite;animation-delay:calc(var(--i) * -0.045s);box-shadow:0 0 10px rgba(255,198,38,.55)}
+.tr-jackpot-burst i:nth-child(3n){background:#fff3a8}.tr-jackpot-burst i:nth-child(3n+1){background:#ff7f37}
+.tr-jackpot-core{position:relative;z-index:3;width:min(560px,90vw);padding:34px 20px 28px;text-align:center;border-radius:28px;border:2px solid #ffe98c;background:radial-gradient(circle at 50% 15%,rgba(255,190,38,.28),rgba(22,12,3,.96) 55%,rgba(5,5,7,.98));box-shadow:0 0 45px rgba(255,189,24,.5),0 28px 80px rgba(0,0,0,.72);animation:trJackpotPop .5s cubic-bezier(.2,1.5,.5,1)}
+.tr-jackpot-core small{display:block;color:#e7c263;font-weight:900;letter-spacing:.18em}
+.tr-jackpot-core strong{display:block;margin-top:5px;font-size:clamp(46px,10vw,92px);line-height:.95;color:#fff4aa;text-shadow:0 0 12px #ff9d00,0 0 28px #ff7800,0 6px 0 #7e3900;letter-spacing:.035em}
+.tr-jackpot-core div{font-size:clamp(34px,8vw,66px);font-weight:1000;color:#ffcc3a;text-shadow:0 0 20px rgba(255,166,0,.8)}
+.tr-jackpot-core b{display:block;margin-top:7px;font-size:clamp(24px,5vw,42px);color:#fff}
+.tr-jackpot-core span{display:block;margin:7px 0 18px;color:#ffe6aa;font-weight:900}
+.tr-jackpot-core button{min-width:190px;padding:12px 20px;border-radius:999px;border:1px solid #fff0a4;background:linear-gradient(180deg,#f7c845,#a85b05);color:#211000;font-weight:1000;font-size:16px}
+@keyframes trRays{to{transform:rotate(360deg)}}
+@keyframes trConfetti{0%{transform:translate3d(0,-10vh,0) rotate(0deg);opacity:0}8%{opacity:1}100%{transform:translate3d(calc((var(--x) - 50%) * .25),112vh,0) rotate(var(--r));opacity:.15}}
+@keyframes trJackpotPop{from{transform:scale(.55) rotate(-2deg);opacity:0}to{transform:scale(1);opacity:1}}
+@media(max-width:520px){.tr-jackpot-core{padding:26px 14px 22px;border-radius:22px}#view-treasure .tr-timer{padding:6px 10px;gap:4px}#view-treasure .tr-timer small{display:none}}
