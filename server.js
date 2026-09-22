@@ -605,7 +605,7 @@ function socialRankPerks(level){
   level=Math.max(0,Math.min(11,Number(level)||0));
   const extraDraws=level>=11?4:level>=9?3:level>=6?2:level>=3?1:0;
   const dailyBonusPct=[0,5,10,15,20,30,40,50,65,80,100,150][level]||0;
-  const dailySalary=[0,100000,300000,1000000,3000000,7000000,15000000,30000000,60000000,120000000,250000000,500000000][level]||0;
+  const dailySalary=[0,1000000,3000000,10000000,30000000,70000000,150000000,300000000,600000000,1200000000,2500000000,5000000000][level]||0;
   const transferFeePct=[2,2,1.8,1.6,1.4,1.2,1,0.8,0.6,0.4,0.2,0][level]||0;
   const freeSlots=[0,0,0,5,8,12,18,25,35,50,70,100][level]||0;
   const freeSlotBet=[0,0,0,100000,200000,300000,500000,1000000,2000000,3000000,5000000,10000000][level]||0;
