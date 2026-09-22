@@ -91,7 +91,11 @@
   function bindGame(){
     state.root.querySelectorAll('[data-tr-back]').forEach(b=>b.addEventListener('click',()=>window.go?.('lobby')));
     state.root.querySelectorAll('[data-tr-chest]').forEach(b=>b.addEventListener('click',()=>{if(state.busy||b.disabled)return;state.root.querySelectorAll('[data-tr-chest]').forEach(x=>x.disabled=true);b.classList.add('selected');act(async()=>{const d=await api('/api/treasure-raid/rooms/'+state.room.id+'/pick',{method:'POST',body:JSON.stringify({chest:Number(b.dataset.trChest)})});state.room=d.room;await syncUser(d.user);renderGame()})}));
-    q('#trReplayReady')?.addEventListener('click',()=>roomAction('ready'));
+    q('#trReplayReady')?.addEventListener('click',()=>{
+      // Preserve the completed room id before replay reset.
+      if(state.room?.id)state.lastRoomId=state.room.id;
+      roomAction('ready')
+    });
     q('#trReady')?.addEventListener('click',()=>roomAction('ready'));
     q('#trStart')?.addEventListener('click',()=>roomAction('start'));
     q('#trForceStart')?.addEventListener('click',()=>{if(confirm('준비하지 않은 참가자는 배팅금을 전액 환급하고 방에서 제외한 뒤 시작할까?'))roomAction('start',{force:true})});
@@ -99,7 +103,15 @@
     q('#trCashout')?.addEventListener('click',()=>roomAction('cashout'));
     q('#trLeave')?.addEventListener('click',()=>act(async()=>{const d=await api('/api/treasure-raid/rooms/'+state.room.id+'/leave',{method:'POST',body:'{}'});state.room=null;await syncUser(d.user);toast(d.payout?`보물 레이드 정산 ${money(d.payout)}`:'보물 레이드 방에서 나왔어.');await loadRooms()}));
   }
-  function roomAction(op,body={}){return act(async()=>{const d=await api('/api/treasure-raid/rooms/'+state.room.id+'/'+op,{method:'POST',body:JSON.stringify(body)});state.room=d.room;await syncUser(d.user);renderGame()})}
+  function roomAction(op,body={}){return act(async()=>{
+    // Capture the room id before any refresh/render can clear state.room.
+    // This is especially important on the complete -> replay-ready transition,
+    // where polling may replace the client room state while the tap is handled.
+    const roomId=state.room?.id||state.lastRoomId;
+    if(!roomId){await loadRooms();toast('원정대 정보를 다시 불러왔어. 다시 눌러줘.');return}
+    const d=await api('/api/treasure-raid/rooms/'+roomId+'/'+op,{method:'POST',body:JSON.stringify(body)});
+    state.room=d.room;state.lastRoomId=d.room?.id||roomId;await syncUser(d.user);renderGame()
+  })}
   function updateCountdown(){
     const el=q('#trCountdown');if(!el)return;const p=myPlayer(),left=timeLeft(p);el.textContent=String(left);el.parentElement?.classList.toggle('urgent',left<=10);if(left<=0)el.textContent='0';
   }
