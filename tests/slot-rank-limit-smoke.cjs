@@ -9,3 +9,9 @@ if(!app.includes("function slotBetUnlimited(){return Number(me?.rank?.level||0)>
 if(!app.includes("왕 이상 · 보유 게임머니까지 자유 배팅"))throw new Error('Client unlimited slot label missing');
 if(!html.includes('id="slotBetInput" type="number" min="1000" max="1000000000"'))throw new Error('Slot input baseline max missing');
 console.log('SLOT_RANK_LIMIT_TESTS_OK');
+
+/* SLOT_SELECTOR_REGRESSION */
+const brokenSingleBetChip=/(?<!\\$)\\$\\('\\.bet-chip'\\)\\.forEach/g;
+if([...app.matchAll(brokenSingleBetChip)].length)throw new Error('Broken single-selector slot bet chip forEach detected');
+if(!app.includes("$$('.bet-chip').forEach"))throw new Error('Slot bet chip multi-selector binding missing');
+if(!server.includes("bet=b.useRankFree?1000:(royalSlotUnlimited?walletWager"))throw new Error('Rank free spin must bypass wallet wager parsing before free bet override');

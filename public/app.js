@@ -486,8 +486,8 @@ function slotBetUnlimited(){return Number(me?.rank?.level||0)>=9}
 function slotBetCap(){if(!slotBetUnlimited())return 1000000000;const wallet=Math.floor(Number(me?.balance||0)/1000)*1000;return Math.max(1000,wallet)}
 function updateSlotBetLimitUi(){const input=$('#slotBetInput');if(!input)return;const cap=slotBetCap();input.max=String(cap);const note=input.closest('.custom-wager')?.querySelector('small');if(note)note.textContent=slotBetUnlimited()?'♔ 왕 이상 · 보유 게임머니까지 자유 배팅':'MAX 1,000,000,000 G'}
 function normalizeSlotBet(v){v=Math.floor(Number(v)||1000);const cap=slotBetCap();v=Math.max(1000,Math.min(cap,v));return Math.floor(v/1000)*1000}
-function syncSlotBetInput(input){const n=Math.floor(Number(input?.value)),cap=slotBetCap();if(Number.isFinite(n)&&n>=1000&&n<=cap&&n%1000===0){selectedBet=n;$('.bet-chip').forEach(x=>x.classList.remove('active'));updateCurrentBetLabel()}}
-function normalizeSlotBetInput(input){if(!input)return;selectedBet=normalizeSlotBet(input.value);input.value=selectedBet;updateSlotBetLimitUi();$('.bet-chip').forEach(x=>x.classList.remove('active'));updateCurrentBetLabel()}
+function syncSlotBetInput(input){const n=Math.floor(Number(input?.value)),cap=slotBetCap();if(Number.isFinite(n)&&n>=1000&&n<=cap&&n%1000===0){selectedBet=n;$$('.bet-chip').forEach(x=>x.classList.remove('active'));updateCurrentBetLabel()}}
+function normalizeSlotBetInput(input){if(!input)return;selectedBet=normalizeSlotBet(input.value);input.value=selectedBet;updateSlotBetLimitUi();$$('.bet-chip').forEach(x=>x.classList.remove('active'));updateCurrentBetLabel()}
 function randomSlotSymbol(){return SLOT_SYMBOLS[Math.floor(Math.random()*SLOT_SYMBOLS.length)]}
 function slotCell(sym,r,c){
   const face=sym==='7️⃣'?'<span class="vegas-seven" aria-label="7">7</span>':sym==='J'?'<span class="junja-j" aria-label="J">J</span>':sym==='⭐'?'<span class="slot-star" aria-label="별">⭐</span>':`<span>${sym}</span>`;
