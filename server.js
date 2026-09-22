@@ -5,6 +5,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
 const { DatabaseSync } = require('./persistent-db');
+const createTreasureRaid = require('./treasure-raid-server');
 
 const PORT = Number(process.env.PORT || 10000);
 const HOST = '0.0.0.0';
@@ -1792,6 +1793,11 @@ function personalizedRoom(r,userId){
   };
 }
 
+const treasureRaid=createTreasureRaid({
+  crypto,now,readBody,requireAuth,json,walletChange,userPublic,escrowSet,escrowDelete,pushRefresh,formatMoney,rateLimit,
+  isUserBusy:userId=>!!findUserRoom(userId)||!!baccaratFindUser(userId)
+});
+
 function serveStatic(req,res,url){
   let p=url.pathname==='/'?'/index.html':url.pathname;
   if(p.includes('..')){res.writeHead(400);res.end();return;}
@@ -1805,7 +1811,8 @@ const server=http.createServer(async(req,res)=>{
   try{
     const url=new URL(req.url,`http://${req.headers.host||'localhost'}`);
     if(!sameOriginPost(req)){return json(res,403,{error:'잘못된 요청 출처입니다.'});}
-    if(url.pathname==='/healthz')return json(res,200,{ok:true,rooms:rooms.size+baccaratRooms.size,online:onlineCount()});
+    if(url.pathname.startsWith('/api/treasure-raid')){if(await treasureRaid.handle(req,res,url))return;}
+    if(url.pathname==='/healthz')return json(res,200,{ok:true,rooms:rooms.size+baccaratRooms.size+treasureRaid.roomCount(),online:onlineCount()});
     if(url.pathname==='/audio/bright_song.mp3'&&req.method==='GET'){
       try{
         const upstream=await fetch('https://opengameart.org/sites/default/files/Sunflower-Valley-isaiah658_0.mp3');
@@ -2070,14 +2077,14 @@ const server=http.createServer(async(req,res)=>{
     // Baccarat duel rooms
     if(url.pathname==='/api/baccarat/rooms'&&req.method==='GET'){const u=requireAuth(req,res);if(!u)return;return json(res,200,{rooms:[...baccaratRooms.values()].map(baccaratSummary).sort((a,b)=>b.updatedAt-a.updatedAt)});}
     if(url.pathname==='/api/baccarat/rooms'&&req.method==='POST'){
-      const u=requireAuth(req,res);if(!u)return;if(findUserRoom(u.id)||baccaratFindUser(u.id))return json(res,409,{error:'이미 참가 중인 게임방이 있어. 먼저 나가줘.'});const id=baccaratMakeId(),t=now();
+      const u=requireAuth(req,res);if(!u)return;if(findUserRoom(u.id)||baccaratFindUser(u.id)||treasureRaid.hasUser(u.id))return json(res,409,{error:'이미 참가 중인 게임방이 있어. 먼저 나가줘.'});const id=baccaratMakeId(),t=now();
       const r={id,game:'baccarat',name:`바카라 듀얼 ${id}`,hostId:u.id,phase:'waiting',stake:10000,roundNo:0,startBankerIndex:crypto.randomInt(2),players:[{userId:u.id,nickname:u.nickname,avatar:u.avatar,ready:false,auto:false,joinedAt:t}],result:null,createdAt:t,updatedAt:t,version:1};baccaratRooms.set(id,r);pushRefresh();return json(res,201,{room:baccaratPublic(r,u.id)});
     }
     const baccaratMatch=url.pathname.match(/^\/api\/baccarat\/rooms\/([A-F0-9]+)(?:\/(.*))?$/);
     if(baccaratMatch){
       const u=requireAuth(req,res);if(!u)return;const r=baccaratRooms.get(baccaratMatch[1]);if(!r)return json(res,404,{error:'바카라 방을 찾을 수 없어.'});const op=baccaratMatch[2]||'';
       if(!op&&req.method==='GET'){if(!baccaratPlayer(r,u.id))return json(res,403,{error:'이 바카라 방 참가자가 아니야.'});return json(res,200,{room:baccaratPublic(r,u.id)});}
-      if(op==='join'&&req.method==='POST'){if(baccaratPlayer(r,u.id))return json(res,200,{room:baccaratPublic(r,u.id)});if(findUserRoom(u.id)||baccaratFindUser(u.id))return json(res,409,{error:'이미 참가 중인 게임방이 있어.'});if(r.players.length>=2)return json(res,409,{error:'이미 두 명이 참가 중이야.'});r.players.push({userId:u.id,nickname:u.nickname,avatar:u.avatar,ready:false,auto:false,joinedAt:now()});r.stake=Math.max(1000,Math.min(10000,Math.floor(baccaratMaxStake(r))));r.phase='waiting';baccaratTouch(r);pushRefresh();return json(res,200,{room:baccaratPublic(r,u.id)});}
+      if(op==='join'&&req.method==='POST'){if(baccaratPlayer(r,u.id))return json(res,200,{room:baccaratPublic(r,u.id)});if(findUserRoom(u.id)||baccaratFindUser(u.id)||treasureRaid.hasUser(u.id))return json(res,409,{error:'이미 참가 중인 게임방이 있어.'});if(r.players.length>=2)return json(res,409,{error:'이미 두 명이 참가 중이야.'});r.players.push({userId:u.id,nickname:u.nickname,avatar:u.avatar,ready:false,auto:false,joinedAt:now()});r.stake=Math.max(1000,Math.min(10000,Math.floor(baccaratMaxStake(r))));r.phase='waiting';baccaratTouch(r);pushRefresh();return json(res,200,{room:baccaratPublic(r,u.id)});}
       if(op==='leave'&&req.method==='POST'){const p=baccaratPlayer(r,u.id);if(!p)return json(res,200,{ok:true});r.players=r.players.filter(x=>x.userId!==u.id);if(!r.players.length)baccaratRooms.delete(r.id);else{r.hostId=r.players[0].userId;r.phase='waiting';r.result=null;r.players[0].ready=false;r.players[0].auto=false;baccaratTouch(r);}pushRefresh();return json(res,200,{ok:true});}
       if(op==='ready'&&req.method==='POST'){const p=baccaratPlayer(r,u.id);if(!p)return json(res,403,{error:'참가자가 아니야.'});p.ready=!p.ready;baccaratTouch(r);pushRefresh();return json(res,200,{room:baccaratPublic(r,u.id)});}
       if(op==='auto'&&req.method==='POST'){const p=baccaratPlayer(r,u.id);if(!p)return json(res,403,{error:'참가자가 아니야.'});const b=await readBody(req);p.auto=!!b.enabled;if(p.auto)p.ready=true;baccaratTouch(r);pushRefresh();return json(res,200,{room:baccaratPublic(r,u.id)});}
@@ -2141,7 +2148,7 @@ const server=http.createServer(async(req,res)=>{
       const u=requireAuth(req,res);if(!u)return;const game=url.searchParams.get('game');const list=[...rooms.values()].filter(r=>!game||r.game===game).map(roomSummary).sort((a,b)=>a.status.localeCompare(b.status));return json(res,200,{rooms:list});
     }
     if(url.pathname==='/api/rooms'&&req.method==='POST'){
-      const u=requireAuth(req,res);if(!u)return;if(findUserRoom(u.id)||baccaratFindUser(u.id))return json(res,409,{error:'이미 다른 게임방에 참가 중입니다. 먼저 그 방에서 나와주세요.'});const b=await readBody(req),requested=String(b.game||'holdem'),game=['holdem','yut','seotda','sevenpoker','gostop'].includes(requested)?requested:'holdem';
+      const u=requireAuth(req,res);if(!u)return;if(findUserRoom(u.id)||baccaratFindUser(u.id)||treasureRaid.hasUser(u.id))return json(res,409,{error:'이미 다른 게임방에 참가 중입니다. 먼저 그 방에서 나와주세요.'});const b=await readBody(req),requested=String(b.game||'holdem'),game=['holdem','yut','seotda','sevenpoker','gostop'].includes(requested)?requested:'holdem';
       const yutMode=game==='yut'&&['individual','2v2','3v3'].includes(b.yutMode)?b.yutMode:'individual';const maxPlayers=(game==='holdem'||game==='sevenpoker')?clampInt(b.maxPlayers,2,6):game==='yut'?(yutMode==='2v2'?4:yutMode==='3v3'?6:clampInt(b.maxPlayers,2,6)):2;const chipGame=game==='holdem'||game==='sevenpoker';let buyIn;try{buyIn=chipGame?Math.floor(Number(u.balance||0)):game==='seotda'?walletWager(b.buyIn,u.balance,5000,1000):game==='gostop'?gameWager(b.buyIn,5000,Number.MAX_SAFE_INTEGER,1000):gameWager(b.buyIn,5000,100000,1000)}catch(e){return json(res,400,{error:e.message})};
       if(!Number.isSafeInteger(buyIn)||buyIn<1000)return json(res,400,{error:'포커 테이블 입장에는 최소 1,000G가 필요합니다.'});if(u.balance<buyIn)return json(res,400,{error:'방 참가금보다 보유 게임머니가 적습니다.'});
       const id=makeRoomId();const name=game==='holdem'?`홀덤 테이블 ${id}`:game==='yut'?`윷놀이 방 ${id}`:game==='seotda'?`3장 섯다 듀얼 ${id}`:game==='gostop'?`맞고 대전방 ${id}`:`세븐포커 테이블 ${id}`;walletChange(u.id,-buyIn,`${game}_buyin`,chipGame?`${name} 전액 스택 입장`:`${name} 참가금`);
@@ -2181,7 +2188,7 @@ const server=http.createServer(async(req,res)=>{
         closeRoomAndRefund(r,'오류 복구 환급');return json(res,200,{ok:true});
       }
       if(op==='join'&&req.method==='POST'){
-        if(roomPlayer(r,u.id))return json(res,200,{room:personalizedRoom(r,u.id)});if(findUserRoom(u.id)||baccaratFindUser(u.id))return json(res,409,{error:'이미 다른 게임방에 참가 중입니다. 먼저 그 방에서 나와주세요.'});if(roomStatus(r)==='PLAYING')return json(res,409,{error:'게임 진행 중에는 입장할 수 없습니다.'});if(r.players.length>=r.maxPlayers)return json(res,409,{error:'방이 가득 찼습니다.'});const chipGame=r.game==='holdem'||r.game==='sevenpoker',entry=chipGame?Math.floor(Number(u.balance||0)):r.buyIn;if(entry<1000||u.balance<entry)return json(res,400,{error:'게임머니가 부족합니다.'});
+        if(roomPlayer(r,u.id))return json(res,200,{room:personalizedRoom(r,u.id)});if(findUserRoom(u.id)||baccaratFindUser(u.id)||treasureRaid.hasUser(u.id))return json(res,409,{error:'이미 다른 게임방에 참가 중입니다. 먼저 그 방에서 나와주세요.'});if(roomStatus(r)==='PLAYING')return json(res,409,{error:'게임 진행 중에는 입장할 수 없습니다.'});if(r.players.length>=r.maxPlayers)return json(res,409,{error:'방이 가득 찼습니다.'});const chipGame=r.game==='holdem'||r.game==='sevenpoker',entry=chipGame?Math.floor(Number(u.balance||0)):r.buyIn;if(entry<1000||u.balance<entry)return json(res,400,{error:'게임머니가 부족합니다.'});
         walletChange(u.id,-entry,`${r.game}_buyin`,chipGame?`${r.name} 전액 스택 입장`:`${r.name} 참가금`);r.players.push({userId:u.id,nickname:u.nickname,avatar:u.avatar,seat:nextSeat(r),stack:chipGame?entry:0,ready:false,joinedAt:now()});escrowSet(r.id,u.id,entry,r.game);touchRoom(r);pushRefresh(r.id);return json(res,200,{room:personalizedRoom(r,u.id)});
       }
       if(op==='leave'&&req.method==='POST'){

@@ -10,6 +10,7 @@
 <link rel="stylesheet" href="/v26-visual.css?v=346">
 <link rel="stylesheet" href="/v28-yut-horse.css?v=346">
 <link rel="stylesheet" href="/rank-system.css?v=346">
+<link rel="stylesheet" href="/treasure-raid.css?v=1">
 </head>
 <body>
 <div id="app">
@@ -57,6 +58,7 @@
           <button class="game-card bigwheel" data-go="bigwheel" type="button"><img class="game-art" src="/art/v26/games/bigwheel.webp" alt="빅휠"><div class="game-icon">◎</div><span class="ai-badge">LIVE WHEEL</span><div><small>FORTUNE WHEEL</small><h3>빅휠</h3><p>77칸 대형 휠 · JUNJA 스페셜 x100</p></div></button>
           <button class="game-card sicbo" data-go="sicbo" type="button"><img class="game-art" src="/art/v26/games/sicbo.webp" alt="다이사이"><div class="game-icon">⚂</div><span class="ai-badge">3 DICE</span><div><small>SIC BO</small><h3>다이사이</h3><p>BIG·SMALL·홀짝·합계·트리플</p></div></button>
           <button class="game-card roulette" data-go="roulette" type="button"><img class="game-art" src="/art/v26/games/roulette.webp" alt="룰렛"><div class="game-icon">◉</div><span class="dual-badge">EUROPEAN</span><div><small>ROYAL ROULETTE</small><h3>JUNJA 룰렛</h3><p>싱글제로 · 실제 배당 · 보유머니 한도 내 무제한</p></div></button>
+          <button class="game-card treasure" data-go="treasure" type="button"><div class="game-art treasure-card-art" aria-hidden="true"></div><div class="game-icon">♛</div><span class="dual-badge">NEW · 2–6P</span><div><small>TREASURE RAID</small><h3>JUNJA 보물 레이드</h3><p>보물상자 · 탈출/도전 · 최대 ×100</p></div></button>
         </div>
 
         <div class="dashboard-grid"><div class="panel section-card"><div class="section-head"><div><small>CLUB RANKING</small><h3>게임머니 랭킹</h3></div><button class="ghost" id="refreshRank" type="button">새로고침</button></div><div id="leaderboard" class="rank-list"></div></div><div class="panel section-card accent-card"><div class="section-head"><div><small>MY RECORD</small><h3>내 기록</h3></div></div><div id="myStats" class="stat-grid"></div><button class="secondary full" data-go="ledger" type="button">게임머니 내역 보기</button></div></div>
@@ -193,6 +195,11 @@
         </div>
       </section>
 
+      <section id="view-treasure" class="view">
+        <div class="view-head"><button class="back" data-go="lobby" type="button">←</button><div><small>TREASURE RAID · MULTIPLAYER EXPEDITION</small><h2>JUNJA 보물 레이드</h2></div><span class="dual-badge">2–6 PLAYERS</span></div>
+        <div id="treasureRaidRoot"></div>
+      </section>
+
       <section id="view-shop" class="view">
         <div class="view-head boutique-head"><button class="back" data-go="lobby" type="button">←</button><div><small>JUNJA LUXURY BOUTIQUE · COLLECTION</small><h2>럭셔리 아바타 & 컬렉션 상점</h2></div><span class="boutique-badge perk">CAPPED LUXURY PERKS</span></div>
         <div class="economy-notice panel"><div>💎</div><p><b>게임으로 벌고, 꾸미고, 자랑하는 CLUB ECONOMY.</b><br>대부분은 외형·연출 전용. 일부 LEGEND·MYTHIC·PRESTIGE 아이템에는 작은 CLUB PERK가 있으며 슬롯 희귀 심볼 가중치는 장착 아이템을 합쳐도 최대 +1%로 제한됩니다. 게임머니는 현금 가치·환전·상품 교환이 없습니다.</p></div>
@@ -240,7 +247,8 @@
     <div id="toast" class="toast"></div>
   </div>
 </div>
-<script src="/app.js?v=355"></script>
+<script src="/treasure-raid.js?v=1"></script>
+<script src="/app.js?v=356"></script>
 <script src="/rank-system.js?v=346"></script>
 <div id="dailyDrawModal" class="daily-draw-modal hidden" role="dialog" aria-modal="true" aria-labelledby="dailyDrawTitle">
   <div class="daily-draw-card">
