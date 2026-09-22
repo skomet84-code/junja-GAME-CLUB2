@@ -1672,8 +1672,8 @@ function sevenBotDrive(s){
 }
 function sevenPublic(s){
   if(!s)return null;const botCards=s.cards.bot.map((c,i)=>s.complete||s.faceUp.bot[i]?c:'XX');
-  const call=Math.max(0,Number(s.currentBet||0)-Number(s.roundBet?.user||0)),maxRaiseTo=sevenEffectiveMaxTo(s,'user'),rawMin=Number(s.currentBet||0)===0?Number(s.minRaise||1000):Number(s.currentBet||0)+Number(s.minRaise||1000);
-  const legal=s.turn==='user'&&!s.complete?{toCall:call,maxRaiseTo,minRaiseTo:Math.min(maxRaiseTo,rawMin),canRaise:maxRaiseTo>Number(s.currentBet||0)}:null;
+  const userRound=Number(s.roundBet?.user||0),call=Math.max(0,Number(s.currentBet||0)-userRound),maxRaiseTo=sevenEffectiveMaxTo(s,'user'),allInAmount=Math.max(0,maxRaiseTo-userRound),rawMin=Number(s.currentBet||0)===0?Number(s.minRaise||1000):Number(s.currentBet||0)+Number(s.minRaise||1000);
+  const legal=s.turn==='user'&&!s.complete?{toCall:call,maxRaiseTo,allInAmount,tableStack:Number(s.stack?.user||0),opponentStack:Number(s.stack?.bot||0),minRaiseTo:Math.min(maxRaiseTo,rawMin),canRaise:maxRaiseTo>Number(s.currentBet||0)}:null;
   return {buyIn:s.buyIn,handNo:s.handNo,phase:s.phase,complete:s.complete,street:s.street,pot:s.pot,ante:s.ante,turn:s.turn,lastAction:s.lastAction,stack:s.stack,roundBet:s.roundBet,currentBet:s.currentBet,minRaise:s.minRaise,legal,cards:{user:s.cards.user,bot:botCards},faceUp:s.faceUp,result:s.result,userStatus:sevenCurrentStatus(s,'user'),botVisibleStatus:pokerHandStatus(sevenVisibleCards(s,'bot'))};
 }
 function sevenStart(user){
@@ -1730,8 +1730,8 @@ function sevenMAction(r,userId,action,raiseTo){
 }
 function sevenMPublic(r,userId){
   const s=r.seven;if(!s)return null;const reveal=s.complete&&s.result?.type==='showdown',cards={},statuses={};for(const p of r.players){const id=p.userId;cards[id]=(s.cards[id]||[]).map((c,i)=>id===userId||reveal&&!s.folded[id]||s.faceUp[id]?.[i]?c:'XX');statuses[id]=id===userId?pokerHandStatus(s.cards[id]||[]):pokerHandStatus(sevenMVisible(s,id));}
-  const meId=Number(userId),p=roomPlayer(r,meId),call=Math.max(0,s.currentBet-(s.roundBet[meId]||0)),maxRaiseTo=sevenMMaxRaiseTo(r,s,meId),rawMin=s.currentBet===0?s.minRaise:s.currentBet+s.minRaise;
-  return {phase:s.phase,complete:s.complete,handNo:s.handNo,street:s.street,ante:s.ante,pot:sevenMPot(s),turnUserId:s.turnUserId,lastAction:s.lastAction,cards,faceUp:s.faceUp,roundBet:s.roundBet,currentBet:s.currentBet,minRaise:s.minRaise,folded:s.folded,allIn:s.allIn,result:s.result,statuses,legal:s.turnUserId===meId&&!s.complete?{toCall:call,minRaiseTo:Math.min(maxRaiseTo,rawMin),maxRaiseTo,canRaise:maxRaiseTo>s.currentBet,tableStack:Number(p?.stack||0)}:null};
+  const meId=Number(userId),p=roomPlayer(r,meId),myRound=Number(s.roundBet?.[meId]||0),call=Math.max(0,s.currentBet-myRound),maxRaiseTo=sevenMMaxRaiseTo(r,s,meId),allInAmount=Math.max(0,maxRaiseTo-myRound),rawMin=s.currentBet===0?s.minRaise:s.currentBet+s.minRaise;
+  return {phase:s.phase,complete:s.complete,handNo:s.handNo,street:s.street,ante:s.ante,pot:sevenMPot(s),turnUserId:s.turnUserId,lastAction:s.lastAction,cards,faceUp:s.faceUp,roundBet:s.roundBet,currentBet:s.currentBet,minRaise:s.minRaise,folded:s.folded,allIn:s.allIn,result:s.result,statuses,legal:s.turnUserId===meId&&!s.complete?{toCall:call,minRaiseTo:Math.min(maxRaiseTo,rawMin),maxRaiseTo,allInAmount,canRaise:maxRaiseTo>s.currentBet,tableStack:Number(p?.stack||0)}:null};
 }
 
 // ---------- Baccarat Duel (2-player, equal virtual stakes) ----------
