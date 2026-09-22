@@ -1,7 +1,7 @@
 'use strict';
 
 // TEMPORARY ONE-SHOT SLOT EVENT PATCH
-// 777 jackpot chance is exactly 15% per spin while this event is active.
+// 777 jackpot chance is exactly 5% per spin while this event is active.
 // After the first 777 jackpot winner, the event is persisted as inactive in
 // game_state and all following spins immediately return to the original odds.
 // A fresh event key is used for the Docker deployment fix so prior test state
@@ -14,13 +14,13 @@ const serverPath = path.resolve(__dirname, 'server.js');
 const originalReadFileSync = fs.readFileSync.bind(fs);
 
 const poolInitAnchor = "if(gameStateGet('slot_jackpot_pool',null)==null)gameStateSet('slot_jackpot_pool',SLOT_JACKPOT_BASE);";
-const eventStatePatch = `${poolInitAnchor}\n\nconst TEMP_SLOT_777_EVENT_KEY='slot_777_event_20260920_15pct_restart';\nif(gameStateGet(TEMP_SLOT_777_EVENT_KEY,null)==null){\n  gameStateSet(TEMP_SLOT_777_EVENT_KEY,{active:true,startedAt:Date.now(),targetPct:15});\n}\nfunction tempSlot777EventActive(){\n  const state=gameStateGet(TEMP_SLOT_777_EVENT_KEY,null);\n  return state===true||!!state?.active;\n}`;
+const eventStatePatch = `${poolInitAnchor}\n\nconst TEMP_SLOT_777_EVENT_KEY='slot_777_event_20260920_5pct_restart';\nif(gameStateGet(TEMP_SLOT_777_EVENT_KEY,null)==null){\n  gameStateSet(TEMP_SLOT_777_EVENT_KEY,{active:true,startedAt:Date.now(),targetPct:5});\n}\nfunction tempSlot777EventActive(){\n  const state=gameStateGet(TEMP_SLOT_777_EVENT_KEY,null);\n  return state===true||!!state?.active;\n}`;
 
 const oldGridBuild = "      const grid=Array.from({length:3},()=>Array.from({length:3},()=>pick()));";
-const temporaryGridBuild = `      // TEMP EVENT: exactly 15% total 777 jackpot chance until first winner.
+const temporaryGridBuild = `      // TEMP EVENT: exactly 5% total 777 jackpot chance until first winner.
       const sevenEventActive=tempSlot777EventActive();
       const hasSevenPayline=(g)=>SLOT_LINES.some(line=>line.cells.every(([r,c])=>g[r][c]==='7️⃣'));
-      const forceSevenJackpot=sevenEventActive&&crypto.randomInt(1000000)<150000;
+      const forceSevenJackpot=sevenEventActive&&crypto.randomInt(1000000)<50000;
       let grid;
       if(forceSevenJackpot){
         grid=Array.from({length:3},()=>Array.from({length:3},()=>pick()));
@@ -32,7 +32,7 @@ const temporaryGridBuild = `      // TEMP EVENT: exactly 15% total 777 jackpot c
       }`;
 
 const sevenJackpotAnchor = "      const sevenJackpot=winLines.some(w=>!w.scatter&&w.symbols?.[0]==='7️⃣');";
-const autoRestorePatch = `${sevenJackpotAnchor}\n      if(sevenJackpot&&sevenEventActive){\n        gameStateSet(TEMP_SLOT_777_EVENT_KEY,{active:false,startedAt:gameStateGet(TEMP_SLOT_777_EVENT_KEY,{})?.startedAt||null,endedAt:Date.now(),targetPct:15,winnerUserId:u.id,winnerNickname:u.nickname||null});\n      }`;
+const autoRestorePatch = `${sevenJackpotAnchor}\n      if(sevenJackpot&&sevenEventActive){\n        gameStateSet(TEMP_SLOT_777_EVENT_KEY,{active:false,startedAt:gameStateGet(TEMP_SLOT_777_EVENT_KEY,{})?.startedAt||null,endedAt:Date.now(),targetPct:5,winnerUserId:u.id,winnerNickname:u.nickname||null});\n      }`;
 
 fs.readFileSync = function temporarySlotOddsRead(filePath, ...args) {
   const result = originalReadFileSync(filePath, ...args);
