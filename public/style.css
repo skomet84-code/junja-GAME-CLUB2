@@ -1327,3 +1327,19 @@ button:not(:disabled){touch-action:manipulation}
 .seven-profit{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:10px}
 .seven-profit span{display:inline-flex;gap:6px;align-items:center;padding:7px 11px;border-radius:10px;background:rgba(255,255,255,.06);font-size:12px;font-weight:800}
 .seven-profit b{font-size:13px;color:#ffe08a}
+
+
+/* v2.8.15 premium portrait containment — keep shop artwork full, crop compact avatars safely */
+.styled-avatar{overflow:hidden}
+.styled-avatar>.game-face.character-portrait{display:block;min-width:100%;min-height:100%;max-width:none;max-height:none;object-fit:cover!important;object-position:50% 22%!important}
+.profile-pill .styled-avatar,.presence-person .styled-avatar{overflow:hidden!important}
+.profile-pill .character-portrait,.presence-person .character-portrait,
+.friend-profile .character-portrait,.friend-row .character-portrait,
+.poker-face .character-portrait,.seven-face .character-portrait,
+.seven-toolbar-face .character-portrait,.baccarat-face .character-portrait,
+.duel-face .character-portrait,.score-face .character-portrait,
+.transfer-face .character-portrait{object-fit:cover!important;object-position:50% 22%!important}
+#leaderboard .rank-name .rank-face{overflow:hidden!important}
+#leaderboard .rank-name .rank-face>.character-portrait{width:100%!important;height:100%!important;object-fit:cover!important;object-position:50% 22%!important}
+.shop-character-preview{overflow:hidden}
+.shop-character-preview img{object-fit:cover}
