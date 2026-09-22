@@ -1979,7 +1979,7 @@ const server=http.createServer(async(req,res)=>{
       const u=requireAuth(req,res);if(!u)return;return json(res,200,{pool:slotJackpotPool(),base:SLOT_JACKPOT_BASE});
     }
     if(url.pathname==='/api/slot/spin'&&req.method==='POST'){
-      const u=requireAuth(req,res);if(!u)return;const b=await readBody(req);let bet;try{bet=gameWager(b.bet,1000,100000,1000)}catch(e){return json(res,400,{error:e.message})};
+      const u=requireAuth(req,res);if(!u)return;const b=await readBody(req);let bet;try{bet=gameWager(b.bet,1000,100000000,1000)}catch(e){return json(res,400,{error:e.message})};
       const freePlay=consumeRankFreePlay(u.id,'slot',!!b.useRankFree);if(freePlay.free)bet=Number(socialRankPerksForUser(u.id).freeSlotBet||10000000);if(!freePlay.free&&u.balance<bet)return json(res,400,{error:'게임머니가 부족합니다.'});
       if(!freePlay.free)walletChange(u.id,-bet,'slot_bet',`슬롯 베팅 ${formatMoney(bet)}G`);
       const slotLuck=0;const pick=()=>{const weighted=SLOT_SYMBOLS,total=100;let n=(crypto.randomInt(1000000)/1000000)*total;for(const x of weighted){if(n<x.w)return x.s;n-=x.w;}return '🍒';};
