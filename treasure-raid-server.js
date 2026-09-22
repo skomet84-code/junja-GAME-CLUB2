@@ -77,6 +77,8 @@ module.exports=function createTreasureRaid(deps){
       const outcome=drawOutcome(p.round);p.lastChest=chest;p.lastOutcome=outcome;
       if(outcome.key==='trap'){p.bank=0;p.status='eliminated';escrowDelete(r.id,p.userId);touch(r);maybeComplete(r);pushRefresh();json(res,200,{room:roomPublic(r,u.id),user:userPublic(u.id)});return true}
       if(outcome.key==='jackpot')p.bank=r.entry*MAX_MULT;else p.bank=Math.max(1,Math.min(r.entry*MAX_MULT,Math.floor(Number(p.bank||r.entry)*outcome.mult)));
+      // Persist the currently secured bank in escrow so a server restart recovers the latest safe amount, not only the original entry.
+      escrowSet(r.id,p.userId,p.bank,'treasure_raid');
       if(outcome.key==='jackpot'||p.round>=MAX_ROUNDS){settlePlayer(r,p,outcome.key==='jackpot'?'JACKPOT 즉시 정산':'최종 라운드 완주 정산')}else{p.status='decision';touch(r);pushRefresh()}
       json(res,200,{room:roomPublic(r,u.id),user:userPublic(u.id)});return true;
     }
