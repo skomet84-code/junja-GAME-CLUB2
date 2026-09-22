@@ -40,10 +40,10 @@ module.exports=function createTreasureRaid(deps){
     const payout=Math.max(0,Math.min(Number(p.entry||0)*MAX_MULT,Math.floor(Number(p.bank||0))));
     escrowDelete(r.id,p.userId);
     if(payout>0)walletChange(p.userId,payout,'treasure_raid_cashout',`${r.name} · ${reason} · ${formatMoney(payout)}G`);
-    p.payout=payout;p.status=p.round>=MAX_ROUNDS?'complete':'escaped';p.ready=false;clearDeadline(p);touch(r);maybeComplete(r);pushRefresh();return payout;
+    p.payout=payout;p.status=p.round>=MAX_ROUNDS?'complete':'escaped';p.ready=false;p.funded=false;clearDeadline(p);touch(r);maybeComplete(r);pushRefresh();return payout;
   }
   function refundWaiting(r,p,reason='대기방 퇴장 환급'){
-    const amount=Math.max(0,Number(p.entry||0));escrowDelete(r.id,p.userId);if(amount>0)walletChange(p.userId,amount,'treasure_raid_refund',`${r.name} · ${reason}`);clearDeadline(p);return amount
+    const amount=p.funded?Math.max(0,Number(p.entry||0)):0;escrowDelete(r.id,p.userId);if(amount>0)walletChange(p.userId,amount,'treasure_raid_refund',`${r.name} · ${reason}`);p.funded=false;clearDeadline(p);return amount
   }
   function removePlayer(r,p){
     r.players=r.players.filter(x=>Number(x.userId)!==Number(p.userId));
@@ -52,7 +52,22 @@ module.exports=function createTreasureRaid(deps){
     if(r.phase==='playing')maybeComplete(r);
     touch(r);
   }
-  function createPlayer(u,entry){return {userId:u.id,nickname:u.nickname,avatar:u.avatar,entry,ready:false,status:'waiting',round:0,bank:entry,lastChest:null,lastOutcome:null,payout:0,joinedAt:now(),lastActionAt:now(),deadlineAt:0}}
+  function createPlayer(u,entry){return {userId:u.id,nickname:u.nickname,avatar:u.avatar,entry,funded:true,ready:false,status:'waiting',round:0,bank:entry,lastChest:null,lastOutcome:null,payout:0,joinedAt:now(),lastActionAt:now(),deadlineAt:0}}
+  function resetForReplay(r){
+    r.phase='waiting';
+    for(const x of r.players){x.ready=false;x.status='waiting';x.round=0;x.bank=0;x.lastChest=null;x.lastOutcome=null;x.payout=0;x.deadlineAt=0;x.lastActionAt=now()}
+    touch(r);
+  }
+  function fundReplayPlayers(r){
+    const pending=r.players.filter(x=>!x.funded);
+    for(const x of pending){
+      const u=userPublic(x.userId);if(Number(u?.balance||0)<Number(x.entry||0))throw new Error(`${x.nickname}님의 게임머니가 부족해서 시작할 수 없어.`);
+    }
+    for(const x of pending){
+      walletChange(x.userId,-x.entry,'treasure_raid_entry',`${r.name} 재도전 개인 배팅금 ${formatMoney(x.entry)}G`);
+      escrowSet(r.id,x.userId,x.entry,'treasure_raid');x.funded=true;
+    }
+  }
   function sweepAllRooms(){
     const t=now();
     for(const r of rooms.values()){
@@ -123,6 +138,7 @@ module.exports=function createTreasureRaid(deps){
     const p=roomPlayer(r,u.id);if(!p){json(res,403,{error:'이 원정대 참가자가 아니야.'});return true}
 
     if(op==='ready'&&req.method==='POST'){
+      if(r.phase==='complete')resetForReplay(r);
       if(r.phase!=='waiting'){json(res,409,{error:'이미 원정이 시작됐어.'});return true}
       p.ready=!p.ready;p.status=p.ready?'ready':'waiting';p.lastActionAt=now();touch(r);pushRefresh();
       json(res,200,{room:roomPublic(r,u.id),user:userPublic(u.id)});return true;
@@ -140,6 +156,7 @@ module.exports=function createTreasureRaid(deps){
         for(const x of drop){refundWaiting(r,x,'준비 미완료 자동 환급');removePlayer(r,x)}
       }
       if(!r.players.length){json(res,409,{error:'시작할 참가자가 없어.'});return true}
+      try{fundReplayPlayers(r)}catch(e){json(res,400,{error:e.message});return true}
       r.phase='playing';
       for(const x of r.players){x.ready=false;x.status='choosing';x.round=1;x.bank=x.entry;x.lastChest=null;x.lastOutcome=null;x.payout=0;armDeadline(x)}
       touch(r);pushRefresh();json(res,200,{room:roomPublic(r,u.id),user:userPublic(u.id)});return true;
@@ -153,7 +170,7 @@ module.exports=function createTreasureRaid(deps){
       const chest=Number(b.chest);if(!Number.isInteger(chest)||chest<1||chest>8){json(res,400,{error:'1~8번 보물상자 중 하나를 선택해줘.'});return true}
       const outcome=drawOutcome(p.round);p.lastChest=chest;p.lastOutcome=outcome;p.lastActionAt=now();
       if(outcome.key==='trap'){
-        p.bank=0;p.status='eliminated';clearDeadline(p);escrowDelete(r.id,p.userId);touch(r);maybeComplete(r);pushRefresh();
+        p.bank=0;p.status='eliminated';p.funded=false;clearDeadline(p);escrowDelete(r.id,p.userId);touch(r);maybeComplete(r);pushRefresh();
         json(res,200,{room:roomPublic(r,u.id),user:userPublic(u.id)});return true;
       }
       if(outcome.key==='jackpot')p.bank=p.entry*MAX_MULT;
