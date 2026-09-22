@@ -22,3 +22,7 @@
 
 /* Treasure Raid lobby art only: fill the entire card to remove the right-side gap. */
 .game-card.treasure .game-art{left:0!important;right:0!important;width:100%!important;height:100%!important;object-fit:cover!important;object-position:center!important}
+
+/* Treasure Raid artwork already contains its own labels: keep lobby overlay from duplicating them. */
+.game-card.treasure>div:last-child{display:none!important}
+.game-card.treasure .dual-badge{display:none!important}
