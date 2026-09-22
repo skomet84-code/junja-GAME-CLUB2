@@ -413,9 +413,15 @@ function bindAdminRows(){
     $('.admin-enable-btn',card)?.addEventListener('click',()=>adminSetStatus(userId,false));
   });
 }
+async function refreshAdminSlot777(){
+  const btn=$('#adminSlot777Event'),status=$('#adminSlot777Status');if(!btn)return;
+  try{const d=await api('/api/admin/slot-777-event');btn.dataset.active=d.active?'1':'0';btn.textContent=d.active?'🟢 777 이벤트 ON · 누르면 종료':'🎰 777 이벤트 ON';btn.classList.toggle('danger',!!d.active);btn.classList.toggle('secondary',!d.active);if(status)status.textContent=d.active?'현재 활성화 · 매 스핀 10% · 777 첫 당첨 즉시 자동 종료':'현재 OFF · 누르면 10% 단발 이벤트 시작';}catch(e){if(status)status.textContent='이벤트 상태 확인 실패';}
+}
 function bindAdminRoomRows(){
-  $$('[data-admin-close-room]').forEach(b=>b.onclick=async()=>{if(!confirm('이 방을 강제 종료하고 참가자 판돈을 복구할까?'))return;try{await api(`/api/admin/rooms/${b.dataset.adminCloseRoom}/close`,{method:'POST',body:'{}'});toast('게임방 종료 완료');await loadAdmin($('#adminSearch')?.value.trim()||'')}catch(e){toast(e.message)}});
+  $('[data-admin-close-room]').forEach(b=>b.onclick=async()=>{if(!confirm('이 방을 강제 종료하고 참가자 판돈을 복구할까?'))return;try{await api(`/api/admin/rooms/${b.dataset.adminCloseRoom}/close`,{method:'POST',body:'{}'});toast('게임방 종료 완료');await loadAdmin($('#adminSearch')?.value.trim()||'')}catch(e){toast(e.message)}});
   if($('#adminClearWaiting'))$('#adminClearWaiting').onclick=async()=>{if(!confirm('현재 WAITING 상태의 모든 대기실을 비우고 판돈을 환급할까?'))return;try{const d=await api('/api/admin/rooms/clear-waiting',{method:'POST',body:'{}'});toast(`${d.count}개 대기실 정리 완료`);await loadAdmin($('#adminSearch')?.value.trim()||'')}catch(e){toast(e.message)}};
+  const slotBtn=$('#adminSlot777Event');if(slotBtn)slotBtn.onclick=async()=>{const turnOn=slotBtn.dataset.active!=='1';try{const d=await api('/api/admin/slot-777-event',{method:'POST',body:JSON.stringify({active:turnOn})});toast(d.active?'🎰 슬롯 777 이벤트 ON · 10%':'슬롯 777 이벤트 종료');await refreshAdminSlot777()}catch(e){toast(e.message)}};
+  refreshAdminSlot777();
 }
 async function adminAdjustMoney(userId,amount,direction='credit',memo='관리자 조정'){
   amount=Math.abs(Math.trunc(Number(amount)||0));if(!Number.isInteger(amount)||amount<1){toast('금액을 입력해줘.');return}
