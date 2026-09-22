@@ -84,7 +84,13 @@ const BGM_TRACKS=[
   '/audio/junja-lobby-bgm4.mp3',
   '/audio/junja-lobby-bgm5.mp3'
 ];
-let bgmTrackIndex=0,bgmNextAudio=null,bgmSwitching=false;
+function randomBgmIndex(exclude=-1){
+  if(BGM_TRACKS.length<=1)return 0;
+  let i=Math.floor(Math.random()*BGM_TRACKS.length);
+  while(i===exclude)i=Math.floor(Math.random()*BGM_TRACKS.length);
+  return i;
+}
+let bgmTrackIndex=randomBgmIndex(),bgmNextAudio=null,bgmSwitching=false;
 let soundEnabled=storageGet('jgc_sound','1')!=='0',bgmAudio=null,audioUnlocked=false,audioUnlocking=false;
 function audioContext(){try{const C=window.AudioContext||window.webkitAudioContext;if(!C)return null;if(!fx.ctx||fx.ctx.state==='closed')fx.ctx=new C();return fx.ctx}catch{return null}}
 function updateSoundButton(){
@@ -93,7 +99,7 @@ function updateSoundButton(){
   b.textContent=audioUnlocked?'🎵 BGM ON':'▶ BGM START';b.setAttribute('aria-pressed','true');
 }
 function prepareNextBgm(){
-  const nextIndex=(bgmTrackIndex+1)%BGM_TRACKS.length;
+  const nextIndex=randomBgmIndex(bgmTrackIndex);
   if(bgmNextAudio&&bgmNextAudio.dataset?.trackIndex===String(nextIndex))return bgmNextAudio;
   const n=new Audio(BGM_TRACKS[nextIndex]);n.loop=false;n.preload='auto';n.volume=.22;n.playsInline=true;n.dataset.trackIndex=String(nextIndex);
   try{n.load()}catch{}
@@ -108,7 +114,7 @@ function bindBgmAudio(a){
 async function advanceBgm(finished){
   if(bgmSwitching||finished!==bgmAudio)return;bgmSwitching=true;
   try{
-    const nextIndex=(bgmTrackIndex+1)%BGM_TRACKS.length;
+    const nextIndex=randomBgmIndex(bgmTrackIndex);
     let next=bgmNextAudio&&bgmNextAudio.dataset?.trackIndex===String(nextIndex)?bgmNextAudio:null;
     if(!next){next=new Audio(BGM_TRACKS[nextIndex]);next.preload='auto';next.volume=.22;next.playsInline=true;next.dataset.trackIndex=String(nextIndex)}
     bindBgmAudio(next);bgmTrackIndex=nextIndex;bgmAudio=next;bgmNextAudio=null;prepareNextBgm();
