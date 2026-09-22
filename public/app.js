@@ -84,7 +84,7 @@ const BGM_TRACKS=[
   '/audio/junja-lobby-bgm4.mp3',
   '/audio/junja-lobby-bgm5.mp3'
 ];
-let bgmTrackIndex=0;
+let bgmTrackIndex=0,bgmNextAudio=null,bgmSwitching=false;
 let soundEnabled=storageGet('jgc_sound','1')!=='0',bgmAudio=null,audioUnlocked=false,audioUnlocking=false;
 function audioContext(){try{const C=window.AudioContext||window.webkitAudioContext;if(!C)return null;if(!fx.ctx||fx.ctx.state==='closed')fx.ctx=new C();return fx.ctx}catch{return null}}
 function updateSoundButton(){
@@ -92,18 +92,40 @@ function updateSoundButton(){
   if(!soundEnabled){b.textContent='🔇 BGM OFF';b.setAttribute('aria-pressed','false');return}
   b.textContent=audioUnlocked?'🎵 BGM ON':'▶ BGM START';b.setAttribute('aria-pressed','true');
 }
+function prepareNextBgm(){
+  const nextIndex=(bgmTrackIndex+1)%BGM_TRACKS.length;
+  if(bgmNextAudio&&bgmNextAudio.dataset?.trackIndex===String(nextIndex))return bgmNextAudio;
+  const n=new Audio(BGM_TRACKS[nextIndex]);n.loop=false;n.preload='auto';n.volume=.22;n.playsInline=true;n.dataset.trackIndex=String(nextIndex);
+  try{n.load()}catch{}
+  bgmNextAudio=n;return n;
+}
+function bindBgmAudio(a){
+  a.addEventListener('canplaythrough',()=>prepareNextBgm(),{once:true});
+  a.addEventListener('ended',()=>advanceBgm(a));
+  a.addEventListener('error',()=>console.warn('[BGM] audio load failed',a.currentSrc||a.src));
+  return a;
+}
+async function advanceBgm(finished){
+  if(bgmSwitching||finished!==bgmAudio)return;bgmSwitching=true;
+  try{
+    const nextIndex=(bgmTrackIndex+1)%BGM_TRACKS.length;
+    let next=bgmNextAudio&&bgmNextAudio.dataset?.trackIndex===String(nextIndex)?bgmNextAudio:null;
+    if(!next){next=new Audio(BGM_TRACKS[nextIndex]);next.preload='auto';next.volume=.22;next.playsInline=true;next.dataset.trackIndex=String(nextIndex)}
+    bindBgmAudio(next);bgmTrackIndex=nextIndex;bgmAudio=next;bgmNextAudio=null;prepareNextBgm();
+    if(soundEnabled&&me){await next.play();audioUnlocked=true}
+  }catch{audioUnlocked=false}finally{bgmSwitching=false;updateSoundButton()}
+}
 function ensureBgmAudio(){
   if(bgmAudio)return bgmAudio;
-  const a=new Audio(BGM_TRACKS[bgmTrackIndex]);a.loop=false;a.preload='auto';a.volume=.22;a.playsInline=true;
-  a.addEventListener('ended',()=>{bgmTrackIndex=(bgmTrackIndex+1)%BGM_TRACKS.length;a.src=BGM_TRACKS[bgmTrackIndex];a.load();if(soundEnabled&&me)a.play().catch(()=>{});});
-  a.addEventListener('error',()=>console.warn('[BGM] audio load failed',BGM_TRACKS[bgmTrackIndex]));
-  bgmAudio=a;return a;
+  const a=new Audio(BGM_TRACKS[bgmTrackIndex]);a.loop=false;a.preload='auto';a.volume=.22;a.playsInline=true;a.dataset.trackIndex=String(bgmTrackIndex);
+  bgmAudio=bindBgmAudio(a);prepareNextBgm();return bgmAudio;
 }
 function stopAmbient(){if(bgmAudio){try{bgmAudio.pause()}catch{}}}
 async function startAudioScene(scene='lobby'){
   audioScene=scene;if(!soundEnabled||!me)return false;
   const a=ensureBgmAudio();
-  try{await a.play();audioUnlocked=true;updateSoundButton();return true}catch(e){audioUnlocked=false;updateSoundButton();return false}
+  if(!a.paused&&!a.ended){audioUnlocked=true;updateSoundButton();return true}
+  try{await a.play();audioUnlocked=true;prepareNextBgm();updateSoundButton();return true}catch(e){audioUnlocked=false;updateSoundButton();return false}
 }
 async function ensureAudioUnlocked(startMusic=true){
   if(audioUnlocking)return audioUnlocked;audioUnlocking=true;
@@ -113,6 +135,7 @@ async function ensureAudioUnlocked(startMusic=true){
 }
 function setAudioScene(scene='lobby'){
   audioScene=scene;if(!soundEnabled||!me){stopAmbient();updateSoundButton();return}
+  if(bgmAudio&&!bgmAudio.paused&&!bgmAudio.ended){updateSoundButton();return}
   startAudioScene(scene);
 }
 async function toggleSound(){
