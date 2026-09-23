@@ -55,7 +55,7 @@ let lastSnapshotMeta = '';
 let remoteReady = false;
 let restoreHealthy = false;
 
-function hasRemote(){ return false; } // COST LOCK: remote persistence/Neon is intentionally disabled.
+function hasRemote(){ return !!String(process.env.DATABASE_URL || '').trim(); }
 
 function sslOptions(){
   const url=String(process.env.DATABASE_URL||'');
@@ -112,6 +112,7 @@ class DatabaseSync {
     this._enabled=false;
     this._saveTimer=null;
     this._firstDirtyAt=0;
+    this._dirty=false;
     this._persistedLedgerId=0;
     registerShutdown(this);
   }
@@ -209,11 +210,12 @@ class DatabaseSync {
 
   _scheduleSave(){
     if(!hasRemote() || !restoreHealthy) return;
+    this._dirty=true;
     const t=Date.now();
     if(!this._firstDirtyAt)this._firstDirtyAt=t;
     clearTimeout(this._saveTimer);
     const elapsed=t-this._firstDirtyAt;
-    const delay=Math.max(100,Math.min(1200,4000-elapsed));
+    const delay=Math.max(500,Math.min(60000,300000-elapsed));
     this._saveTimer=setTimeout(()=>{
       this._saveTimer=null;
       this._firstDirtyAt=0;
@@ -222,7 +224,8 @@ class DatabaseSync {
   }
 
   _queueSave(){
-    if(!hasRemote() || !restoreHealthy) return saveChain;
+    if(!hasRemote() || !restoreHealthy || !this._dirty) return saveChain;
+    this._dirty=false;
     saveChain=saveChain.then(async()=>{
       const started=Date.now();
       const snapshot=this._snapshot();
@@ -250,6 +253,7 @@ class DatabaseSync {
         const ms=Date.now()-started;
         if(ms>250)console.log(`[PERSIST] save ${ms}ms · core ${Buffer.byteLength(json)}B · ledger +${ledgerRows.length}`);
       }catch(e){
+        this._dirty=true;
         if(client)try{await client.query('ROLLBACK');}catch{}
         console.error('[PERSIST] Neon save failed:',e.message);
       }finally{
@@ -264,7 +268,7 @@ class DatabaseSync {
     clearTimeout(this._saveTimer);
     this._saveTimer=null;
     this._firstDirtyAt=0;
-    if(this._enabled && restoreHealthy) this._queueSave();
+    if(this._enabled && restoreHealthy && this._dirty) this._queueSave();
     await saveChain.catch(()=>{});
   }
 }
