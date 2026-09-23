@@ -1,5 +1,5 @@
 const $=(s,r=document)=>r.querySelector(s), $$=(s,r=document)=>[...r.querySelectorAll(s)];
-let rankFreeSlotNext=false,rankFreeWheelNext=false;let me=null,currentView='lobby',currentRoomId=null,currentGame=null,events=null,selectedBet=10000,refreshTimer=null,slotSpinState=null,autoSpinRunning=false,autoSpinStop=false,slotSession={spins:0,wins:0,net:0,best:0,recent:[]},selectedYutMoveIndex=0,selectedSoloYutMoveIndex=0,horseCardData=null,horseRacing=false,horseLastResult=null,bigWheelSelected='x2',bigWheelSpinning=false,bigWheelAngle=0,sicboSelected='small',sicboRolling=false,roomPollTimer=null,roomRefreshBusy=false,lastRoomVersion=-1,roomSeenMembers=new Map(),liveGame=null,liveHeartbeatTimer=null,livePollTimer=null,liveKnownIds=new Set(),liveInitialized=false,liveRefreshBusy=false,resumeSyncBusy=false,lastResumeSyncAt=0,networkFailureStreak=0,sevenAutoTimer=null,holdemAutoTimer=null,baccaratAutoTimer=null,baccaratLastAutoRound=-1,networkDegraded=false,bigWheelAutoStop=false,sicboAutoStop=false,bigWheelAutoRunning=false,sicboAutoRunning=false,shopData=null,shopCategory='all',shopOwnedOnly=false,shopCharacterGender='all',horseMeetTimer=null,horseMeetData=null,horseAnimatedRoundId=null,horseAnimationFrame=null,horseAutoRemaining=0,horseAutoTotal=0,horseAutoBetRound=null,horseAutoBusy=false,slotJackpotPollTimer=null,rouletteMode='straight',rouletteChip=10000,rouletteBets=[],rouletteSpinning=false,rouletteWheelAngle=0,rouletteBallAngle=0,roulettePending=[],audioScene='lobby',soloYutReplayBusy=false;
+let rankFreeSlotNext=false,rankFreeWheelNext=false;let me=null,currentView='lobby',currentRoomId=null,currentGame=null,events=null,selectedBet=10000,refreshTimer=null,slotSpinState=null,autoSpinRunning=false,autoSpinStop=false,slotSession={spins:0,wins:0,net:0,best:0,recent:[]},selectedYutMoveIndex=0,selectedSoloYutMoveIndex=0,horseCardData=null,horseRacing=false,horseLastResult=null,bigWheelSelected='x2',bigWheelSpinning=false,bigWheelAngle=0,sicboSelected='small',sicboRolling=false,roomPollTimer=null,roomRefreshBusy=false,lastRoomVersion=-1,roomSeenMembers=new Map(),liveGame=null,liveHeartbeatTimer=null,liveKnownIds=new Set(),liveInitialized=false,liveRefreshBusy=false,resumeSyncBusy=false,lastResumeSyncAt=0,networkFailureStreak=0,sevenAutoTimer=null,holdemAutoTimer=null,baccaratAutoTimer=null,baccaratLastAutoRound=-1,networkDegraded=false,bigWheelAutoStop=false,sicboAutoStop=false,bigWheelAutoRunning=false,sicboAutoRunning=false,shopData=null,shopCategory='all',shopOwnedOnly=false,shopCharacterGender='all',horseMeetTimer=null,horseMeetData=null,horseAnimatedRoundId=null,horseAnimationFrame=null,horseAutoRemaining=0,horseAutoTotal=0,horseAutoBetRound=null,horseAutoBusy=false,rouletteMode='straight',rouletteChip=10000,rouletteBets=[],rouletteSpinning=false,rouletteWheelAngle=0,rouletteBallAngle=0,roulettePending=[],audioScene='lobby',soloYutReplayBusy=false;
 const SLOT_SYMBOLS=['🍒','🍋','🍊','🔔','⭐','💎','7️⃣','J'];
 const SLOT_CELL_CLASS={'🍒':'cherry','🍋':'lemon','🍊':'orange','🔔':'bell','⭐':'star','💎':'diamond','7️⃣':'seven','J':'junja'};
 const REACTION_META={frustrated:['😫','답답해!','base'],hurry:['⏩','빨리빨리!','base'],cry:['😭','으앙 ㅠㅠ','base'],laugh:['😂','ㅋㅋㅋㅋ','base'],wow:['😲','헐?!','base'],sad:['😢','슬퍼...','base'],nice:['😎','나이스~','base'],go:['🔥','가즈아!','base'],lucky:['🍀','오늘 느낌 온다!','bubble_hype'],gg:['🤝','굿게임!','bubble_hype'],boom:['💥','터졌다!','bubble_hype'],clutch:['🎯','딱 맞췄다!','bubble_hype'],heart:['💖','좋아좋아!','bubble_cute'],wink:['😉','찡긋~','bubble_cute'],pout:['🥺','한 번만...','bubble_cute'],clap:['👏','박수!','bubble_cute'],crown:['👑','품격 있게~','bubble_royal'],sparkle:['✨','클래스가 다르지','bubble_royal'],salute:['🫡','인정!','bubble_royal'],throne:['🪑','왕좌는 내 자리','bubble_royal'],bigbet:['💸','큰 판 간다!','bubble_highroller'],chips:['🪙','칩 쌓아!','bubble_highroller'],allin:['🔥','올인 감성!','bubble_highroller'],myday:['😎','오늘은 내 날','bubble_highroller'],legend:['⚡','전설 등장!','bubble_legend'],classup:['👑','이게 클래스','bubble_legend'],mood:['✨','분위기 잡았다','bubble_legend'],finish:['🏆','끝내자!','bubble_legend']};
@@ -63,12 +63,12 @@ function leaveLiveFloor(game){
 function startLiveFloor(game){
   if(!LIVE_GAME_VIEWS.has(game)){stopLiveFloor();return}
   if(liveGame&&liveGame!==game)leaveLiveFloor(liveGame);
-  clearInterval(liveHeartbeatTimer);clearInterval(livePollTimer);liveGame=game;liveKnownIds=new Set();liveInitialized=false,sevenAutoTimer=null,baccaratAutoTimer=null,baccaratLastAutoRound=-1,networkDegraded=false,bigWheelAutoStop=false,sicboAutoStop=false,bigWheelAutoRunning=false,sicboAutoRunning=false,shopData=null,shopCategory='all',shopOwnedOnly=false;
+  clearInterval(liveHeartbeatTimer);liveGame=game;liveKnownIds=new Set();liveInitialized=false,sevenAutoTimer=null,baccaratAutoTimer=null,baccaratLastAutoRound=-1,networkDegraded=false,bigWheelAutoStop=false,sicboAutoStop=false,bigWheelAutoRunning=false,sicboAutoRunning=false,shopData=null,shopCategory='all',shopOwnedOnly=false;
   ensureLiveFloorMount(game);liveHeartbeat();
-  liveHeartbeatTimer=setInterval(liveHeartbeat,15000);livePollTimer=setInterval(()=>{if(!document.hidden&&!currentRoomId&&currentView===liveGame)refreshLiveFloor(true)},12000);
+  liveHeartbeatTimer=setInterval(liveHeartbeat,30000);
 }
 function stopLiveFloor(){
-  clearInterval(liveHeartbeatTimer);clearInterval(livePollTimer);liveHeartbeatTimer=null;livePollTimer=null;
+  clearInterval(liveHeartbeatTimer);liveHeartbeatTimer=null;
   if(liveGame)leaveLiveFloor(liveGame);liveGame=null;liveKnownIds=new Set();liveInitialized=false,sevenAutoTimer=null,baccaratAutoTimer=null,baccaratLastAutoRound=-1,networkDegraded=false,bigWheelAutoStop=false,sicboAutoStop=false,bigWheelAutoRunning=false,sicboAutoRunning=false,shopData=null,shopCategory='all',shopOwnedOnly=false;
 }
 async function sendLiveReaction(key,btn){
@@ -77,79 +77,12 @@ async function sendLiveReaction(key,btn){
 }
 function signedMoney(n){return (Number(n)>=0?'+':'')+money(n)}
 function toast(msg){const e=$('#toast');if(!e)return;e.textContent=msg;e.classList.add('show');clearTimeout(e._t);e._t=setTimeout(()=>e.classList.remove('show'),2400)}
-const BGM_TRACKS=[
-  "/audio/junja-lobby-bgm.mp3.mp3",
-  "/audio/junja-lobby-bgm2.mp3",
-  "/audio/junja-lobby-bgm3.mp3",
-  "/audio/junja-lobby-bgm4.mp3",
-  "/audio/junja-lobby-bgm5.mp3",
-  "/audio/junja-lobby-bgm6.mp3",
-  "/audio/junja-lobby-bgm7.mp3"
-];
-function randomBgmIndex(exclude=-1){
-  if(BGM_TRACKS.length<=1)return 0;
-  let i=Math.floor(Math.random()*BGM_TRACKS.length);
-  while(i===exclude)i=Math.floor(Math.random()*BGM_TRACKS.length);
-  return i;
-}
-let bgmTrackIndex=randomBgmIndex(),bgmNextAudio=null,bgmSwitching=false;
-let soundEnabled=storageGet('jgc_sound','1')!=='0',bgmAudio=null,audioUnlocked=false,audioUnlocking=false;
+let soundEnabled=true,audioUnlocked=false,audioUnlocking=false;
 function audioContext(){try{const C=window.AudioContext||window.webkitAudioContext;if(!C)return null;if(!fx.ctx||fx.ctx.state==='closed')fx.ctx=new C();return fx.ctx}catch{return null}}
-function updateSoundButton(){
-  const b=$('#soundBtn');if(!b)return;
-  if(!soundEnabled){b.textContent='🔇 BGM OFF';b.setAttribute('aria-pressed','false');return}
-  b.textContent=audioUnlocked?'🎵 BGM ON':'▶ BGM START';b.setAttribute('aria-pressed','true');
-}
-function prepareNextBgm(){
-  const nextIndex=randomBgmIndex(bgmTrackIndex);
-  if(bgmNextAudio&&bgmNextAudio.dataset?.trackIndex===String(nextIndex))return bgmNextAudio;
-  const n=new Audio(BGM_TRACKS[nextIndex]);n.loop=false;n.preload='auto';n.volume=.22;n.playsInline=true;n.dataset.trackIndex=String(nextIndex);
-  try{n.load()}catch{}
-  bgmNextAudio=n;return n;
-}
-function bindBgmAudio(a){
-  a.addEventListener('canplaythrough',()=>prepareNextBgm(),{once:true});
-  a.addEventListener('ended',()=>advanceBgm(a));
-  a.addEventListener('error',()=>console.warn('[BGM] audio load failed',a.currentSrc||a.src));
-  return a;
-}
-async function advanceBgm(finished){
-  if(bgmSwitching||finished!==bgmAudio)return;bgmSwitching=true;
-  try{
-    const nextIndex=randomBgmIndex(bgmTrackIndex);
-    let next=bgmNextAudio&&bgmNextAudio.dataset?.trackIndex===String(nextIndex)?bgmNextAudio:null;
-    if(!next){next=new Audio(BGM_TRACKS[nextIndex]);next.preload='auto';next.volume=.22;next.playsInline=true;next.dataset.trackIndex=String(nextIndex)}
-    bindBgmAudio(next);bgmTrackIndex=nextIndex;bgmAudio=next;bgmNextAudio=null;prepareNextBgm();
-    if(soundEnabled&&me){await next.play();audioUnlocked=true}
-  }catch{audioUnlocked=false}finally{bgmSwitching=false;updateSoundButton()}
-}
-function ensureBgmAudio(){
-  if(bgmAudio)return bgmAudio;
-  const a=new Audio(BGM_TRACKS[bgmTrackIndex]);a.loop=false;a.preload='auto';a.volume=.22;a.playsInline=true;a.dataset.trackIndex=String(bgmTrackIndex);
-  bgmAudio=bindBgmAudio(a);prepareNextBgm();return bgmAudio;
-}
-function stopAmbient(){if(bgmAudio){try{bgmAudio.pause()}catch{}}}
-async function startAudioScene(scene='lobby'){
-  audioScene=scene;if(!soundEnabled||!me)return false;
-  const a=ensureBgmAudio();
-  if(!a.paused&&!a.ended){audioUnlocked=true;updateSoundButton();return true}
-  try{await a.play();audioUnlocked=true;prepareNextBgm();updateSoundButton();return true}catch(e){audioUnlocked=false;updateSoundButton();return false}
-}
-async function ensureAudioUnlocked(startMusic=true){
+async function ensureAudioUnlocked(){
   if(audioUnlocking)return audioUnlocked;audioUnlocking=true;
-  try{const c=audioContext();if(c&&c.state!=='running')await c.resume()}catch{}
-  if(startMusic&&soundEnabled&&me)await startAudioScene(audioScene||currentView||'lobby');
-  audioUnlocking=false;updateSoundButton();return audioUnlocked;
-}
-function setAudioScene(scene='lobby'){
-  audioScene=scene;if(!soundEnabled||!me){stopAmbient();updateSoundButton();return}
-  if(bgmAudio&&!bgmAudio.paused&&!bgmAudio.ended){updateSoundButton();return}
-  startAudioScene(scene);
-}
-async function toggleSound(){
-  soundEnabled=!soundEnabled;storageSet('jgc_sound',soundEnabled?'1':'0');
-  if(!soundEnabled){stopAmbient();audioUnlocked=false;updateSoundButton();return}
-  await startAudioScene(currentView||'lobby');
+  try{const c=audioContext();if(c&&c.state!=='running')await c.resume();audioUnlocked=!!c&&c.state==='running'}catch{audioUnlocked=false}
+  audioUnlocking=false;return audioUnlocked;
 }
 function fx(kind='click'){
   if(!soundEnabled)return;try{const c=audioContext();if(!c)return;if(c.state!=='running'){ensureAudioUnlocked(false);return}
@@ -235,8 +168,8 @@ function bindMain(){
       const b=e.target?.closest?.('[data-go]');if(!b)return;
       e.preventDefault();go(b.dataset.go).catch(err=>{console.error('[JGC NAV]',err);toast(err?.message||'화면 이동 중 오류가 발생했어.')});
     });
-    on('#dailyBtn','click',claimDaily);on('#dailyDrawBtn','click',openDailyDraw);on('#dailyDrawClose','click',closeDailyDraw);on('#dailyDrawDone','click',closeDailyDraw);on('#dailyDrawModal','click',e=>{if(e.target?.id==='dailyDrawModal')closeDailyDraw()});on('#soundBtn','click',toggleSound);updateSoundButton();
-    const unlockFromGesture=()=>{if(soundEnabled&&me&&!audioUnlocked)ensureAudioUnlocked(true)};
+    on('#dailyBtn','click',claimDaily);on('#dailyDrawBtn','click',openDailyDraw);on('#dailyDrawClose','click',closeDailyDraw);on('#dailyDrawDone','click',closeDailyDraw);on('#dailyDrawModal','click',e=>{if(e.target?.id==='dailyDrawModal')closeDailyDraw()});
+    const unlockFromGesture=()=>{if(me&&!audioUnlocked)ensureAudioUnlocked()};
     document.addEventListener('pointerdown',unlockFromGesture,{capture:true,passive:true});document.addEventListener('keydown',unlockFromGesture,{capture:true});
     on('#refreshRank','click',loadLobby);on('#friendsBtn','click',e=>{e.preventDefault();e.stopPropagation();openFriendsHub().catch(err=>{console.error('[JGC FRIENDS]',err);toast(err?.message||'친구 화면을 여는 중 오류가 발생했어.')})});on('#profileBtn','click',openProfile);on('#closeProfile','click',()=>$('#profileSheet')?.classList.add('hidden'));on('#profileSheet','click',e=>{if(e.target.id==='profileSheet')$('#profileSheet')?.classList.add('hidden')});on('#logoutBtn','click',logout);
     on('#refreshHoldem','click',()=>loadRooms('holdem'));on('#refreshYut','click',()=>loadRooms('yut'));on('#refreshSeotda','click',()=>loadRooms('seotda'));on('#refreshSevenpoker','click',()=>loadRooms('sevenpoker'));on('#refreshGostop','click',()=>loadRooms('gostop'));on('#refreshBaccarat','click',()=>loadBaccaratRooms());
@@ -267,7 +200,34 @@ function setHelpTab(tab='lobby'){const ok=['lobby','slot','holdem','sevenpoker',
 function openHelp(tab=currentView){const modal=$('#helpModal');if(!modal)return;setHelpTab(tab);modal.classList.remove('hidden');modal.setAttribute('aria-hidden','false');document.body.classList.add('modal-open')}
 function closeHelp(){const modal=$('#helpModal');if(!modal)return;modal.classList.add('hidden');modal.setAttribute('aria-hidden','true');document.body.classList.remove('modal-open')}
 function switchMode(game,mode){$$(`[data-mode-game="${game}"]`).forEach(b=>b.classList.toggle('active',b.dataset.mode===mode));$(`#${game}MultiArea`)?.classList.toggle('hidden',mode!=='multi');$(`#${game}SoloArea`)?.classList.toggle('hidden',mode!=='solo');if(mode==='solo'){if(game==='holdem')loadSoloHoldem();else if(game==='yut')loadSoloYut();else if(game==='seotda')loadSeotda();else if(game==='sevenpoker')loadSevenPoker();else if(game==='gostop')loadGostop()}else loadRooms(game)}
-function connectEvents(){if(events)events.close();events=new EventSource('/api/events');events.onopen=()=>setNetworkState('online');events.onerror=()=>setNetworkState(navigator.onLine?'degraded':'offline');events.addEventListener('refresh',()=>{clearTimeout(refreshTimer);refreshTimer=setTimeout(async()=>{try{const d=await api('/api/me');me=d.user;updateHeader();if(liveGame&&currentView===liveGame)refreshLiveFloor(true);if(currentView==='slot')refreshSlotJackpot(true);if(currentRoomId)await loadCurrentRoom();else if(currentView==='lobby')await loadLobby(false);else if(currentView==='holdem'&&!$('#holdemMultiArea').classList.contains('hidden'))await loadRooms('holdem');else if(currentView==='sevenpoker'&&!$('#sevenpokerMultiArea').classList.contains('hidden'))await loadRooms('sevenpoker');else if(currentView==='seotda'&&!$('#seotdaMultiArea').classList.contains('hidden'))await loadRooms('seotda');else if(currentView==='gostop'&&!$('#gostopMultiArea').classList.contains('hidden'))await loadRooms('gostop');else if(currentView==='yut'&&!$('#yutMultiArea').classList.contains('hidden'))await loadRooms('yut');else if(currentView==='baccarat'&&!currentRoomId)await loadBaccaratRooms(true);else if(currentView==='admin'&&me?.is_admin)await loadAdmin($('#adminSearch')?.value.trim()||'',false)}catch{}},180)})}
+function connectEvents(){
+  if(events)events.close();
+  events=new EventSource('/api/events');
+  events.onopen=()=>setNetworkState('online');
+  events.onerror=()=>setNetworkState(navigator.onLine?'degraded':'offline');
+  events.addEventListener('refresh',ev=>{
+    let payload={};try{payload=JSON.parse(ev.data||'{}')}catch{}
+    if(payload.roomId&&currentRoomId&&String(payload.roomId)!==String(currentRoomId))return;
+    if(payload.roomId&&!currentRoomId&&currentView==='lobby')return;
+    clearTimeout(refreshTimer);
+    refreshTimer=setTimeout(async()=>{
+      try{
+        if(currentView==='lobby'){await loadLobby(false);return}
+        await refreshMe();
+        if(liveGame&&currentView===liveGame)await refreshLiveFloor(true);
+        if(currentView==='slot')await refreshSlotJackpot(true);
+        if(currentRoomId)await loadCurrentRoom();
+        else if(currentView==='holdem'&&!$('#holdemMultiArea').classList.contains('hidden'))await loadRooms('holdem');
+        else if(currentView==='sevenpoker'&&!$('#sevenpokerMultiArea').classList.contains('hidden'))await loadRooms('sevenpoker');
+        else if(currentView==='seotda'&&!$('#seotdaMultiArea').classList.contains('hidden'))await loadRooms('seotda');
+        else if(currentView==='gostop'&&!$('#gostopMultiArea').classList.contains('hidden'))await loadRooms('gostop');
+        else if(currentView==='yut'&&!$('#yutMultiArea').classList.contains('hidden'))await loadRooms('yut');
+        else if(currentView==='baccarat'&&!currentRoomId)await loadBaccaratRooms(true);
+        else if(currentView==='admin'&&me?.is_admin)await loadAdmin($('#adminSearch')?.value.trim()||'',false);
+      }catch{}
+    },450);
+  });
+}
 function updateHeader(){if(!me)return;$('#walletBalance').textContent=money(me.balance);updateSlotBetLimitUi();$('#avatarEmoji').innerHTML=avatarImg(me.avatar,me.nickname,'header-face',me.cosmetics);$('#nickName').textContent=me.nickname;const title=equippedTitle(me.cosmetics);$('#profileBtn')?.setAttribute('data-title',title);$('#dailyBtn').disabled=!me.dailyAvailable;const dailyPct=Number(me.cosmetics?.perks?.dailyBonusPct||0)+Number(me.rank?.perks?.dailyBonusPct||0),dailyAmt=Math.floor(50000*(1+dailyPct/100));$('#dailyBtn').textContent=me.dailyAvailable?`🎁 출석 +${money(dailyAmt)}${dailyPct?` · +${dailyPct}%`:''}`:'✓ 오늘 출석 완료';$('#adminBtn')?.classList.toggle('hidden',!me.is_admin);applyCosmetics();updateRankFreeUi()}
 function renderLobbyPresence(rows=[]){
   const root=$('#lobbyLiveFaces');if(!root)return;
@@ -280,7 +240,7 @@ async function go(view){
   if(currentRoomId&&view!==currentGame){toast('먼저 멀티 게임방에서 나가기를 눌러줘.');return}
   const prevView=currentView;if(prevView==='treasure'&&view!=='treasure')window.JunjaTreasureRaid?.leaveView?.();currentView=view;document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));$('#view-'+view)?.classList.add('active');window.scrollTo({top:0,behavior:'smooth'});
   if(LIVE_GAME_VIEWS.has(view))startLiveFloor(view);else if(LIVE_GAME_VIEWS.has(prevView)||liveGame)stopLiveFloor();
-  if(prevView==='horse'&&view!=='horse')stopHorseMeet();if(view==='lobby')await loadLobby();if(view==='shop')await loadShop();if(view==='slot'){initSlotMachine();refreshSlotJackpot(true)}if(view==='holdem')await loadRooms('holdem');if(view==='sevenpoker')await loadRooms('sevenpoker');if(view==='baccarat')await loadBaccaratRooms();if(view==='yut')await loadRooms('yut');if(view==='ledger')await loadLedger();if(view==='seotda')await loadRooms('seotda');if(view==='gostop')await loadGostop();if(view==='horse')startHorseMeet();if(view==='bigwheel')initBigWheel();if(view==='sicbo')initSicbo();if(view==='roulette')initRoulette();if(view==='treasure')await window.JunjaTreasureRaid?.enter?.(me);if(view==='admin')await loadAdmin('');setAudioScene(LIVE_GAME_VIEWS.has(view)?view:'lobby');
+  if(prevView==='horse'&&view!=='horse')stopHorseMeet();if(view==='lobby')await loadLobby();if(view==='shop')await loadShop();if(view==='slot'){initSlotMachine();refreshSlotJackpot(true)}if(view==='holdem')await loadRooms('holdem');if(view==='sevenpoker')await loadRooms('sevenpoker');if(view==='baccarat')await loadBaccaratRooms();if(view==='yut')await loadRooms('yut');if(view==='ledger')await loadLedger();if(view==='seotda')await loadRooms('seotda');if(view==='gostop')await loadGostop();if(view==='horse')startHorseMeet();if(view==='bigwheel')initBigWheel();if(view==='sicbo')initSicbo();if(view==='roulette')initRoulette();if(view==='treasure')await window.JunjaTreasureRaid?.enter?.(me);if(view==='admin')await loadAdmin('');
 }
 async function loadLobby(full=true){try{await refreshMe();const d=await api('/api/leaderboard');$('#leaderboard').innerHTML=d.rows.map((r,i)=>`<div class="rank-row rank-user-${html(r.rank?.className||'commoner')}"><div class="rank-no"><img class="rank-emblem-art" src="/assets/rank-emblems/rank-${Math.min(i+1,10)}.png?v=327" alt="${i+1}위"></div><div class="rank-name">${avatarImg(r.avatar,r.nickname,'rank-face',r.cosmetics)}<span><b>${html(r.nickname)}</b>${equippedTitle(r.cosmetics)?`<small>${html(equippedTitle(r.cosmetics))}</small>`:''}</span></div><div class="rank-status-slot"><small class="rank-status-badge rank-crest rank-crest-${html(r.rank?.className||'commoner')}"><i class="rank-crest-icon">${r.rank?.className==='royal'?'J':html(r.rank?.icon||'◇')}</i><span>${html(r.rank?.name||'평민')}</span></small></div><div class="rank-money">${money(r.balance)}</div></div>`).join('')||'<div class="empty">아직 랭킹이 없습니다.</div>';$('#myStats').innerHTML=`<div class="stat"><span>홀덤 승리</span><b>${me.poker_wins}</b></div><div class="stat"><span>세븐포커 승리</span><b>${me.seven_wins||0}/${me.seven_games||0}</b></div><div class="stat"><span>바카라 승리</span><b>${me.baccarat_wins||0}/${me.baccarat_games||0}</b></div><div class="stat"><span>바카라 손익</span><b>${signedMoney(me.baccarat_profit||0)}</b></div><div class="stat"><span>윷놀이 승리</span><b>${me.yut_wins}</b></div><div class="stat"><span>섯다 승리</span><b>${me.seotda_wins||0}</b></div><div class="stat"><span>고스톱 승리</span><b>${me.gostop_wins||0}</b></div><div class="stat"><span>슬롯 스핀</span><b>${me.slot_spins}</b></div><div class="stat"><span>슬롯 손익</span><b>${signedMoney(me.slot_profit)}</b></div><div class="stat"><span>경마 적중</span><b>${me.horse_wins||0}/${me.horse_races||0}</b></div><div class="stat"><span>경마 손익</span><b>${signedMoney(me.horse_profit||0)}</b></div><div class="stat"><span>빅휠 적중</span><b>${me.bigwheel_wins||0}/${me.bigwheel_plays||0}</b></div><div class="stat"><span>빅휠 손익</span><b>${signedMoney(me.bigwheel_profit||0)}</b></div><div class="stat"><span>다이사이 적중</span><b>${me.sicbo_wins||0}/${me.sicbo_plays||0}</b></div><div class="stat"><span>다이사이 손익</span><b>${signedMoney(me.sicbo_profit||0)}</b></div><div class="stat"><span>룰렛 적중</span><b>${me.roulette_wins||0}/${me.roulette_plays||0}</b></div><div class="stat"><span>룰렛 손익</span><b>${signedMoney(me.roulette_profit||0)}</b></div>`;await refreshSlotJackpot(true)}catch(e){if(full)toast(e.message)}}
 function closeDailyDraw(){$('#dailyDrawModal')?.classList.add('hidden');}
@@ -575,7 +535,7 @@ async function runAutoSpins(count){
 
 // MULTI ROOMS v0.9 - READY / TURN / RECOVERY / POLLING
 function stopRoomPolling(){if(roomPollTimer){clearInterval(roomPollTimer);roomPollTimer=null}}
-function startRoomPolling(){stopRoomPolling();if(!currentRoomId)return;roomPollTimer=setInterval(()=>{if(!document.hidden&&currentRoomId&&currentView===currentGame)loadCurrentRoom(true).catch(()=>{})},2200)}
+function startRoomPolling(){stopRoomPolling();if(!currentRoomId)return;roomPollTimer=setInterval(()=>{if(!document.hidden&&currentRoomId&&currentView===currentGame)loadCurrentRoom(true).catch(()=>{})},15000)}
 async function resumeMyRoom(){
   try{
     const d=await api('/api/my-room');if(!d.room)return;
@@ -802,7 +762,7 @@ async function playSoloYutReplay(g){
 
 // HORSE RACING · v2.2 SHARED LIVE VERTICAL MEET
 function stopHorseMeet(){clearInterval(horseMeetTimer);horseMeetTimer=null;if(horseAnimationFrame)cancelAnimationFrame(horseAnimationFrame);horseAnimationFrame=null;horseRacing=false}
-function startHorseMeet(){stopHorseMeet();loadHorseMeet(false);horseMeetTimer=setInterval(()=>{if(currentView==='horse'&&!document.hidden)loadHorseMeet(true)},1500)}
+function startHorseMeet(){stopHorseMeet();loadHorseMeet(false);horseMeetTimer=setInterval(()=>{if(currentView==='horse'&&!document.hidden)loadHorseMeet(true)},4000)}
 async function loadHorseMeet(silent=true){try{const d=await api('/api/horse/meet');horseCardData=d.round.card;if(d.user){me=d.user;updateHeader()}renderHorseMeet(d.round);await maybeHorseAuto(d.round)}catch(e){if(!silent)toast(e.message)}}
 function horseSelectedIds(){return [Number($('#horsePick1')?.value||0),Number($('#horsePick2')?.value||0)].filter(Boolean)}
 function horseOddsFor(type,ids){if(!horseCardData||!ids.length)return 0;if(type==='win')return Number(horseCardData.horses.find(h=>h.id===ids[0])?.winOdds||0);if(ids.length<2)return 0;if(type==='quinella')return Number(horseCardData.quinellaOdds?.[[...ids].sort((a,b)=>a-b).join('-')]||0);return Number(horseCardData.exactaOdds?.[`${ids[0]}>${ids[1]}`]||0)}
