@@ -1,156 +1,17 @@
-name: JUNJA LAND Main Live Deploy
+name: JUNJA LAND Cost Lock
 
 on:
-  # deploy-trigger-v13: dynamic source contract + GOD JUNJA
-  push:
-    branches: [main]
-    paths:
-      - 'server.js'
-      - 'admin-unlimited-start.js'
-      - 'slot-50pct-until-win-start.js'
-      - 'persistent-db.js'
-      - 'public/**'
-      - 'package.json'
-      - 'Dockerfile'
-      - 'VERSION.txt'
-      - '.github/workflows/main-live-deploy.yml'
   workflow_dispatch:
 
 permissions:
   contents: read
 
-concurrency:
-  group: junja-land-main-live-deploy
-  cancel-in-progress: true
-
 jobs:
-  verify-and-deploy:
+  cost-lock:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-
-      - name: Install dependencies
-        run: npm install --no-audit --no-fund
-
-      - name: Verify current source contract
-        shell: bash
+      - name: Cost lock status
         run: |
-          node - <<'NODE'
-          const fs=require('fs');
-          const pkg=require('./package.json');
-          const server=fs.readFileSync('server.js','utf8');
-          const runtime=fs.readFileSync('admin-unlimited-start.js','utf8');
-          const app=fs.readFileSync('public/app.js','utf8');
-          const index=fs.readFileSync('public/index.html','utf8');
-          const version=fs.readFileSync('VERSION.txt','utf8');
-
-          const need=(ok,msg)=>{if(!ok)throw new Error(msg)};
-          need(server.includes("if(node==='READY')return {node:'O1',route:'outer'}"),'Yut READY must move to O1');
-          need(server.includes("if(node==='START')return {node:'FINISH',route:'outer'}"),'Yut HOME must exit to FINISH');
-          need(server.includes("B5:['START','B']"),'Yut shortcut must return to HOME before FINISH');
-          need(server.includes("club-standard-v09-home-exit-finish"),'Yut v09 rule marker missing');
-          need(runtime.includes("B5:['START','B']"),'runtime wrapper still expects old B5->FINISH');
-          need(!runtime.includes("B5:['FINISH','B']"),'legacy runtime Yut B5->FINISH patch still present');
-          need(app.includes("api('/api/leaderboard')"),'leaderboard API binding missing');
-          need(app.includes('/assets/rank-emblems/rank-'),'leaderboard artwork binding missing');
-          need(index.includes('VERSION '+pkg.version),'index version marker missing');
-          need(version.includes('v'+pkg.version),'VERSION.txt marker missing');
-          need(index.includes('rank-system.css?v=347'),'rank CSS cache marker missing');
-          need(index.includes('rank-system.js?v=347'),'rank JS cache marker missing');
-          need(server.includes("{level:12,name:'GOD JUNJA'"),'GOD JUNJA server rank missing');
-          console.log('SOURCE_CONTRACT_OK=v'+pkg.version);
-          NODE
-
-      - name: Syntax checks
-        run: npm run check
-
-      - name: Production wrapper boot test
-        env:
-          PORT: '18080'
-          DATA_DIR: ${{ runner.temp }}/junja-main-data
-          DATABASE_URL: ''
-        shell: bash
-        run: |
-          set -euo pipefail
-          VERSION="$(node -p "require('./package.json').version")"
-          node admin-unlimited-start.js >/tmp/junja-main.log 2>&1 &
-          PID=$!
-          trap 'kill $PID 2>/dev/null || true' EXIT
-          ok=0
-          for i in {1..45}; do
-            if curl -fsS http://127.0.0.1:18080/ >/tmp/local-index.html 2>/dev/null; then ok=1; break; fi
-            sleep 1
-          done
-          if [ "$ok" -ne 1 ]; then
-            cat /tmp/junja-main.log >&2 || true
-            exit 1
-          fi
-          grep -q "VERSION $VERSION" /tmp/local-index.html
-          curl -fsS "http://127.0.0.1:18080/app.js?deploy=$GITHUB_SHA" >/tmp/local-app.js
-          grep -q "api('/api/leaderboard')" /tmp/local-app.js
-          grep -q '/assets/rank-emblems/rank-' /tmp/local-app.js
-          grep -q '출발 도=1번 칸' /tmp/local-app.js
-          curl -fsS "http://127.0.0.1:18080/rank-system.js?deploy=$GITHUB_SHA" >/tmp/local-rank.js
-          grep -q 'GOD JUNJA' /tmp/local-rank.js
-          curl -fsS http://127.0.0.1:18080/healthz >/tmp/local-health.txt
-          echo "PRODUCTION_WRAPPER_BOOT_OK=v$VERSION"
-
-      - name: Trigger Render deployment if credentials exist
-        env:
-          RENDER_DEPLOY_HOOK: ${{ secrets.RENDER_DEPLOY_HOOK }}
-          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
-          RENDER_SERVICE_ID: ${{ secrets.RENDER_SERVICE_ID }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          if [ -n "${RENDER_DEPLOY_HOOK:-}" ]; then
-            curl -fsS -X POST "$RENDER_DEPLOY_HOOK" >/tmp/render-trigger.txt
-            echo 'Render deploy hook triggered.'
-          elif [ -n "${RENDER_API_KEY:-}" ] && [ -n "${RENDER_SERVICE_ID:-}" ]; then
-            curl -fsS -X POST -H "Authorization: Bearer $RENDER_API_KEY" -H 'Content-Type: application/json'               "https://api.render.com/v1/services/$RENDER_SERVICE_ID/deploys" -d '{}' >/tmp/render-trigger.txt
-            echo 'Render API deploy triggered.'
-          else
-            echo 'No Render deploy secret configured; relying on Render Git auto-deploy from main.'
-          fi
-
-      - name: Verify current version is live
-        shell: bash
-        run: |
-          set -euo pipefail
-          LIVE='https://junja-game-club.onrender.com'
-          VERSION="$(node -p "require('./package.json').version")"
-          ok=0
-          for i in $(seq 1 90); do
-            if curl -LfsS --max-time 25 "$LIVE/?deploy=$GITHUB_SHA" >/tmp/live-index.html 2>/tmp/live-curl.err; then
-              if grep -q "VERSION $VERSION" /tmp/live-index.html; then
-                ok=1
-                echo "Live v$VERSION detected on attempt $i."
-                break
-              fi
-            fi
-            sleep 5
-          done
-          if [ "$ok" -ne 1 ]; then
-            echo "::error::Render did not publish JUNJA LAND v$VERSION."
-            echo '---- live version markers ----'
-            grep -o 'VERSION [0-9.]*' /tmp/live-index.html 2>/dev/null | head -5 || true
-            cat /tmp/live-curl.err 2>/dev/null || true
-            exit 1
-          fi
-          curl -LfsS --max-time 25 "$LIVE/app.js?deploy=$GITHUB_SHA" >/tmp/live-app.js
-          grep -q "api('/api/leaderboard')" /tmp/live-app.js
-          grep -q '/assets/rank-emblems/rank-' /tmp/live-app.js
-          grep -q '출발 도=1번 칸' /tmp/live-app.js
-          curl -LfsS --max-time 25 "$LIVE/rank-system.js?deploy=$GITHUB_SHA" >/tmp/live-rank.js
-          grep -q 'GOD JUNJA' /tmp/live-rank.js
-          curl -LfsS --max-time 25 "$LIVE/healthz?deploy=$GITHUB_SHA" >/tmp/live-health.txt
-          echo "LIVE_DEPLOY_VERIFIED=v$VERSION"
-
-      - name: Print production log on failure
-        if: failure()
-        run: cat /tmp/junja-main.log 2>/dev/null || true
+          echo "Automatic GitHub Actions verification/deploy is disabled."
+          echo "Render auto-deploy is managed separately."
+          echo "Neon persistence is disabled in application code."
