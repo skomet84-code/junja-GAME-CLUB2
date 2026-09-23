@@ -1,0 +1,13 @@
+'use strict';
+const fs=require('node:fs'),path=require('node:path');
+const server=fs.readFileSync(path.join(__dirname,'..','server.js'),'utf8');
+const treasure=[...server.matchAll(/id:'char_treasure_[^']+'[^\n]+/g)].map(x=>x[0]);
+if(treasure.length!==10)throw new Error('Expected exactly 10 Treasure Explorer characters');
+if(treasure.some(x=>!x.includes("adminOnly:true")||!x.includes("privateOnly:true")))throw new Error('Every Treasure Explorer must be admin-only and private');
+if(!server.includes("function cosmeticsPublic(userId,includePrivate=false)"))throw new Error('Private cosmetics viewer gate missing');
+if(!server.includes("if(out[f]?.privateOnly&&!includePrivate)out[f]=null"))throw new Error('External private cosmetic mask missing');
+if(!server.includes("if(u?.is_admin)for(const item of SHOP_ITEMS)if(item.adminOnly)owned.add(item.id)"))throw new Error('Admin virtual ownership for private collection missing');
+if(!server.includes("loadout:cosmeticsPublic(userId,true)"))throw new Error('Admin shop must show own private equipped cosmetic');
+if(!server.includes("cosmetics:cosmeticsPublic(userId,true)"))throw new Error('Own user response must include private cosmetic');
+if(!server.includes("ownedItems=SHOP_ITEMS.filter(x=>owned.has(x.id)&&!x.adminOnly)"))throw new Error('Friend collection must exclude admin-only items');
+console.log('TREASURE_PRIVATE_SHOP_TESTS_OK');

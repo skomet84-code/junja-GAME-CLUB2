@@ -240,16 +240,16 @@ const SHOP_ITEMS = [
   
   
   // TREASURE EXPLORERS · 프리미엄 세로형 컬렉션
-  {id:'char_treasure_elisia',category:'character',gender:'F',asset:'/art/special/treasure-elisia.webp',name:'엘리시아',icon:'🧭',rarity:'mythic',price:30000000000,rankTier:2,collection:'treasure',featured:true,desc:'TREASURE EXPLORER · 프리미엄 탐험가 컬렉션'},
-  {id:'char_treasure_serena',category:'character',gender:'F',asset:'/art/special/treasure-serena.webp',name:'세레나',icon:'🗺️',rarity:'mythic',price:30000000000,rankTier:2,collection:'treasure',featured:true,desc:'TREASURE EXPLORER · 프리미엄 탐험가 컬렉션'},
-  {id:'char_treasure_kaira',category:'character',gender:'F',asset:'/art/special/treasure-kaira.webp',name:'카이라',icon:'💎',rarity:'mythic',price:30000000000,rankTier:2,collection:'treasure',featured:true,desc:'TREASURE EXPLORER · 프리미엄 탐험가 컬렉션'},
-  {id:'char_treasure_ruby',category:'character',gender:'F',asset:'/art/special/treasure-ruby.webp',name:'루비',icon:'🏮',rarity:'mythic',price:30000000000,rankTier:2,collection:'treasure',featured:true,desc:'TREASURE EXPLORER · 프리미엄 탐험가 컬렉션'},
-  {id:'char_treasure_bella',category:'character',gender:'F',asset:'/art/special/treasure-bella.webp',name:'벨라',icon:'🔮',rarity:'mythic',price:30000000000,rankTier:2,collection:'treasure',featured:true,desc:'TREASURE EXPLORER · 프리미엄 탐험가 컬렉션'},
-  {id:'char_treasure_natsu',category:'character',gender:'F',asset:'/art/special/treasure-natsu.webp',name:'나츠',icon:'⚙️',rarity:'prestige',price:50000000000,rankTier:2,collection:'treasure',featured:true,desc:'TREASURE EXPLORER · 프리미엄 탐험가 컬렉션'},
-  {id:'char_treasure_arne',category:'character',gender:'F',asset:'/art/special/treasure-arne.webp',name:'아르네',icon:'📜',rarity:'prestige',price:50000000000,rankTier:2,collection:'treasure',featured:true,desc:'TREASURE EXPLORER · 프리미엄 탐험가 컬렉션'},
-  {id:'char_treasure_camilla',category:'character',gender:'F',asset:'/art/special/treasure-camilla.webp',name:'카밀라',icon:'🏴‍☠️',rarity:'prestige',price:50000000000,rankTier:2,collection:'treasure',featured:true,desc:'TREASURE EXPLORER · 프리미엄 탐험가 컬렉션'},
-  {id:'char_treasure_mirea',category:'character',gender:'F',asset:'/art/special/treasure-mirea.webp',name:'미레아',icon:'🔥',rarity:'prestige',price:50000000000,rankTier:2,collection:'treasure',featured:true,desc:'TREASURE EXPLORER · 프리미엄 탐험가 컬렉션'},
-  {id:'char_treasure_shana',category:'character',gender:'F',asset:'/art/special/treasure-shana.webp',name:'샤나',icon:'🏺',rarity:'prestige',price:50000000000,rankTier:2,collection:'treasure',featured:true,desc:'TREASURE EXPLORER · 프리미엄 탐험가 컬렉션'},
+  {id:'char_treasure_elisia',category:'character',gender:'F',asset:'/art/special/treasure-elisia.webp',name:'엘리시아',icon:'🧭',rarity:'mythic',price:30000000000,rankTier:2,collection:'treasure',featured:true,adminOnly:true,privateOnly:true,desc:'TREASURE EXPLORER · 관리자 비공개 컬렉션'},
+  {id:'char_treasure_serena',category:'character',gender:'F',asset:'/art/special/treasure-serena.webp',name:'세레나',icon:'🗺️',rarity:'mythic',price:30000000000,rankTier:2,collection:'treasure',featured:true,adminOnly:true,privateOnly:true,desc:'TREASURE EXPLORER · 관리자 비공개 컬렉션'},
+  {id:'char_treasure_kaira',category:'character',gender:'F',asset:'/art/special/treasure-kaira.webp',name:'카이라',icon:'💎',rarity:'mythic',price:30000000000,rankTier:2,collection:'treasure',featured:true,adminOnly:true,privateOnly:true,desc:'TREASURE EXPLORER · 관리자 비공개 컬렉션'},
+  {id:'char_treasure_ruby',category:'character',gender:'F',asset:'/art/special/treasure-ruby.webp',name:'루비',icon:'🏮',rarity:'mythic',price:30000000000,rankTier:2,collection:'treasure',featured:true,adminOnly:true,privateOnly:true,desc:'TREASURE EXPLORER · 관리자 비공개 컬렉션'},
+  {id:'char_treasure_bella',category:'character',gender:'F',asset:'/art/special/treasure-bella.webp',name:'벨라',icon:'🔮',rarity:'mythic',price:30000000000,rankTier:2,collection:'treasure',featured:true,adminOnly:true,privateOnly:true,desc:'TREASURE EXPLORER · 관리자 비공개 컬렉션'},
+  {id:'char_treasure_natsu',category:'character',gender:'F',asset:'/art/special/treasure-natsu.webp',name:'나츠',icon:'⚙️',rarity:'prestige',price:50000000000,rankTier:2,collection:'treasure',featured:true,adminOnly:true,privateOnly:true,desc:'TREASURE EXPLORER · 관리자 비공개 컬렉션'},
+  {id:'char_treasure_arne',category:'character',gender:'F',asset:'/art/special/treasure-arne.webp',name:'아르네',icon:'📜',rarity:'prestige',price:50000000000,rankTier:2,collection:'treasure',featured:true,adminOnly:true,privateOnly:true,desc:'TREASURE EXPLORER · 관리자 비공개 컬렉션'},
+  {id:'char_treasure_camilla',category:'character',gender:'F',asset:'/art/special/treasure-camilla.webp',name:'카밀라',icon:'🏴‍☠️',rarity:'prestige',price:50000000000,rankTier:2,collection:'treasure',featured:true,adminOnly:true,privateOnly:true,desc:'TREASURE EXPLORER · 관리자 비공개 컬렉션'},
+  {id:'char_treasure_mirea',category:'character',gender:'F',asset:'/art/special/treasure-mirea.webp',name:'미레아',icon:'🔥',rarity:'prestige',price:50000000000,rankTier:2,collection:'treasure',featured:true,adminOnly:true,privateOnly:true,desc:'TREASURE EXPLORER · 관리자 비공개 컬렉션'},
+  {id:'char_treasure_shana',category:'character',gender:'F',asset:'/art/special/treasure-shana.webp',name:'샤나',icon:'🏺',rarity:'prestige',price:50000000000,rankTier:2,collection:'treasure',featured:true,adminOnly:true,privateOnly:true,desc:'TREASURE EXPLORER · 관리자 비공개 컬렉션'},
 
   // ROYAL CLUB · 왕 이상 전용 한정 컬렉션
   {id:'char_royalclub_m1',category:'character',gender:'M',asset:'/art/special/royal-club-m1.webp',name:'ROYAL CLUB M01',icon:'♔',rarity:'prestige',price:100000000000,rankTier:3,collection:'royalclub',featured:true,hideName:true,desc:'ROYAL CLUB · 왕 이상 전용 한정 컬렉션'},
@@ -560,13 +560,13 @@ function collectionTier(count){
   return {name:'NEW MEMBER',icon:'◇',level:0};
 }
 function itemPublic(id){const x=SHOP_BY_ID[id];return x?{...x}:null;}
-function cosmeticsPublic(userId){
+function cosmeticsPublic(userId,includePrivate=false){
   userId=Number(userId);
   const empty=()=>{const out={ownedCount:0,collection:collectionTier(0),perks:{slotLuckPct:0,dailyBonusPct:0}};for(const f of LOADOUT_FIELDS)out[f]=null;return out;};
   if(!Number.isInteger(userId)||userId<1||!db.prepare('SELECT 1 FROM users WHERE id=?').get(userId))return empty();
   const load=ensureLoadout(userId),owned=inventoryIds(userId),count=owned.size;
   const out={ownedCount:count,collection:collectionTier(count)};let slotLuckPct=0,dailyBonusPct=0;
-  for(const f of LOADOUT_FIELDS){out[f]=load[f]?itemPublic(load[f]):null;if(out[f]?.happyOnly&&!isHappyUser(userId))out[f]=null;const perk=out[f]?.perk||{};slotLuckPct+=Number(perk.slotLuckPct||0);dailyBonusPct+=Number(perk.dailyBonusPct||0);}
+  for(const f of LOADOUT_FIELDS){out[f]=load[f]?itemPublic(load[f]):null;if(out[f]?.happyOnly&&!isHappyUser(userId))out[f]=null;if(out[f]?.privateOnly&&!includePrivate)out[f]=null;const perk=out[f]?.perk||{};slotLuckPct+=Number(perk.slotLuckPct||0);dailyBonusPct+=Number(perk.dailyBonusPct||0);}
   out.perks={slotLuckPct:Math.min(1,Math.round(slotLuckPct*100)/100),dailyBonusPct:Math.min(5,Math.round(dailyBonusPct*100)/100)};
   return out;
 }
@@ -577,9 +577,9 @@ function reactionAllowed(userId,key){
 function isHappyUser(userId){const u=db.prepare('SELECT username,nickname FROM users WHERE id=?').get(userId);return !!u&&(String(u.username||'').trim().toLowerCase()==='햅피'||String(u.username||'').trim().toLowerCase()==='happy'||String(u.nickname||'').trim().toLowerCase()==='햅피'||String(u.nickname||'').trim().toLowerCase()==='happy');}
 function shopState(userId){
   const load=ensureLoadout(userId),owned=inventoryIds(userId),u=db.prepare('SELECT is_admin FROM users WHERE id=?').get(userId),happy=isHappyUser(userId),shopTier=Number(socialRankPerksForUser(userId).shopTier||0);
-  if(u?.is_admin)owned.add('char_admin_godjunja');
+  if(u?.is_admin)for(const item of SHOP_ITEMS)if(item.adminOnly)owned.add(item.id);
   if(happy)owned.add('char_f_happy_exclusive');
-  return {items:SHOP_ITEMS.filter(x=>(!x.adminOnly||u?.is_admin)&&(!x.happyOnly||happy)).map(x=>({...x,owned:owned.has(x.id),equipped:load[x.category]===x.id,rankShopUnlocked:shopTier>=Number(x.rankTier||0),rankShopTier:shopTier})),loadout:cosmeticsPublic(userId),ownedCount:owned.size,rankShopTier:shopTier,rankShopUnlocked:shopTier>0};
+  return {items:SHOP_ITEMS.filter(x=>(!x.adminOnly||u?.is_admin)&&(!x.happyOnly||happy)).map(x=>({...x,owned:owned.has(x.id),equipped:load[x.category]===x.id,rankShopUnlocked:shopTier>=Number(x.rankTier||0),rankShopTier:shopTier})),loadout:cosmeticsPublic(userId,true),ownedCount:owned.size,rankShopTier:shopTier,rankShopUnlocked:shopTier>0};
 }
 function buyShopItem(userId,itemId){
   const item=SHOP_BY_ID[String(itemId||'')];if(!item)throw new Error('존재하지 않는 상점 아이템입니다.');
@@ -618,14 +618,14 @@ function buyShopItem(userId,itemId){
 function equipShopItem(userId,category,itemId){
   category=String(category||'');if(!LOADOUT_FIELDS.has(category))throw new Error('잘못된 장착 슬롯입니다.');
   ensureLoadout(userId);
-  if(itemId==null||itemId==='') {db.prepare(`UPDATE user_loadout SET ${category}=NULL WHERE user_id=?`).run(userId);return cosmeticsPublic(userId);}
+  if(itemId==null||itemId==='') {db.prepare(`UPDATE user_loadout SET ${category}=NULL WHERE user_id=?`).run(userId);return cosmeticsPublic(userId,true);}
   const item=SHOP_BY_ID[String(itemId)];if(!item||item.category!==category)throw new Error('이 슬롯에 장착할 수 없는 아이템입니다.');
   const owner=db.prepare('SELECT is_admin FROM users WHERE id=?').get(userId);
   if(item.adminOnly&&!owner?.is_admin)throw new Error('갓준자 관리자 전용 캐릭터입니다.');
   if(item.happyOnly&&!isHappyUser(userId))throw new Error('HAPPY 캐릭터는 햅피 계정만 장착할 수 있습니다.');
   if(Number(item.rankTier||0)>Number(socialRankPerksForUser(userId).shopTier||0)&&!db.prepare('SELECT 1 FROM user_inventory WHERE user_id=? AND item_id=?').get(userId,item.id))throw new Error('현재 신분으로는 장착할 수 없는 신분 전용 아이템입니다.');
   if(!item.adminOnly&&!item.happyOnly&&!db.prepare('SELECT 1 FROM user_inventory WHERE user_id=? AND item_id=?').get(userId,item.id))throw new Error('먼저 아이템을 구매해주세요.');
-  db.prepare(`UPDATE user_loadout SET ${category}=? WHERE user_id=?`).run(item.id,userId);const saved=ensureLoadout(userId);if(saved[category]!==item.id)throw new Error('장착 저장 검증에 실패했습니다.');return cosmeticsPublic(userId);
+  db.prepare(`UPDATE user_loadout SET ${category}=? WHERE user_id=?`).run(item.id,userId);const saved=ensureLoadout(userId);if(saved[category]!==item.id)throw new Error('장착 저장 검증에 실패했습니다.');return cosmeticsPublic(userId,true);
 }
 
 const SOCIAL_RANKS = [
@@ -710,7 +710,7 @@ function userPublic(userId){
     s.seven_games,s.seven_wins,s.baccarat_games,s.baccarat_wins,s.baccarat_profit,s.roulette_plays,s.roulette_wins,s.roulette_profit
     FROM users u JOIN stats s ON s.user_id=u.id WHERE u.id=?`).get(userId);
   if(!u) return null;
-  return {...u, avatarEmoji:AVATARS[u.avatar%AVATARS.length], cosmetics:cosmeticsPublic(userId), rank:socialRankPublic(userId), dailyAvailable:u.last_daily!==kstDate()};
+  return {...u, avatarEmoji:AVATARS[u.avatar%AVATARS.length], cosmetics:cosmeticsPublic(userId,true), rank:socialRankPublic(userId), dailyAvailable:u.last_daily!==kstDate()};
 }
 
 function parseCookies(req){
@@ -1982,7 +1982,7 @@ const server=http.createServer(async(req,res)=>{
     if(url.pathname==='/api/daily-draw/pick'&&req.method==='POST'){const u=requireAuth(req,res);if(!u)return;if(!rateLimit('daily_draw:'+u.id,8,60000))return json(res,429,{error:'뽑기 요청이 너무 빠릅니다.'});const b=await readBody(req);try{const result=dailyDrawPick(u.id,b.number);pushRefresh();return json(res,200,{ok:true,...result,user:userPublic(u.id)});}catch(e){return json(res,409,{error:e.message,state:dailyDrawState(u.id)});}}
     if(url.pathname==='/api/daily'&&req.method==='POST'){
       const u=requireAuth(req,res);if(!u)return;const d=kstDate();if(u.last_daily===d)return json(res,409,{error:'오늘 출석 보너스는 이미 받았습니다.'});
-      const cosmeticPct=Number(cosmeticsPublic(u.id)?.perks?.dailyBonusPct||0),rankPerks=socialRankPerksForUser(u.id),rankPct=Number(rankPerks.dailyBonusPct||0),dailyPct=cosmeticPct+rankPct;db.exec('BEGIN IMMEDIATE');try{const fresh=db.prepare('SELECT balance,last_daily,last_rank_salary FROM users WHERE id=?').get(u.id);if(!fresh)throw new Error('사용자를 찾을 수 없습니다.');if(fresh.last_daily===d){db.exec('ROLLBACK');return json(res,409,{error:'오늘 출석 보너스는 이미 받았습니다.'});}const dailyAmount=Math.floor(50000*(1+dailyPct/100)),salary=(fresh.last_rank_salary===d?0:Number(rankPerks.dailySalary||0)),interestPct=Number(rankPerks.dailyInterestPct||0),interest=Math.min(100000000,Math.max(0,Math.floor(Number(fresh.balance||0)*interestPct/100))),total=dailyAmount+salary+interest,bal=Number(fresh.balance||0)+total;if(!Number.isSafeInteger(bal))throw new Error('게임머니 한도를 초과합니다.');db.prepare('UPDATE users SET balance=?,last_daily=?,last_rank_salary=? WHERE id=?').run(bal,d,d,u.id);db.prepare('INSERT INTO ledger(user_id,amount,balance_after,type,memo,created_at) VALUES(?,?,?,?,?,?)').run(u.id,total,bal,'daily',`오늘의 출석 ${formatMoney(dailyAmount)}G${salary?` · 신분 월급 ${formatMoney(salary)}G`:''}${interest?` · 신분 이자 ${formatMoney(interest)}G`:''}`,now());db.exec('COMMIT');pushRefresh();return json(res,200,{balance:bal,amount:total,attendanceAmount:dailyAmount,rankSalary:salary,rankInterest:interest,rankInterestPct:interestPct,dailyBonusPct:dailyPct,rankBonusPct:rankPct});}catch(e){try{db.exec('ROLLBACK')}catch{}throw e;}
+      const cosmeticPct=Number(cosmeticsPublic(u.id,true)?.perks?.dailyBonusPct||0),rankPerks=socialRankPerksForUser(u.id),rankPct=Number(rankPerks.dailyBonusPct||0),dailyPct=cosmeticPct+rankPct;db.exec('BEGIN IMMEDIATE');try{const fresh=db.prepare('SELECT balance,last_daily,last_rank_salary FROM users WHERE id=?').get(u.id);if(!fresh)throw new Error('사용자를 찾을 수 없습니다.');if(fresh.last_daily===d){db.exec('ROLLBACK');return json(res,409,{error:'오늘 출석 보너스는 이미 받았습니다.'});}const dailyAmount=Math.floor(50000*(1+dailyPct/100)),salary=(fresh.last_rank_salary===d?0:Number(rankPerks.dailySalary||0)),interestPct=Number(rankPerks.dailyInterestPct||0),interest=Math.min(100000000,Math.max(0,Math.floor(Number(fresh.balance||0)*interestPct/100))),total=dailyAmount+salary+interest,bal=Number(fresh.balance||0)+total;if(!Number.isSafeInteger(bal))throw new Error('게임머니 한도를 초과합니다.');db.prepare('UPDATE users SET balance=?,last_daily=?,last_rank_salary=? WHERE id=?').run(bal,d,d,u.id);db.prepare('INSERT INTO ledger(user_id,amount,balance_after,type,memo,created_at) VALUES(?,?,?,?,?,?)').run(u.id,total,bal,'daily',`오늘의 출석 ${formatMoney(dailyAmount)}G${salary?` · 신분 월급 ${formatMoney(salary)}G`:''}${interest?` · 신분 이자 ${formatMoney(interest)}G`:''}`,now());db.exec('COMMIT');pushRefresh();return json(res,200,{balance:bal,amount:total,attendanceAmount:dailyAmount,rankSalary:salary,rankInterest:interest,rankInterestPct:interestPct,dailyBonusPct:dailyPct,rankBonusPct:rankPct});}catch(e){try{db.exec('ROLLBACK')}catch{}throw e;}
     }
     if(url.pathname==='/api/ledger'&&req.method==='GET'){
       const u=requireAuth(req,res);if(!u)return;const rows=db.prepare('SELECT amount,balance_after,type,memo,created_at FROM ledger WHERE user_id=? ORDER BY id DESC LIMIT 30').all(u.id);return json(res,200,{rows});
