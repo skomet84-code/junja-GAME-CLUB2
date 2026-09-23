@@ -1,0 +1,5 @@
+JUNJA LAND COST LOCK
+Remote persistence: DISABLED
+Neon/DATABASE_URL usage: DISABLED
+BGM files/loading/proxy: REMOVED
+Policy: do not add paid external services or recurring outbound persistence without explicit approval.
