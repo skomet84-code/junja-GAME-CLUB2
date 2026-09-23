@@ -77,80 +77,15 @@ async function sendLiveReaction(key,btn){
 }
 function signedMoney(n){return (Number(n)>=0?'+':'')+money(n)}
 function toast(msg){const e=$('#toast');if(!e)return;e.textContent=msg;e.classList.add('show');clearTimeout(e._t);e._t=setTimeout(()=>e.classList.remove('show'),2400)}
-const BGM_TRACKS=[
-  "/audio/junja-lobby-bgm.mp3.mp3",
-  "/audio/junja-lobby-bgm2.mp3",
-  "/audio/junja-lobby-bgm3.mp3",
-  "/audio/junja-lobby-bgm4.mp3",
-  "/audio/junja-lobby-bgm5.mp3",
-  "/audio/junja-lobby-bgm6.mp3",
-  "/audio/junja-lobby-bgm7.mp3"
-];
-function randomBgmIndex(exclude=-1){
-  if(BGM_TRACKS.length<=1)return 0;
-  let i=Math.floor(Math.random()*BGM_TRACKS.length);
-  while(i===exclude)i=Math.floor(Math.random()*BGM_TRACKS.length);
-  return i;
-}
-let bgmTrackIndex=randomBgmIndex(),bgmNextAudio=null,bgmSwitching=false;
-let soundEnabled=storageGet('jgc_sound','1')!=='0',bgmAudio=null,audioUnlocked=false,audioUnlocking=false;
+// BGM REMOVED: cost-control mode. No music files are loaded or prefetched.
+let soundEnabled=true,audioUnlocked=true,audioUnlocking=false;
 function audioContext(){try{const C=window.AudioContext||window.webkitAudioContext;if(!C)return null;if(!fx.ctx||fx.ctx.state==='closed')fx.ctx=new C();return fx.ctx}catch{return null}}
-function updateSoundButton(){
-  const b=$('#soundBtn');if(!b)return;
-  if(!soundEnabled){b.textContent='🔇 BGM OFF';b.setAttribute('aria-pressed','false');return}
-  b.textContent=audioUnlocked?'🎵 BGM ON':'▶ BGM START';b.setAttribute('aria-pressed','true');
-}
-function prepareNextBgm(){
-  const nextIndex=randomBgmIndex(bgmTrackIndex);
-  if(bgmNextAudio&&bgmNextAudio.dataset?.trackIndex===String(nextIndex))return bgmNextAudio;
-  const n=new Audio(BGM_TRACKS[nextIndex]);n.loop=false;n.preload='auto';n.volume=.22;n.playsInline=true;n.dataset.trackIndex=String(nextIndex);
-  try{n.load()}catch{}
-  bgmNextAudio=n;return n;
-}
-function bindBgmAudio(a){
-  a.addEventListener('canplaythrough',()=>prepareNextBgm(),{once:true});
-  a.addEventListener('ended',()=>advanceBgm(a));
-  a.addEventListener('error',()=>console.warn('[BGM] audio load failed',a.currentSrc||a.src));
-  return a;
-}
-async function advanceBgm(finished){
-  if(bgmSwitching||finished!==bgmAudio)return;bgmSwitching=true;
-  try{
-    const nextIndex=randomBgmIndex(bgmTrackIndex);
-    let next=bgmNextAudio&&bgmNextAudio.dataset?.trackIndex===String(nextIndex)?bgmNextAudio:null;
-    if(!next){next=new Audio(BGM_TRACKS[nextIndex]);next.preload='auto';next.volume=.22;next.playsInline=true;next.dataset.trackIndex=String(nextIndex)}
-    bindBgmAudio(next);bgmTrackIndex=nextIndex;bgmAudio=next;bgmNextAudio=null;prepareNextBgm();
-    if(soundEnabled&&me){await next.play();audioUnlocked=true}
-  }catch{audioUnlocked=false}finally{bgmSwitching=false;updateSoundButton()}
-}
-function ensureBgmAudio(){
-  if(bgmAudio)return bgmAudio;
-  const a=new Audio(BGM_TRACKS[bgmTrackIndex]);a.loop=false;a.preload='auto';a.volume=.22;a.playsInline=true;a.dataset.trackIndex=String(bgmTrackIndex);
-  bgmAudio=bindBgmAudio(a);prepareNextBgm();return bgmAudio;
-}
-function stopAmbient(){if(bgmAudio){try{bgmAudio.pause()}catch{}}}
-async function startAudioScene(scene='lobby'){
-  audioScene=scene;if(!soundEnabled||!me)return false;
-  const a=ensureBgmAudio();
-  if(!a.paused&&!a.ended){audioUnlocked=true;updateSoundButton();return true}
-  try{await a.play();audioUnlocked=true;prepareNextBgm();updateSoundButton();return true}catch(e){audioUnlocked=false;updateSoundButton();return false}
-}
-async function ensureAudioUnlocked(startMusic=true){
-  if(audioUnlocking)return audioUnlocked;audioUnlocking=true;
-  try{const c=audioContext();if(c&&c.state!=='running')await c.resume()}catch{}
-  if(startMusic&&soundEnabled&&me)await startAudioScene(audioScene||currentView||'lobby');
-  audioUnlocking=false;updateSoundButton();return audioUnlocked;
-}
-function setAudioScene(scene='lobby'){
-  audioScene=scene;if(!soundEnabled||!me){stopAmbient();updateSoundButton();return}
-  if(bgmAudio&&!bgmAudio.paused&&!bgmAudio.ended){updateSoundButton();return}
-  startAudioScene(scene);
-}
-async function toggleSound(){
-  soundEnabled=!soundEnabled;storageSet('jgc_sound',soundEnabled?'1':'0');
-  if(!soundEnabled){stopAmbient();audioUnlocked=false;updateSoundButton();return}
-  await startAudioScene(currentView||'lobby');
-}
+function updateSoundButton(){const b=$('#soundBtn');if(b)b.remove()}
+function stopAmbient(){}
+async function startAudioScene(){return false}
+async function ensureAudioUnlocked(){try{const c=audioContext();if(c&&c.state!=='running')await c.resume()}catch{}return true}
+function setAudioScene(){}
+async function toggleSound(){return false}
 function fx(kind='click'){
   if(!soundEnabled)return;try{const c=audioContext();if(!c)return;if(c.state!=='running'){ensureAudioUnlocked(false);return}
     const seq={click:[[280,.05]],spin:[[170,.06],[240,.08]],stop:[[380,.07]],jackpot:[[740,.16],[990,.2],[1320,.32]],win:[[620,.1],[820,.18]],card:[[520,.035],[360,.05]],chip:[[900,.025],[680,.045]],dice:[[160,.045],[230,.06],[140,.08]],wheel:[[420,.025]],hoof:[[95,.035],[125,.04]],yut:[[210,.06],[320,.08]],baccarat:[[430,.05],[610,.07]],roulette:[[510,.03],[390,.045]]}[kind]||[[280,.05]];
