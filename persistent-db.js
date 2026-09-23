@@ -122,6 +122,7 @@ class DatabaseSync {
     this._saveTimer=null;
     this._firstDirtyAt=0;
     this._persistedLedgerId=0;
+    this._restoredFromLegacy=false;
     registerShutdown(this);
   }
 
@@ -162,7 +163,8 @@ class DatabaseSync {
         const restoredRows=TABLES.reduce((n,t)=>n+(snap.tables[t]?.length||0),0);
         const restoredUsers=(snap.tables.users||[]).length;
         if(hasRemote() && restoredUsers===0) throw new Error('Safety stop: persistent snapshot contains zero users.');
-        this._persistedLedgerId=Math.max(0,Number(snap.__remoteLedgerMaxId||0));
+        this._restoredFromLegacy=snap.__restoreSource==='legacy';
+        this._persistedLedgerId=this._restoredFromLegacy?0:Math.max(0,Number(snap.__remoteLedgerMaxId||0));
         restoreHealthy=true;
         this._restore=null;
         console.log(`[PERSIST] Restored ${restoredRows} rows from Render Postgres (${restoredUsers} users, remote ledger through #${this._persistedLedgerId}).`);
@@ -177,6 +179,10 @@ class DatabaseSync {
     }
     this._restored=true;
     this._enabled=true;
+    if(this._restoredFromLegacy && restoreHealthy){
+      console.log('[PERSIST] Legacy snapshot recovered; copying it once into private Render Postgres.');
+      this._queueSave();
+    }
   }
 
   exec(sql){
@@ -238,18 +244,21 @@ class DatabaseSync {
       const ledgerRows=this._ledgerDelta();
       const meta=String(snapshot.updatedAt)+':'+SNAPSHOT_TABLES.map(t=>snapshot.tables[t]?.length||0).join(',');
       const json=JSON.stringify(snapshot);
-      const ledgerJson=ledgerRows.length?JSON.stringify(ledgerRows):null;
       let client=null;
       try{
         const p=await getPool();
         client=await p.connect();
         await client.query('BEGIN');
         if(ledgerRows.length){
-          await client.query(`INSERT INTO junja_club_ledger(id,user_id,amount,balance_after,type,memo,created_at)
-            SELECT x.id,x.user_id,x.amount,x.balance_after,x.type,x.memo,x.created_at
-            FROM jsonb_to_recordset($1::jsonb)
-              AS x(id BIGINT,user_id BIGINT,amount BIGINT,balance_after BIGINT,type TEXT,memo TEXT,created_at BIGINT)
-            ON CONFLICT(id) DO NOTHING`,[ledgerJson]);
+          const CHUNK=5000;
+          for(let i=0;i<ledgerRows.length;i+=CHUNK){
+            const chunkJson=JSON.stringify(ledgerRows.slice(i,i+CHUNK));
+            await client.query(`INSERT INTO junja_club_ledger(id,user_id,amount,balance_after,type,memo,created_at)
+              SELECT x.id,x.user_id,x.amount,x.balance_after,x.type,x.memo,x.created_at
+              FROM jsonb_to_recordset($1::jsonb)
+                AS x(id BIGINT,user_id BIGINT,amount BIGINT,balance_after BIGINT,type TEXT,memo TEXT,created_at BIGINT)
+              ON CONFLICT(id) DO NOTHING`,[chunkJson]);
+          }
         }
         await client.query(`INSERT INTO junja_club_state(id,payload,updated_at) VALUES(1,$1::jsonb,$2)
           ON CONFLICT(id) DO UPDATE SET payload=EXCLUDED.payload, updated_at=EXCLUDED.updated_at`,[json,Date.now()]);
