@@ -7,6 +7,7 @@ const { DatabaseSync: NativeDatabaseSync } = require('node:sqlite');
 let PoolCtor = null;
 
 const TABLES = ['users','stats','sessions','ledger','admin_audit','user_inventory','user_loadout','game_state','room_escrow','daily_draw_picks','daily_draw_bonus_picks'];
+const SNAPSHOT_TABLES = TABLES.filter(t=>t!=='ledger');
 const EXTRA_COLUMNS = {
   stats: [
     ['seotda_games','INTEGER NOT NULL DEFAULT 0'],
@@ -71,6 +72,16 @@ async function getPool(){
       payload JSONB NOT NULL,
       updated_at BIGINT NOT NULL
     )`);
+    await pool.query(`CREATE TABLE IF NOT EXISTS junja_club_ledger (
+      id BIGINT PRIMARY KEY,
+      user_id BIGINT NOT NULL,
+      amount BIGINT NOT NULL,
+      balance_after BIGINT NOT NULL,
+      type TEXT NOT NULL,
+      memo TEXT NOT NULL,
+      created_at BIGINT NOT NULL
+    )`);
+    await pool.query('CREATE INDEX IF NOT EXISTS idx_junja_club_ledger_user_created ON junja_club_ledger(user_id, created_at DESC, id DESC)');
     remoteReady=true;
   }
   return pool;
@@ -80,7 +91,7 @@ function loadRemoteSnapshotSync(){
   if(!hasRemote()) return null;
   try{
     const out=execFileSync(process.execPath,[path.join(__dirname,'remote-load.js')],{
-      env:process.env,encoding:'utf8',stdio:['ignore','pipe','pipe'],timeout:30000,maxBuffer:128*1024*1024
+      env:process.env,encoding:'utf8',stdio:['ignore','pipe','pipe'],timeout:60000,maxBuffer:192*1024*1024
     }).trim();
     if(!out || out==='null') return null;
     return JSON.parse(out);
@@ -100,6 +111,8 @@ class DatabaseSync {
     this._restored=false;
     this._enabled=false;
     this._saveTimer=null;
+    this._firstDirtyAt=0;
+    this._persistedLedgerId=0;
     registerShutdown(this);
   }
 
@@ -140,9 +153,10 @@ class DatabaseSync {
         const restoredRows=TABLES.reduce((n,t)=>n+(snap.tables[t]?.length||0),0);
         const restoredUsers=(snap.tables.users||[]).length;
         if(hasRemote() && restoredUsers===0) throw new Error('Safety stop: remote snapshot contains zero users.');
+        this._persistedLedgerId=Math.max(0,Number(snap.__remoteLedgerMaxId||0));
         restoreHealthy=true;
         this._restore=null;
-        console.log(`[PERSIST] Restored ${restoredRows} rows from Neon (${restoredUsers} users).`);
+        console.log(`[PERSIST] Restored ${restoredRows} rows from Neon (${restoredUsers} users, remote ledger through #${this._persistedLedgerId}).`);
       }catch(e){
         try{this._native.exec('ROLLBACK; PRAGMA foreign_keys=ON;');}catch{}
         restoreHealthy=false;
@@ -181,38 +195,75 @@ class DatabaseSync {
 
   _snapshot(){
     const tables={};
-    for(const t of TABLES){
+    for(const t of SNAPSHOT_TABLES){
       try{tables[t]=this._native.prepare(`SELECT * FROM ${t}`).all();}
       catch{tables[t]=[];}
     }
-    return {version:1,updatedAt:Date.now(),tables};
+    return {version:2,updatedAt:Date.now(),tables};
+  }
+
+  _ledgerDelta(){
+    try{return this._native.prepare('SELECT * FROM ledger WHERE id>? ORDER BY id').all(this._persistedLedgerId);}
+    catch{return [];}
   }
 
   _scheduleSave(){
     if(!hasRemote() || !restoreHealthy) return;
+    const t=Date.now();
+    if(!this._firstDirtyAt)this._firstDirtyAt=t;
     clearTimeout(this._saveTimer);
-    this._saveTimer=setTimeout(()=>this._queueSave(),1500);
+    const elapsed=t-this._firstDirtyAt;
+    const delay=Math.max(100,Math.min(1200,4000-elapsed));
+    this._saveTimer=setTimeout(()=>{
+      this._saveTimer=null;
+      this._firstDirtyAt=0;
+      this._queueSave();
+    },delay);
   }
 
   _queueSave(){
     if(!hasRemote() || !restoreHealthy) return saveChain;
     saveChain=saveChain.then(async()=>{
+      const started=Date.now();
       const snapshot=this._snapshot();
-      const meta=String(snapshot.updatedAt)+':'+TABLES.map(t=>snapshot.tables[t]?.length||0).join(',');
+      const ledgerRows=this._ledgerDelta();
+      const meta=String(snapshot.updatedAt)+':'+SNAPSHOT_TABLES.map(t=>snapshot.tables[t]?.length||0).join(',');
       const json=JSON.stringify(snapshot);
+      const ledgerJson=ledgerRows.length?JSON.stringify(ledgerRows):null;
+      let client=null;
       try{
         const p=await getPool();
-        await p.query(`INSERT INTO junja_club_state(id,payload,updated_at) VALUES(1,$1::jsonb,$2)
+        client=await p.connect();
+        await client.query('BEGIN');
+        if(ledgerRows.length){
+          await client.query(`INSERT INTO junja_club_ledger(id,user_id,amount,balance_after,type,memo,created_at)
+            SELECT x.id,x.user_id,x.amount,x.balance_after,x.type,x.memo,x.created_at
+            FROM jsonb_to_recordset($1::jsonb)
+              AS x(id BIGINT,user_id BIGINT,amount BIGINT,balance_after BIGINT,type TEXT,memo TEXT,created_at BIGINT)
+            ON CONFLICT(id) DO NOTHING`,[ledgerJson]);
+        }
+        await client.query(`INSERT INTO junja_club_state(id,payload,updated_at) VALUES(1,$1::jsonb,$2)
           ON CONFLICT(id) DO UPDATE SET payload=EXCLUDED.payload, updated_at=EXCLUDED.updated_at`,[json,Date.now()]);
+        await client.query('COMMIT');
+        if(ledgerRows.length)this._persistedLedgerId=Math.max(this._persistedLedgerId,Number(ledgerRows[ledgerRows.length-1].id||0));
         lastSnapshotMeta=meta;
-      }catch(e){console.error('[PERSIST] Neon save failed:',e.message);}
-      finally{ snapshot.tables=null; }
+        const ms=Date.now()-started;
+        if(ms>250)console.log(`[PERSIST] save ${ms}ms · core ${Buffer.byteLength(json)}B · ledger +${ledgerRows.length}`);
+      }catch(e){
+        if(client)try{await client.query('ROLLBACK');}catch{}
+        console.error('[PERSIST] Neon save failed:',e.message);
+      }finally{
+        if(client)client.release();
+        snapshot.tables=null;
+      }
     });
     return saveChain;
   }
 
   async flush(){
     clearTimeout(this._saveTimer);
+    this._saveTimer=null;
+    this._firstDirtyAt=0;
     if(this._enabled && restoreHealthy) this._queueSave();
     await saveChain.catch(()=>{});
   }
@@ -228,12 +279,12 @@ let shutdownRegistered=false;
 function registerShutdown(db){
   if(shutdownRegistered) return;
   shutdownRegistered=true;
-  const quit=async(sig)=>{
+  const quit=async()=>{
     try{await db.flush(); if(pool) await pool.end();}catch{}
     process.exit(0);
   };
-  process.once('SIGTERM',()=>quit('SIGTERM'));
-  process.once('SIGINT',()=>quit('SIGINT'));
+  process.once('SIGTERM',()=>quit());
+  process.once('SIGINT',()=>quit());
 }
 
 module.exports={DatabaseSync};
