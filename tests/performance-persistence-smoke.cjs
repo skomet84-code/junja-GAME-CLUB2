@@ -1,12 +1,11 @@
 'use strict';
 const fs=require('node:fs'),path=require('node:path');
 const persist=fs.readFileSync(path.join(__dirname,'..','persistent-db.js'),'utf8');
-const remote=fs.readFileSync(path.join(__dirname,'..','remote-load.js'),'utf8');
 const server=fs.readFileSync(path.join(__dirname,'..','server.js'),'utf8');
 if(!persist.includes("const SNAPSHOT_TABLES = TABLES.filter(t=>t!=='ledger')"))throw new Error('Ledger must be excluded from core snapshot');
 if(!persist.includes("SELECT * FROM ledger WHERE id>? ORDER BY id"))throw new Error('Incremental ledger persistence missing');
 if(!persist.includes("junja_club_ledger"))throw new Error('External ledger table persistence missing');
-if(!remote.includes("payload.__remoteLedgerMaxId"))throw new Error('Remote ledger restore watermark missing');
+if(!persist.includes("function hasRemote(){ return false; }"))throw new Error('Remote persistence must remain hard-disabled in cost-lock mode');
 if(server.includes("slot_profit+? WHERE user_id=?').run(payout>(freePlay.free?0:bet)?1:0,profit,u.id);pushRefresh();"))throw new Error('Slot still broadcasts global refresh on every spin');
 if(!server.includes("if(sevenJackpot||slot777EventTriggered)pushRefresh();"))throw new Error('Rare slot event refresh missing');
 console.log('PERFORMANCE_PERSISTENCE_TESTS_OK');
