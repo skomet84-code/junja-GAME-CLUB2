@@ -1,17 +1,27 @@
-name: JUNJA LAND Cost Lock
+name: JUNJA LAND One-Time Cost Lock
 
 on:
-  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/main-live-deploy.yml'
 
 permissions:
   contents: read
 
 jobs:
-  cost-lock:
+  disable-render-autodeploy:
     runs-on: ubuntu-latest
     steps:
-      - name: Cost lock status
+      - name: Disable Render auto-deploy
+        env:
+          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+        shell: bash
         run: |
-          echo "Automatic GitHub Actions verification/deploy is disabled."
-          echo "Render auto-deploy is managed separately."
-          echo "Neon persistence is disabled in application code."
+          set -euo pipefail
+          if [ -z "${RENDER_API_KEY:-}" ]; then
+            echo "::error::RENDER_API_KEY secret is not configured."
+            exit 1
+          fi
+          curl -fsS -X PATCH             -H "Authorization: Bearer $RENDER_API_KEY"             -H 'Content-Type: application/json'             'https://api.render.com/v1/services/srv-dah4u0h42hec73eqetkg'             -d '{"autoDeploy":"no"}'
+          echo "Render auto-deploy disabled."
