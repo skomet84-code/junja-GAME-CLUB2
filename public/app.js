@@ -65,7 +65,7 @@ function startLiveFloor(game){
   if(liveGame&&liveGame!==game)leaveLiveFloor(liveGame);
   clearInterval(liveHeartbeatTimer);clearInterval(livePollTimer);liveGame=game;liveKnownIds=new Set();liveInitialized=false,sevenAutoTimer=null,baccaratAutoTimer=null,baccaratLastAutoRound=-1,networkDegraded=false,bigWheelAutoStop=false,sicboAutoStop=false,bigWheelAutoRunning=false,sicboAutoRunning=false,shopData=null,shopCategory='all',shopOwnedOnly=false;
   ensureLiveFloorMount(game);liveHeartbeat();
-  liveHeartbeatTimer=setInterval(liveHeartbeat,15000);livePollTimer=setInterval(()=>{if(!document.hidden&&!currentRoomId&&currentView===liveGame)refreshLiveFloor(true)},12000);
+  liveHeartbeatTimer=setInterval(liveHeartbeat,30000);livePollTimer=setInterval(()=>{if(!document.hidden&&!currentRoomId&&currentView===liveGame)refreshLiveFloor(true)},30000);
 }
 function stopLiveFloor(){
   clearInterval(liveHeartbeatTimer);clearInterval(livePollTimer);liveHeartbeatTimer=null;livePollTimer=null;
@@ -202,14 +202,40 @@ function setHelpTab(tab='lobby'){const ok=['lobby','slot','holdem','sevenpoker',
 function openHelp(tab=currentView){const modal=$('#helpModal');if(!modal)return;setHelpTab(tab);modal.classList.remove('hidden');modal.setAttribute('aria-hidden','false');document.body.classList.add('modal-open')}
 function closeHelp(){const modal=$('#helpModal');if(!modal)return;modal.classList.add('hidden');modal.setAttribute('aria-hidden','true');document.body.classList.remove('modal-open')}
 function switchMode(game,mode){$$(`[data-mode-game="${game}"]`).forEach(b=>b.classList.toggle('active',b.dataset.mode===mode));$(`#${game}MultiArea`)?.classList.toggle('hidden',mode!=='multi');$(`#${game}SoloArea`)?.classList.toggle('hidden',mode!=='solo');if(mode==='solo'){if(game==='holdem')loadSoloHoldem();else if(game==='yut')loadSoloYut();else if(game==='seotda')loadSeotda();else if(game==='sevenpoker')loadSevenPoker();else if(game==='gostop')loadGostop()}else loadRooms(game)}
-function connectEvents(){if(events)events.close();events=new EventSource('/api/events');events.onopen=()=>setNetworkState('online');events.onerror=()=>setNetworkState(navigator.onLine?'degraded':'offline');events.addEventListener('refresh',()=>{clearTimeout(refreshTimer);refreshTimer=setTimeout(async()=>{try{const d=await api('/api/me');me=d.user;updateHeader();if(liveGame&&currentView===liveGame)refreshLiveFloor(true);if(currentView==='slot')refreshSlotJackpot(true);if(currentRoomId)await loadCurrentRoom();else if(currentView==='lobby')await loadLobby(false);else if(currentView==='holdem'&&!$('#holdemMultiArea').classList.contains('hidden'))await loadRooms('holdem');else if(currentView==='sevenpoker'&&!$('#sevenpokerMultiArea').classList.contains('hidden'))await loadRooms('sevenpoker');else if(currentView==='seotda'&&!$('#seotdaMultiArea').classList.contains('hidden'))await loadRooms('seotda');else if(currentView==='gostop'&&!$('#gostopMultiArea').classList.contains('hidden'))await loadRooms('gostop');else if(currentView==='yut'&&!$('#yutMultiArea').classList.contains('hidden'))await loadRooms('yut');else if(currentView==='baccarat'&&!currentRoomId)await loadBaccaratRooms(true);else if(currentView==='admin'&&me?.is_admin)await loadAdmin($('#adminSearch')?.value.trim()||'',false)}catch{}},180)})}
+function connectEvents(){
+  if(events)events.close();
+  events=new EventSource('/api/events');
+  events.onopen=()=>setNetworkState('online');
+  events.onerror=()=>setNetworkState(navigator.onLine?'degraded':'offline');
+  events.addEventListener('refresh',e=>{
+    clearTimeout(refreshTimer);
+    refreshTimer=setTimeout(async()=>{
+      try{
+        let msg={};try{msg=JSON.parse(e.data||'{}')}catch{}
+        if(msg.roomId&&currentRoomId&&String(msg.roomId)!==String(currentRoomId))return;
+        if(currentView==='lobby'&&!currentRoomId){await loadLobby(false);return}
+        const d=await api('/api/me');me=d.user;updateHeader();
+        if(liveGame&&currentView===liveGame)refreshLiveFloor(true);
+        if(currentView==='slot')refreshSlotJackpot(true);
+        if(currentRoomId)await loadCurrentRoom();
+        else if(currentView==='holdem'&&!$('#holdemMultiArea').classList.contains('hidden'))await loadRooms('holdem');
+        else if(currentView==='sevenpoker'&&!$('#sevenpokerMultiArea').classList.contains('hidden'))await loadRooms('sevenpoker');
+        else if(currentView==='seotda'&&!$('#seotdaMultiArea').classList.contains('hidden'))await loadRooms('seotda');
+        else if(currentView==='gostop'&&!$('#gostopMultiArea').classList.contains('hidden'))await loadRooms('gostop');
+        else if(currentView==='yut'&&!$('#yutMultiArea').classList.contains('hidden'))await loadRooms('yut');
+        else if(currentView==='baccarat'&&!currentRoomId)await loadBaccaratRooms(true);
+        else if(currentView==='admin'&&me?.is_admin)await loadAdmin($('#adminSearch')?.value.trim()||'',false);
+      }catch{}
+    },500);
+  });
+}
 function updateHeader(){if(!me)return;$('#walletBalance').textContent=money(me.balance);updateSlotBetLimitUi();$('#avatarEmoji').innerHTML=avatarImg(me.avatar,me.nickname,'header-face',me.cosmetics);$('#nickName').textContent=me.nickname;const title=equippedTitle(me.cosmetics);$('#profileBtn')?.setAttribute('data-title',title);$('#dailyBtn').disabled=!me.dailyAvailable;const dailyPct=Number(me.cosmetics?.perks?.dailyBonusPct||0)+Number(me.rank?.perks?.dailyBonusPct||0),dailyAmt=Math.floor(50000*(1+dailyPct/100));$('#dailyBtn').textContent=me.dailyAvailable?`🎁 출석 +${money(dailyAmt)}${dailyPct?` · +${dailyPct}%`:''}`:'✓ 오늘 출석 완료';$('#adminBtn')?.classList.toggle('hidden',!me.is_admin);applyCosmetics();updateRankFreeUi()}
 function renderLobbyPresence(rows=[]){
   const root=$('#lobbyLiveFaces');if(!root)return;
   root.classList.add('presence-roster');
   root.innerHTML=rows.length?rows.map(p=>'<button type="button" class="presence-person '+(p.state==='PLAYING'?'playing':'waiting')+'" data-friend-profile="'+html(p.nickname)+'">'+avatarImg(p.avatar,p.nickname,'presence-face',p.cosmetics)+'<div><b>'+html(p.nickname)+'</b><span>'+html(p.gameLabel||'로비')+(p.mode&&p.mode!=='LOBBY'?' · '+html(p.mode):'')+'</span></div><em>'+(p.state==='PLAYING'?'게임중':'대기중')+'</em></button>').join(''):'<div class="presence-empty">현재 다른 접속자가 없어.</div>';root.querySelectorAll('[data-friend-profile]').forEach(b=>{b.onclick=()=>openFriendsHub(b.dataset.friendProfile)});
 }
-async function refreshMe(){const d=await api('/api/me');me=d.user;updateHeader();$('#onlineCount').textContent='ONLINE '+d.online;if($('#lobbyOnlineNow'))$('#lobbyOnlineNow').textContent='ONLINE '+d.online;renderLobbyPresence(d.presence||[]);return d}
+async function refreshMe(includePresence=currentView==='lobby'){const d=await api('/api/me'+(includePresence?'?presence=1':''));me=d.user;updateHeader();$('#onlineCount').textContent='ONLINE '+d.online;if($('#lobbyOnlineNow'))$('#lobbyOnlineNow').textContent='ONLINE '+d.online;if(includePresence)renderLobbyPresence(d.presence||[]);return d}
 async function go(view){
   if(view==='admin'&&!me?.is_admin){toast('관리자 권한이 필요합니다.');return}
   if(currentRoomId&&view!==currentGame){toast('먼저 멀티 게임방에서 나가기를 눌러줘.');return}
@@ -510,7 +536,7 @@ async function runAutoSpins(count){
 
 // MULTI ROOMS v0.9 - READY / TURN / RECOVERY / POLLING
 function stopRoomPolling(){if(roomPollTimer){clearInterval(roomPollTimer);roomPollTimer=null}}
-function startRoomPolling(){stopRoomPolling();if(!currentRoomId)return;roomPollTimer=setInterval(()=>{if(!document.hidden&&currentRoomId&&currentView===currentGame)loadCurrentRoom(true).catch(()=>{})},2200)}
+function startRoomPolling(){stopRoomPolling();if(!currentRoomId)return;roomPollTimer=setInterval(()=>{if(!document.hidden&&currentRoomId&&currentView===currentGame)loadCurrentRoom(true).catch(()=>{})},10000)}
 async function resumeMyRoom(){
   try{
     const d=await api('/api/my-room');if(!d.room)return;
@@ -737,7 +763,7 @@ async function playSoloYutReplay(g){
 
 // HORSE RACING · v2.2 SHARED LIVE VERTICAL MEET
 function stopHorseMeet(){clearInterval(horseMeetTimer);horseMeetTimer=null;if(horseAnimationFrame)cancelAnimationFrame(horseAnimationFrame);horseAnimationFrame=null;horseRacing=false}
-function startHorseMeet(){stopHorseMeet();loadHorseMeet(false);horseMeetTimer=setInterval(()=>{if(currentView==='horse'&&!document.hidden)loadHorseMeet(true)},1500)}
+function startHorseMeet(){stopHorseMeet();loadHorseMeet(false);horseMeetTimer=setInterval(()=>{if(currentView==='horse'&&!document.hidden)loadHorseMeet(true)},3000)}
 async function loadHorseMeet(silent=true){try{const d=await api('/api/horse/meet');horseCardData=d.round.card;if(d.user){me=d.user;updateHeader()}renderHorseMeet(d.round);await maybeHorseAuto(d.round)}catch(e){if(!silent)toast(e.message)}}
 function horseSelectedIds(){return [Number($('#horsePick1')?.value||0),Number($('#horsePick2')?.value||0)].filter(Boolean)}
 function horseOddsFor(type,ids){if(!horseCardData||!ids.length)return 0;if(type==='win')return Number(horseCardData.horses.find(h=>h.id===ids[0])?.winOdds||0);if(ids.length<2)return 0;if(type==='quinella')return Number(horseCardData.quinellaOdds?.[[...ids].sort((a,b)=>a-b).join('-')]||0);return Number(horseCardData.exactaOdds?.[`${ids[0]}>${ids[1]}`]||0)}
