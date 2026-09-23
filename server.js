@@ -855,7 +855,7 @@ function maybeAutoStartHoldem(r){
 // Production-safe server sweep: first hand and every following hand start even if a client poll is delayed/paused.
 const holdemAutoStartSweep=setInterval(()=>{
   for(const r of rooms.values())if(r?.game==='holdem')maybeAutoStartHoldem(r);
-},250);
+},1000);
 holdemAutoStartSweep.unref?.();
 function roomSummary(r){return {id:r.id,name:r.name,game:r.game,buyIn:r.buyIn,allWallet:!!r.allWallet,maxPlayers:r.maxPlayers,players:r.players.length,hostNickname:r.players.find(p=>p.userId===r.hostId)?.nickname||'호스트',status:roomStatus(r),smallBlind:r.smallBlind,bigBlind:r.bigBlind,yutMode:r.yutMode||'individual',yutModeLabel:yutModeLabel(r.yutMode||'individual'),readyCount:roomReadyCount(r),version:r.version||0,updatedAt:r.updatedAt||r.createdAt,participants:orderedPlayers(r).map(p=>({userId:p.userId,nickname:p.nickname,avatar:p.avatar,cosmetics:cosmeticsPublic(p.userId),ready:!!p.ready,seat:p.seat}))};}
 function findRoom(id){ return rooms.get(String(id)); }
@@ -1867,7 +1867,7 @@ function serveStatic(req,res,url){
   const file=path.join(__dirname,'public',p);
   if(!file.startsWith(path.join(__dirname,'public'))||!fs.existsSync(file)||fs.statSync(file).isDirectory()){res.writeHead(404,securityHeaders());res.end('Not found');return;}
   const ext=path.extname(file).toLowerCase();const ct={'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'application/javascript; charset=utf-8','.json':'application/json; charset=utf-8','.webmanifest':'application/manifest+json','.png':'image/png','.webp':'image/webp','.svg':'image/svg+xml'}[ext]||'application/octet-stream';
-  const st=fs.statSync(file);const appShell=['.html','.js','.css','.webmanifest'].includes(ext);res.writeHead(200,{'Content-Type':ct,'Content-Length':st.size,'Cache-Control':appShell?'no-cache, no-store, must-revalidate':'public, max-age=3600',...securityHeaders()});fs.createReadStream(file).pipe(res);
+  const st=fs.statSync(file);const appShell=['.html','.js','.css','.webmanifest'].includes(ext);res.writeHead(200,{'Content-Type':ct,'Content-Length':st.size,'Cache-Control':appShell?'no-cache, no-store, must-revalidate':'public, max-age=86400',...securityHeaders()});fs.createReadStream(file).pipe(res);
 }
 
 const server=http.createServer(async(req,res)=>{
@@ -1876,16 +1876,6 @@ const server=http.createServer(async(req,res)=>{
     if(!sameOriginPost(req)){return json(res,403,{error:'잘못된 요청 출처입니다.'});}
     if(url.pathname.startsWith('/api/treasure-raid')){if(await treasureRaid.handle(req,res,url))return;}
     if(url.pathname==='/healthz')return json(res,200,{ok:true,rooms:rooms.size+baccaratRooms.size+treasureRaid.roomCount(),online:onlineCount()});
-    if(url.pathname==='/audio/bright_song.mp3'&&req.method==='GET'){
-      try{
-        const upstream=await fetch('https://opengameart.org/sites/default/files/Sunflower-Valley-isaiah658_0.mp3');
-        if(!upstream.ok)throw new Error('BGM upstream '+upstream.status);
-        const body=Buffer.from(await upstream.arrayBuffer());
-        res.writeHead(200,{'Content-Type':'audio/mpeg','Content-Length':body.length,'Cache-Control':'public, max-age=86400',...securityHeaders()});
-        return res.end(body);
-      }catch(e){console.warn('[BGM PROXY]',e.message);res.writeHead(502,securityHeaders());return res.end('BGM unavailable');}
-    }
-
     if(url.pathname==='/api/register'&&req.method==='POST'){
       const ip=req.socket.remoteAddress||'ip';if(!rateLimit('reg:'+ip,6,60000))return json(res,429,{error:'잠시 후 다시 시도하세요.'});
       const b=await readBody(req);const username=escText(b.username,20).toLowerCase(),nickname=escText(b.nickname,14),password=String(b.password||'');
