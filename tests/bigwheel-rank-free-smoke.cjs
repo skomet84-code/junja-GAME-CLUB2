@@ -1,0 +1,13 @@
+'use strict';
+const fs=require('node:fs'),path=require('node:path');
+const app=fs.readFileSync(path.join(__dirname,'..','public','app.js'),'utf8');
+const server=fs.readFileSync(path.join(__dirname,'..','server.js'),'utf8');
+if(!app.includes("on('#wheelRankFreeBtn','click',()=>runRankFreeWheelAuto())"))throw new Error('Big Wheel rank-free button must start auto runner');
+if(!app.includes("async function spinBigWheel(auto=false,forceRankFree=false)"))throw new Error('Big Wheel forced rank-free spin path missing');
+if(!app.includes("const useRankFree=!!forceRankFree||(!auto&&rankFreeWheelNext)"))throw new Error('Big Wheel rank-free consumption gate missing');
+if(!app.includes("async function runRankFreeWheelAuto()"))throw new Error('Big Wheel rank-free auto runner missing');
+if(!app.includes("spinBigWheel(true,true)"))throw new Error('Rank-free auto runner must use fast forced-free spins');
+if(!app.includes("게임머니 차감 없음"))throw new Error('Rank-free auto confirmation must explain no wallet charge');
+if(!server.includes("consumeRankFreePlay(userId,'wheel',!!useRankFree)"))throw new Error('Server Big Wheel rank-free consumption missing');
+if(!server.includes("if(!freePlay.free)walletChange(userId,-bet,'bigwheel_bet'"))throw new Error('Server wallet-free guard missing');
+console.log('BIGWHEEL_RANK_FREE_TESTS_OK');

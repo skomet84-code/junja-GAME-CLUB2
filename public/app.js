@@ -242,7 +242,7 @@ function bindMain(){
     on('#refreshHoldem','click',()=>loadRooms('holdem'));on('#refreshYut','click',()=>loadRooms('yut'));on('#refreshSeotda','click',()=>loadRooms('seotda'));on('#refreshSevenpoker','click',()=>loadRooms('sevenpoker'));on('#refreshGostop','click',()=>loadRooms('gostop'));on('#refreshBaccarat','click',()=>loadBaccaratRooms());
     on('#createHoldem','click',()=>createRoom('holdem'));on('#createYut','click',()=>createRoom('yut'));on('#createSeotda','click',()=>createRoom('seotda'));on('#createSevenpoker','click',()=>createRoom('sevenpoker'));on('#createGostop','click',()=>createRoom('gostop'));on('#createBaccarat','click',createBaccaratRoom);
     on('#yutMode','change',syncYutMode);on('#horseBetType','change',syncHorseBetUI);on('#horseStartBtn','click',startHorseRace);$$('[data-horse-auto]').forEach(b=>b.addEventListener('click',()=>startHorseAuto(Number(b.dataset.horseAuto))));on('#horseAutoStop','click',stopHorseAuto);
-    on('#wheelRankFreeBtn','click',()=>{if(confirmRankFree('wheel')){rankFreeWheelNext=true;updateRankFreeUi();toast(`다음 빅휠 1회는 신분 무료권 · ${money(rankFreeInfo('wheel').bet)} 고정`)}});on('#bigWheelSpinBtn','click',()=>spinBigWheel(false));$$('[data-wheel-auto]').forEach(b=>b.addEventListener('click',()=>runBigWheelAuto(Number(b.dataset.wheelAuto))));on('#bigWheelAutoStop','click',()=>{bigWheelAutoStop=true});$$('[data-wheel-bet]').forEach(b=>b.addEventListener('click',()=>selectBigWheelBet(b.dataset.wheelBet)));
+    on('#wheelRankFreeBtn','click',()=>runRankFreeWheelAuto());on('#bigWheelSpinBtn','click',()=>spinBigWheel(false));$$('[data-wheel-auto]').forEach(b=>b.addEventListener('click',()=>runBigWheelAuto(Number(b.dataset.wheelAuto))));on('#bigWheelAutoStop','click',()=>{bigWheelAutoStop=true});$$('[data-wheel-bet]').forEach(b=>b.addEventListener('click',()=>selectBigWheelBet(b.dataset.wheelBet)));
     on('#sicboRollBtn','click',()=>rollSicbo(false));$$('[data-sicbo-auto]').forEach(b=>b.addEventListener('click',()=>runSicboAuto(Number(b.dataset.sicboAuto))));on('#sicboAutoStop','click',()=>{sicboAutoStop=true});$$('[data-sicbo-bet]').forEach(b=>b.addEventListener('click',()=>selectSicboBet(b.dataset.sicboBet)));
     on('#rouletteSpinBtn','click',spinRoulette);on('#rouletteUndo','click',()=>{rouletteBets.pop();renderRouletteBets()});on('#rouletteClear','click',()=>{rouletteBets=[];roulettePending=[];renderRouletteBets();renderRouletteBoard()});$$('[data-rmode]').forEach(b=>b.addEventListener('click',()=>{rouletteMode=b.dataset.rmode;roulettePending=[];$$('[data-rmode]').forEach(x=>x.classList.toggle('active',x===b));renderRouletteBoard()}));$$('[data-rchip]').forEach(b=>b.addEventListener('click',()=>{rouletteChip=b.dataset.rchip==='max'?'max':Number(b.dataset.rchip);$$('[data-rchip]').forEach(x=>x.classList.toggle('active',x===b));fx('chip')}));
     on('#slotRankFreeBtn','click',()=>runRankFreeSlotAuto());on('#spinBtn','click',()=>spin({manual:true}));on('#slotBetInput','input',e=>syncSlotBetInput(e.target));on('#slotBetInput','change',e=>normalizeSlotBetInput(e.target));$$('[data-auto-spin]').forEach(b=>b.addEventListener('click',()=>runAutoSpins(Number(b.dataset.autoSpin))));on('#autoStopBtn','click',()=>{autoSpinStop=true;if($('#autoSpinStatus'))$('#autoSpinStatus').textContent='중지 요청...'});on('#slotSessionReset','click',resetSlotSession);on('#jackpotContinueBtn','click',closeSlotJackpot);
@@ -881,10 +881,10 @@ function updateRankFreeUi(){const sf=me?.rank?.freePlay?.slot||{used:0,limit:ran
 function confirmRankFree(kind){const {limit,bet}=rankFreeInfo(kind);if(limit<1){toast('현재 신분에는 무료권이 없어.');return false}return confirm(`신분 무료권을 사용할까?\n${kind==='slot'?`회당 ${money(bet)} · 남은 ${me?.rank?.freePlay?.slot?.left||0}회 자동회전`:`무료 플레이는 ${money(bet)} 고정 · 오늘 한도 ${limit}회`}`)}
 function initBigWheel(){drawBigWheel();selectBigWheelBet(bigWheelSelected);if($('#bigWheelResult'))$('#bigWheelResult').textContent='배당을 선택하고 실제 카지노 휠처럼 돌려봐.';const btn=$('#bigWheelSpinBtn');if(btn&&rankFreeInfo('wheel').limit>0)btn.title=`신분 무료권 사용 가능 · 하루 ${rankFreeInfo('wheel').limit}회`}
 function bigWheelPointerTick(){const p=$('.wheel-pointer');if(!p)return;p.classList.remove('tick');void p.offsetWidth;p.classList.add('tick');fx('wheel')}
-async function spinBigWheel(auto=false){
+async function spinBigWheel(auto=false,forceRankFree=false){
   if(bigWheelSpinning)return false;const input=$('#bigWheelBet'),bet=Math.max(1000,Math.min(10000000,Math.floor(Number(me?.balance||0)/1000)*1000,Math.floor(Number(input?.value||1000)/1000)*1000));if(input)input.value=bet;bigWheelSpinning=true;const btn=$('#bigWheelSpinBtn');btn.disabled=true;btn.textContent='WHEEL SPINNING...';$('#bigWheelResult').innerHTML='<small>NO MORE BETS</small><b>딜러가 휠을 회전시켰습니다…</b>';
   let ok=false,lastPocket=-1;try{
-    const useRankFree=!auto&&rankFreeWheelNext;rankFreeWheelNext=false;updateRankFreeUi();const d=await api('/api/bigwheel/spin',{method:'POST',body:JSON.stringify({bet,key:bigWheelSelected,useRankFree})}),idx=d.result.index,n=BIG_WHEEL_SEGMENTS.length,step=Math.PI*2/n,current=bigWheelAngle%(Math.PI*2),desired=-(idx*step+step/2),turns=8+Math.floor(Math.random()*3),target=current+(turns*Math.PI*2)+(((desired-current)%(Math.PI*2)+Math.PI*2)%(Math.PI*2)),start=performance.now(),from=bigWheelAngle,dur=auto?4300:6200;
+    const useRankFree=!!forceRankFree||(!auto&&rankFreeWheelNext);rankFreeWheelNext=false;updateRankFreeUi();const d=await api('/api/bigwheel/spin',{method:'POST',body:JSON.stringify({bet,key:bigWheelSelected,useRankFree})}),idx=d.result.index,n=BIG_WHEEL_SEGMENTS.length,step=Math.PI*2/n,current=bigWheelAngle%(Math.PI*2),desired=-(idx*step+step/2),turns=8+Math.floor(Math.random()*3),target=current+(turns*Math.PI*2)+(((desired-current)%(Math.PI*2)+Math.PI*2)%(Math.PI*2)),start=performance.now(),from=bigWheelAngle,dur=auto?4300:6200;
     $('.bigwheel-stage')?.classList.add('wheel-live');
     await new Promise(resolve=>{const frame=t=>{const p=Math.min(1,(t-start)/dur),ease=1-Math.pow(1-p,4.7);bigWheelAngle=from+(target-from)*ease;drawBigWheel();const pocket=Math.floor((((-bigWheelAngle+Math.PI/2)%(Math.PI*2)+Math.PI*2)%(Math.PI*2))/step);if(pocket!==lastPocket&&p<.97){lastPocket=pocket;if(p>.08)bigWheelPointerTick()}if(p<1)requestAnimationFrame(frame);else resolve()};requestAnimationFrame(frame)});
     bigWheelAngle=target;drawBigWheel();$('.bigwheel-stage')?.classList.remove('wheel-live');const r=d.result;$('#bigWheelResult').innerHTML=r.won?`<small>WINNING SEGMENT</small><b class="wheel-win">🏆 ${html(r.landed.label)} · ${money(r.payout)} 지급</b>`:`<small>WINNING SEGMENT</small><b>${html(r.landed.label)} · 다음 휠에 도전</b>`;me=d.user;updateHeader();fx(r.won?'win':'stop');if(r.won&&!auto)confetti();ok=true
@@ -892,6 +892,30 @@ async function spinBigWheel(auto=false){
 }
 function selectBigWheelBet(key){bigWheelSelected=key;$$('[data-wheel-bet]').forEach(b=>b.classList.toggle('active',b.dataset.wheelBet===key));fx()}
 async function runRankFreeSlotAuto(){if(autoSpinRunning)return;const left=Number(me?.rank?.freePlay?.slot?.left||0),bet=rankFreeInfo('slot').bet;if(left<1||bet<1){toast('사용 가능한 신분 무료권이 없어.');return}selectedBet=bet;if($('#slotBetInput'))$('#slotBetInput').value=bet;autoSpinRunning=true;autoSpinStop=false;const stop=$('#autoStopBtn'),status=$('#autoSpinStatus');if(stop)stop.disabled=false;for(let i=0;i<left&&!autoSpinStop;i++){if(status)status.textContent=`신분 무료권 자동회전 ${i+1}/${left}`;rankFreeSlotNext=true;const ok=await spin({fast:true});if(!ok){rankFreeSlotNext=false;break}if(i<left-1&&!autoSpinStop)await sleep(450)}autoSpinRunning=false;if(stop)stop.disabled=true;if(status)status.textContent=autoSpinStop?'중지됨':'무료권 자동회전 완료';updateRankFreeUi()}
+
+async function runRankFreeWheelAuto(){
+  if(bigWheelAutoRunning||bigWheelSpinning)return;
+  const left=Number(me?.rank?.freePlay?.wheel?.left||0),bet=Number(rankFreeInfo('wheel').bet||0);
+  if(left<1||bet<1){toast('사용 가능한 빅휠 신분 무료권이 없어.');updateRankFreeUi();return}
+  if(!confirm(`빅휠 신분 무료권 ${left}회를 자동으로 돌릴까?\n회당 ${money(bet)} 고정 · 게임머니 차감 없음`))return;
+  const input=$('#bigWheelBet');if(input)input.value=bet;
+  bigWheelAutoRunning=true;bigWheelAutoStop=false;
+  const stop=$('#bigWheelAutoStop'),status=$('#bigWheelAutoStatus');
+  if(stop)stop.disabled=false;
+  try{
+    for(let i=0;i<left&&!bigWheelAutoStop;i++){
+      if(status)status.textContent=`신분 무료권 AUTO ${i+1}/${left}`;
+      const ok=await spinBigWheel(true,true);
+      if(!ok)break;
+      if(i<left-1&&!bigWheelAutoStop)await sleep(650);
+    }
+  }finally{
+    bigWheelAutoRunning=false;
+    if(stop)stop.disabled=true;
+    if(status)status.textContent=bigWheelAutoStop?'무료권 자동 중지':'무료권 자동회전 완료';
+    updateRankFreeUi();
+  }
+}
 
 async function runBigWheelAuto(count){if(bigWheelAutoRunning||bigWheelSpinning)return;bigWheelAutoRunning=true;bigWheelAutoStop=false;const stop=$('#bigWheelAutoStop'),status=$('#bigWheelAutoStatus');stop.disabled=false;for(let i=0;i<count&&!bigWheelAutoStop;i++){if(status)status.textContent=`AUTO ${i+1}/${count}`;const ok=await spinBigWheel(true);if(!ok)break;if(i<count-1&&!bigWheelAutoStop)await sleep(650)}bigWheelAutoRunning=false;stop.disabled=true;if(status)status.textContent=bigWheelAutoStop?'중지됨':'완료'}
 
