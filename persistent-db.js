@@ -55,11 +55,20 @@ let lastSnapshotMeta = '';
 let remoteReady = false;
 let restoreHealthy = false;
 
-function hasRemote(){ return false; } // COST LOCK: remote persistence/Neon is intentionally disabled.
+function persistenceUrl(){ return String(process.env.DATABASE_URL || '').trim(); }
+function isRenderPrivateUrl(url){
+  try{
+    const h=new URL(url).hostname.toLowerCase();
+    return /^dpg-[a-z0-9-]+$/.test(h);
+  }catch{return false;}
+}
+function hasRemote(){
+  const url=persistenceUrl();
+  return !!url && isRenderPrivateUrl(url);
+}
 
 function sslOptions(){
-  const url=String(process.env.DATABASE_URL||'');
-  return /sslmode=require|neon\.tech/i.test(url) ? {rejectUnauthorized:false} : undefined;
+  return undefined;
 }
 
 async function getPool(){
@@ -96,7 +105,7 @@ function loadRemoteSnapshotSync(){
     if(!out || out==='null') return null;
     return JSON.parse(out);
   }catch(e){
-    console.error('[PERSIST] Neon snapshot load failed; starting with local DB:',e.message);
+    console.error('[PERSIST] Render Postgres snapshot load failed; starting with local DB:',e.message);
     return null;
   }
 }
@@ -152,11 +161,11 @@ class DatabaseSync {
         this._native.exec('COMMIT; PRAGMA foreign_keys=ON;');
         const restoredRows=TABLES.reduce((n,t)=>n+(snap.tables[t]?.length||0),0);
         const restoredUsers=(snap.tables.users||[]).length;
-        if(hasRemote() && restoredUsers===0) throw new Error('Safety stop: remote snapshot contains zero users.');
+        if(hasRemote() && restoredUsers===0) throw new Error('Safety stop: persistent snapshot contains zero users.');
         this._persistedLedgerId=Math.max(0,Number(snap.__remoteLedgerMaxId||0));
         restoreHealthy=true;
         this._restore=null;
-        console.log(`[PERSIST] Restored ${restoredRows} rows from Neon (${restoredUsers} users, remote ledger through #${this._persistedLedgerId}).`);
+        console.log(`[PERSIST] Restored ${restoredRows} rows from Render Postgres (${restoredUsers} users, remote ledger through #${this._persistedLedgerId}).`);
       }catch(e){
         try{this._native.exec('ROLLBACK; PRAGMA foreign_keys=ON;');}catch{}
         restoreHealthy=false;
@@ -164,7 +173,7 @@ class DatabaseSync {
       }
     }else{
       restoreHealthy=!hasRemote();
-      console.log(hasRemote()?'[PERSIST] Neon connected but no previous snapshot exists; remote writes DISABLED for safety.':'[PERSIST] DATABASE_URL not set; local SQLite mode.');
+      console.log(hasRemote()?'[PERSIST] Render Postgres connected but no previous snapshot exists; remote writes DISABLED for safety.':'[PERSIST] DATABASE_URL not set; local SQLite mode.');
     }
     this._restored=true;
     this._enabled=true;
@@ -213,7 +222,7 @@ class DatabaseSync {
     if(!this._firstDirtyAt)this._firstDirtyAt=t;
     clearTimeout(this._saveTimer);
     const elapsed=t-this._firstDirtyAt;
-    const delay=Math.max(100,Math.min(1200,4000-elapsed));
+    const delay=Math.max(1000,Math.min(15000,30000-elapsed));
     this._saveTimer=setTimeout(()=>{
       this._saveTimer=null;
       this._firstDirtyAt=0;
@@ -251,7 +260,7 @@ class DatabaseSync {
         if(ms>250)console.log(`[PERSIST] save ${ms}ms · core ${Buffer.byteLength(json)}B · ledger +${ledgerRows.length}`);
       }catch(e){
         if(client)try{await client.query('ROLLBACK');}catch{}
-        console.error('[PERSIST] Neon save failed:',e.message);
+        console.error('[PERSIST] Render Postgres save failed:',e.message);
       }finally{
         if(client)client.release();
         snapshot.tables=null;
