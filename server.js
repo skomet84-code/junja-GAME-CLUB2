@@ -1876,16 +1876,6 @@ const server=http.createServer(async(req,res)=>{
     if(!sameOriginPost(req)){return json(res,403,{error:'잘못된 요청 출처입니다.'});}
     if(url.pathname.startsWith('/api/treasure-raid')){if(await treasureRaid.handle(req,res,url))return;}
     if(url.pathname==='/healthz')return json(res,200,{ok:true,rooms:rooms.size+baccaratRooms.size+treasureRaid.roomCount(),online:onlineCount()});
-    if(url.pathname==='/audio/bright_song.mp3'&&req.method==='GET'){
-      try{
-        const upstream=await fetch('https://opengameart.org/sites/default/files/Sunflower-Valley-isaiah658_0.mp3');
-        if(!upstream.ok)throw new Error('BGM upstream '+upstream.status);
-        const body=Buffer.from(await upstream.arrayBuffer());
-        res.writeHead(200,{'Content-Type':'audio/mpeg','Content-Length':body.length,'Cache-Control':'public, max-age=86400',...securityHeaders()});
-        return res.end(body);
-      }catch(e){console.warn('[BGM PROXY]',e.message);res.writeHead(502,securityHeaders());return res.end('BGM unavailable');}
-    }
-
     if(url.pathname==='/api/register'&&req.method==='POST'){
       const ip=req.socket.remoteAddress||'ip';if(!rateLimit('reg:'+ip,6,60000))return json(res,429,{error:'잠시 후 다시 시도하세요.'});
       const b=await readBody(req);const username=escText(b.username,20).toLowerCase(),nickname=escText(b.nickname,14),password=String(b.password||'');
