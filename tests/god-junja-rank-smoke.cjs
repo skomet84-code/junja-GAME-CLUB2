@@ -1,0 +1,16 @@
+'use strict';
+const fs=require('node:fs'),path=require('node:path');
+const server=fs.readFileSync(path.join(__dirname,'..','server.js'),'utf8');
+const rankJs=fs.readFileSync(path.join(__dirname,'..','public','rank-system.js'),'utf8');
+const rankCss=fs.readFileSync(path.join(__dirname,'..','public','rank-system.css'),'utf8');
+if(!server.includes("{level:12,name:'GOD JUNJA',icon:'G',cost:100000000000000,className:'god'}"))throw new Error('GOD JUNJA rank definition missing');
+if(!server.includes("Math.min(SOCIAL_RANKS.length-1"))throw new Error('Dynamic social rank clamp missing');
+if(!server.includes("level>=12?6:level>=11?4"))throw new Error('GOD daily draw perk missing');
+if(!server.includes("10000000000][level]||0"))throw new Error('GOD daily salary missing');
+if(!server.includes("level>=12?6:level>=11?5"))throw new Error('GOD shop/appearance tier missing');
+if(!server.includes("이미 GOD JUNJA 최고 신분입니다."))throw new Error('GOD max-rank message missing');
+if(!rankJs.includes("OMNIPOTENT STATUS"))throw new Error('GOD power panel missing');
+if(!rankJs.includes("GOD JUNJA · ABSOLUTE STATUS"))throw new Error('GOD max-state UI missing');
+if(!rankCss.includes(".rank-hero.rank-god"))throw new Error('GOD hero effect missing');
+if(!rankCss.includes("@keyframes godOrbit"))throw new Error('GOD effect animation missing');
+console.log('GOD_JUNJA_RANK_TESTS_OK');

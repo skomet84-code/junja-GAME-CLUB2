@@ -1,12 +1,12 @@
 {
   "name": "junja-game-club",
-  "version": "2.8.22",
+  "version": "2.8.23",
   "private": true,
-  "description": "JUNJA LAND v2.8.22 - split high-volume ledger persistence from core state and stop global refresh fan-out on every slot spin.",
+  "description": "JUNJA LAND v2.8.23 - add GOD JUNJA as the absolute top social rank with isolated perks and lightweight prestige effects.",
   "type": "commonjs",
   "scripts": {
     "start": "node slot-50pct-until-win-start.js",
-    "check": "node --check admin-unlimited-start.js && node --check server.js && node --check treasure-raid-server.js && node --check public/app.js && node tests/shop-ui-smoke.cjs && node tests/slot-rank-limit-smoke.cjs && node --check public/treasure-raid.js && node --check public/v25-overhaul.js && node tests/performance-persistence-smoke.cjs",
+    "check": "node --check admin-unlimited-start.js && node --check server.js && node --check treasure-raid-server.js && node --check public/app.js && node --check public/rank-system.js && node tests/shop-ui-smoke.cjs && node tests/slot-rank-limit-smoke.cjs && node tests/god-junja-rank-smoke.cjs && node --check public/treasure-raid.js && node --check public/v25-overhaul.js && node tests/performance-persistence-smoke.cjs",
     "test:matgo": "node tests/yashimchan-matgo-smoke.cjs",
     "test:treasure": "node tests/treasure-raid-smoke.cjs"
   },

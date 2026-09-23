@@ -640,23 +640,24 @@ const SOCIAL_RANKS = [
   {level:8,name:'공작',icon:'👑',cost:1000000000000,className:'duke'},
   {level:9,name:'왕',icon:'♔',cost:3000000000000,className:'king'},
   {level:10,name:'황제',icon:'🏰',cost:10000000000000,className:'emperor'},
-  {level:11,name:'JUNJA ROYAL',icon:'J',cost:30000000000000,className:'royal'}
+  {level:11,name:'JUNJA ROYAL',icon:'J',cost:30000000000000,className:'royal'},
+  {level:12,name:'GOD JUNJA',icon:'G',cost:100000000000000,className:'god'}
 ];
 function socialRankPerks(level){
-  level=Math.max(0,Math.min(11,Number(level)||0));
-  const extraDraws=level>=11?4:level>=9?3:level>=6?2:level>=3?1:0;
-  const dailyBonusPct=[0,5,10,15,20,30,40,50,65,80,100,150][level]||0;
-  const dailySalary=[0,1000000,3000000,10000000,30000000,70000000,150000000,300000000,600000000,1200000000,2500000000,5000000000][level]||0;
-  const transferFeePct=[2,2,1.8,1.6,1.4,1.2,1,0.8,0.6,0.4,0.2,0][level]||0;
-  const freeSlots=[0,0,0,5,8,12,18,25,35,50,70,100][level]||0;
-  const freeSlotBet=[0,0,0,100000,200000,300000,500000,1000000,2000000,3000000,5000000,10000000][level]||0;
-  const freeBigWheel=[0,0,0,5,8,12,18,25,35,50,70,100][level]||0;
-  const horseWinBonusPct=[0,0,0,0,0,2,3,4,5,6,8,10][level]||0;
-  const gameEntryDiscountPct=[0,0,0,0,2,3,4,5,6,8,10,12][level]||0;
-  const giftBonusPct=[0,0,0,0,0,2,3,4,5,6,8,10][level]||0;
-  const dailyInterestPct=[0,0,0,0,0,0,0,0.001,0.002,0.003,0.004,0.005][level]||0;
-  const shopTier=level>=11?5:level>=10?4:level>=9?3:level>=7?2:level>=4?1:0;
-  const appearanceTier=level>=11?5:level>=10?4:level>=9?3:level>=7?2:level>=4?1:0;
+  level=Math.max(0,Math.min(SOCIAL_RANKS.length-1,Number(level)||0));
+  const extraDraws=level>=12?6:level>=11?4:level>=9?3:level>=6?2:level>=3?1:0;
+  const dailyBonusPct=[0,5,10,15,20,30,40,50,65,80,100,150,300][level]||0;
+  const dailySalary=[0,1000000,3000000,10000000,30000000,70000000,150000000,300000000,600000000,1200000000,2500000000,5000000000,10000000000][level]||0;
+  const transferFeePct=[2,2,1.8,1.6,1.4,1.2,1,0.8,0.6,0.4,0.2,0,0][level]||0;
+  const freeSlots=[0,0,0,5,8,12,18,25,35,50,70,100,200][level]||0;
+  const freeSlotBet=[0,0,0,100000,200000,300000,500000,1000000,2000000,3000000,5000000,10000000,10000000][level]||0;
+  const freeBigWheel=[0,0,0,5,8,12,18,25,35,50,70,100,200][level]||0;
+  const horseWinBonusPct=[0,0,0,0,0,2,3,4,5,6,8,10,15][level]||0;
+  const gameEntryDiscountPct=[0,0,0,0,2,3,4,5,6,8,10,12,20][level]||0;
+  const giftBonusPct=[0,0,0,0,0,2,3,4,5,6,8,10,20][level]||0;
+  const dailyInterestPct=[0,0,0,0,0,0,0,0.001,0.002,0.003,0.004,0.005,0.01][level]||0;
+  const shopTier=level>=12?6:level>=11?5:level>=10?4:level>=9?3:level>=7?2:level>=4?1:0;
+  const appearanceTier=level>=12?6:level>=11?5:level>=10?4:level>=9?3:level>=7?2:level>=4?1:0;
   return {extraDraws,dailyBonusPct,dailyDraws:1+extraDraws,dailySalary,transferFeePct,freeSlots,freeSlotBet,freeBigWheel,horseWinBonusPct,gameEntryDiscountPct,giftBonusPct,dailyInterestPct,shopTier,appearanceTier};
 }
 function socialRankPerksForUser(userId){
@@ -691,7 +692,7 @@ function promoteSocialRank(userId){
     if(!u)throw new Error('사용자를 찾을 수 없습니다.');
     const level=Math.max(0,Math.min(SOCIAL_RANKS.length-1,Number(u.rank_level||0)));
     const next=SOCIAL_RANKS[level+1];
-    if(!next)throw new Error('이미 JUNJA ROYAL 최고 신분입니다.');
+    if(!next)throw new Error('이미 GOD JUNJA 최고 신분입니다.');
     if(u.balance<next.cost)throw new Error(`신분 상승에 ${formatMoney(next.cost)} G가 필요합니다.`);
     const balance=u.balance-next.cost,t=now();
     db.prepare('UPDATE users SET balance=?,rank_level=? WHERE id=?').run(balance,next.level,userId);
