@@ -78,7 +78,7 @@ jobs:
         run: |
           set -euo pipefail
           VERSION="$(node -p "require('./package.json').version")"
-          npm start >/tmp/junja-main.log 2>&1 &
+          node admin-unlimited-start.js >/tmp/junja-main.log 2>&1 &
           PID=$!
           trap 'kill $PID 2>/dev/null || true' EXIT
           ok=0
