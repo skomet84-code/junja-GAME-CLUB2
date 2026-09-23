@@ -1904,7 +1904,7 @@ const server=http.createServer(async(req,res)=>{
     if(url.pathname==='/api/logout'&&req.method==='POST'){
       const token=parseCookies(req).sid;if(token)db.prepare('DELETE FROM sessions WHERE token=?').run(token);return json(res,200,{ok:true},{'Set-Cookie':'sid=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0'});
     }
-    if(url.pathname==='/api/me'&&req.method==='GET'){const u=requireAuth(req,res);if(!u)return;return json(res,200,{user:u,online:onlineCount(),presence:presenceSnapshot()});}
+    if(url.pathname==='/api/me'&&req.method==='GET'){const u=requireAuth(req,res);if(!u)return;const includePresence=url.searchParams.get('presence')==='1';return json(res,200,{user:u,online:onlineCount(),presence:includePresence?presenceSnapshot():[]});}
     if(url.pathname==='/api/rank'&&req.method==='GET'){const u=requireAuth(req,res);if(!u)return;return json(res,200,{rank:socialRankPublic(u.id),user:userPublic(u.id),ranks:SOCIAL_RANKS});}
     if(url.pathname==='/api/rank/promote'&&req.method==='POST'){
       const u=requireAuth(req,res);if(!u)return;
@@ -1964,9 +1964,9 @@ const server=http.createServer(async(req,res)=>{
     if(url.pathname==='/api/events'&&req.method==='GET'){
       const u=requireAuth(req,res);if(!u)return;
       res.writeHead(200,{'Content-Type':'text/event-stream','Cache-Control':'no-cache','Connection':'keep-alive',...securityHeaders()});
-      res.write(`event: hello\ndata: ${JSON.stringify({t:now()})}\n\n`);const id=randomToken(8);sseClients.set(id,{res,userId:u.id});pushRefresh();
+      res.write(`event: hello\ndata: ${JSON.stringify({t:now()})}\n\n`);const id=randomToken(8);sseClients.set(id,{res,userId:u.id});
       const hb=setInterval(()=>{try{res.write(`: ping ${now()}\n\n`)}catch{}},25000);
-      req.on('close',()=>{clearInterval(hb);sseClients.delete(id);pushRefresh();});return;
+      req.on('close',()=>{clearInterval(hb);sseClients.delete(id);});return;
     }
     if(url.pathname==='/api/daily-draw'&&req.method==='GET'){const u=requireAuth(req,res);if(!u)return;return json(res,200,dailyDrawState(u.id));}
     if(url.pathname==='/api/daily-draw/pick'&&req.method==='POST'){const u=requireAuth(req,res);if(!u)return;if(!rateLimit('daily_draw:'+u.id,8,60000))return json(res,429,{error:'뽑기 요청이 너무 빠릅니다.'});const b=await readBody(req);try{const result=dailyDrawPick(u.id,b.number);pushRefresh();return json(res,200,{ok:true,...result,user:userPublic(u.id)});}catch(e){return json(res,409,{error:e.message,state:dailyDrawState(u.id)});}}
