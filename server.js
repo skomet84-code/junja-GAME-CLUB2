@@ -1893,8 +1893,13 @@ const server=http.createServer(async(req,res)=>{
       }catch(e){try{db.exec('ROLLBACK')}catch{};if(String(e).includes('UNIQUE'))return json(res,409,{error:'이미 사용 중인 아이디 또는 닉네임입니다.'});throw e;}
     }
     if(url.pathname==='/api/login'&&req.method==='POST'){
-      const ip=req.socket.remoteAddress||'ip';if(!rateLimit('login:'+ip,12,60000))return json(res,429,{error:'로그인 시도가 너무 많습니다. 잠시 후 다시 시도하세요.'});
       const b=await readBody(req),username=escText(b.username,20).toLowerCase(),password=String(b.password||'');
+      // Render sits behind a reverse proxy, so req.socket.remoteAddress can be the same
+      // proxy address for many players. Rate-limit by real forwarded IP + username
+      // to avoid one player's attempts blocking everyone else.
+      const forwarded=String(req.headers['x-forwarded-for']||'').split(',')[0].trim();
+      const ip=forwarded||req.socket.remoteAddress||'ip';
+      if(!rateLimit('login:'+ip+':'+username,12,60000))return json(res,429,{error:'로그인 시도가 너무 많습니다. 잠시 후 다시 시도하세요.'});
       const u=db.prepare('SELECT * FROM users WHERE username=?').get(username);
       if(!u||!safeEqualHex(hashPassword(password,u.pass_salt),u.pass_hash))return json(res,401,{error:'아이디 또는 비밀번호가 올바르지 않습니다.'});
       if(u.is_disabled)return json(res,403,{error:'이 계정은 관리자에 의해 이용이 중지되었습니다.'});
