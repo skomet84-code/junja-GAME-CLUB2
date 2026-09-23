@@ -55,7 +55,7 @@ let lastSnapshotMeta = '';
 let remoteReady = false;
 let restoreHealthy = false;
 
-function hasRemote(){ return !!String(process.env.DATABASE_URL || '').trim(); }
+function hasRemote(){ return false; } // COST LOCK: remote persistence/Neon is intentionally disabled.
 
 function sslOptions(){
   const url=String(process.env.DATABASE_URL||'');
