@@ -22,7 +22,7 @@
   function ensureRoot(){state.root=document.getElementById('treasureRaidRoot');return !!state.root}
   async function enter(me){state.me=me||state.me;if(!ensureRoot())return;renderLoading();await loadRooms();startPoll();startClock()}
   function leaveView(){stopPoll();stopClock();closeJackpotFx()}
-  function startPoll(){stopPoll();state.poll=setInterval(()=>{if(document.hidden)return;if(document.getElementById('view-treasure')?.classList.contains('active'))refresh(false).catch(()=>{})},5000)}
+  function startPoll(){stopPoll();state.poll=setInterval(()=>{if(document.hidden)return;if(document.getElementById('view-treasure')?.classList.contains('active'))refresh(false).catch(()=>{})},15000)}
   function stopPoll(){if(state.poll){clearInterval(state.poll);state.poll=null}}
   function startClock(){stopClock();state.clock=setInterval(updateCountdown,500)}
   function stopClock(){if(state.clock){clearInterval(state.clock);state.clock=null}}
