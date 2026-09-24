@@ -217,9 +217,8 @@ class DatabaseSync {
     return {version:2,updatedAt:Date.now(),tables};
   }
 
-  _ledgerDelta(){
-    try{return this._native.prepare('SELECT * FROM ledger WHERE id>? ORDER BY id').all(this._persistedLedgerId);}
-    catch{return [];}
+  _ledgerDelta(afterId, limit=1000){
+    return this._native.prepare('SELECT * FROM ledger WHERE id>? ORDER BY id LIMIT ?').all(afterId,limit);
   }
 
   _scheduleSave(){
@@ -241,7 +240,8 @@ class DatabaseSync {
     saveChain=saveChain.then(async()=>{
       const started=Date.now();
       const snapshot=this._snapshot();
-      const ledgerRows=this._ledgerDelta();
+      let ledgerCount=0;
+      let ledgerMaxId=this._persistedLedgerId;
       const meta=String(snapshot.updatedAt)+':'+SNAPSHOT_TABLES.map(t=>snapshot.tables[t]?.length||0).join(',');
       const json=JSON.stringify(snapshot);
       let client=null;
@@ -249,24 +249,25 @@ class DatabaseSync {
         const p=await getPool();
         client=await p.connect();
         await client.query('BEGIN');
-        if(ledgerRows.length){
-          const CHUNK=5000;
-          for(let i=0;i<ledgerRows.length;i+=CHUNK){
-            const chunkJson=JSON.stringify(ledgerRows.slice(i,i+CHUNK));
-            await client.query(`INSERT INTO junja_club_ledger(id,user_id,amount,balance_after,type,memo,created_at)
-              SELECT x.id,x.user_id,x.amount,x.balance_after,x.type,x.memo,x.created_at
-              FROM jsonb_to_recordset($1::jsonb)
-                AS x(id BIGINT,user_id BIGINT,amount BIGINT,balance_after BIGINT,type TEXT,memo TEXT,created_at BIGINT)
-              ON CONFLICT(id) DO NOTHING`,[chunkJson]);
-          }
+        for(;;){
+          const batch=this._ledgerDelta(ledgerMaxId);
+          if(!batch.length) break;
+          const chunkJson=JSON.stringify(batch);
+          await client.query(`INSERT INTO junja_club_ledger(id,user_id,amount,balance_after,type,memo,created_at)
+            SELECT x.id,x.user_id,x.amount,x.balance_after,x.type,x.memo,x.created_at
+            FROM jsonb_to_recordset($1::jsonb)
+              AS x(id BIGINT,user_id BIGINT,amount BIGINT,balance_after BIGINT,type TEXT,memo TEXT,created_at BIGINT)
+            ON CONFLICT(id) DO NOTHING`,[chunkJson]);
+          ledgerCount+=batch.length;
+          ledgerMaxId=Number(batch[batch.length-1].id);
         }
         await client.query(`INSERT INTO junja_club_state(id,payload,updated_at) VALUES(1,$1::jsonb,$2)
           ON CONFLICT(id) DO UPDATE SET payload=EXCLUDED.payload, updated_at=EXCLUDED.updated_at`,[json,Date.now()]);
         await client.query('COMMIT');
-        if(ledgerRows.length)this._persistedLedgerId=Math.max(this._persistedLedgerId,Number(ledgerRows[ledgerRows.length-1].id||0));
+        if(ledgerCount)this._persistedLedgerId=ledgerMaxId;
         lastSnapshotMeta=meta;
         const ms=Date.now()-started;
-        if(ms>250)console.log(`[PERSIST] save ${ms}ms · core ${Buffer.byteLength(json)}B · ledger +${ledgerRows.length}`);
+        if(ms>250)console.log(`[PERSIST] save ${ms}ms · core ${Buffer.byteLength(json)}B · ledger +${ledgerCount}`);
       }catch(e){
         if(client)try{await client.query('ROLLBACK');}catch{}
         console.error('[PERSIST] Render Postgres save failed:',e.message);
