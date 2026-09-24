@@ -65,7 +65,7 @@ function startLiveFloor(game){
   if(liveGame&&liveGame!==game)leaveLiveFloor(liveGame);
   clearInterval(liveHeartbeatTimer);liveGame=game;liveKnownIds=new Set();liveInitialized=false,sevenAutoTimer=null,baccaratAutoTimer=null,baccaratLastAutoRound=-1,networkDegraded=false,bigWheelAutoStop=false,sicboAutoStop=false,bigWheelAutoRunning=false,sicboAutoRunning=false,shopData=null,shopCategory='all',shopOwnedOnly=false;
   ensureLiveFloorMount(game);liveHeartbeat();
-  liveHeartbeatTimer=setInterval(liveHeartbeat,30000);
+  liveHeartbeatTimer=setInterval(liveHeartbeat,60000);
 }
 function stopLiveFloor(){
   clearInterval(liveHeartbeatTimer);liveHeartbeatTimer=null;
@@ -202,8 +202,8 @@ function connectEvents(){
   events.onopen=()=>setNetworkState('online');
   events.onerror=()=>setNetworkState(navigator.onLine?'degraded':'offline');
   events.addEventListener('refresh',e=>{
-    clearTimeout(refreshTimer);
-    refreshTimer=setTimeout(async()=>{
+    if(refreshTimer)return;
+    refreshTimer=setTimeout(async()=>{refreshTimer=null;
       try{
         let msg={};try{msg=JSON.parse(e.data||'{}')}catch{}
         if(msg.roomId&&currentRoomId&&String(msg.roomId)!==String(currentRoomId))return;
@@ -220,7 +220,7 @@ function connectEvents(){
         else if(currentView==='baccarat'&&!currentRoomId)await loadBaccaratRooms(true);
         else if(currentView==='admin'&&me?.is_admin)await loadAdmin($('#adminSearch')?.value.trim()||'',false);
       }catch{}
-    },500);
+    },5000);
   });
 }
 function updateHeader(){if(!me)return;$('#walletBalance').textContent=money(me.balance);updateSlotBetLimitUi();$('#avatarEmoji').innerHTML=avatarImg(me.avatar,me.nickname,'header-face',me.cosmetics);$('#nickName').textContent=me.nickname;const title=equippedTitle(me.cosmetics);$('#profileBtn')?.setAttribute('data-title',title);$('#dailyBtn').disabled=!me.dailyAvailable;const dailyPct=Number(me.cosmetics?.perks?.dailyBonusPct||0)+Number(me.rank?.perks?.dailyBonusPct||0),dailyAmt=Math.floor(50000*(1+dailyPct/100));$('#dailyBtn').textContent=me.dailyAvailable?`🎁 출석 +${money(dailyAmt)}${dailyPct?` · +${dailyPct}%`:''}`:'✓ 오늘 출석 완료';$('#adminBtn')?.classList.toggle('hidden',!me.is_admin);applyCosmetics();updateRankFreeUi()}
@@ -530,7 +530,7 @@ async function runAutoSpins(count){
 
 // MULTI ROOMS v0.9 - READY / TURN / RECOVERY / POLLING
 function stopRoomPolling(){if(roomPollTimer){clearInterval(roomPollTimer);roomPollTimer=null}}
-function startRoomPolling(){stopRoomPolling();if(!currentRoomId)return;roomPollTimer=setInterval(()=>{if(!document.hidden&&currentRoomId&&currentView===currentGame)loadCurrentRoom(true).catch(()=>{})},10000)}
+function startRoomPolling(){stopRoomPolling();if(!currentRoomId)return;roomPollTimer=setInterval(()=>{if(!document.hidden&&currentRoomId&&currentView===currentGame)loadCurrentRoom(true).catch(()=>{})},60000)}
 async function resumeMyRoom(){
   try{
     const d=await api('/api/my-room');if(!d.room)return;
@@ -757,7 +757,7 @@ async function playSoloYutReplay(g){
 
 // HORSE RACING · v2.2 SHARED LIVE VERTICAL MEET
 function stopHorseMeet(){clearInterval(horseMeetTimer);horseMeetTimer=null;if(horseAnimationFrame)cancelAnimationFrame(horseAnimationFrame);horseAnimationFrame=null;horseRacing=false}
-function startHorseMeet(){stopHorseMeet();loadHorseMeet(false);horseMeetTimer=setInterval(()=>{if(currentView==='horse'&&!document.hidden)loadHorseMeet(true)},3000)}
+function startHorseMeet(){stopHorseMeet();loadHorseMeet(false);horseMeetTimer=setInterval(()=>{if(currentView==='horse'&&!document.hidden)loadHorseMeet(true)},15000)}
 async function loadHorseMeet(silent=true){try{const d=await api('/api/horse/meet');horseCardData=d.round.card;if(d.user){me=d.user;updateHeader()}renderHorseMeet(d.round);await maybeHorseAuto(d.round)}catch(e){if(!silent)toast(e.message)}}
 function horseSelectedIds(){return [Number($('#horsePick1')?.value||0),Number($('#horsePick2')?.value||0)].filter(Boolean)}
 function horseOddsFor(type,ids){if(!horseCardData||!ids.length)return 0;if(type==='win')return Number(horseCardData.horses.find(h=>h.id===ids[0])?.winOdds||0);if(ids.length<2)return 0;if(type==='quinella')return Number(horseCardData.quinellaOdds?.[[...ids].sort((a,b)=>a-b).join('-')]||0);return Number(horseCardData.exactaOdds?.[`${ids[0]}>${ids[1]}`]||0)}
