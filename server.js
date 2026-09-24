@@ -811,7 +811,7 @@ function liveFloorMap(game){
 function cleanLiveFloor(game){
   const map=liveFloorMap(game),t=now();
   for(const [uid,p] of map){
-    if(!p||t-Number(p.lastSeen||0)>18000) map.delete(uid);
+    if(!p||t-Number(p.lastSeen||0)>90000) map.delete(uid);
     else if(p.reaction&&Number(p.reaction.expiresAt||0)<=t) p.reaction=null;
   }
   return map;
