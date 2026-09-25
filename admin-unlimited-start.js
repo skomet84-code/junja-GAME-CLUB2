@@ -27,7 +27,7 @@ function replaceOne(source, oldText, newText, label, required = true) {
 // ---- Static client patch ---------------------------------------------------
 let appSource = fs.readFileSync(appJsPath, 'utf8');
 
-// Admin wallet remains unlimited within JS safe integer range.
+// Admin wallet limits are handled by the BigInt-backed core; keep the legacy HTML max removed.
 appSource = appSource.replace('max="1000000000"', ' '.repeat('max="1000000000"'.length));
 
 // All game wager controls: fixed 100k client caps become wallet-limited.
@@ -93,14 +93,8 @@ fs.createReadStream = function patchedStaticReadStream(filePath, options) {
 const serverPath = path.join(__dirname, 'server.js');
 let source = fs.readFileSync(serverPath, 'utf8');
 
-// Preserve v2.4.3 admin wallet hotfix with safe integer protection.
-const oldAdminValidation = "if(!Number.isInteger(raw)||raw<1||raw>1000000000)return json(res,400,{error:'조정 금액은 1~1,000,000,000 G 범위의 정수로 입력하세요.'});";
-const newAdminValidation = "if(!Number.isSafeInteger(raw)||raw<1)return json(res,400,{error:'조정 금액은 1G 이상의 안전한 정수로 입력하세요.'});";
-source = replaceOne(source, oldAdminValidation, newAdminValidation, 'admin wallet validation');
-
-const oldBalanceGuard = "const next=u.balance+amount;\n    if(next<0) throw new Error('게임머니가 부족합니다.');";
-const newBalanceGuard = "const next=u.balance+amount;\n    if(!Number.isSafeInteger(next)) throw new Error('잔액이 시스템 안전 정수 범위를 초과합니다.');\n    if(next<0) throw new Error('게임머니가 부족합니다.');";
-source = replaceOne(source, oldBalanceGuard, newBalanceGuard, 'wallet safe integer guard');
+// Large admin grants and wallet overflow checks now live in server.js using exact BigInt-backed text balances.
+// Do not re-apply the old Number.MAX_SAFE_INTEGER runtime guards here.
 
 // Remove the fixed game wager ceiling globally. Individual endpoints already
 // reject bets larger than the user's wallet; walletWager() remains wallet-capped.
