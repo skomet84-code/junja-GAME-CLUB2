@@ -155,7 +155,12 @@ ensureColumn('stats','roulette_profit','INTEGER NOT NULL DEFAULT 0');
 ensureColumn('users','is_admin','INTEGER NOT NULL DEFAULT 0');
 ensureColumn('users','is_disabled','INTEGER NOT NULL DEFAULT 0');
 ensureColumn('users','rank_level','INTEGER NOT NULL DEFAULT 0');
+ensureColumn('users','balance_text','TEXT');
+ensureColumn('ledger','amount_text','TEXT');
+ensureColumn('ledger','balance_after_text','TEXT');
+ensureColumn('admin_audit','amount_text','TEXT');
 ensureColumn('user_loadout','character','TEXT');
+db.prepare("UPDATE users SET balance_text=CAST(balance AS TEXT) WHERE balance_text IS NULL OR balance_text='' ").run();
 
 const SLOT_JACKPOT_BASE = 50000000;
 function gameStateGet(key,fallback=null){
@@ -450,7 +455,55 @@ function containsContactInfo(s){
   const digits=v.replace(/\D/g,'');
   return digits.length>=9;
 }
-function formatMoney(n){ return new Intl.NumberFormat('ko-KR').format(n); }
+const MAX_SAFE_MONEY=BigInt(Number.MAX_SAFE_INTEGER);
+const MIN_SAFE_MONEY=-MAX_SAFE_MONEY;
+const MAX_WALLET_AMOUNT=(10n**72n)-1n;
+function moneyBigInt(v){
+  if(typeof v==='bigint')return v;
+  if(typeof v==='number'){
+    if(!Number.isFinite(v)||!Number.isInteger(v))throw new Error('게임머니 값이 올바르지 않습니다.');
+    return BigInt(v);
+  }
+  const text=String(v??'0').trim().replace(/,/g,'');
+  if(!/^-?\d+$/.test(text))throw new Error('게임머니 값이 올바르지 않습니다.');
+  return BigInt(text);
+}
+function safeMoneyMirror(v){
+  const n=moneyBigInt(v);
+  if(n>MAX_SAFE_MONEY)return Number.MAX_SAFE_INTEGER;
+  if(n<MIN_SAFE_MONEY)return -Number.MAX_SAFE_INTEGER;
+  return Number(n);
+}
+function publicMoneyValue(v){
+  const n=moneyBigInt(v);
+  return n<=MAX_SAFE_MONEY&&n>=MIN_SAFE_MONEY?Number(n):n.toString();
+}
+function walletRowBalance(row){
+  if(!row)throw new Error('사용자를 찾을 수 없습니다.');
+  const text=String(row.balance_text??'').trim();
+  return /^-?\d+$/.test(text)?BigInt(text):moneyBigInt(row.balance||0);
+}
+function walletBalanceBigInt(userId){
+  return walletRowBalance(db.prepare('SELECT balance,balance_text FROM users WHERE id=?').get(Number(userId)));
+}
+function setWalletBalance(userId,value){
+  const n=moneyBigInt(value);
+  if(n<0n)throw new Error('게임머니가 부족합니다.');
+  if(n>MAX_WALLET_AMOUNT)throw new Error('보유 게임머니 최대 한도는 9,999무량대수 G입니다.');
+  db.prepare('UPDATE users SET balance=?,balance_text=? WHERE id=?').run(safeMoneyMirror(n),n.toString(),Number(userId));
+  return publicMoneyValue(n);
+}
+function insertLedger(userId,amount,balanceAfter,type,memo,createdAt=now()){
+  const a=moneyBigInt(amount),b=moneyBigInt(balanceAfter);
+  db.prepare('INSERT INTO ledger(user_id,amount,balance_after,type,memo,created_at,amount_text,balance_after_text) VALUES(?,?,?,?,?,?,?,?)')
+    .run(Number(userId),safeMoneyMirror(a),safeMoneyMirror(b),type,memo,createdAt,a.toString(),b.toString());
+}
+function insertAdminAudit(adminUserId,targetUserId,action,amount,memo,createdAt=now()){
+  const a=moneyBigInt(amount);
+  db.prepare('INSERT INTO admin_audit(admin_user_id,target_user_id,action,amount,memo,created_at,amount_text) VALUES(?,?,?,?,?,?,?)')
+    .run(Number(adminUserId),Number(targetUserId),action,safeMoneyMirror(a),memo,createdAt,a.toString());
+}
+function formatMoney(n){ return moneyFormat.exact(n); }
 
 function ensureAdminAccount(){
   if(!ADMIN_USERNAME || !ADMIN_PASSWORD) return;
@@ -468,7 +521,8 @@ function ensureAdminAccount(){
   const r=db.prepare('INSERT INTO users(username,pass_salt,pass_hash,nickname,balance,created_at,avatar,is_admin,is_disabled) VALUES(?,?,?,?,?,?,?,?,?)').run(ADMIN_USERNAME,salt,hash,nickname,1000000,t,3,1,0);
   const uid=Number(r.lastInsertRowid);
   db.prepare('INSERT INTO stats(user_id) VALUES(?)').run(uid);
-  db.prepare('INSERT INTO ledger(user_id,amount,balance_after,type,memo,created_at) VALUES(?,?,?,?,?,?)').run(uid,1000000,1000000,'admin_seed','관리자 계정 초기 게임머니',t);
+  db.prepare('UPDATE users SET balance_text=? WHERE id=?').run('1000000',uid);
+  insertLedger(uid,1000000,1000000,'admin_seed','관리자 계정 초기 게임머니',t);
   console.log(`Admin account created: ${ADMIN_USERNAME}`);
 }
 ensureAdminAccount();
@@ -501,27 +555,26 @@ function dailyDrawPick(userId,number){
     const rank=Number(ranks[number-1]),prize=dailyDrawPrize(rank),pickedAt=now();
     if(usedAttempts===0)db.prepare('INSERT INTO daily_draw_picks(draw_date,number,user_id,rank,prize,picked_at) VALUES(?,?,?,?,?,?)').run(date,number,userId,rank,prize,pickedAt);
     else db.prepare('INSERT INTO daily_draw_bonus_picks(draw_date,number,user_id,pick_slot,rank,prize,picked_at) VALUES(?,?,?,?,?,?,?)').run(date,number,userId,usedAttempts+1,rank,prize,pickedAt);
-    const u=db.prepare('SELECT balance FROM users WHERE id=?').get(userId),next=Number(u.balance)+prize;if(!Number.isSafeInteger(next))throw new Error('보유 게임머니 한도를 초과합니다.');
-    db.prepare('UPDATE users SET balance=? WHERE id=?').run(next,userId);
-    db.prepare('INSERT INTO ledger(user_id,amount,balance_after,type,memo,created_at) VALUES(?,?,?,?,?,?)').run(userId,prize,next,'daily_draw',`77 출석 뽑기 ${number}번 · ${rank}등 · ${usedAttempts+1}/${perks.dailyDraws}회`,pickedAt);
-    db.exec('COMMIT');return {number,rank,prize,balance:next,state:dailyDrawState(userId)};
+    const u=db.prepare('SELECT balance,balance_text FROM users WHERE id=?').get(userId),next=walletRowBalance(u)+BigInt(prize);if(next>MAX_WALLET_AMOUNT)throw new Error('보유 게임머니 최대 한도를 초과합니다.');
+    setWalletBalance(userId,next);
+    insertLedger(userId,prize,next,'daily_draw',`77 출석 뽑기 ${number}번 · ${rank}등 · ${usedAttempts+1}/${perks.dailyDraws}회`,pickedAt);
+    db.exec('COMMIT');return {number,rank,prize,balance:publicMoneyValue(next),state:dailyDrawState(userId)};
   }catch(e){try{db.exec('ROLLBACK')}catch{}throw e;}
 }
 
 function walletChange(userId, amount, type, memo){
-  const tx = db.transaction ? db.transaction : null;
   db.exec('BEGIN IMMEDIATE');
   try{
-    const u=db.prepare('SELECT balance FROM users WHERE id=?').get(userId);
+    const u=db.prepare('SELECT balance,balance_text FROM users WHERE id=?').get(userId);
     if(!u) throw new Error('사용자를 찾을 수 없습니다.');
-    const next=u.balance+amount;
-    if(next<0) throw new Error('게임머니가 부족합니다.');
-    db.prepare('UPDATE users SET balance=? WHERE id=?').run(next,userId);
-    db.prepare('INSERT INTO ledger(user_id,amount,balance_after,type,memo,created_at) VALUES(?,?,?,?,?,?)')
-      .run(userId,amount,next,type,memo,now());
+    const current=walletRowBalance(u),delta=moneyBigInt(amount),next=current+delta;
+    if(next<0n) throw new Error('게임머니가 부족합니다.');
+    if(next>MAX_WALLET_AMOUNT) throw new Error('보유 게임머니 최대 한도는 9,999무량대수 G입니다.');
+    setWalletBalance(userId,next);
+    insertLedger(userId,delta,next,type,memo,now());
     db.exec('COMMIT');
-    return next;
-  }catch(e){ db.exec('ROLLBACK'); throw e; }
+    return publicMoneyValue(next);
+  }catch(e){ try{db.exec('ROLLBACK')}catch{}; throw e; }
 }
 
 
@@ -532,21 +585,21 @@ function transferGameMoney(senderId,targetId,amount){
   if(!Number.isSafeInteger(amount)||amount<1) throw new Error('보낼 금액은 1G 이상 보유 게임머니 범위의 정수로 입력하세요.');
   db.exec('BEGIN IMMEDIATE');
   try{
-    const sender=db.prepare('SELECT id,nickname,balance,is_disabled FROM users WHERE id=?').get(senderId);
-    const target=db.prepare('SELECT id,nickname,balance,is_disabled FROM users WHERE id=?').get(targetId);
+    const sender=db.prepare('SELECT id,nickname,balance,balance_text,is_disabled FROM users WHERE id=?').get(senderId);
+    const target=db.prepare('SELECT id,nickname,balance,balance_text,is_disabled FROM users WHERE id=?').get(targetId);
     if(!sender) throw new Error('보내는 회원을 찾을 수 없습니다.');
     if(!target||target.is_disabled) throw new Error('받는 친구를 찾을 수 없습니다.');
     if(sender.is_disabled) throw new Error('현재 계정에서는 보낼 수 없습니다.');
     const feePct=Number(socialRankPerksForUser(senderId).transferFeePct||0),fee=Math.max(0,Math.floor(amount*feePct/100)),total=amount+fee;
-    if(sender.balance<total) throw new Error(`송금액과 수수료를 포함해 ${formatMoney(total)}G가 필요합니다.`);
-    const senderNext=sender.balance-total,targetNext=target.balance+amount,t=now();
-    if(!Number.isSafeInteger(senderNext)||!Number.isSafeInteger(targetNext))throw new Error('게임머니 한도를 초과합니다.');
-    db.prepare('UPDATE users SET balance=? WHERE id=?').run(senderNext,senderId);
-    db.prepare('UPDATE users SET balance=? WHERE id=?').run(targetNext,targetId);
-    db.prepare('INSERT INTO ledger(user_id,amount,balance_after,type,memo,created_at) VALUES(?,?,?,?,?,?)').run(senderId,-total,senderNext,'friend_send',`${target.nickname}님에게 게임머니 보내기 · 송금 ${formatMoney(amount)}G · 신분 수수료 ${formatMoney(fee)}G (${feePct}%)`,t);
-    db.prepare('INSERT INTO ledger(user_id,amount,balance_after,type,memo,created_at) VALUES(?,?,?,?,?,?)').run(targetId,amount,targetNext,'friend_receive',`${sender.nickname}님에게 받은 게임머니`,t);
+    const senderBalance=walletRowBalance(sender),targetBalance=walletRowBalance(target),totalBig=BigInt(total),amountBig=BigInt(amount);
+    if(senderBalance<totalBig) throw new Error(`송금액과 수수료를 포함해 ${formatMoney(total)}G가 필요합니다.`);
+    const senderNext=senderBalance-totalBig,targetNext=targetBalance+amountBig,t=now();
+    if(targetNext>MAX_WALLET_AMOUNT)throw new Error('받는 회원의 게임머니 최대 한도를 초과합니다.');
+    setWalletBalance(senderId,senderNext);setWalletBalance(targetId,targetNext);
+    insertLedger(senderId,-totalBig,senderNext,'friend_send',`${target.nickname}님에게 게임머니 보내기 · 송금 ${formatMoney(amount)}G · 신분 수수료 ${formatMoney(fee)}G (${feePct}%)`,t);
+    insertLedger(targetId,amountBig,targetNext,'friend_receive',`${sender.nickname}님에게 받은 게임머니`,t);
     db.exec('COMMIT');
-    return {senderBalance:senderNext,targetBalance:targetNext,amount,fee,feePct,total,target:{id:target.id,nickname:target.nickname}};
+    return {senderBalance:publicMoneyValue(senderNext),targetBalance:publicMoneyValue(targetNext),amount,fee,feePct,total,target:{id:target.id,nickname:target.nickname}};
   }catch(e){try{db.exec('ROLLBACK')}catch{};throw e;}
 }
 
@@ -603,23 +656,23 @@ function buyShopItem(userId,itemId){
       ensureLoadout(userId);
       if(LOADOUT_FIELDS.has(item.category))db.prepare(`UPDATE user_loadout SET ${item.category}=? WHERE user_id=?`).run(item.id,userId);
       db.exec('COMMIT');
-      return {balance:db.prepare('SELECT balance FROM users WHERE id=?').get(userId)?.balance||0,item,recovered:true};
+      return {balance:publicMoneyValue(walletBalanceBigInt(userId)),item,recovered:true};
     }catch(e){try{db.exec('ROLLBACK')}catch{};throw e;}
   }
   db.exec('BEGIN IMMEDIATE');
   try{
-    const u=db.prepare('SELECT balance FROM users WHERE id=?').get(userId);if(!u)throw new Error('사용자를 찾을 수 없습니다.');
-    if(u.balance<item.price)throw new Error(`게임머니가 부족합니다. ${formatMoney(item.price)}G가 필요합니다.`);
-    const next=u.balance-item.price,t=now();
-    db.prepare('UPDATE users SET balance=? WHERE id=?').run(next,userId);
+    const u=db.prepare('SELECT balance,balance_text FROM users WHERE id=?').get(userId);if(!u)throw new Error('사용자를 찾을 수 없습니다.');
+    const current=walletRowBalance(u);if(current<BigInt(item.price))throw new Error(`게임머니가 부족합니다. ${formatMoney(item.price)}G가 필요합니다.`);
+    const next=current-BigInt(item.price),t=now();
+    setWalletBalance(userId,next);
     db.prepare('INSERT INTO user_inventory(user_id,item_id,purchase_price,purchased_at) VALUES(?,?,?,?)').run(userId,item.id,item.price,t);
     ensureLoadout(userId);
     if(LOADOUT_FIELDS.has(item.category))db.prepare(`UPDATE user_loadout SET ${item.category}=? WHERE user_id=?`).run(item.id,userId);
-    db.prepare('INSERT INTO ledger(user_id,amount,balance_after,type,memo,created_at) VALUES(?,?,?,?,?,?)').run(userId,-item.price,next,'shop_purchase',`JUNJA BOUTIQUE · ${item.name} 구매 · 자동 장착`,t);
+    insertLedger(userId,-BigInt(item.price),next,'shop_purchase',`JUNJA BOUTIQUE · ${item.name} 구매 · 자동 장착`,t);
     const ownedNow=!!db.prepare('SELECT 1 FROM user_inventory WHERE user_id=? AND item_id=?').get(userId,item.id);
     const loadNow=ensureLoadout(userId);
     if(!ownedNow||LOADOUT_FIELDS.has(item.category)&&loadNow[item.category]!==item.id)throw new Error('구매 저장 검증에 실패했습니다. 결제는 취소됩니다.');
-    db.exec('COMMIT');return {balance:next,item};
+    db.exec('COMMIT');return {balance:publicMoneyValue(next),item};
   }catch(e){try{db.exec('ROLLBACK')}catch{};throw e;}
 }
 function equipShopItem(userId,category,itemId){
@@ -695,30 +748,32 @@ function socialRankPublic(userId){
 function promoteSocialRank(userId){
   db.exec('BEGIN IMMEDIATE');
   try{
-    const u=db.prepare('SELECT balance,rank_level FROM users WHERE id=?').get(userId);
+    const u=db.prepare('SELECT balance,balance_text,rank_level FROM users WHERE id=?').get(userId);
     if(!u)throw new Error('사용자를 찾을 수 없습니다.');
     const level=Math.max(0,Math.min(SOCIAL_RANKS.length-1,Number(u.rank_level||0)));
     const next=SOCIAL_RANKS[level+1];
     if(!next)throw new Error('이미 GOD JUNJA 최고 신분입니다.');
-    if(u.balance<next.cost)throw new Error(`신분 상승에 ${formatMoney(next.cost)} G가 필요합니다.`);
-    const balance=u.balance-next.cost,t=now();
-    db.prepare('UPDATE users SET balance=?,rank_level=? WHERE id=?').run(balance,next.level,userId);
-    db.prepare('INSERT INTO ledger(user_id,amount,balance_after,type,memo,created_at) VALUES(?,?,?,?,?,?)').run(userId,-next.cost,balance,'rank_promotion',`신분 상승 · ${next.name}`,t);
+    const current=walletRowBalance(u);if(current<BigInt(next.cost))throw new Error(`신분 상승에 ${formatMoney(next.cost)} G가 필요합니다.`);
+    const balance=current-BigInt(next.cost),t=now();
+    setWalletBalance(userId,balance);db.prepare('UPDATE users SET rank_level=? WHERE id=?').run(next.level,userId);
+    insertLedger(userId,-BigInt(next.cost),balance,'rank_promotion',`신분 상승 · ${next.name}`,t);
     db.exec('COMMIT');
-    return {balance,rank:socialRankPublic(userId)};
+    return {balance:publicMoneyValue(balance),rank:socialRankPublic(userId)};
   }catch(e){try{db.exec('ROLLBACK')}catch{};throw e;}
 }
 
 function userPublic(userId){
-  const u=db.prepare(`SELECT u.id,u.username,u.nickname,u.balance,u.avatar,u.created_at,u.last_daily,u.is_admin,u.is_disabled,
+  const u=db.prepare(`SELECT u.id,u.username,u.nickname,u.balance,u.balance_text,u.avatar,u.created_at,u.last_daily,u.is_admin,u.is_disabled,
     s.slot_spins,s.slot_wins,s.slot_profit,s.poker_hands,s.poker_wins,s.yut_games,s.yut_wins,
     s.seotda_games,s.seotda_wins,s.gostop_games,s.gostop_wins,s.solo_poker_wins,s.solo_yut_wins,
     s.horse_races,s.horse_wins,s.horse_profit,s.bigwheel_plays,s.bigwheel_wins,s.bigwheel_profit,s.sicbo_plays,s.sicbo_wins,s.sicbo_profit,
     s.seven_games,s.seven_wins,s.baccarat_games,s.baccarat_wins,s.baccarat_profit,s.roulette_plays,s.roulette_wins,s.roulette_profit
     FROM users u JOIN stats s ON s.user_id=u.id WHERE u.id=?`).get(userId);
   if(!u) return null;
-  return {...u, avatarEmoji:AVATARS[u.avatar%AVATARS.length], cosmetics:cosmeticsPublic(userId,true), rank:socialRankPublic(userId), dailyAvailable:u.last_daily!==kstDate()};
+  const balance=publicMoneyValue(walletRowBalance(u));delete u.balance_text;
+  return {...u,balance,avatarEmoji:AVATARS[u.avatar%AVATARS.length],cosmetics:cosmeticsPublic(userId,true),rank:socialRankPublic(userId),dailyAvailable:u.last_daily!==kstDate()};
 }
+
 
 function parseCookies(req){
   const out={};
@@ -890,12 +945,11 @@ function settleHoldemDepartures(r){
       const held=db.prepare('SELECT amount FROM room_escrow WHERE room_id=? AND user_id=?').get(r.id,p.userId);
       if(held){
         const refund=Math.max(0,Number(p.stack||0));
-        const u=db.prepare('SELECT balance FROM users WHERE id=?').get(p.userId);
+        const u=db.prepare('SELECT balance,balance_text FROM users WHERE id=?').get(p.userId);
         if(!u)throw new Error('사용자를 찾을 수 없습니다.');
-        const balance=u.balance+refund;
-        if(!Number.isSafeInteger(balance))throw new Error('게임머니 한도를 초과합니다.');
-        db.prepare('UPDATE users SET balance=? WHERE id=?').run(balance,p.userId);
-        db.prepare('INSERT INTO ledger(user_id,amount,balance_after,type,memo,created_at) VALUES(?,?,?,?,?,?)').run(p.userId,refund,balance,'holdem_cashout',`${r.name} 자동 퇴장 환급`,now());
+        const balance=walletRowBalance(u)+BigInt(refund);
+        setWalletBalance(p.userId,balance);
+        insertLedger(p.userId,refund,balance,'holdem_cashout',`${r.name} 자동 퇴장 환급`,now());
         escrowDelete(r.id,p.userId);
       }
       db.exec('COMMIT');
@@ -1856,10 +1910,10 @@ function baccaratDeal(){
 function baccaratMaxStake(r){if(r.players.length<2)return 0;const a=userPublic(r.players[0].userId),b=userPublic(r.players[1].userId);return Math.max(0,Math.min(Number(a?.balance||0),Number(b?.balance||0)));}
 function baccaratSettleBalances(r,winnerUserId,loserUserId,stake){
   db.exec('BEGIN IMMEDIATE');try{
-    const w=db.prepare('SELECT balance FROM users WHERE id=?').get(winnerUserId),l=db.prepare('SELECT balance FROM users WHERE id=?').get(loserUserId);if(!w||!l)throw new Error('참가자 계정을 찾을 수 없어.');if(l.balance<stake||w.balance<stake)throw new Error('두 참가자 중 한 명의 게임머니가 부족해.');
-    const wn=w.balance+stake,ln=l.balance-stake,t=now();db.prepare('UPDATE users SET balance=? WHERE id=?').run(wn,winnerUserId);db.prepare('UPDATE users SET balance=? WHERE id=?').run(ln,loserUserId);
-    db.prepare('INSERT INTO ledger(user_id,amount,balance_after,type,memo,created_at) VALUES(?,?,?,?,?,?)').run(winnerUserId,stake,wn,'baccarat_win',`바카라 대전 승리 +${formatMoney(stake)}G`,t);
-    db.prepare('INSERT INTO ledger(user_id,amount,balance_after,type,memo,created_at) VALUES(?,?,?,?,?,?)').run(loserUserId,-stake,ln,'baccarat_loss',`바카라 대전 패배 -${formatMoney(stake)}G`,t);
+    const w=db.prepare('SELECT balance,balance_text FROM users WHERE id=?').get(winnerUserId),l=db.prepare('SELECT balance,balance_text FROM users WHERE id=?').get(loserUserId);if(!w||!l)throw new Error('참가자 계정을 찾을 수 없어.');const wb=walletRowBalance(w),lb=walletRowBalance(l);if(lb<BigInt(stake)||wb<BigInt(stake))throw new Error('두 참가자 중 한 명의 게임머니가 부족해.');
+    const wn=wb+BigInt(stake),ln=lb-BigInt(stake),t=now();setWalletBalance(winnerUserId,wn);setWalletBalance(loserUserId,ln);
+    insertLedger(winnerUserId,stake,wn,'baccarat_win',`바카라 대전 승리 +${formatMoney(stake)}G`,t);
+    insertLedger(loserUserId,-BigInt(stake),ln,'baccarat_loss',`바카라 대전 패배 -${formatMoney(stake)}G`,t);
     db.prepare('UPDATE stats SET baccarat_games=baccarat_games+1,baccarat_wins=baccarat_wins+1,baccarat_profit=baccarat_profit+? WHERE user_id=?').run(stake,winnerUserId);
     db.prepare('UPDATE stats SET baccarat_games=baccarat_games+1,baccarat_profit=baccarat_profit-? WHERE user_id=?').run(stake,loserUserId);db.exec('COMMIT');
   }catch(e){try{db.exec('ROLLBACK')}catch{};throw e;}
@@ -1999,15 +2053,15 @@ const server=http.createServer(async(req,res)=>{
       if(db.prepare('SELECT 1 FROM user_inventory WHERE user_id=? AND item_id=?').get(targetId,item.id))return json(res,409,{error:'그 친구가 이미 보유한 아이템이야.'});
       db.exec('BEGIN IMMEDIATE');
       try{
-        const sender=db.prepare('SELECT balance FROM users WHERE id=?').get(u.id);if(!sender)throw new Error('사용자를 찾을 수 없습니다.');
+        const sender=db.prepare('SELECT balance,balance_text FROM users WHERE id=?').get(u.id);if(!sender)throw new Error('사용자를 찾을 수 없습니다.');
         const giftBonusPct=Number(socialRankPerksForUser(u.id).giftBonusPct||0),giftBonus=Math.min(10000000,Math.max(0,Math.floor(item.price*giftBonusPct/100))),charged=Math.max(0,item.price-giftBonus);
-        if(sender.balance<charged)throw new Error('게임머니가 부족해.');
-        const next=sender.balance-charged,t=now();
-        db.prepare('UPDATE users SET balance=? WHERE id=?').run(next,u.id);
+        const senderBalance=walletRowBalance(sender);if(senderBalance<BigInt(charged))throw new Error('게임머니가 부족해.');
+        const next=senderBalance-BigInt(charged),t=now();
+        setWalletBalance(u.id,next);
         db.prepare('INSERT INTO user_inventory(user_id,item_id,purchase_price,purchased_at) VALUES(?,?,?,?)').run(targetId,item.id,0,t);
-        db.prepare('INSERT INTO ledger(user_id,amount,balance_after,type,memo,created_at) VALUES(?,?,?,?,?,?)').run(u.id,-charged,next,'shop_gift',`선물 · ${target.nickname} · ${item.name}${giftBonus?` · 신분 혜택 ${formatMoney(giftBonus)}G 할인`:''}`,t);
-        const tb=db.prepare('SELECT balance FROM users WHERE id=?').get(targetId)?.balance||0;
-        db.prepare('INSERT INTO ledger(user_id,amount,balance_after,type,memo,created_at) VALUES(?,?,?,?,?,?)').run(targetId,0,tb,'gift_received',`선물 받음 · ${item.name}`,t);
+        insertLedger(u.id,-BigInt(charged),next,'shop_gift',`선물 · ${target.nickname} · ${item.name}${giftBonus?` · 신분 혜택 ${formatMoney(giftBonus)}G 할인`:''}`,t);
+        const tb=walletBalanceBigInt(targetId);
+        insertLedger(targetId,0,tb,'gift_received',`선물 받음 · ${item.name}`,t);
         db.exec('COMMIT');pushRefresh();return json(res,200,{ok:true,item:itemPublic(item),target:{id:target.id,nickname:target.nickname},giftBonus,giftBonusPct,charged,user:userPublic(u.id)});
       }catch(e){try{db.exec('ROLLBACK')}catch{};return json(res,400,{error:e.message});}
     }
