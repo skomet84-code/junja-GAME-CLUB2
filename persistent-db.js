@@ -35,6 +35,7 @@ const EXTRA_COLUMNS = {
     ['roulette_profit','INTEGER NOT NULL DEFAULT 0']
   ],
   users: [
+    ['balance_text','TEXT'],
     ['is_admin','INTEGER NOT NULL DEFAULT 0'],
     ['is_disabled','INTEGER NOT NULL DEFAULT 0'],
     ['rank_level','INTEGER NOT NULL DEFAULT 0'],
@@ -43,6 +44,13 @@ const EXTRA_COLUMNS = {
     ['rank_free_slot_used','INTEGER NOT NULL DEFAULT 0'],
     ['rank_free_wheel_date','TEXT'],
     ['rank_free_wheel_used','INTEGER NOT NULL DEFAULT 0']
+  ],
+  ledger: [
+    ['amount_text','TEXT'],
+    ['balance_after_text','TEXT']
+  ],
+  admin_audit: [
+    ['amount_text','TEXT']
   ],
   user_loadout: [
     ['character','TEXT']
@@ -86,10 +94,14 @@ async function getPool(){
       user_id BIGINT NOT NULL,
       amount BIGINT NOT NULL,
       balance_after BIGINT NOT NULL,
+      amount_text TEXT,
+      balance_after_text TEXT,
       type TEXT NOT NULL,
       memo TEXT NOT NULL,
       created_at BIGINT NOT NULL
     )`);
+    await pool.query('ALTER TABLE junja_club_ledger ADD COLUMN IF NOT EXISTS amount_text TEXT');
+    await pool.query('ALTER TABLE junja_club_ledger ADD COLUMN IF NOT EXISTS balance_after_text TEXT');
     await pool.query('CREATE INDEX IF NOT EXISTS idx_junja_club_ledger_user_created ON junja_club_ledger(user_id, created_at DESC, id DESC)');
     remoteReady=true;
   }
@@ -253,10 +265,10 @@ class DatabaseSync {
           const batch=this._ledgerDelta(ledgerMaxId);
           if(!batch.length) break;
           const chunkJson=JSON.stringify(batch);
-          await client.query(`INSERT INTO junja_club_ledger(id,user_id,amount,balance_after,type,memo,created_at)
-            SELECT x.id,x.user_id,x.amount,x.balance_after,x.type,x.memo,x.created_at
+          await client.query(`INSERT INTO junja_club_ledger(id,user_id,amount,balance_after,amount_text,balance_after_text,type,memo,created_at)
+            SELECT x.id,x.user_id,x.amount,x.balance_after,x.amount_text,x.balance_after_text,x.type,x.memo,x.created_at
             FROM jsonb_to_recordset($1::jsonb)
-              AS x(id BIGINT,user_id BIGINT,amount BIGINT,balance_after BIGINT,type TEXT,memo TEXT,created_at BIGINT)
+              AS x(id BIGINT,user_id BIGINT,amount BIGINT,balance_after BIGINT,amount_text TEXT,balance_after_text TEXT,type TEXT,memo TEXT,created_at BIGINT)
             ON CONFLICT(id) DO NOTHING`,[chunkJson]);
           ledgerCount+=batch.length;
           ledgerMaxId=Number(batch[batch.length-1].id);
