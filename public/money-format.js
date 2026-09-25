@@ -6,7 +6,6 @@
   if(typeof n==='bigint')return n;
   if(typeof n==='number'){
    if(!Number.isFinite(n))return 0n;
-   if(!Number.isSafeInteger(n))return BigInt(String(Math.trunc(n)));
    return BigInt(Math.trunc(n));
   }
   const text=String(n??'0').trim().replace(/,/g,'');
