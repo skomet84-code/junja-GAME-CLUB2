@@ -75,7 +75,7 @@ async function sendLiveReaction(key,btn){
   if(!liveGame)return;if(btn)btn.disabled=true;
   try{const d=await api('/api/live/reaction',{method:'POST',body:JSON.stringify({game:liveGame,key})});renderLiveFloor(liveGame,d.members||[]);fx('click')}catch(e){toast(e.message)}finally{setTimeout(()=>{if(btn)btn.disabled=false},750)}
 }
-function signedMoney(n){return (Number(n)>=0?'+':'')+money(n)}
+function signedMoney(n){const v=window.JunjaMoney.toBigInt(n);return (v>=0n?'+':'')+money(v)}
 function toast(msg){const e=$('#toast');if(!e)return;e.textContent=msg;e.classList.add('show');clearTimeout(e._t);e._t=setTimeout(()=>e.classList.remove('show'),2400)}
 let soundEnabled=true,audioUnlocked=false,audioUnlocking=false;
 function audioContext(){try{const C=window.AudioContext||window.webkitAudioContext;if(!C)return null;if(!fx.ctx||fx.ctx.state==='closed')fx.ctx=new C();return fx.ctx}catch{return null}}
@@ -377,10 +377,10 @@ async function loadAdmin(query='',notify=true){
     const [u,a,rr]=await Promise.all([api('/api/admin/users?q='+encodeURIComponent(query)),api('/api/admin/audit'),api('/api/admin/rooms')]);
     const rows=u.rows||[];
     $('#adminUserCount').textContent=rows.length;
-    $('#adminTotalMoney').textContent=money(rows.reduce((s,x)=>s+Number(x.balance||0),0));
+    $('#adminTotalMoney').textContent=money(rows.reduce((sum,x)=>sum+window.JunjaMoney.toBigInt(x.balance||0),0n));
     $('#adminDisabledCount').textContent=rows.filter(x=>x.is_disabled).length;
     $('#adminUsers').innerHTML=rows.map(adminUserHtml).join('')||'<div class="empty">검색 결과가 없습니다.</div>';
-    $('#adminAudit').innerHTML=(a.rows||[]).map(x=>`<div class="admin-audit-row"><div><b>${x.action==='credit'?'💰 지급':x.action==='debit'?'💸 차감':x.action==='disable'?'⛔ 이용중지':'✅ 이용재개'}</b><span>${html(x.target_nickname)} <small>@${html(x.target_username)}</small></span></div><strong class="${x.amount>0?'plus':x.amount<0?'minus':''}">${x.amount?((x.amount>0?'+':'')+money(x.amount)):'-'}</strong><p>${html(x.memo)} · ${timeText(x.created_at)}</p></div>`).join('')||'<div class="empty">관리자 작업 기록이 없습니다.</div>';
+    $('#adminAudit').innerHTML=(a.rows||[]).map(x=>{const amount=window.JunjaMoney.toBigInt(x.amount||0);return `<div class="admin-audit-row"><div><b>${x.action==='credit'?'💰 지급':x.action==='debit'?'💸 차감':x.action==='disable'?'⛔ 이용중지':'✅ 이용재개'}</b><span>${html(x.target_nickname)} <small>@${html(x.target_username)}</small></span></div><strong class="${amount>0n?'plus':amount<0n?'minus':''}">${amount!==0n?((amount>0n?'+':'')+money(amount)):'-'}</strong><p>${html(x.memo)} · ${timeText(x.created_at)}</p></div>`}).join('')||'<div class="empty">관리자 작업 기록이 없습니다.</div>';
     if($('#adminRooms'))$('#adminRooms').innerHTML=(rr.rows||[]).map(r=>`<div class="admin-room-row"><div><b>${html(r.name)}</b><small>${r.game==='holdem'?'홀덤':r.game==='baccarat'?'바카라':'윷놀이'} · ${r.status} · ${r.players}/${r.maxPlayers}명 · ${money(r.game==='baccarat'?r.stake:r.buyIn)}</small><div class="room-mini-users">${(r.participants||[]).map(p=>`<span class="${p.ready?'ready':''}">${AVATAR_SAFE(p.avatar)} ${html(p.nickname)}</span>`).join('')}</div></div><button class="danger" data-admin-close-room="${r.id}" type="button">강제 종료</button></div>`).join('')||'<div class="empty">현재 열린 게임방이 없습니다.</div>';
     bindAdminRows();bindAdminRoomRows();
   }catch(e){if(notify)toast(e.message)}
@@ -390,7 +390,7 @@ function adminUserHtml(u){
   return `<div class="admin-user-card ${u.is_disabled?'disabled-user':''}" data-admin-user="${u.id}" data-admin-balance="${u.balance}">
     <div class="admin-user-main"><div class="admin-avatar">${u.avatarEmoji}</div><div class="admin-identity"><div><b>${html(u.nickname)}</b>${u.is_admin?'<span class="admin-mini-badge">ADMIN</span>':''}${u.is_disabled?'<span class="disabled-mini-badge">STOP</span>':''}</div><small>@${html(u.username)} · 가입 ${new Date(u.created_at).toLocaleDateString('ko-KR')}</small></div><div class="admin-balance"><span>보유머니</span><b>${money(u.balance)}</b></div></div>
     <div class="admin-user-stats"><span>플레이 <b>${totalGames}</b></span><span>홀덤승 <b>${u.poker_wins||0}</b></span><span>윷승 <b>${u.yut_wins||0}</b></span><span>슬롯손익 <b>${signedMoney(u.slot_profit||0)}</b></span></div>
-    <div class="admin-quick-money credit"><span>빠른 지급</span><button type="button" data-admin-add="10000000">+1,000만</button><button type="button" data-admin-add="1000000000">+10억</button><button type="button" data-admin-add="100000000000">+1,000억</button></div>
+    <div class="admin-quick-money credit"><span>빠른 지급</span><button type="button" data-admin-add="10000000">+1,000만</button><button type="button" data-admin-add="1000000000">+10억</button><button type="button" data-admin-add="100000000000">+1,000억</button><button type="button" data-admin-add="1000000000000">+1조</button><button type="button" data-admin-add="10000000000000000">+1경</button><button type="button" data-admin-add="100000000000000000000">+1해</button></div>
     <div class="admin-quick-money debit"><span>빠른 차감</span><button type="button" data-admin-debit="100000">-10만</button><button type="button" data-admin-debit="1000000">-100만</button><button type="button" data-admin-debit="all">잔액 전액</button></div>
     <div class="admin-custom-control"><input class="admin-amount" inputmode="numeric" type="text" autocomplete="off" placeholder="지급할 금액 직접 입력" aria-label="관리자 지급 금액"><output class="admin-amount-preview" aria-live="polite"></output><input class="admin-memo" maxlength="60" placeholder="사유 예: 이벤트 보너스"><button class="admin-credit-btn" type="button">+ 지급</button><button class="admin-debit-btn danger" type="button">− 차감</button>${u.is_admin?'':`<button class="${u.is_disabled?'admin-enable-btn':'admin-disable-btn'}" type="button">${u.is_disabled?'이용재개':'이용중지'}</button>`}</div>
   </div>`;
@@ -398,9 +398,9 @@ function adminUserHtml(u){
 function bindAdminRows(){
   $$('.admin-user-card').forEach(card=>{
     const userId=Number(card.dataset.adminUser),amountInput=$('.admin-amount',card),memoInput=$('.admin-memo',card);
-    amountInput.addEventListener('input',()=>{const out=$('.admin-amount-preview',card);try{const raw=window.JunjaMoney.parseInput(amountInput.value);out.textContent=money(raw)+(BigInt(raw)>BigInt(Number.MAX_SAFE_INTEGER)?' · 현재 저장 가능 범위 초과':'');}catch{out.textContent=''}});
-    $$('[data-admin-add]',card).forEach(b=>b.onclick=()=>adminAdjustMoney(userId,Number(b.dataset.adminAdd),'credit',memoInput.value||'관리자 보너스'));
-    $$('[data-admin-debit]',card).forEach(b=>b.onclick=()=>{const n=b.dataset.adminDebit==='all'?Number(card.dataset.adminBalance||0):Number(b.dataset.adminDebit);if(n>0)adminAdjustMoney(userId,n,'debit',memoInput.value||'관리자 차감')});
+    amountInput.addEventListener('input',()=>{const out=$('.admin-amount-preview',card);try{const raw=window.JunjaMoney.parseInput(amountInput.value);out.textContent=money(raw)+' · 정확한 대형 금액 저장';}catch{out.textContent=''}});
+    $('[data-admin-add]',card).forEach(b=>b.onclick=()=>adminAdjustMoney(userId,b.dataset.adminAdd,'credit',memoInput.value||'관리자 보너스'));
+    $('[data-admin-debit]',card).forEach(b=>b.onclick=()=>{const n=b.dataset.adminDebit==='all'?(card.dataset.adminBalance||'0'):b.dataset.adminDebit;if(window.JunjaMoney.toBigInt(n)>0n)adminAdjustMoney(userId,n,'debit',memoInput.value||'관리자 차감')});
     $('.admin-credit-btn',card)?.addEventListener('click',()=>{adminAdjustMoney(userId,amountInput.value,'credit',memoInput.value||'관리자 지급')});
     $('.admin-debit-btn',card)?.addEventListener('click',()=>{adminAdjustMoney(userId,amountInput.value,'debit',memoInput.value||'관리자 차감')});
     $('.admin-disable-btn',card)?.addEventListener('click',()=>adminSetStatus(userId,true));
@@ -419,12 +419,12 @@ function bindAdminRoomRows(){
 }
 async function adminAdjustMoney(userId,amount,direction='credit',memo='관리자 조정'){
   try{amount=window.JunjaMoney.parseInput(amount)}catch(e){toast(e.message);return}
-  if(BigInt(amount)>BigInt(Number.MAX_SAFE_INTEGER)){toast('현재 정확한 지급 가능 범위는 9,007조 1,992억 5,474만 991G까지입니다. 경·해 지급은 저장 방식 확장이 필요합니다.');return}
-  const action=direction==='debit'?'차감':'지급';
-  if(direction==='debit'&&!confirm(`${money(amount)}을 정말 차감할까?`))return;
-  if(direction==='credit'&&amount>=10000000&&!confirm(`${money(amount)}을 지급할까?`))return;
+  const amountBig=window.JunjaMoney.toBigInt(amount),action=direction==='debit'?'차감':'지급';
+  if(direction==='debit'&&!confirm(`${money(amountBig)}을 정말 차감할까?`))return;
+  if(direction==='credit'&&amountBig>=10000000n&&!confirm(`${money(amountBig)}을 지급할까?`))return;
   try{const d=await api('/api/admin/wallet',{method:'POST',body:JSON.stringify({userId,amount,direction,memo})});toast(`✅ ${action} 완료 · 잔액 ${money(d.balance)}`);await loadAdmin($('#adminSearch')?.value.trim()||'');await refreshMe()}catch(e){toast(`❌ ${action} 실패 · ${e.message}`)}
 }
+
 async function adminSetStatus(userId,disabled){
   if(!confirm(disabled?'이 회원의 로그인을 즉시 중지할까?':'이 회원의 이용을 다시 허용할까?'))return;
   try{await api('/api/admin/status',{method:'POST',body:JSON.stringify({userId,disabled})});toast(disabled?'계정 이용중지 완료':'계정 이용재개 완료');await loadAdmin($('#adminSearch')?.value.trim()||'')}catch(e){toast(e.message)}
@@ -1050,10 +1050,10 @@ const ROULETTE_WHEEL=[0,32,15,19,4,21,2,25,17,34,6,27,13,36,11,30,8,23,10,5,24,1
 const ROULETTE_RED=new Set([1,3,5,7,9,12,14,16,18,19,21,23,25,27,30,32,34,36]);
 function rouletteColor(n){return n===0?'green':ROULETTE_RED.has(Number(n))?'red':'black'}
 function rouletteModeNeed(){return rouletteMode==='split'?2:rouletteMode==='corner'?4:1}
-function rouletteAmount(){const used=rouletteBets.reduce((a,b)=>a+Number(b.amount||0),0),remain=Math.max(0,Number(me?.balance||0)-used);if(rouletteChip==='max')return Math.floor(remain);return Math.min(Number(rouletteChip||1000),remain)}
+function rouletteAmount(){const used=rouletteBets.reduce((a,b)=>a+window.JunjaMoney.toBigInt(b.amount||0),0n),wallet=window.JunjaMoney.toBigInt(me?.balance||0),remain=wallet>used?wallet-used:0n;if(rouletteChip==='max')return remain.toString();const chip=window.JunjaMoney.toBigInt(rouletteChip||1000);return (chip<remain?chip:remain).toString()}
 function rouletteBetKey(b){return `${b.kind}:${Array.isArray(b.target)?b.target.join(','):b.target??''}`}
 function rouletteLabel(b){const k=b.kind,t=b.target;if(k==='straight')return `STRAIGHT ${t}`;if(k==='split')return `SPLIT ${t.join('/')}`;if(k==='street')return `STREET ${Number(t)*3-2}-${Number(t)*3}`;if(k==='corner')return `CORNER ${t.join('/')}`;if(k==='sixline')return `SIX ${Number(t)*3-2}-${(Number(t)+1)*3}`;if(k==='dozen')return `${t===1?'1ST':t===2?'2ND':'3RD'} 12`;if(k==='column')return `COLUMN ${t}`;return String(k).toUpperCase()}
-function addRouletteBet(kind,target){if(rouletteSpinning)return;let amount=rouletteAmount();if(!Number.isFinite(amount)||amount<1000){toast('베팅 가능한 게임머니가 부족해.');return}const b={kind,target,amount},key=rouletteBetKey(b),same=rouletteBets.find(x=>rouletteBetKey(x)===key);if(same)same.amount+=amount;else rouletteBets.push(b);fx('chip');renderRouletteBets();renderRouletteBoard()}
+function addRouletteBet(kind,target){if(rouletteSpinning)return;const amount=rouletteAmount(),amountBig=window.JunjaMoney.toBigInt(amount);if(amountBig<1000n){toast('베팅 가능한 게임머니가 부족해.');return}const b={kind,target,amount:amountBig.toString()},key=rouletteBetKey(b),same=rouletteBets.find(x=>rouletteBetKey(x)===key);if(same)same.amount=(window.JunjaMoney.toBigInt(same.amount)+amountBig).toString();else rouletteBets.push(b);fx('chip');renderRouletteBets();renderRouletteBoard()}
 function rouletteSelectNumber(n){n=Number(n);if(rouletteMode==='straight'){addRouletteBet('straight',n);return}if(rouletteMode==='street'){if(n===0)return toast('0은 STREET에 포함되지 않아.');addRouletteBet('street',Math.floor((n-1)/3)+1);return}if(rouletteMode==='sixline'){if(n===0)return toast('0은 SIX LINE에 포함되지 않아.');let row=Math.floor((n-1)/3)+1;if(row>=12)row=11;addRouletteBet('sixline',row);return}if(n===0&&rouletteMode==='corner')return toast('0이 포함된 코너 베팅은 이 테이블에서 지원하지 않아.');if(roulettePending.includes(n))roulettePending=roulettePending.filter(x=>x!==n);else roulettePending.push(n);const need=rouletteModeNeed();if(roulettePending.length>=need){const nums=[...roulettePending].sort((a,b)=>a-b);roulettePending=[];addRouletteBet(rouletteMode,nums)}else renderRouletteBoard()}
 function renderRouletteBoard(){
   const root=$('#rouletteBoard');if(!root)return;const numbers=Array.from({length:36},(_,i)=>i+1),pending=new Set(roulettePending);
@@ -1062,7 +1062,7 @@ function renderRouletteBoard(){
   $$('[data-rnum]',root).forEach(b=>b.onclick=()=>rouletteSelectNumber(b.dataset.rnum));$$('[data-routside]',root).forEach(b=>b.onclick=()=>{const [kind,t]=b.dataset.routside.split(':');addRouletteBet(kind,t?Number(t):null)});
   const need=rouletteModeNeed();if(roulettePending.length)$('#rouletteResult').innerHTML=`<small>${rouletteMode.toUpperCase()} SELECT</small><b>${roulettePending.join(' · ')} · ${need-roulettePending.length}개 더 선택</b>`
 }
-function renderRouletteBets(){const total=rouletteBets.reduce((a,b)=>a+Number(b.amount||0),0);if($('#rouletteBetTotal'))$('#rouletteBetTotal').textContent=money(total);if($('#rouletteBetCount'))$('#rouletteBetCount').textContent=`${rouletteBets.length} bets`;const list=$('#rouletteBetList');if(list)list.innerHTML=rouletteBets.length?rouletteBets.map((b,i)=>`<button type="button" data-rremove="${i}"><span>${html(rouletteLabel(b))}</span><b>${money(b.amount)}</b><small>× REMOVE</small></button>`).join(''):'<span class="roulette-empty-slip">테이블에서 번호·구역을 터치해 칩을 올려.</span>';$$('[data-rremove]',list).forEach(b=>b.onclick=()=>{rouletteBets.splice(Number(b.dataset.rremove),1);renderRouletteBets();renderRouletteBoard()});if($('#rouletteSpinBtn'))$('#rouletteSpinBtn').disabled=rouletteSpinning||rouletteBets.length===0||total>Number(me?.balance||0)}
+function renderRouletteBets(){const total=rouletteBets.reduce((a,b)=>a+window.JunjaMoney.toBigInt(b.amount||0),0n);if($('#rouletteBetTotal'))$('#rouletteBetTotal').textContent=money(total);if($('#rouletteBetCount'))$('#rouletteBetCount').textContent=`${rouletteBets.length} bets`;const list=$('#rouletteBetList');if(list)list.innerHTML=rouletteBets.length?rouletteBets.map((b,i)=>`<button type="button" data-rremove="${i}"><span>${html(rouletteLabel(b))}</span><b>${money(b.amount)}</b><small>× REMOVE</small></button>`).join(''):'<span class="roulette-empty-slip">테이블에서 번호·구역을 터치해 칩을 올려.</span>';$('[data-rremove]',list).forEach(b=>b.onclick=()=>{rouletteBets.splice(Number(b.dataset.rremove),1);renderRouletteBets();renderRouletteBoard()});if($('#rouletteSpinBtn'))$('#rouletteSpinBtn').disabled=rouletteSpinning||rouletteBets.length===0||total>window.JunjaMoney.toBigInt(me?.balance||0)}
 function drawRouletteWheel(){
   const canvas=$('#rouletteCanvas');if(!canvas)return;const ctx=canvas.getContext('2d'),w=canvas.width,h=canvas.height,cx=w/2,cy=h/2,r=w*.455,step=Math.PI*2/37;ctx.clearRect(0,0,w,h);ctx.save();ctx.translate(cx,cy);
   const wood=ctx.createRadialGradient(0,0,r*.5,0,0,r*1.08);wood.addColorStop(0,'#210d05');wood.addColorStop(.63,'#4d1808');wood.addColorStop(.82,'#b47a2a');wood.addColorStop(.92,'#f0ce77');wood.addColorStop(1,'#4b2c0b');ctx.beginPath();ctx.arc(0,0,r*1.08,0,Math.PI*2);ctx.fillStyle=wood;ctx.shadowColor='#000';ctx.shadowBlur=30;ctx.fill();ctx.shadowBlur=0;
@@ -1074,7 +1074,19 @@ function drawRouletteWheel(){
 function positionRouletteBall(){const ball=$('#rouletteBall'),canvas=$('#rouletteCanvas'),stage=$('.roulette-wheel-stage');if(!ball||!canvas||!stage)return;const box=canvas.getBoundingClientRect(),pb=stage.getBoundingClientRect(),size=box.width,rad=size*.397,cx=box.left-pb.left+size/2,cy=box.top-pb.top+box.height/2,x=cx+Math.cos(rouletteBallAngle)*rad,y=cy+Math.sin(rouletteBallAngle)*rad;ball.style.left=`${x}px`;ball.style.top=`${y}px`}
 function initRoulette(){drawRouletteWheel();renderRouletteBoard();renderRouletteBets();window.addEventListener('resize',positionRouletteBall,{passive:true});if(!rouletteBets.length)$('#rouletteResult').innerHTML='<small>EUROPEAN SINGLE ZERO</small><b>PLACE YOUR BETS</b>'}
 async function animateRouletteTo(result){const idx=Number(result.index),step=Math.PI*2/37,start=performance.now(),fromW=rouletteWheelAngle,fromB=rouletteBallAngle,dur=6800,wTarget=fromW+Math.PI*2*(7+Math.random()*2),finalPocket=-Math.PI/2+(idx+.5)*step,ballTarget=wTarget+finalPocket+Math.PI*2*2;$('.roulette-wheel-stage')?.classList.add('spinning');let lastTick=-1;await new Promise(resolve=>{const frame=t=>{const p=Math.min(1,(t-start)/dur),ew=1-Math.pow(1-p,3.4),eb=1-Math.pow(1-p,4.2);rouletteWheelAngle=fromW+(wTarget-fromW)*ew;rouletteBallAngle=fromB+(ballTarget-fromB)*eb;drawRouletteWheel();const tick=Math.floor((((rouletteBallAngle-rouletteWheelAngle)%(Math.PI*2)+Math.PI*2)%(Math.PI*2))/step);if(tick!==lastTick&&p>.15&&p<.96){lastTick=tick;fx('roulette')}if(p<1)requestAnimationFrame(frame);else resolve()};requestAnimationFrame(frame)});rouletteWheelAngle=wTarget;rouletteBallAngle=ballTarget;drawRouletteWheel();$('.roulette-wheel-stage')?.classList.remove('spinning')}
-async function spinRoulette(){if(rouletteSpinning||!rouletteBets.length)return;const total=rouletteBets.reduce((a,b)=>a+Number(b.amount||0),0);if(total>Number(me?.balance||0))return toast('전체 룰렛 베팅금이 보유 게임머니보다 많아.');rouletteSpinning=true;renderRouletteBets();const btn=$('#rouletteSpinBtn');if(btn)btn.textContent='NO MORE BETS · SPINNING';$('#rouletteResult').innerHTML='<small>NO MORE BETS</small><b>ROULETTE IN MOTION</b>';try{const d=await api('/api/roulette/spin',{method:'POST',body:JSON.stringify({bets:rouletteBets})});me=d.user;updateHeader();await animateRouletteTo(d.result);const r=d.result,won=r.payout>0;$('#rouletteResult').innerHTML=`<small>${r.color.toUpperCase()} · WINNING NUMBER</small><b class="${r.color}">${r.number}</b><span>${won?`${money(r.payout)} 지급 · ${signedMoney(r.profit)}`:`${money(r.totalBet)} 베팅 · MISS`}</span>`;rouletteBets=[];roulettePending=[];renderRouletteBets();renderRouletteBoard();fx(won?'win':'stop');if(won&&r.profit>0)confetti()}catch(e){toast(e.message)}finally{rouletteSpinning=false;if(btn)btn.textContent='SPIN · NO MORE BETS';renderRouletteBets()}}
+async function spinRoulette(){
+  if(rouletteSpinning||!rouletteBets.length)return;
+  const total=rouletteBets.reduce((a,b)=>a+window.JunjaMoney.toBigInt(b.amount||0),0n);
+  if(total>window.JunjaMoney.toBigInt(me?.balance||0))return toast('전체 룰렛 베팅금이 보유 게임머니보다 많아.');
+  rouletteSpinning=true;renderRouletteBets();const btn=$('#rouletteSpinBtn');if(btn)btn.textContent='NO MORE BETS · SPINNING';$('#rouletteResult').innerHTML='<small>NO MORE BETS</small><b>ROULETTE IN MOTION</b>';
+  try{
+    const d=await api('/api/roulette/spin',{method:'POST',body:JSON.stringify({bets:rouletteBets})});me=d.user;updateHeader();await animateRouletteTo(d.result);
+    const r=d.result,payout=window.JunjaMoney.toBigInt(r.payout||0),profit=window.JunjaMoney.toBigInt(r.profit||0),won=payout>0n;
+    $('#rouletteResult').innerHTML=`<small>${r.color.toUpperCase()} · WINNING NUMBER</small><b class="${r.color}">${r.number}</b><span>${won?`${money(payout)} 지급 · ${signedMoney(profit)}`:`${money(r.totalBet)} 베팅 · MISS`}</span>`;
+    rouletteBets=[];roulettePending=[];renderRouletteBets();renderRouletteBoard();fx(won?'win':'stop');if(won&&profit>0n)confetti();
+  }catch(e){toast(e.message)}finally{rouletteSpinning=false;if(btn)btn.textContent='SPIN · NO MORE BETS';renderRouletteBets()}
+}
+
 
 function confetti(){for(let i=0;i<34;i++){const x=document.createElement('i');x.style.cssText=`position:fixed;z-index:999;left:${Math.random()*100}vw;top:-15px;width:7px;height:14px;background:hsl(${Math.random()*360} 90% 65%);transform:rotate(${Math.random()*180}deg);transition:1.8s linear;pointer-events:none`;document.body.appendChild(x);requestAnimationFrame(()=>{x.style.top='105vh';x.style.transform+=` translateX(${(Math.random()-.5)*180}px) rotate(720deg)`});setTimeout(()=>x.remove(),1900)}}
 window.addEventListener('error',e=>{console.error('[JGC UI]',e.error||e.message);const t=$('#toast');if(t){t.textContent='화면 오류를 감지했어. 새로고침하면 자동 복구돼.';t.classList.add('show')}});
