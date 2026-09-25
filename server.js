@@ -1500,19 +1500,43 @@ const ROULETTE_RED=new Set([1,3,5,7,9,12,14,16,18,19,21,23,25,27,30,32,34,36]);
 function rouletteColor(n){return n===0?'green':ROULETTE_RED.has(n)?'red':'black';}
 function rouletteRows(row){row=Number(row);if(row<1||row>12)return[];return [row*3-2,row*3-1,row*3];}
 function rouletteValidateBet(b){
-  const kind=String(b?.kind||''),amount=Math.floor(Number(b?.amount||0));if(!Number.isSafeInteger(amount)||amount<1000)throw new Error('룰렛 칩은 최소 1,000G부터 걸 수 있습니다.');const target=b?.target;
-  if(kind==='straight'){const n=Number(target);if(!Number.isInteger(n)||n<0||n>36)throw new Error('잘못된 숫자 베팅입니다.');return {kind,target:n,amount,mult:36,label:String(n)};}
-  if(kind==='split'){const a=(Array.isArray(target)?target:[]).map(Number).sort((x,y)=>x-y);if(a.length!==2||a[0]===a[1]||a.some(n=>n<0||n>36))throw new Error('스플릿 숫자를 확인해주세요.');const valid=(a[0]===0&&[1,2,3].includes(a[1]))||(a[0]>0&&((Math.abs(a[0]-a[1])===3)||(a[1]-a[0]===1&&Math.floor((a[0]-1)/3)===Math.floor((a[1]-1)/3))));if(!valid)throw new Error('서로 붙어 있는 두 숫자만 SPLIT 가능해.');return {kind,target:a,amount,mult:18,label:a.join('/')};}
-  if(kind==='street'){const row=Number(target);if(!rouletteRows(row).length)throw new Error('STREET를 확인해줘.');return {kind,target:row,amount,mult:12,label:rouletteRows(row).join('-')};}
-  if(kind==='corner'){const a=(Array.isArray(target)?target:[]).map(Number).sort((x,y)=>x-y);if(a.length!==4||a.some(n=>n<1||n>36))throw new Error('CORNER 숫자를 확인해줘.');const r1=Math.floor((a[0]-1)/3)+1,r2=r1+1,c1=((a[0]-1)%3)+1,expect=[(r1-1)*3+c1,(r1-1)*3+c1+1,(r2-1)*3+c1,(r2-1)*3+c1+1].sort((x,y)=>x-y);if(c1>=3||a.join(',')!==expect.join(','))throw new Error('맞닿은 4개 숫자만 CORNER 가능해.');return {kind,target:a,amount,mult:9,label:a.join('/')};}
-  if(kind==='sixline'){const row=Number(target);if(row<1||row>11)throw new Error('SIX LINE을 확인해줘.');const nums=[...rouletteRows(row),...rouletteRows(row+1)];return {kind,target:row,amount,mult:6,label:nums.join('-')};}
-  if(kind==='dozen'){const n=Number(target);if(![1,2,3].includes(n))throw new Error('DOZEN을 확인해줘.');return {kind,target:n,amount,mult:3,label:`${(n-1)*12+1}-${n*12}`};}
-  if(kind==='column'){const n=Number(target);if(![1,2,3].includes(n))throw new Error('COLUMN을 확인해줘.');return {kind,target:n,amount,mult:3,label:`COLUMN ${n}`};}
-  if(['red','black','odd','even','low','high'].includes(kind))return {kind,target:null,amount,mult:2,label:kind.toUpperCase()};throw new Error('지원하지 않는 룰렛 베팅입니다.');
+  const kind=String(b?.kind||''),amount=moneyBigInt(b?.amount||0);
+  if(amount<1000n||amount>MAX_WALLET_AMOUNT)throw new Error('룰렛 칩은 최소 1,000G부터 보유 게임머니 범위에서 걸 수 있습니다.');
+  const target=b?.target,amountText=amount.toString();
+  if(kind==='straight'){const n=Number(target);if(!Number.isInteger(n)||n<0||n>36)throw new Error('잘못된 숫자 베팅입니다.');return {kind,target:n,amount:amountText,mult:36,label:String(n)};}
+  if(kind==='split'){const a=(Array.isArray(target)?target:[]).map(Number).sort((x,y)=>x-y);if(a.length!==2||a[0]===a[1]||a.some(n=>n<0||n>36))throw new Error('스플릿 숫자를 확인해주세요.');const valid=(a[0]===0&&[1,2,3].includes(a[1]))||(a[0]>0&&((Math.abs(a[0]-a[1])===3)||(a[1]-a[0]===1&&Math.floor((a[0]-1)/3)===Math.floor((a[1]-1)/3))));if(!valid)throw new Error('서로 붙어 있는 두 숫자만 SPLIT 가능해.');return {kind,target:a,amount:amountText,mult:18,label:a.join('/')};}
+  if(kind==='street'){const row=Number(target);if(!rouletteRows(row).length)throw new Error('STREET를 확인해줘.');return {kind,target:row,amount:amountText,mult:12,label:rouletteRows(row).join('-')};}
+  if(kind==='corner'){const a=(Array.isArray(target)?target:[]).map(Number).sort((x,y)=>x-y);if(a.length!==4||a.some(n=>n<1||n>36))throw new Error('CORNER 숫자를 확인해줘.');const r1=Math.floor((a[0]-1)/3)+1,r2=r1+1,c1=((a[0]-1)%3)+1,expect=[(r1-1)*3+c1,(r1-1)*3+c1+1,(r2-1)*3+c1,(r2-1)*3+c1+1].sort((x,y)=>x-y);if(c1>=3||a.join(',')!==expect.join(','))throw new Error('맞닿은 4개 숫자만 CORNER 가능해.');return {kind,target:a,amount:amountText,mult:9,label:a.join('/')};}
+  if(kind==='sixline'){const row=Number(target);if(row<1||row>11)throw new Error('SIX LINE을 확인해줘.');const nums=[...rouletteRows(row),...rouletteRows(row+1)];return {kind,target:row,amount:amountText,mult:6,label:nums.join('-')};}
+  if(kind==='dozen'){const n=Number(target);if(![1,2,3].includes(n))throw new Error('DOZEN을 확인해줘.');return {kind,target:n,amount:amountText,mult:3,label:`${(n-1)*12+1}-${n*12}`};}
+  if(kind==='column'){const n=Number(target);if(![1,2,3].includes(n))throw new Error('COLUMN을 확인해줘.');return {kind,target:n,amount:amountText,mult:3,label:`COLUMN ${n}`};}
+  if(['red','black','odd','even','low','high'].includes(kind))return {kind,target:null,amount:amountText,mult:2,label:kind.toUpperCase()};
+  throw new Error('지원하지 않는 룰렛 베팅입니다.');
 }
+
 let rouletteEventArmed=false;
 function rouletteBetWins(b,n){if(b.kind==='straight')return n===b.target;if(b.kind==='split'||b.kind==='corner')return b.target.includes(n);if(b.kind==='street')return rouletteRows(b.target).includes(n);if(b.kind==='sixline')return [...rouletteRows(b.target),...rouletteRows(b.target+1)].includes(n);if(b.kind==='dozen')return n>=1+(b.target-1)*12&&n<=b.target*12;if(b.kind==='column')return n>0&&((n-1)%3)+1===b.target;if(b.kind==='red')return rouletteColor(n)==='red';if(b.kind==='black')return rouletteColor(n)==='black';if(b.kind==='odd')return n>0&&n%2===1;if(b.kind==='even')return n>0&&n%2===0;if(b.kind==='low')return n>=1&&n<=18;if(b.kind==='high')return n>=19&&n<=36;return false;}
-function rouletteSpin(user,rawBets){if(!Array.isArray(rawBets)||!rawBets.length)throw new Error('룰렛 베팅을 하나 이상 올려줘.');if(rawBets.length>30)throw new Error('한 라운드에는 최대 30개 베팅까지 가능해.');const bets=rawBets.map(rouletteValidateBet),totalBet=bets.reduce((a,b)=>a+b.amount,0);if(totalBet>user.balance)throw new Error('전체 베팅금이 보유 게임머니보다 많아.');walletChange(user.id,-totalBet,'roulette_bet',`유럽식 룰렛 ${bets.length}개 베팅 · ${formatMoney(totalBet)}G`);const ROULETTE_EVENT_RATE=.10;const eventHit=rouletteEventArmed&&crypto.randomInt(10000)<Math.floor(ROULETTE_EVENT_RATE*10000);const winningNumbers=[];for(let n=0;n<=36;n++){if(bets.some(b=>rouletteBetWins(b,n)))winningNumbers.push(n);}const eventWinner=eventHit&&winningNumbers.length>0;const number=eventWinner?winningNumbers[crypto.randomInt(winningNumbers.length)]:crypto.randomInt(37),color=rouletteColor(number);if(eventWinner)rouletteEventArmed=false;let payout=0;const settled=bets.map(b=>{const won=rouletteBetWins(b,number),returned=won?b.amount*b.mult:0;payout+=returned;return {...b,won,returned};});if(payout>0)walletChange(user.id,payout,'roulette_win',`룰렛 ${number} ${color.toUpperCase()} · 지급 ${formatMoney(payout)}G`);const profit=payout-totalBet;db.prepare('UPDATE stats SET roulette_plays=roulette_plays+1,roulette_wins=roulette_wins+?,roulette_profit=roulette_profit+? WHERE user_id=?').run(payout>0?1:0,profit,user.id);pushRefresh();return {number,color,index:ROULETTE_WHEEL.indexOf(number),bets:settled,totalBet,payout,profit};}
+function rouletteSpin(user,rawBets){
+  if(!Array.isArray(rawBets)||!rawBets.length)throw new Error('룰렛 베팅을 하나 이상 올려줘.');
+  if(rawBets.length>30)throw new Error('한 라운드에는 최대 30개 베팅까지 가능해.');
+  const bets=rawBets.map(rouletteValidateBet),totalBet=bets.reduce((a,b)=>a+moneyBigInt(b.amount),0n),wallet=walletBalanceBigInt(user.id);
+  if(totalBet>wallet)throw new Error('전체 베팅금이 보유 게임머니보다 많아.');
+  const ROULETTE_EVENT_RATE=.10,eventHit=rouletteEventArmed&&crypto.randomInt(10000)<Math.floor(ROULETTE_EVENT_RATE*10000),winningNumbers=[];
+  for(let n=0;n<=36;n++){if(bets.some(b=>rouletteBetWins(b,n)))winningNumbers.push(n);}
+  const eventWinner=eventHit&&winningNumbers.length>0,number=eventWinner?winningNumbers[crypto.randomInt(winningNumbers.length)]:crypto.randomInt(37),color=rouletteColor(number);
+  let payout=0n;
+  const settled=bets.map(b=>{const won=rouletteBetWins(b,number),returned=won?moneyBigInt(b.amount)*BigInt(b.mult):0n;payout+=returned;return {...b,won,returned:returned.toString()};});
+  const finalBalance=wallet-totalBet+payout;
+  if(finalBalance>MAX_WALLET_AMOUNT)throw new Error('당첨 지급 후 보유 게임머니 최대 한도를 초과합니다. 베팅액을 낮춰주세요.');
+  walletChange(user.id,-totalBet,'roulette_bet',`유럽식 룰렛 ${bets.length}개 베팅 · ${formatMoney(totalBet)}G`);
+  if(payout>0n)walletChange(user.id,payout,'roulette_win',`룰렛 ${number} ${color.toUpperCase()} · 지급 ${formatMoney(payout)}G`);
+  if(eventWinner)rouletteEventArmed=false;
+  const profit=payout-totalBet,st=db.prepare('SELECT roulette_profit FROM stats WHERE user_id=?').get(user.id),statProfit=safeMoneyMirror(BigInt(st?.roulette_profit||0)+profit);
+  db.prepare('UPDATE stats SET roulette_plays=roulette_plays+1,roulette_wins=roulette_wins+?,roulette_profit=? WHERE user_id=?').run(payout>0n?1:0,statProfit,user.id);
+  pushRefresh();
+  return {number,color,index:ROULETTE_WHEEL.indexOf(number),bets:settled,totalBet:totalBet.toString(),payout:payout.toString(),profit:profit.toString()};
+}
+
 
 // ---------- Big Wheel & Sic Bo v1.3 ----------
 const BIG_WHEEL_DEFS = {
@@ -2084,47 +2108,56 @@ const server=http.createServer(async(req,res)=>{
     if(url.pathname==='/api/daily-draw/pick'&&req.method==='POST'){const u=requireAuth(req,res);if(!u)return;if(!rateLimit('daily_draw:'+u.id,8,60000))return json(res,429,{error:'뽑기 요청이 너무 빠릅니다.'});const b=await readBody(req);try{const result=dailyDrawPick(u.id,b.number);pushRefresh();return json(res,200,{ok:true,...result,user:userPublic(u.id)});}catch(e){return json(res,409,{error:e.message,state:dailyDrawState(u.id)});}}
     if(url.pathname==='/api/daily'&&req.method==='POST'){
       const u=requireAuth(req,res);if(!u)return;const d=kstDate();if(u.last_daily===d)return json(res,409,{error:'오늘 출석 보너스는 이미 받았습니다.'});
-      const cosmeticPct=Number(cosmeticsPublic(u.id,true)?.perks?.dailyBonusPct||0),rankPerks=socialRankPerksForUser(u.id),rankPct=Number(rankPerks.dailyBonusPct||0),dailyPct=cosmeticPct+rankPct;db.exec('BEGIN IMMEDIATE');try{const fresh=db.prepare('SELECT balance,last_daily,last_rank_salary FROM users WHERE id=?').get(u.id);if(!fresh)throw new Error('사용자를 찾을 수 없습니다.');if(fresh.last_daily===d){db.exec('ROLLBACK');return json(res,409,{error:'오늘 출석 보너스는 이미 받았습니다.'});}const dailyAmount=Math.floor(50000*(1+dailyPct/100)),salary=(fresh.last_rank_salary===d?0:Number(rankPerks.dailySalary||0)),interestPct=Number(rankPerks.dailyInterestPct||0),interest=Math.min(100000000,Math.max(0,Math.floor(Number(fresh.balance||0)*interestPct/100))),total=dailyAmount+salary+interest,bal=Number(fresh.balance||0)+total;if(!Number.isSafeInteger(bal))throw new Error('게임머니 한도를 초과합니다.');db.prepare('UPDATE users SET balance=?,last_daily=?,last_rank_salary=? WHERE id=?').run(bal,d,d,u.id);db.prepare('INSERT INTO ledger(user_id,amount,balance_after,type,memo,created_at) VALUES(?,?,?,?,?,?)').run(u.id,total,bal,'daily',`오늘의 출석 ${formatMoney(dailyAmount)}G${salary?` · 신분 월급 ${formatMoney(salary)}G`:''}${interest?` · 신분 이자 ${formatMoney(interest)}G`:''}`,now());db.exec('COMMIT');pushRefresh();return json(res,200,{balance:bal,amount:total,attendanceAmount:dailyAmount,rankSalary:salary,rankInterest:interest,rankInterestPct:interestPct,dailyBonusPct:dailyPct,rankBonusPct:rankPct});}catch(e){try{db.exec('ROLLBACK')}catch{}throw e;}
+      const cosmeticPct=Number(cosmeticsPublic(u.id,true)?.perks?.dailyBonusPct||0),rankPerks=socialRankPerksForUser(u.id),rankPct=Number(rankPerks.dailyBonusPct||0),dailyPct=cosmeticPct+rankPct;
+      db.exec('BEGIN IMMEDIATE');
+      try{
+        const fresh=db.prepare('SELECT balance,balance_text,last_daily,last_rank_salary FROM users WHERE id=?').get(u.id);
+        if(!fresh)throw new Error('사용자를 찾을 수 없습니다.');
+        if(fresh.last_daily===d){db.exec('ROLLBACK');return json(res,409,{error:'오늘 출석 보너스는 이미 받았습니다.'});}
+        const current=walletRowBalance(fresh),dailyAmount=Math.floor(50000*(1+dailyPct/100)),salary=(fresh.last_rank_salary===d?0:Number(rankPerks.dailySalary||0)),interestPct=Number(rankPerks.dailyInterestPct||0);
+        const interest=Math.min(100000000,Math.max(0,Math.floor(Number(current)*interestPct/100))),total=dailyAmount+salary+interest,bal=current+BigInt(total);
+        setWalletBalance(u.id,bal);db.prepare('UPDATE users SET last_daily=?,last_rank_salary=? WHERE id=?').run(d,d,u.id);
+        insertLedger(u.id,total,bal,'daily',`오늘의 출석 ${formatMoney(dailyAmount)}G${salary?` · 신분 월급 ${formatMoney(salary)}G`:''}${interest?` · 신분 이자 ${formatMoney(interest)}G`:''}`,now());
+        db.exec('COMMIT');pushRefresh();return json(res,200,{balance:publicMoneyValue(bal),amount:total,attendanceAmount:dailyAmount,rankSalary:salary,rankInterest:interest,rankInterestPct:interestPct,dailyBonusPct:dailyPct,rankBonusPct:rankPct});
+      }catch(e){try{db.exec('ROLLBACK')}catch{}throw e;}
     }
     if(url.pathname==='/api/ledger'&&req.method==='GET'){
-      const u=requireAuth(req,res);if(!u)return;const rows=db.prepare('SELECT amount,balance_after,type,memo,created_at FROM ledger WHERE user_id=? ORDER BY id DESC LIMIT 30').all(u.id);return json(res,200,{rows});
+      const u=requireAuth(req,res);if(!u)return;const rows=db.prepare('SELECT amount,amount_text,balance_after,balance_after_text,type,memo,created_at FROM ledger WHERE user_id=? ORDER BY id DESC LIMIT 30').all(u.id).map(x=>({...x,amount:x.amount_text||x.amount,balance_after:x.balance_after_text||x.balance_after}));return json(res,200,{rows});
     }
     if(url.pathname==='/api/leaderboard'&&req.method==='GET'){
-      const u=requireAuth(req,res);if(!u)return;const rows=db.prepare(`SELECT u.id,u.nickname,u.balance,u.avatar,s.poker_wins,s.yut_wins,s.slot_profit,s.seotda_wins,s.gostop_wins FROM users u JOIN stats s ON s.user_id=u.id ORDER BY u.balance DESC LIMIT 20`).all().map(x=>({...x,avatarEmoji:AVATARS[x.avatar%AVATARS.length],cosmetics:cosmeticsPublic(x.id),rank:socialRankPublic(x.id)}));return json(res,200,{rows});
+      const u=requireAuth(req,res);if(!u)return;const rows=db.prepare(`SELECT u.id,u.nickname,u.balance,u.balance_text,u.avatar,s.poker_wins,s.yut_wins,s.slot_profit,s.seotda_wins,s.gostop_wins FROM users u JOIN stats s ON s.user_id=u.id ORDER BY u.balance DESC LIMIT 200`).all().map(x=>{const balance=publicMoneyValue(walletRowBalance(x));delete x.balance_text;return {...x,balance,avatarEmoji:AVATARS[x.avatar%AVATARS.length],cosmetics:cosmeticsPublic(x.id),rank:socialRankPublic(x.id)}}).sort((a,b)=>{const A=moneyBigInt(a.balance),B=moneyBigInt(b.balance);return A===B?0:A>B?-1:1}).slice(0,20);return json(res,200,{rows});
     }
     if(url.pathname==='/api/admin/users'&&req.method==='GET'){
       const admin=requireAdmin(req,res);if(!admin)return;
       const q=escText(url.searchParams.get('q')||'',30);
       const like=`%${q}%`;
-      const rows=db.prepare(`SELECT u.id,u.username,u.nickname,u.balance,u.created_at,u.is_admin,u.is_disabled,u.avatar,
+      const rows=db.prepare(`SELECT u.id,u.username,u.nickname,u.balance,u.balance_text,u.created_at,u.is_admin,u.is_disabled,u.avatar,
         s.slot_spins,s.slot_profit,s.poker_hands,s.poker_wins,s.yut_games,s.yut_wins,s.seotda_games,s.seotda_wins,s.gostop_games,s.gostop_wins,s.horse_races,s.horse_wins,s.horse_profit,s.bigwheel_plays,s.bigwheel_wins,s.bigwheel_profit,s.sicbo_plays,s.sicbo_wins,s.sicbo_profit,
     s.seven_games,s.seven_wins,s.baccarat_games,s.baccarat_wins,s.baccarat_profit,s.roulette_plays,s.roulette_wins,s.roulette_profit
         FROM users u JOIN stats s ON s.user_id=u.id
         WHERE (?='' OR u.username LIKE ? OR u.nickname LIKE ?)
-        ORDER BY u.is_admin DESC,u.id DESC LIMIT 100`).all(q,like,like).map(x=>({...x,avatarEmoji:AVATARS[x.avatar%AVATARS.length]}));
+        ORDER BY u.is_admin DESC,u.id DESC LIMIT 100`).all(q,like,like).map(x=>{const balance=publicMoneyValue(walletRowBalance(x));delete x.balance_text;return {...x,balance,avatarEmoji:AVATARS[x.avatar%AVATARS.length]}});
       return json(res,200,{rows});
     }
     if(url.pathname==='/api/admin/audit'&&req.method==='GET'){
       const admin=requireAdmin(req,res);if(!admin)return;
-      const rows=db.prepare(`SELECT a.id,a.action,a.amount,a.memo,a.created_at,au.nickname admin_nickname,tu.nickname target_nickname,tu.username target_username
-        FROM admin_audit a JOIN users au ON au.id=a.admin_user_id JOIN users tu ON tu.id=a.target_user_id ORDER BY a.id DESC LIMIT 80`).all();
+      const rows=db.prepare(`SELECT a.id,a.action,a.amount,a.amount_text,a.memo,a.created_at,au.nickname admin_nickname,tu.nickname target_nickname,tu.username target_username
+        FROM admin_audit a JOIN users au ON au.id=a.admin_user_id JOIN users tu ON tu.id=a.target_user_id ORDER BY a.id DESC LIMIT 80`).all().map(x=>({...x,amount:x.amount_text||x.amount}));
       return json(res,200,{rows});
     }
     if(url.pathname==='/api/admin/wallet'&&req.method==='POST'){
       const admin=requireAdmin(req,res);if(!admin)return;
-      const b=await readBody(req);const targetId=Number(b.userId),memo=escText(b.memo,60)||'관리자 조정';
-      const target=db.prepare('SELECT id,balance FROM users WHERE id=?').get(targetId);
+      const b=await readBody(req),targetId=Number(b.userId),memo=escText(b.memo,60)||'관리자 조정';
+      const target=db.prepare('SELECT id,balance,balance_text FROM users WHERE id=?').get(targetId);
       if(!Number.isInteger(targetId)||!target)return json(res,404,{error:'대상 회원을 찾을 수 없습니다.'});
       let amountText;try{amountText=moneyFormat.parseInput(b.amount)}catch(e){return json(res,400,{error:e.message});}
-      if(BigInt(amountText)>BigInt(Number.MAX_SAFE_INTEGER))return json(res,400,{error:'현재 정확한 지급 가능 범위는 9,007조 1,992억 5,474만 991G까지입니다. 경·해 지급은 저장 방식 확장이 필요합니다.'});
-      const raw=Number(amountText),direction=String(b.direction||'');
-      if(!Number.isInteger(raw)||raw<1||raw>1000000000)return json(res,400,{error:'조정 금액은 1~1,000,000,000 G 범위의 정수로 입력하세요.'});
-      let amount=direction==='debit'?-raw:direction==='credit'?raw:Number(b.amount);
-      if(!Number.isInteger(amount)||amount===0)amount=raw;
-      if(amount<0&&raw>target.balance)return json(res,400,{error:`현재 잔액 ${formatMoney(target.balance)}G보다 많이 차감할 수 없습니다.`});
+      const raw=BigInt(amountText),direction=String(b.direction||'credit');
+      if(raw>MAX_WALLET_AMOUNT)return json(res,400,{error:'1회 조정 가능 최대 금액은 9,999무량대수 G입니다.'});
+      const current=walletRowBalance(target),amount=direction==='debit'?-raw:raw;
+      if(amount<0n&&raw>current)return json(res,400,{error:`현재 잔액 ${moneyFormat.compact(current)}G보다 많이 차감할 수 없습니다.`});
       let balance;
-      try{balance=walletChange(targetId,amount,amount>0?'admin_credit':'admin_debit',`관리자 조정 · ${memo}`);}catch(e){return json(res,400,{error:e.message});}
-      db.prepare('INSERT INTO admin_audit(admin_user_id,target_user_id,action,amount,memo,created_at) VALUES(?,?,?,?,?,?)').run(admin.id,targetId,amount>0?'credit':'debit',amount,memo,now());
+      try{balance=walletChange(targetId,amount,amount>0n?'admin_credit':'admin_debit',`관리자 조정 · ${memo}`);}catch(e){return json(res,400,{error:e.message});}
+      insertAdminAudit(admin.id,targetId,amount>0n?'credit':'debit',amount,memo,now());
       pushRefresh();return json(res,200,{ok:true,balance,user:userPublic(targetId)});
     }
     if(url.pathname==='/api/admin/status'&&req.method==='POST'){
