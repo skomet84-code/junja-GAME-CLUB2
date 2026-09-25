@@ -124,3 +124,5 @@ const runtimeServer = new Module(serverPath, module);
 runtimeServer.filename = serverPath;
 runtimeServer.paths = Module._nodeModulePaths(__dirname);
 runtimeServer._compile(source, serverPath);
+// Release boot-time source copies after compilation to stay within the 512MB plan.
+source = null; appSource = null; indexSource = null;
