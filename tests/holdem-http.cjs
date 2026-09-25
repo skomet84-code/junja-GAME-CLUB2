@@ -41,7 +41,51 @@ const net=require('node:net');
     await api(1,url+'/leave',{});
     let sum=0;for(let n=0;n<3;n++)sum+=(await api(n,'/api/me')).user.balance;
     assert.equal(sum,3000000,'all chips conserved through queue, fold and cashout');
-    console.log('HOLDEM_HTTP_RUNTIME_TESTS_OK');
+    const html=await (await fetch(base)).text();
+    assert.ok(html.indexOf('/money-format.js')<html.indexOf('/app.js'));
+    assert.equal((await fetch(base+'/money-format.js')).status,200);
+    let solo=(await api(0,'/api/solo/holdem/start',{})).room;
+    const total=solo.players.reduce((n,p)=>n+p.stack,0)+solo.hand.pot;
+    for(let hand=0;hand<8;hand++){
+      let guard=0;
+      while(solo.hand.phase!=='complete'&&guard++<15){
+        assert.equal(solo.hand.turnUserId,users[0].id);
+        const legal=solo.hand.legal;
+        const action=legal.maxRaiseTo>solo.hand.currentBet?'raise':legal.toCall?'call':'check';
+        solo=(await api(0,'/api/solo/holdem/action',{action,raiseTo:legal.maxRaiseTo})).room;
+      }
+      assert.equal(solo.hand.phase,'complete');
+      assert.equal(solo.players.reduce((n,p)=>n+p.stack,0),total,'AI round preserves chips');
+      if(solo.players.some(p=>p.stack<=0))break;
+      solo=(await api(0,'/api/solo/holdem/next',{})).room;
+    }
+    await api(0,'/api/solo/holdem/leave',{});
+    let seven=(await api(1,'/api/solo/seven/start',{})).game;
+    const sevenTotal=seven.stack.user+seven.stack.bot+(seven.complete?0:seven.pot);
+    let steps=0;while(!seven.complete&&steps++<15){
+      assert.equal(seven.turn,'user');
+      const action=seven.legal.canRaise?'raise':seven.legal.toCall?'call':'check';
+      seven=(await api(1,'/api/solo/seven/action',{action,raiseTo:seven.legal.maxRaiseTo})).game;
+    }
+    assert.ok(seven.complete);assert.equal(seven.stack.user+seven.stack.bot,sevenTotal);
+    const cashout=await api(1,'/api/solo/seven/leave',{});assert.equal(cashout.user.balance,seven.stack.user);
+    const {DatabaseSync}=require('node:sqlite');
+    const localDB=new DatabaseSync(path.join(data,'club.db'));
+    localDB.prepare('UPDATE users SET balance=? WHERE id=?').run(30000000000000,users[2].id);localDB.close();
+    const ids=['frame_ultimate_solar','frame_ultimate_void','frame_ultimate_seraph'];
+    for(let i=0;i<ids.length;i++){
+      const bought=await api(2,'/api/shop/buy',{itemId:ids[i]});
+      assert.equal(bought.user.balance,(2-i)*10000000000000);
+      assert.equal(bought.user.cosmetics.frame.id,ids[i]);
+    }
+    const shop=await api(2,'/api/shop');
+    assert.equal(shop.items.filter(x=>x.collection==='ultimate'&&x.owned).length,3);
+    const duplicate=await fetch(base+'/api/shop/buy',{method:'POST',headers:{cookie:users[2].cookie,'Content-Type':'application/json'},body:JSON.stringify({itemId:ids[0]})});
+    assert.equal(duplicate.status,400);assert.equal((await api(2,'/api/me')).user.balance,0);
+    const verifyDB=new DatabaseSync(path.join(data,'club.db'));
+    assert.equal(verifyDB.prepare('SELECT frame FROM user_loadout WHERE user_id=?').get(users[2].id).frame,ids[2]);
+    assert.equal(verifyDB.prepare('SELECT count(*) n FROM user_inventory WHERE user_id=?').get(users[2].id).n,3);verifyDB.close();
+    console.log('HOLDEM_SEVEN_ULTIMATE_HTTP_RUNTIME_TESTS_OK');
   }catch(e){console.error(logs);throw e;}
   finally{child.kill('SIGTERM');await new Promise(r=>child.once('exit',r));}
 })().catch(e=>{console.error(e);process.exitCode=1;});

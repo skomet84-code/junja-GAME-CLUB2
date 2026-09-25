@@ -2,7 +2,7 @@
   'use strict';
   const state={root:null,room:null,rooms:[],poll:null,clock:null,busy:false,me:null,lastRoomId:null,bet:10000000,fxKey:null};
   const q=(s,r=state.root||document)=>r?.querySelector?.(s)||null;
-  const money=n=>new Intl.NumberFormat('ko-KR').format(Number(n||0))+' G';
+  const money=n=>window.JunjaMoney.compact(n)+' G';
   const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
   async function api(path,opts={}){
     if(typeof window.api==='function') return window.api(path,opts);

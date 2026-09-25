@@ -1,0 +1,22 @@
+'use strict';
+const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
+const ai=require('../seven-ai'),money=require('../public/money-format');
+let seed=926;const rng=()=>((seed=(Math.imul(seed,1664525)+1013904223)>>>0)/4294967296);
+const base={cards:['AS','KS','QS','JS','TS','2H','3D'],exposed:['2S','3S','4H','7C'],stack:100000,roundBet:0,currentBet:100000,minRaise:1000,opponentStack:0,opponentRoundBet:100000,pot:101000};
+assert.equal(ai.decide(base,rng).action,'call');
+assert.equal(ai.decide({...base,cards:['2C','4D','6S','8H','TC','JD','3H'],exposed:['AS','AH','AD','AC']},rng).action,'fold');
+let raises=0;for(let i=0;i<20;i++){const d=ai.decide({...base,currentBet:0,opponentRoundBet:0,opponentStack:100000,pot:1000},rng);assert.notEqual(d.action,'fold');if(d.action==='raise'){raises++;assert.ok(d.raiseTo>=1000&&d.raiseTo<=100000);}}
+assert.ok(raises>=12);
+const saved=seed,decision=ai.decide(base,rng);seed=saved;assert.deepEqual(ai.decide({...base,opponentHidden:['9S','9H'],deck:['5S']},rng),decision);
+const source=fs.readFileSync('server.js','utf8');const ctx={sevenAllIn:(s,side)=>s.stack[side]<=0};vm.createContext(ctx);
+vm.runInContext(source.slice(source.indexOf('function sevenRoundDone'),source.indexOf('function sevenFinishFold')),ctx);
+const state={folded:{user:false,bot:false},stack:{user:0,bot:1000},roundBet:{user:1000,bot:0},currentBet:1000,acted:{user:true,bot:false}};
+assert.equal(ctx.sevenRoundDone(state),false,'an all-in must wait for the opposing call/fold');
+state.roundBet.bot=1000;state.acted.bot=true;state.stack.bot=0;assert.equal(ctx.sevenRoundDone(state),true);
+assert.equal(money.compact('10000000000000000'),'1경');
+assert.equal(money.compact('123450000000000000000'),'1해 2,345경');
+assert.equal(money.exact('100000000000000000001'),'100,000,000,000,000,000,001');
+assert.equal(money.parseInput('100,000,000,000,000,000,001'),'100000000000000000001');
+for(const bad of ['1.2','-1','1e20','Infinity','0'])assert.throws(()=>money.parseInput(bad));
+const app=fs.readFileSync('public/app.js','utf8');assert.ok(app.includes('Number(card.dataset.adminBalance||0)'));assert.ok(!app.includes("textContent.replace(/[^0-9]/g"));
+console.log('SEVEN_AI_MONEY_OK: all-in response, strong/weak decisions, hidden-card independence, large decimal strings');

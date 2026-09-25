@@ -1389,3 +1389,27 @@ button:not(:disabled){touch-action:manipulation}
   z-index:4!important;
 }
 .poker-result-overlay{max-height:80%;overflow-y:auto;pointer-events:auto}.poker-payout{display:grid;gap:3px;padding:8px 0;border-top:1px solid #f1cf6a55}.poker-payout strong{font-size:clamp(20px,4vw,30px)}.poker-payout b{font-size:clamp(19px,4vw,28px);color:#ffe49a}.poker-payout span{font-size:14px}
+
+/* Compact wallet: keep the amount inside its mobile pill. */
+.wallet-pill{min-width:0;max-width:210px;flex-shrink:1}
+.wallet-pill b{display:block;white-space:nowrap;font-variant-numeric:tabular-nums;font-size:clamp(11px,3.2vw,15px);cursor:pointer}
+.admin-amount-preview{display:block;color:#ffe48c;overflow-wrap:anywhere;font-size:12px}
+#profileBalance{overflow-wrap:anywhere}
+@media(max-width:480px){.wallet-pill{min-width:0;padding:6px 8px;max-width:165px}.wallet-pill b{font-size:11px}}
+/* Ultimate Collection — lightweight CSS effects, no polling or video assets. */
+.ultimate-vault{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:30px;margin:18px 0;border:1px solid #f4d68880;background:radial-gradient(ellipse at 90% 0,#815cd840,transparent 65%),linear-gradient(120deg,#211a31,#080d1b);box-shadow:inset 0 0 45px #caa34a12}
+.ultimate-vault small{color:#e8c77d;font-size:10px;letter-spacing:.28em}.ultimate-vault h3{margin:10px 0;color:#fff1cd;font-size:32px}.ultimate-vault p{color:#cdbedf}.ultimate-vault span{font-size:12px;color:#a7b1c9}.ultimate-vault button{padding:16px;border:1px solid #f5d688;border-radius:14px;background:linear-gradient(130deg,#fae2a8,#bd9348);color:#251b10;font-weight:900}
+.shop-item.rarity-ultimate{border:1px solid #e7c575!important;background:radial-gradient(ellipse at top,#60477835,transparent 50%),#0b0f1c;box-shadow:inset 0 0 24px #ffd78c0c,0 8px 32px #0005}
+.rarity-ultimate .rarity{color:#ffe5a3;letter-spacing:.15em}.rarity-ultimate .prestige-badge{background:#efcb7e;color:#241624}.rarity-ultimate h3{color:#fff0c5!important}.shop-frame-preview.preview-ultimate{height:205px;overflow:visible;background:radial-gradient(ellipse,#49357166,transparent 70%);position:relative}.preview-ultimate .shop-face{width:100px;height:100px;margin-top:12px}.preview-ultimate .frame-preview-label{margin-top:22px;color:#dabd79}
+.styled-avatar[class*="frame-ultimate_"]{position:relative;isolation:isolate;overflow:visible!important;border-radius:28%;--ult-a:#ffdc78;--ult-b:#fff3c9;box-shadow:0 0 0 3px var(--ult-b),0 0 0 6px #785726,0 0 24px var(--ult-a)}
+.styled-avatar[class*="frame-ultimate_"]>.game-face{border-radius:inherit;position:relative;z-index:1}
+.ultimate-aura{position:absolute;inset:-14%;pointer-events:none;z-index:2;border:1px solid var(--ult-a);border-radius:32%;box-shadow:0 0 12px var(--ult-a),inset 0 0 10px var(--ult-a)}
+.ultimate-aura:before{content:'';position:absolute;inset:-9%;border:2px solid transparent;border-top-color:var(--ult-b);border-bottom-color:var(--ult-a);border-radius:50%;animation:ultimate-orbit 9s linear infinite}
+.ultimate-aura:after{content:'♛';position:absolute;left:50%;top:-24%;transform:translateX(-50%);font-size:clamp(16px,2em,32px);line-height:1;color:var(--ult-b);text-shadow:0 0 12px var(--ult-a)}
+.ultimate-aura b{position:absolute;bottom:-15%;left:43%;color:var(--ult-b);font-size:18px;text-shadow:0 0 12px var(--ult-a);animation:ultimate-glow 3s ease-in-out infinite alternate}
+.styled-avatar.frame-ultimate_void{--ult-a:#9761ff;--ult-b:#8effeb;box-shadow:0 0 0 3px #91ffee,0 0 0 7px #39196b,0 0 30px #9253ff}
+.frame-ultimate_void .ultimate-aura{border-radius:50%;transform:rotate(-16deg)}.frame-ultimate_void .ultimate-aura:after{content:'✦';color:#d7c0ff}.frame-ultimate_void .ultimate-aura:before{inset:-15%;border-left-color:#b784ff;animation-duration:12s}
+.styled-avatar.frame-ultimate_seraph{--ult-a:#8fd6ff;--ult-b:#fff}.frame-ultimate_seraph .ultimate-aura:after{content:'♜';color:#fff}.frame-ultimate_seraph .ultimate-aura i:before,.frame-ultimate_seraph .ultimate-aura i:after{content:'';position:absolute;top:10%;width:28%;height:75%;background:linear-gradient(130deg,#fff,#94c9ed80);clip-path:polygon(0 0,100% 35%,70% 50%,100% 65%,65% 75%,85% 90%,30% 100%);filter:drop-shadow(0 0 8px #b6deff)}.frame-ultimate_seraph .ultimate-aura i:before{left:-25%}.frame-ultimate_seraph .ultimate-aura i:after{right:-25%;transform:scaleX(-1)}
+@keyframes ultimate-orbit{to{transform:rotate(360deg)}}@keyframes ultimate-glow{from{opacity:.6}to{opacity:1}}
+@media(max-width:600px){.ultimate-vault{padding:20px;display:block}.ultimate-vault h3{font-size:26px}.ultimate-vault button{margin-top:18px;width:100%}.shop-frame-preview.preview-ultimate{height:170px}.preview-ultimate .shop-face{width:76px;height:76px}}
+@media(prefers-reduced-motion:reduce){.ultimate-aura:before,.ultimate-aura b{animation:none}}
