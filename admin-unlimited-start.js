@@ -58,7 +58,7 @@ if (!indexSource.includes('/v25-overhaul.css')) {
   indexSource = indexSource.replace('</head>', '<link rel="stylesheet" href="/v25-overhaul.css?v=270"></head>');
 }
 if (!indexSource.includes('/v25-overhaul.js')) {
-  indexSource = indexSource.replace('</body>', '<script src="/v25-overhaul.js?v=270"></script></body>');
+  indexSource = indexSource.replace('</body>', '<script defer src="/v25-overhaul.js?v=270"></script></body>');
 }
 
 const staticBuffers = new Map([

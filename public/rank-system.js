@@ -2,7 +2,7 @@
 const fmt=n=>new Intl.NumberFormat('ko-KR').format(Number(n||0));
 let state=null;
 function toast(msg){const el=document.getElementById('toast');if(el){el.textContent=msg;el.classList.add('show');setTimeout(()=>el.classList.remove('show'),3200)}else alert(msg)}
-async function api(path,opt={}){const r=await fetch(path,{credentials:'same-origin',headers:{'Content-Type':'application/json'},...opt});const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error||'요청 실패');return d}
+async function api(path,opt={}){if(typeof window.api==='function')return window.api(path,opt);const r=await fetch(path,{credentials:'same-origin',headers:{'Content-Type':'application/json'},...opt});const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error||'요청 실패');return d}
 function ensure(){
  if(document.getElementById('rankBtn'))return;
  const shop=document.getElementById('shopBtn');if(!shop)return;
@@ -26,7 +26,7 @@ async function openRank(){ensure();const m=document.getElementById('rankModal');
 async function promote(){const b=document.getElementById('rankPromote');if(!b)return;const name=state?.rank?.next?.name||'다음 신분';const cost=state?.rank?.next?.cost||0;if(Number(state?.user?.balance||0)<Number(cost)){toast('보유머니가 부족합니다. 필요 금액: '+fmt(cost)+' G');return;}b.disabled=true;try{const d=await api('/api/rank/promote',{method:'POST',body:'{}'});promotionFX(d.rank);const fresh=await api('/api/rank');render(fresh);toast('👑 '+d.rank.name+' 신분으로 상승!');document.getElementById('walletBalance')&&(document.getElementById('walletBalance').textContent=fmt(d.user.balance)+' G')}catch(e){toast(e.message)}finally{b.disabled=false}}
 function promotionFX(r){const fx=document.createElement('div');fx.className='rank-up-fx rank-'+r.className;fx.innerHTML='<div><span>'+rankMark(r)+'</span><small>'+(r.className==='god'?'FINAL ASCENSION':'신분 상승!')+'</small><b>'+r.name+'</b><em>'+(r.className==='god'?'OMNIPOTENT · ABSOLUTE STATUS':'JUNJA STATUS UPGRADE')+'</em></div>';document.body.appendChild(fx);setTimeout(()=>fx.remove(),r.className==='god'?4200:2800)}
 function decorate(u){if(!u?.rank)return;const nick=document.getElementById('nickName');if(nick){nick.dataset.rank=u.rank.name;nick.classList.add('rank-name');nick.setAttribute('data-rank-icon',u.rank.icon)}document.body.dataset.socialRank=u.rank.className}
-async function boot(){ensure();try{const d=await api('/api/me');decorate(d.user)}catch{}}
-new MutationObserver(()=>ensure()).observe(document.documentElement,{childList:true,subtree:true});document.addEventListener('DOMContentLoaded',boot);setTimeout(boot,800);
-window.JunjaRank={open:openRank,badge};
+function boot(){ensure();if(typeof me!=='undefined')decorate(me)}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
+window.JunjaRank={open:openRank,badge,decorate};
 })();

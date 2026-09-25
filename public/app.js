@@ -13,7 +13,7 @@ function storageSet(key,value){try{window.localStorage?.setItem(key,String(value
 function html(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
 function cosmeticId(c,key){return c?.[key]?.id||''}
 function cosmeticIcon(c,key){return c?.[key]?.icon||''}
-function styledAvatar(avatar=0,alt='플레이어',extra='',cosmetics=null){const idx=Math.abs(Number(avatar||0))%10,frame=cosmeticId(cosmetics,'frame').replace('frame_',''),costume=cosmeticIcon(cosmetics,'costume'),pet=cosmeticIcon(cosmetics,'pet'),character=cosmetics?.character||null,src=character?.asset||`/art/poker-avatars/avatar-${idx}.svg`;return `<span class="styled-avatar ${extra} ${frame?'frame-'+frame:''} ${character?'premium-character':''}"><img class="game-face ${character?'character-portrait':''}" src="${html(src)}" alt="${html(character?.name||alt)}">${costume?`<i class="avatar-costume">${html(costume)}</i>`:''}${pet?`<em class="avatar-pet">${html(pet)}</em>`:''}</span>`}
+function styledAvatar(avatar=0,alt='플레이어',extra='',cosmetics=null){const idx=Math.abs(Number(avatar||0))%10,frame=cosmeticId(cosmetics,'frame').replace('frame_',''),costume=cosmeticIcon(cosmetics,'costume'),pet=cosmeticIcon(cosmetics,'pet'),character=cosmetics?.character||null,src=character?.asset||`/art/poker-avatars/avatar-${idx}.svg`;return `<span class="styled-avatar ${extra} ${frame?'frame-'+frame:''} ${character?'premium-character':''}"><img loading="lazy" decoding="async" class="game-face ${character?'character-portrait':''}" src="${html(src)}" alt="${html(character?.name||alt)}">${costume?`<i class="avatar-costume">${html(costume)}</i>`:''}${pet?`<em class="avatar-pet">${html(pet)}</em>`:''}</span>`}
 function avatarImg(avatar=0,alt='플레이어',extra='',cosmetics=null){return styledAvatar(avatar,alt,extra,cosmetics||((me&&alt===me.nickname)?me.cosmetics:null))}
 function reactionEntries(){const pack=me?.cosmetics?.bubble_pack?.id||'';return Object.entries(REACTION_META).filter(([,v])=>v[2]==='base'||v[2]===pack)}
 function equippedTitle(c){return c?.title?.name||''}
@@ -100,18 +100,20 @@ window.addEventListener('offline',()=>{bigWheelAutoStop=true;sicboAutoStop=true;
 window.addEventListener('online',()=>{setNetworkState('degraded','인터넷이 다시 연결됐어. 게임 상태 확인 중...');setTimeout(mobileResumeSync,250)});
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)setTimeout(mobileResumeSync,180)});
 window.addEventListener('pageshow',e=>{if(e.persisted)setTimeout(mobileResumeSync,120)});
+const networkClient=JunjaNetwork.createClient(window);
 async function api(url,opts={}){
-  const method=opts.method||'GET',attempts=method==='GET'?2:1;
-  let lastErr;
-  for(let attempt=0;attempt<attempts;attempt++){
-    const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),12000);
-    try{
-      const res=await fetch(url,{cache:'no-store',credentials:'same-origin',headers:{'Content-Type':'application/json','Cache-Control':'no-cache',...(opts.headers||{})},...opts,signal:controller.signal});
-      clearTimeout(timer);let data={};try{data=await res.json()}catch{}
-      if(!res.ok)throw new Error(data.error||'요청에 실패했습니다.');networkFailureStreak=0;if(networkDegraded)setNetworkState('online');return data;
-    }catch(e){clearTimeout(timer);lastErr=e;if(attempt+1<attempts)await sleep(250);}
+  try{
+    const data=await networkClient.request(url,opts);
+    networkFailureStreak=0;if(networkDegraded)setNetworkState('online');return data;
+  }catch(e){
+    // Login/validation failures are not transport outages and must not be retried.
+    if(!e.status||e.status>=500||e.status===429){
+      networkFailureStreak++;
+      if(navigator.onLine===false)setNetworkState('offline');
+      else if(networkFailureStreak>=2)setNetworkState('degraded');
+    }
+    throw new Error(e.name==='AbortError'?'서버 응답이 늦습니다. 잠시 후 다시 시도해주세요.':(e.message||'네트워크 오류가 발생했습니다.'));
   }
-  networkFailureStreak++;if(!navigator.onLine)setNetworkState('offline');else if(networkFailureStreak>=2)setNetworkState('degraded');throw new Error(lastErr?.name==='AbortError'?'서버 응답이 늦습니다. 잠시 후 다시 시도해주세요.':(lastErr?.message||'네트워크 오류가 발생했습니다.'));
 }
 
 function setAuthTab(tab){$$('[data-auth-tab]').forEach(b=>b.classList.toggle('active',b.dataset.authTab===tab));$('#loginForm')?.classList.toggle('hidden',tab!=='login');$('#registerForm')?.classList.toggle('hidden',tab!=='register');if($('#authMsg'))$('#authMsg').textContent='';}
@@ -151,7 +153,6 @@ function bootMain(){
   enter();
   if('serviceWorker' in navigator)purgeLegacyAppCaches();
   setTimeout(()=>{try{if(!storageGet('jgc_help_seen_242'))toast('처음이라면 상단의 ? 게임방법에서 가이드를 볼 수 있어.')}catch{}},700);
-  document.addEventListener('visibilitychange',()=>{if(!document.hidden&&currentRoomId)loadCurrentRoom(true).catch(()=>{})});
 }
 let mainBound=false;
 function bindMain(){
@@ -179,7 +180,7 @@ function bindMain(){
     const betRoot=$('#betRow');if(betRoot&&!betRoot.children.length)for(const b of [1000,5000,10000,25000,50000,100000]){const el=document.createElement('button');el.type='button';el.className='bet-chip'+(b===selectedBet?' active':'');el.textContent=money(b);el.onclick=()=>{selectedBet=b;if($('#slotBetInput'))$('#slotBetInput').value=b;$$('.bet-chip').forEach(x=>x.classList.remove('active'));el.classList.add('active');updateCurrentBetLabel();fx()};betRoot.appendChild(el)}
     on('#helpBtn','click',()=>openHelp(currentView));const rememberHelp=()=>{try{storageSet('jgc_help_seen_242','1')}catch{}};const closeHelpSafe=()=>{closeHelp();rememberHelp()};on('#closeHelp','click',closeHelpSafe);on('#helpDone','click',closeHelpSafe);on('.help-backdrop','click',closeHelpSafe);$$('[data-open-help]').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();openHelp(b.dataset.openHelp)}));$$('[data-help-tab]').forEach(b=>b.addEventListener('click',()=>setHelpTab(b.dataset.helpTab)));document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('#helpModal')?.classList.contains('hidden'))closeHelpSafe()});
     $$('[data-mode-game]').forEach(b=>b.addEventListener('click',()=>switchMode(b.dataset.modeGame,b.dataset.mode)));
-    on('#startSoloHoldem','click',startSoloHoldem);on('#startSoloYut','click',startSoloYut);on('#startSeotda','click',startSeotda);on('#startGostop','click',startGostop);on('#startSevenPoker','click',startSevenPoker);on('#sevenAutoNext','change',e=>{try{storageSet('seven_auto',e.target.checked?'1':'0')}catch{}});on('#networkRetryBtn','click',mobileResumeSync);
+    on('#startSoloHoldem','click',startSoloHoldem);on('#startSoloYut','click',startSoloYut);on('#startSeotda','click',startSeotda);on('#startGostop','click',startGostop);on('#startSevenPoker','click',startSevenPoker);on('#sevenAutoNext','change',e=>{try{storageSet('seven_auto',e.target.checked?'1':'0')}catch{}});on('#networkRetryBtn','click',()=>{connectEvents();mobileResumeSync()});
     bindQuickWagers();
     on('#adminSearchBtn','click',()=>loadAdmin($('#adminSearch')?.value.trim()||''));on('#adminRefreshBtn','click',()=>{if($('#adminSearch'))$('#adminSearch').value='';loadAdmin('')});on('#adminSearch','keydown',e=>{if(e.key==='Enter')loadAdmin(e.currentTarget.value.trim())});
     initSlotMachine(true);renderSlotSession();
@@ -198,15 +199,16 @@ function closeHelp(){const modal=$('#helpModal');if(!modal)return;modal.classLis
 function switchMode(game,mode){$$(`[data-mode-game="${game}"]`).forEach(b=>b.classList.toggle('active',b.dataset.mode===mode));$(`#${game}MultiArea`)?.classList.toggle('hidden',mode!=='multi');$(`#${game}SoloArea`)?.classList.toggle('hidden',mode!=='solo');if(mode==='solo'){if(game==='holdem')loadSoloHoldem();else if(game==='yut')loadSoloYut();else if(game==='seotda')loadSeotda();else if(game==='sevenpoker')loadSevenPoker();else if(game==='gostop')loadGostop()}else loadRooms(game)}
 function connectEvents(){
   if(events)events.close();
-  events=new EventSource('/api/events');
-  events.onopen=()=>setNetworkState('online');
-  events.onerror=()=>setNetworkState(navigator.onLine?'degraded':'offline');
-  events.addEventListener('refresh',e=>{
-    if(refreshTimer)return;
+  clearTimeout(refreshTimer);refreshTimer=null;
+  let refreshing=false,pending=false;
+  const schedule=()=>{
+    if(refreshTimer||refreshing||document.hidden)return;
     refreshTimer=setTimeout(async()=>{refreshTimer=null;
+      if(document.hidden){pending=false;return;}
+      refreshing=true;pending=false;
       try{
-        let msg={};try{msg=JSON.parse(e.data||'{}')}catch{}
-        if(msg.roomId&&currentRoomId&&String(msg.roomId)!==String(currentRoomId))return;
+        // A live hand must not wait behind wallet/presence/leaderboard requests.
+        if(currentRoomId&&currentView===currentGame){await loadCurrentRoom(true);return;}
         if(currentView==='lobby'&&!currentRoomId){await loadLobby(false);return}
         const d=await api('/api/me');me=d.user;updateHeader();
         if(liveGame&&currentView===liveGame)refreshLiveFloor(true);
@@ -219,11 +221,17 @@ function connectEvents(){
         else if(currentView==='yut'&&!$('#yutMultiArea').classList.contains('hidden'))await loadRooms('yut');
         else if(currentView==='baccarat'&&!currentRoomId)await loadBaccaratRooms(true);
         else if(currentView==='admin'&&me?.is_admin)await loadAdmin($('#adminSearch')?.value.trim()||'',false);
-      }catch{}
-    },5000);
-  });
+      }catch{}finally{refreshing=false;if(pending)schedule();}
+    },currentRoomId?150:5000);
+  };
+  events=JunjaNetwork.createEventStream(window,e=>{
+    let msg={};try{msg=JSON.parse(e.data||'{}')}catch{}
+    // Filter before coalescing so an unrelated room cannot swallow our update.
+    if(msg.roomId&&currentRoomId&&String(msg.roomId)!==String(currentRoomId))return;
+    pending=true;schedule();
+  },state=>setNetworkState(state));
 }
-function updateHeader(){if(!me)return;$('#walletBalance').textContent=money(me.balance);updateSlotBetLimitUi();$('#avatarEmoji').innerHTML=avatarImg(me.avatar,me.nickname,'header-face',me.cosmetics);$('#nickName').textContent=me.nickname;const title=equippedTitle(me.cosmetics);$('#profileBtn')?.setAttribute('data-title',title);$('#dailyBtn').disabled=!me.dailyAvailable;const dailyPct=Number(me.cosmetics?.perks?.dailyBonusPct||0)+Number(me.rank?.perks?.dailyBonusPct||0),dailyAmt=Math.floor(50000*(1+dailyPct/100));$('#dailyBtn').textContent=me.dailyAvailable?`🎁 출석 +${money(dailyAmt)}${dailyPct?` · +${dailyPct}%`:''}`:'✓ 오늘 출석 완료';$('#adminBtn')?.classList.toggle('hidden',!me.is_admin);applyCosmetics();updateRankFreeUi()}
+function updateHeader(){if(!me)return;$('#walletBalance').textContent=money(me.balance);updateSlotBetLimitUi();$('#avatarEmoji').innerHTML=avatarImg(me.avatar,me.nickname,'header-face',me.cosmetics);$('#nickName').textContent=me.nickname;const title=equippedTitle(me.cosmetics);$('#profileBtn')?.setAttribute('data-title',title);$('#dailyBtn').disabled=!me.dailyAvailable;const dailyPct=Number(me.cosmetics?.perks?.dailyBonusPct||0)+Number(me.rank?.perks?.dailyBonusPct||0),dailyAmt=Math.floor(50000*(1+dailyPct/100));$('#dailyBtn').textContent=me.dailyAvailable?`🎁 출석 +${money(dailyAmt)}${dailyPct?` · +${dailyPct}%`:''}`:'✓ 오늘 출석 완료';$('#adminBtn')?.classList.toggle('hidden',!me.is_admin);applyCosmetics();updateRankFreeUi();window.JunjaRank?.decorate?.(me)}
 function renderLobbyPresence(rows=[]){
   const root=$('#lobbyLiveFaces');if(!root)return;
   root.classList.add('presence-roster');
@@ -237,7 +245,12 @@ async function go(view){
   if(LIVE_GAME_VIEWS.has(view))startLiveFloor(view);else if(LIVE_GAME_VIEWS.has(prevView)||liveGame)stopLiveFloor();
   if(prevView==='horse'&&view!=='horse')stopHorseMeet();if(view==='lobby')await loadLobby();if(view==='shop')await loadShop();if(view==='slot'){initSlotMachine();refreshSlotJackpot(true)}if(view==='holdem')await loadRooms('holdem');if(view==='sevenpoker')await loadRooms('sevenpoker');if(view==='baccarat')await loadBaccaratRooms();if(view==='yut')await loadRooms('yut');if(view==='ledger')await loadLedger();if(view==='seotda')await loadRooms('seotda');if(view==='gostop')await loadGostop();if(view==='horse')startHorseMeet();if(view==='bigwheel')initBigWheel();if(view==='sicbo')initSicbo();if(view==='roulette')initRoulette();if(view==='treasure')await window.JunjaTreasureRaid?.enter?.(me);if(view==='admin')await loadAdmin('');
 }
-async function loadLobby(full=true){try{await refreshMe();const d=await api('/api/leaderboard');$('#leaderboard').innerHTML=d.rows.map((r,i)=>`<div class="rank-row rank-user-${html(r.rank?.className||'commoner')}"><div class="rank-no"><img class="rank-emblem-art" src="/assets/rank-emblems/rank-${Math.min(i+1,10)}.png?v=327" alt="${i+1}위"></div><div class="rank-name">${avatarImg(r.avatar,r.nickname,'rank-face',r.cosmetics)}<span><b>${html(r.nickname)}</b>${equippedTitle(r.cosmetics)?`<small>${html(equippedTitle(r.cosmetics))}</small>`:''}</span></div><div class="rank-status-slot"><small class="rank-status-badge rank-crest rank-crest-${html(r.rank?.className||'commoner')}"><i class="rank-crest-icon">${r.rank?.className==='royal'?'J':html(r.rank?.icon||'◇')}</i><span>${html(r.rank?.name||'평민')}</span></small></div><div class="rank-money">${money(r.balance)}</div></div>`).join('')||'<div class="empty">아직 랭킹이 없습니다.</div>';$('#myStats').innerHTML=`<div class="stat"><span>홀덤 승리</span><b>${me.poker_wins}</b></div><div class="stat"><span>세븐포커 승리</span><b>${me.seven_wins||0}/${me.seven_games||0}</b></div><div class="stat"><span>바카라 승리</span><b>${me.baccarat_wins||0}/${me.baccarat_games||0}</b></div><div class="stat"><span>바카라 손익</span><b>${signedMoney(me.baccarat_profit||0)}</b></div><div class="stat"><span>윷놀이 승리</span><b>${me.yut_wins}</b></div><div class="stat"><span>섯다 승리</span><b>${me.seotda_wins||0}</b></div><div class="stat"><span>고스톱 승리</span><b>${me.gostop_wins||0}</b></div><div class="stat"><span>슬롯 스핀</span><b>${me.slot_spins}</b></div><div class="stat"><span>슬롯 손익</span><b>${signedMoney(me.slot_profit)}</b></div><div class="stat"><span>경마 적중</span><b>${me.horse_wins||0}/${me.horse_races||0}</b></div><div class="stat"><span>경마 손익</span><b>${signedMoney(me.horse_profit||0)}</b></div><div class="stat"><span>빅휠 적중</span><b>${me.bigwheel_wins||0}/${me.bigwheel_plays||0}</b></div><div class="stat"><span>빅휠 손익</span><b>${signedMoney(me.bigwheel_profit||0)}</b></div><div class="stat"><span>다이사이 적중</span><b>${me.sicbo_wins||0}/${me.sicbo_plays||0}</b></div><div class="stat"><span>다이사이 손익</span><b>${signedMoney(me.sicbo_profit||0)}</b></div><div class="stat"><span>룰렛 적중</span><b>${me.roulette_wins||0}/${me.roulette_plays||0}</b></div><div class="stat"><span>룰렛 손익</span><b>${signedMoney(me.roulette_profit||0)}</b></div>`;await refreshSlotJackpot(true)}catch(e){if(full)toast(e.message)}}
+let leaderboardSnapshot=null,leaderboardLoadedAt=0;
+async function loadLobby(full=true){try{
+  const ranking=full||!leaderboardSnapshot||Date.now()-leaderboardLoadedAt>=30000
+    ?api('/api/leaderboard').then(d=>{leaderboardSnapshot=d;leaderboardLoadedAt=Date.now();return d;})
+    :Promise.resolve(leaderboardSnapshot);
+  const [,d]=await Promise.all([refreshMe(),ranking,refreshSlotJackpot(true)]);$('#leaderboard').innerHTML=d.rows.map((r,i)=>`<div class="rank-row rank-user-${html(r.rank?.className||'commoner')}"><div class="rank-no"><img loading="lazy" decoding="async" class="rank-emblem-art" src="/assets/rank-emblems/rank-${Math.min(i+1,10)}.png?v=327" alt="${i+1}위"></div><div class="rank-name">${avatarImg(r.avatar,r.nickname,'rank-face',r.cosmetics)}<span><b>${html(r.nickname)}</b>${equippedTitle(r.cosmetics)?`<small>${html(equippedTitle(r.cosmetics))}</small>`:''}</span></div><div class="rank-status-slot"><small class="rank-status-badge rank-crest rank-crest-${html(r.rank?.className||'commoner')}"><i class="rank-crest-icon">${r.rank?.className==='royal'?'J':html(r.rank?.icon||'◇')}</i><span>${html(r.rank?.name||'평민')}</span></small></div><div class="rank-money">${money(r.balance)}</div></div>`).join('')||'<div class="empty">아직 랭킹이 없습니다.</div>';$('#myStats').innerHTML=`<div class="stat"><span>홀덤 승리</span><b>${me.poker_wins}</b></div><div class="stat"><span>세븐포커 승리</span><b>${me.seven_wins||0}/${me.seven_games||0}</b></div><div class="stat"><span>바카라 승리</span><b>${me.baccarat_wins||0}/${me.baccarat_games||0}</b></div><div class="stat"><span>바카라 손익</span><b>${signedMoney(me.baccarat_profit||0)}</b></div><div class="stat"><span>윷놀이 승리</span><b>${me.yut_wins}</b></div><div class="stat"><span>섯다 승리</span><b>${me.seotda_wins||0}</b></div><div class="stat"><span>고스톱 승리</span><b>${me.gostop_wins||0}</b></div><div class="stat"><span>슬롯 스핀</span><b>${me.slot_spins}</b></div><div class="stat"><span>슬롯 손익</span><b>${signedMoney(me.slot_profit)}</b></div><div class="stat"><span>경마 적중</span><b>${me.horse_wins||0}/${me.horse_races||0}</b></div><div class="stat"><span>경마 손익</span><b>${signedMoney(me.horse_profit||0)}</b></div><div class="stat"><span>빅휠 적중</span><b>${me.bigwheel_wins||0}/${me.bigwheel_plays||0}</b></div><div class="stat"><span>빅휠 손익</span><b>${signedMoney(me.bigwheel_profit||0)}</b></div><div class="stat"><span>다이사이 적중</span><b>${me.sicbo_wins||0}/${me.sicbo_plays||0}</b></div><div class="stat"><span>다이사이 손익</span><b>${signedMoney(me.sicbo_profit||0)}</b></div><div class="stat"><span>룰렛 적중</span><b>${me.roulette_wins||0}/${me.roulette_plays||0}</b></div><div class="stat"><span>룰렛 손익</span><b>${signedMoney(me.roulette_profit||0)}</b></div>`;}catch(e){if(full)toast(e.message)}}
 function closeDailyDraw(){$('#dailyDrawModal')?.classList.add('hidden');}
 async function openDailyDraw(){const modal=$('#dailyDrawModal');if(!modal)return;modal.classList.remove('hidden');const status=$('#dailyDrawStatus'),grid=$('#dailyDrawGrid'),result=$('#dailyDrawResult'),done=$('#dailyDrawDone');if(status)status.textContent='번호 현황을 불러오는 중...';if(grid)grid.innerHTML='';result?.classList.add('hidden');done?.classList.add('hidden');try{renderDailyDraw(await api('/api/daily-draw'))}catch(e){if(status)status.textContent=e.message;}}
 function renderDailyDraw(state){const status=$('#dailyDrawStatus'),grid=$('#dailyDrawGrid'),result=$('#dailyDrawResult'),done=$('#dailyDrawDone'),used=new Set((state.usedNumbers||[]).map(Number)),myNums=new Set((state.myPicks||[]).map(x=>Number(x.number))),left=Number(state.attemptsLeft??(state.mine?0:1)),max=Number(state.maxAttempts||1);if(status)status.textContent=left>0?`오늘 남은 번호 ${state.remaining} / 77 · 뽑기 ${left}회 남음 (총 ${max}회)`:`오늘 참여 완료 · ${state.usedAttempts||1}/${max}회 사용`;if(grid){grid.innerHTML=Array.from({length:77},(_,i)=>{const n=i+1,isUsed=used.has(n),mine=myNums.has(n);return `<button type="button" class="daily-draw-number${isUsed?' used':''}${mine?' mine':''}" data-draw-number="${n}" ${isUsed||left<=0?'disabled':''}>${n}</button>`}).join('');grid.querySelectorAll('[data-draw-number]').forEach(b=>b.addEventListener('click',()=>pickDailyDraw(Number(b.dataset.drawNumber))));}if(result){const winners=(state.top3||[]),winnerHtml=[1,2,3].map(r=>{const w=winners.find(x=>Number(x.rank)===r);return `<span>${r===1?'🥇':r===2?'🥈':'🥉'} ${r}위 ${w?`${html(w.nickname)} · ${money(w.prize)} · ${w.number}번`:'아직 당첨자 없음'}</span>`}).join('');result.classList.remove('hidden');result.innerHTML=`<div class="daily-draw-top3"><strong>오늘의 1·2·3위</strong>${winnerHtml}</div>${state.mine?`<strong>${state.mine.rank===1?'🥇':state.mine.rank===2?'🥈':state.mine.rank===3?'🥉':'🎉'} ${state.mine.rank}등 당첨!</strong><span>${money(state.mine.prize)} 지급 완료 · ${state.usedAttempts||1}/${max}회</span>`:''}`;done?.classList.toggle('hidden',left>0);}}
@@ -247,7 +260,7 @@ const SHOP_CATEGORY_LABELS={all:'전체',character:'캐릭터',frame:'프로필 
 const SHOP_RARITY_LABELS={common:'COMMON',rare:'RARE',epic:'EPIC',legendary:'LEGEND',mythic:'MYTHIC',prestige:'PRESTIGE 1B',limited:'LIMITED'};
 function shopPreview(item){
   const current={...(me?.cosmetics||{})};current[item.category]=item;
-  if(item.category==='character')return `<div class="shop-character-preview preview-${item.rarity} ${item.collection==='treasure'?'treasure-character-preview':''}"><img src="${html(item.asset)}" alt="${html(item.name)}"><div class="character-preview-meta"><span>${item.gender==='F'?'WOMAN':'MAN'}</span><b>${html(item.name)}</b></div></div>`;
+  if(item.category==='character')return `<div class="shop-character-preview preview-${item.rarity} ${item.collection==='treasure'?'treasure-character-preview':''}"><img loading="lazy" decoding="async" src="${html(item.asset)}" alt="${html(item.name)}"><div class="character-preview-meta"><span>${item.gender==='F'?'WOMAN':'MAN'}</span><b>${html(item.name)}</b></div></div>`;
   if(item.category==='costume')return `<div class="shop-avatar-preview preview-${item.rarity}">${avatarImg(me.avatar,me.nickname,'shop-face',current)}</div>`;
   if(item.category==='frame')return `<div class="shop-frame-preview preview-${item.rarity}">${avatarImg(me.avatar,me.nickname,'shop-face',current)}<span class="frame-preview-label">PROFILE BORDER</span></div>`;
   if(item.category==='title')return `<div class="shop-title-preview preview-${item.rarity}"><b>${html(me.nickname)}</b><span>${html(item.name)}</span></div>`;
@@ -560,21 +573,33 @@ async function createRoom(game){try{
 async function loadRooms(game){if(currentRoomId)return loadCurrentRoom(true);try{
   const d=await api('/api/rooms?game='+game),root=$('#'+game+'Rooms');if(!root)return;
   const detail=r=>game==='holdem'?`BLIND ${money(r.smallBlind)}/${money(r.bigBlind)}`:game==='yut'?html(r.yutModeLabel||'개인전'):game==='seotda'?'3장 · 공개 버리기 · 1:1':game==='gostop'?'맞고 · 1:1':'7 CARD STUD · 1:1';
-  root.innerHTML=d.rooms.map(r=>`<div class="room-row deluxe-room-row"><div class="room-row-main"><h4>${html(r.name)} <span class="status ${r.status==='PLAYING'?'play':'wait'}">${r.status}</span></h4><p>코드 ${r.id} · ${r.players}/${r.maxPlayers}명 · ${money(r.buyIn)} · ${detail(r)}</p><div class="room-mini-users">${(r.participants||[]).map(p=>`<span class="${p.ready?'ready':''}">${AVATAR_SAFE(p.avatar)} ${html(p.nickname)}${p.ready?' ✓':''}</span>`).join('')||'<span>아직 참가자 없음</span>'}</div></div><div class="room-row-actions"><b>${r.readyCount||0} READY</b><button class="secondary" data-join="${r.id}" ${r.status==='PLAYING'?'disabled':''} type="button">${r.status==='PLAYING'?'진행중':'입장'}</button></div></div>`).join('')||'<div class="empty">열린 방이 없어. 먼저 하나 만들어봐.</div>';
+  root.innerHTML=d.rooms.map(r=>`<div class="room-row deluxe-room-row"><div class="room-row-main"><h4>${html(r.name)} <span class="status ${r.status==='PLAYING'?'play':'wait'}">${r.status}</span></h4><p>코드 ${r.id} · ${r.players}/${r.maxPlayers}명 · ${money(r.buyIn)} · ${detail(r)}</p><div class="room-mini-users">${(r.participants||[]).map(p=>`<span class="${p.ready?'ready':''}">${AVATAR_SAFE(p.avatar)} ${html(p.nickname)}${p.ready?' ✓':''}</span>`).join('')||'<span>아직 참가자 없음</span>'}</div></div><div class="room-row-actions"><b>${r.readyCount||0} READY</b><button class="secondary" data-join="${r.id}" ${(r.status==='PLAYING'&&game!=='holdem')||r.players>=r.maxPlayers?'disabled':''} type="button">${r.players>=r.maxPlayers?'만석':r.status==='PLAYING'?(game==='holdem'?'참가 대기':'진행중'):'입장'}</button></div></div>`).join('')||'<div class="empty">열린 방이 없어. 먼저 하나 만들어봐.</div>';
   $$('[data-join]',root).forEach(b=>b.onclick=()=>joinRoom(game,b.dataset.join));
 }catch(e){toast(e.message)}}
 function AVATAR_SAFE(n){const a=['🧑‍💼','😎','🧢','👑','🐯','🐻','🦊','🐼','🐸','🦁'];return a[Number(n||0)%a.length]}
-async function joinRoom(game,id){try{const d=await api(`/api/rooms/${id}/join`,{method:'POST',body:'{}'});currentRoomId=id;currentGame=game;lastRoomVersion=d.room.version||0;renderRoom(d.room);startRoomPolling();await refreshMe();toast('입장 완료 · READY를 눌러줘')}catch(e){toast(e.message);if(/이미 다른 게임방/.test(e.message))resumeMyRoom()}}
+async function joinRoom(game,id){try{const d=await api(`/api/rooms/${id}/join`,{method:'POST',body:'{}'});currentRoomId=id;currentGame=game;lastRoomVersion=d.room.version||0;renderRoom(d.room);startRoomPolling();await refreshMe();toast(d.room.players.find(p=>p.userId===me.id)?.joinNextHand?'참가 대기 · 칩은 보관되며 다음 판부터 참여합니다.':'입장 완료 · READY를 눌러줘')}catch(e){toast(e.message);if(/이미 다른 게임방/.test(e.message))resumeMyRoom()}}
+let roomRefreshPending=false;
 async function loadCurrentRoom(silent=false){
-  if(!currentRoomId||roomRefreshBusy)return;roomRefreshBusy=true;
+  if(!currentRoomId)return;
+  if(roomRefreshBusy){roomRefreshPending=true;return;}
+  roomRefreshBusy=true;
+  const requestedRoomId=currentRoomId,requestedGame=currentGame;
   try{
-    const d=await api(currentGame==='baccarat'?`/api/baccarat/rooms/${currentRoomId}`:`/api/rooms/${currentRoomId}`);if(!d.room)throw new Error('방을 찾을 수 없습니다.');
+    const d=await api(currentGame==='baccarat'?`/api/baccarat/rooms/${currentRoomId}`:`/api/rooms/${currentRoomId}`);
+    if(currentRoomId!==requestedRoomId||currentGame!==requestedGame)return;
+    if(d.left){finishRoomExit();toast('정산 완료 · 자동 퇴장했습니다.');return;}
+    if(!d.room)throw new Error('방을 찾을 수 없습니다.');
+    if(Number(d.room.version||0)<Number(lastRoomVersion||0))return;
     const version=d.room.version||0;if(version!==lastRoomVersion||!silent||(currentGame==='holdem'&&d.room.autoStartAt)){lastRoomVersion=version;renderRoom(d.room)}
     if(!silent)await refreshMe();
   }catch(e){
+    if(currentRoomId!==requestedRoomId||currentGame!==requestedGame)return;
     if(!silent)toast(e.message);
-    if(/찾을 수 없습니다|참가자가 아닙니다/.test(e.message)){const oldGame=currentGame;currentRoomId=null;currentGame=null;lastRoomVersion=-1;stopRoomPolling();if(oldGame){$(`#${oldGame}Room`)?.classList.add('hidden');$(`#${oldGame}Browser`)?.classList.remove('hidden');loadRooms(oldGame)}}
-  }finally{roomRefreshBusy=false}
+    if(/찾을 수 없습니다|참가자가 아닙니다/.test(e.message)){const oldGame=currentGame;currentRoomId=null;currentGame=null;lastRoomVersion=-1;stopRoomPolling();if(oldGame){$(`#${oldGame}Room`)?.classList.add('hidden');$(`#${oldGame}Browser`)?.classList.remove('hidden');loadRooms(oldGame)}void refreshMe();}
+  }finally{
+    roomRefreshBusy=false;
+    if(roomRefreshPending){roomRefreshPending=false;if(currentRoomId===requestedRoomId&&currentGame===requestedGame)void loadCurrentRoom(true);}
+  }
 }
 function notifyRoomJoins(room){
   const ids=new Set((room.players||[]).map(p=>Number(p.userId))),prev=roomSeenMembers.get(room.id);
@@ -584,7 +609,8 @@ function notifyRoomJoins(room){
 function renderRoom(room){lastRoomVersion=room.version||lastRoomVersion;notifyRoomJoins(room);if(room.game==='holdem')renderHoldem(room);else if(room.game==='sevenpoker')renderSevenPokerMulti(room);else if(room.game==='seotda')renderSeotdaMulti(room);else if(room.game==='yut')renderYut(room);else if(room.game==='gostop')renderGostopMulti(room);else if(room.game==='baccarat')renderBaccaratRoom(room)}
 async function toggleReady(){if(!currentRoomId)return;try{const d=await api(`/api/rooms/${currentRoomId}/ready`,{method:'POST',body:'{}'});renderRoom(d.room)}catch(e){toast(e.message)}}
 function restoreRoomBrowser(game){$(`#${game}Room`)?.classList.add('hidden');$(`#${game}Browser`)?.classList.remove('hidden');if(game==='baccarat')loadBaccaratRooms();else if(game)loadRooms(game)}
-async function leaveRoom(){if(!currentRoomId)return;try{const endpoint=currentGame==='baccarat'?`/api/baccarat/rooms/${currentRoomId}/leave`:`/api/rooms/${currentRoomId}/leave`;await api(endpoint,{method:'POST',body:'{}'});const old=currentGame;currentRoomId=null;currentGame=null;lastRoomVersion=-1;stopRoomPolling();clearTimeout(baccaratAutoTimer);await refreshMe();restoreRoomBrowser(old)}catch(e){toast(e.message)}}
+function finishRoomExit(){const old=currentGame;currentRoomId=null;currentGame=null;lastRoomVersion=-1;stopRoomPolling();clearTimeout(baccaratAutoTimer);void refreshMe();restoreRoomBrowser(old)}
+async function leaveRoom(){if(!currentRoomId)return;try{const endpoint=currentGame==='baccarat'?`/api/baccarat/rooms/${currentRoomId}/leave`:`/api/rooms/${currentRoomId}/leave`;const d=await api(endpoint,{method:'POST',body:'{}'});if(d.queued){toast('나가기 대기 · 이번 판 정산 후 자동 퇴장합니다.');await loadCurrentRoom(true);return;}finishRoomExit()}catch(e){toast(e.message)}}
 async function closeRoom(){if(!currentRoomId)return;if(!confirm('대기실/게임을 종료하고 참가자에게 보유 판돈을 환급할까?'))return;try{await api(`/api/rooms/${currentRoomId}/close`,{method:'POST',body:'{}'});const old=currentGame;currentRoomId=null;currentGame=null;lastRoomVersion=-1;stopRoomPolling();toast('방을 비웠어.');await refreshMe();restoreRoomBrowser(old)}catch(e){toast(e.message)}}
 async function recoverRoom(){if(!currentRoomId)return;if(!confirm('게임 상태가 꼬였을 때만 사용해. 방을 강제 종료하고 판돈을 복구할까?'))return;try{await api(`/api/rooms/${currentRoomId}/recover`,{method:'POST',body:'{}'});const old=currentGame;currentRoomId=null;currentGame=null;lastRoomVersion=-1;stopRoomPolling();toast('게임방 복구 완료 · 로비로 돌아왔어.');await refreshMe();restoreRoomBrowser(old)}catch(e){toast(e.message)}}
 async function startRoom(){try{const d=await api(`/api/rooms/${currentRoomId}/start`,{method:'POST',body:'{}'});renderRoom(d.room);await loadCurrentRoom()}catch(e){toast(e.message)}}
@@ -612,11 +638,16 @@ function pokerTableHtml(room,h,solo=false,deal=false){
   for(let i=0;i<room.maxPlayers;i++){
     const p=players.find(x=>x.seat===i);
     if(!p){seats+=`<div class="seat s${i}"><div class="player-box empty-seat"><div class="player-name">빈 자리</div></div></div>`;continue}
-    const hp=h?.players?.[p.userId],hole=hp?hp.hole.map(c=>cardHtml(c,'small',deal?di++:null)).join(''):'',flags=`${hp?.folded?' · FOLD':''}${hp?.allIn?' · ALL-IN':''}`;
+    const hp=h?.players?.[p.userId],hole=hp?hp.hole.map(c=>cardHtml(c,'small',deal?di++:null)).join(''):p.joinNextHand?'<span class="waiting-text">참가 대기 · 다음 판</span>':'',flags=`${hp?.folded?' · FOLD':''}${hp?.allIn?' · ALL-IN':''}`;
     seats+=`<div class="seat s${i}"><div class="hole">${hole}</div><div class="player-box ${h?.turnUserId===p.userId?'turn':''}">${reactionBubble(room,p.userId)}${pokerFaceHtml(p)}<div class="player-meta"><div class="player-name">${html(p.nickname)} ${h?.dealerSeat===p.seat?'<span class="dealer-dot">D</span>':''}</div><div class="player-stack">${money(p.stack)}</div>${hp?`<div class="player-bet">BET ${money(hp.roundBet)}${flags}</div>`:''}</div></div></div>`
   }
   const board=h?h.board.map(c=>cardHtml(c,'',deal?di++:null)).join(''):Array(5).fill(0).map((_,i)=>cardHtml('XX','',deal?di+i:null)).join('');
-  return `<div class="poker-table ${solo?'solo-poker-table':''} ${deal?'dealing':''}"><div class="felt-logo">JUNJA</div><div class="board-cards">${board}</div><div class="pot-label">POT ${money(h?.pot||0)} · ${h?String(h.phase).toUpperCase():'WAITING'}</div><div class="dealer-shoe" aria-hidden="true">♠</div>${seats}</div>`
+  const result=h?.phase==='complete'&&h.result;
+  const winnerIds=(result?.winners||[]).map(Number);
+  const mine=winnerIds.includes(Number(me?.id));
+  const payouts=result?.payouts||Object.entries(result?.awards||{}).map(([id,award])=>({nickname:players.find(p=>Number(p.userId)===Number(id))?.nickname||'플레이어',award,net:Number(award)-Number(h?.players?.[id]?.totalBet||0),reason:result.type==='fold'?'상대 전원 폴드':result.ranks?.[id]?.name||'승리'}));
+  const resultOverlay=result?`<div class="poker-result-overlay ${mine?'win':'lose'}" role="status"><small>🏆 WINNER · 이번 판 결과</small>${payouts.filter(p=>p.award>0).map(p=>`<div class="poker-payout"><strong>${html(p.nickname)}</strong><span>${html(p.reason)}</span><b>받은 금액 ${money(p.award)}</b><span>순이익 ${p.net>=0?'+':'−'}${money(Math.abs(p.net))}</span></div>`).join('')}<span>총 팟 ${money(result.pot||0)} · 받은 금액에는 본인 베팅금이 포함됩니다.</span></div>`:'';
+  return `<div class="poker-table ${solo?'solo-poker-table':''} ${deal?'dealing':''} ${result?'has-result':''}"><div class="felt-logo">JUNJA</div><div class="board-cards">${board}</div><div class="pot-label">POT ${money(h?.pot||0)} · ${h?String(h.phase).toUpperCase():'WAITING'}</div><div class="dealer-shoe" aria-hidden="true">♠</div>${seats}${resultOverlay}</div>`
 }
 function bindPokerPresets(root,h){
   $$('[data-raise-preset]',root).forEach(b=>b.onclick=()=>{
@@ -631,11 +662,22 @@ function renderHoldem(room){
   $('#holdemBrowser').classList.add('hidden');const root=$('#holdemRoom');root.classList.remove('hidden');
   // Preserve a raise amount while live multiplayer refreshes redraw the table.
   const prevRaise=$('#raiseTo',root),raiseDraft=prevRaise?.value,raiseFocused=document.activeElement===prevRaise;
-  const h=room.hand,deal=pokerShouldDeal(room,h),won=h?.result?.winners?.map(Number).includes(Number(me.id)),result=h?.result?`<div class="result-banner mega holdem-result ${won?'win':'lose'}">${won?'🏆 내가 이겼어!':h.result.timeoutUserId===me.id?'⏱ 시간 초과 · 자동 폴드':'상대 승리'}<small>${html(h.result.summary)} · POT ${money(h.result.pot)}</small></div>`:'';
-  const sec=h?.turnDeadlineAt?Math.max(0,Math.ceil((h.turnDeadlineAt-Date.now())/1000)):null,autoSec=room.autoStartAt?Math.max(0,Math.ceil((room.autoStartAt-Date.now())/1000)):null;root.innerHTML=`${roomToolbar(room)}${result}${room.status==='WAITING'&&autoSec!==null?`<div class="holdem-countdown">🃏 ${h?.phase==='complete'?'다음 핸드':'첫 핸드'} 자동 시작 <b>${autoSec}</b>초 · 전원 READY 유지 시 자동으로 시작합니다.</div>`:''}${h?.phase!=='complete'&&sec!==null?`<div class="holdem-countdown ${sec<=3?'urgent':''}">⏱ ${html(room.turnNickname||'플레이어')} 행동시간 <b>${sec}</b>초 · 0초면 자동 폴드</div>`:''}<div class="table-wrap"><div class="poker-panel panel">${pokerTableHtml(room,h,false,deal)}${holdemActions(h)}</div><div class="side-panel">${pokerStatusPanel(h)}<div class="players-card panel"><div class="section-head"><div><small>PLAYERS</small><h3>참가자 ${room.players.length}/${room.maxPlayers}</h3></div></div><div class="member-list">${room.players.map(p=>`<div class="member poker-member">${pokerFaceHtml(p)}<span>${html(p.nickname)}${room.hostId===p.userId?' 👑':''}</span><b>${money(p.stack)}</b></div>`).join('')}</div></div>${privacyPanelHtml()}</div></div>`;
+  const h=room.hand,deal=pokerShouldDeal(room,h);
+  const sec=h?.turnDeadlineAt?Math.max(0,Math.ceil((h.turnDeadlineAt-Date.now())/1000)):null,autoSec=room.autoStartAt?Math.max(0,Math.ceil((room.autoStartAt-Date.now())/1000)):null;root.innerHTML=`${roomToolbar(room)}${room.status==='WAITING'&&autoSec!==null?`<div class="holdem-countdown">🃏 ${h?.phase==='complete'?'다음 핸드':'첫 핸드'} 자동 시작 <b>${autoSec}</b>초 · 전원 READY 유지 시 자동으로 시작합니다.</div>`:''}${h?.phase!=='complete'&&sec!==null?`<div class="holdem-countdown ${sec<=3?'urgent':''}">⏱ ${html(room.turnNickname||'플레이어')} 행동시간 <b>${sec}</b>초 · 0초면 자동 폴드</div>`:''}<div class="table-wrap"><div class="poker-panel panel">${pokerTableHtml(room,h,false,deal)}${holdemActions(h)}</div><div class="side-panel">${pokerStatusPanel(h)}<div class="players-card panel"><div class="section-head"><div><small>PLAYERS</small><h3>참가자 ${room.players.length}/${room.maxPlayers}</h3></div></div><div class="member-list">${room.players.map(p=>`<div class="member poker-member">${pokerFaceHtml(p)}<span>${html(p.nickname)}${room.hostId===p.userId?' 👑':''}</span><b>${money(p.stack)}</b></div>`).join('')}</div></div>${privacyPanelHtml()}</div></div>`;
   bindRoomCommon(root,room);bindPokerPresets(root,h);
+  const leaveButton=$('.leave-room',root),leaving=room.players.find(p=>p.userId===me.id)?.leaveAfterHand;
+  if(leaveButton){const queued=room.players.find(p=>p.userId===me.id)?.joinNextHand;leaveButton.disabled=!!leaving;leaveButton.title=queued?'대기를 취소하고 보관 중인 칩을 돌려받습니다.':'이번 판이 끝나면 남은 칩을 정산하고 자동 퇴장합니다.';leaveButton.textContent=leaving?'나가기 대기 중':queued?'참가 대기 취소':room.status==='PLAYING'?'나가기 대기':'정산 후 나가기';}
   const nextRaise=$('#raiseTo',root);if(nextRaise&&raiseDraft!==undefined&&h?.turnUserId===me.id){const n=Number(raiseDraft);if(Number.isFinite(n))nextRaise.value=Math.max(Number(nextRaise.min||0),Math.min(Number(nextRaise.max||Number.MAX_SAFE_INTEGER),n));if(raiseFocused){try{nextRaise.focus({preventScroll:true})}catch{nextRaise.focus()}}}
-  $$('[data-poker]',root).forEach(b=>b.onclick=async()=>{const action=b.dataset.poker,raiseTo=Number($('#raiseTo',root)?.value||0);b.disabled=true;try{await api(`/api/rooms/${currentRoomId}/poker/action`,{method:'POST',body:JSON.stringify({action,raiseTo})});await loadCurrentRoom()}catch(e){toast(e.message);b.disabled=false}})
+  $$('[data-poker]',root).forEach(b=>b.onclick=async()=>{
+    if(root.dataset.pokerBusy==='1')return;
+    const action=b.dataset.poker,raiseTo=Number($('#raiseTo',root)?.value||0),roomId=currentRoomId;
+    root.dataset.pokerBusy='1';$$('[data-poker]',root).forEach(button=>button.disabled=true);
+    try{
+      const d=await api(`/api/rooms/${roomId}/poker/action`,{method:'POST',body:JSON.stringify({action,raiseTo})});
+      if(currentRoomId===roomId&&d.room&&Number(d.room.version||0)>=Number(lastRoomVersion||0))renderRoom(d.room);
+    }catch(e){toast(e.message);if(currentRoomId===roomId)await loadCurrentRoom(true);}
+    finally{delete root.dataset.pokerBusy;$$('[data-poker]',root).forEach(button=>button.disabled=false);}
+  })
 }
 function holdemActions(h,solo=false){
   if(!h)return `<div class="action-bar"><span class="waiting-text">게임 시작을 기다리는 중...</span></div>`;
@@ -654,8 +696,8 @@ async function startSoloHoldem(){if(!confirm(`현재 보유한 ${money(me.balanc
 async function loadSoloHoldem(){try{const d=await api('/api/solo/holdem');if(d.room)renderSoloHoldem(d.room);else{$('#holdemSoloStart').classList.remove('hidden');$('#holdemSoloRoom').classList.add('hidden')}}catch(e){toast(e.message)}}
 function renderSoloHoldem(room){
   clearTimeout(holdemAutoTimer);
-  $('#holdemSoloStart').classList.add('hidden');const root=$('#holdemSoloRoom');root.classList.remove('hidden');const h=room.hand,deal=pokerShouldDeal(room,h),result=h?.result?`<div class="result-banner">${html(h.result.summary)} · POT ${money(h.result.pot)}</div>`:'';
-  root.innerHTML=`<div class="solo-toolbar"><div><small>AI HEADS UP · SOLO MODE</small><h3>${pokerFaceHtml(room.players.find(p=>p.userId===me.id))}<span>${html(me.nickname)}</span><i>VS</i>${pokerFaceHtml(room.players.find(p=>p.bot))}<span>J-BOT</span></h3></div><button class="secondary solo-cashout" type="button">칩 정산 후 나가기</button></div>${result}<div class="table-wrap solo-table-wrap"><div class="poker-panel panel">${pokerTableHtml(room,h,true,deal)}${h?.turnUserId===me.id?'<div class="solo-turn-banner">🔥 내 차례 · 행동을 선택해</div>':h?.phase!=='complete'?'<div class="solo-turn-banner bot">🤖 J-BOT 생각 중...</div>':''}${holdemActions(h,true)}</div><div class="side-panel">${pokerStatusPanel(h)}<div class="panel solo-help-mini"><small>AI 홀덤</small><b>혼자 바로 플레이</b><p>패 분배 애니메이션, 현재 족보, ½ POT·MAX 레이즈를 지원해. 핸드 종료 후 ‘다음 핸드’로 계속 플레이.</p></div></div></div>`;
+  $('#holdemSoloStart').classList.add('hidden');const root=$('#holdemSoloRoom');root.classList.remove('hidden');const h=room.hand,deal=pokerShouldDeal(room,h);
+  root.innerHTML=`<div class="solo-toolbar"><div><small>AI HEADS UP · SOLO MODE</small><h3>${pokerFaceHtml(room.players.find(p=>p.userId===me.id))}<span>${html(me.nickname)}</span><i>VS</i>${pokerFaceHtml(room.players.find(p=>p.bot))}<span>J-BOT</span></h3></div><button class="secondary solo-cashout" type="button">칩 정산 후 나가기</button></div><div class="table-wrap solo-table-wrap"><div class="poker-panel panel">${pokerTableHtml(room,h,true,deal)}${h?.turnUserId===me.id?'<div class="solo-turn-banner">🔥 내 차례 · 행동을 선택해</div>':h?.phase!=='complete'?'<div class="solo-turn-banner bot">🤖 J-BOT 생각 중...</div>':''}${holdemActions(h,true)}</div><div class="side-panel">${pokerStatusPanel(h)}<div class="panel solo-help-mini"><small>AI 홀덤</small><b>혼자 바로 플레이</b><p>패 분배 애니메이션, 현재 족보, ½ POT·MAX 레이즈를 지원해. 핸드 종료 후 ‘다음 핸드’로 계속 플레이.</p></div></div></div>`;
   bindPokerPresets(root,h);
   $$('[data-poker]',root).forEach(b=>b.onclick=async()=>{b.disabled=true;try{const d=await api('/api/solo/holdem/action',{method:'POST',body:JSON.stringify({action:b.dataset.poker,raiseTo:Number($('#raiseTo',root)?.value||0)})});renderSoloHoldem(d.room)}catch(e){toast(e.message);b.disabled=false}});
   $('.solo-next-hand',root)?.addEventListener('click',async()=>{try{const d=await api('/api/solo/holdem/next',{method:'POST',body:'{}'});renderSoloHoldem(d.room)}catch(e){toast(e.message)}});
