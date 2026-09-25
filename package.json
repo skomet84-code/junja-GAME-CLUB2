@@ -6,7 +6,7 @@
   "type": "commonjs",
   "scripts": {
     "start": "node slot-50pct-until-win-start.js",
-    "check": "node --check admin-unlimited-start.js && node --check server.js && node --check treasure-raid-server.js && node --check public/app.js && node --check public/rank-system.js && node tests/shop-ui-smoke.cjs && node tests/slot-rank-limit-smoke.cjs && node tests/god-junja-rank-smoke.cjs && node tests/bigwheel-rank-free-smoke.cjs && node tests/treasure-private-shop-smoke.cjs && node --check public/treasure-raid.js && node --check public/v25-overhaul.js && node tests/performance-persistence-smoke.cjs && node tests/holdem-ai-money.cjs && node tests/seven-ai-money.cjs",
+    "check": "node --check admin-unlimited-start.js && node --check server.js && node --check treasure-raid-server.js && node --check public/app.js && node --check public/rank-system.js && node tests/shop-ui-smoke.cjs && node tests/slot-rank-limit-smoke.cjs && node tests/god-junja-rank-smoke.cjs && node tests/bigwheel-rank-free-smoke.cjs && node tests/treasure-private-shop-smoke.cjs && node --check public/treasure-raid.js && node --check public/v25-overhaul.js && node tests/performance-persistence-smoke.cjs && node tests/holdem-ai-money.cjs && node tests/seven-ai-money.cjs && node tests/big-money-http.cjs",
     "test:matgo": "node tests/yashimchan-matgo-smoke.cjs",
     "test:treasure": "node tests/treasure-raid-smoke.cjs"
   },
