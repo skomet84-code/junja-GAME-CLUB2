@@ -18,5 +18,5 @@ assert.equal(money.compact('123450000000000000000'),'1해 2,345경');
 assert.equal(money.exact('100000000000000000001'),'100,000,000,000,000,000,001');
 assert.equal(money.parseInput('100,000,000,000,000,000,001'),'100000000000000000001');
 for(const bad of ['1.2','-1','1e20','Infinity','0'])assert.throws(()=>money.parseInput(bad));
-const app=fs.readFileSync('public/app.js','utf8');assert.ok(app.includes('Number(card.dataset.adminBalance||0)'));assert.ok(!app.includes("textContent.replace(/[^0-9]/g"));
+const app=fs.readFileSync('public/app.js','utf8');assert.ok(app.includes("card.dataset.adminBalance||'0'"));assert.ok(app.includes('JunjaMoney.toBigInt'));assert.ok(!app.includes("textContent.replace(/[^0-9]/g"));
 console.log('SEVEN_AI_MONEY_OK: all-in response, strong/weak decisions, hidden-card independence, large decimal strings');
