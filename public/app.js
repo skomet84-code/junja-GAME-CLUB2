@@ -590,7 +590,7 @@ async function loadCurrentRoom(silent=false){
     if(d.left){finishRoomExit();toast('정산 완료 · 자동 퇴장했습니다.');return;}
     if(!d.room)throw new Error('방을 찾을 수 없습니다.');
     if(Number(d.room.version||0)<Number(lastRoomVersion||0))return;
-    const version=d.room.version||0;if(version!==lastRoomVersion||!silent||(currentGame==='holdem'&&d.room.autoStartAt)){lastRoomVersion=version;renderRoom(d.room)}
+    const version=d.room.version||0;if(version!==lastRoomVersion){lastRoomVersion=version;renderRoom(d.room)}
     if(!silent)await refreshMe();
   }catch(e){
     if(currentRoomId!==requestedRoomId||currentGame!==requestedGame)return;
@@ -638,8 +638,8 @@ function pokerTableHtml(room,h,solo=false,deal=false){
   for(let i=0;i<room.maxPlayers;i++){
     const p=players.find(x=>x.seat===i);
     if(!p){seats+=`<div class="seat s${i}"><div class="player-box empty-seat"><div class="player-name">빈 자리</div></div></div>`;continue}
-    const hp=h?.players?.[p.userId],hole=hp?hp.hole.map(c=>cardHtml(c,'small',deal?di++:null)).join(''):p.joinNextHand?'<span class="waiting-text">참가 대기 · 다음 판</span>':'',flags=`${hp?.folded?' · FOLD':''}${hp?.allIn?' · ALL-IN':''}`;
-    seats+=`<div class="seat s${i}"><div class="hole">${hole}</div><div class="player-box ${h?.turnUserId===p.userId?'turn':''}">${reactionBubble(room,p.userId)}${pokerFaceHtml(p)}<div class="player-meta"><div class="player-name">${html(p.nickname)} ${h?.dealerSeat===p.seat?'<span class="dealer-dot">D</span>':''}</div><div class="player-stack">${money(p.stack)}</div>${hp?`<div class="player-bet">BET ${money(hp.roundBet)}${flags}</div>`:''}</div></div></div>`
+    const hp=h?.players?.[p.userId],hole=hp?hp.hole.map(c=>cardHtml(c,'small',deal?di++:null)).join(''):p.joinNextHand?'<span class="waiting-text">참가 대기 · 다음 판</span>':'',folded=!!hp?.folded,flags=`${folded?' · 다이':''}${hp?.allIn?' · ALL-IN':''}`;
+    seats+=`<div class="seat s${i} ${folded?'folded-seat':''}"><div class="hole">${hole}</div><div class="player-box ${h?.turnUserId===p.userId?'turn':''} ${folded?'folded':''}">${reactionBubble(room,p.userId)}${folded?'<div class="folded-overlay" aria-label="다이"><b>다이</b><small>FOLDED</small></div>':''}${pokerFaceHtml(p)}<div class="player-meta"><div class="player-name">${html(p.nickname)} ${h?.dealerSeat===p.seat?'<span class="dealer-dot">D</span>':''}</div><div class="player-stack">${money(p.stack)}</div>${hp?`<div class="player-bet">BET ${money(hp.roundBet)}${flags}</div>`:''}</div></div></div>`
   }
   const board=h?h.board.map(c=>cardHtml(c,'',deal?di++:null)).join(''):Array(5).fill(0).map((_,i)=>cardHtml('XX','',deal?di+i:null)).join('');
   const result=h?.phase==='complete'&&h.result;

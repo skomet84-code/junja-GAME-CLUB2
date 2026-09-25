@@ -201,6 +201,12 @@ linear-gradient(180deg,#2c2240,#171425 38%,#111421 100%);border:1px solid #fffff
 .seat.s0{left:50%;top:95%}.seat.s1{left:16%;top:77%}.seat.s2{left:12%;top:27%}.seat.s3{left:50%;top:5%}.seat.s4{left:88%;top:27%}.seat.s5{left:84%;top:77%}
 .player-box{background:#090c13e8;border:1px solid #ffffff18;border-radius:15px;padding:7px 8px;box-shadow:0 8px 18px #0007}
 .player-box.turn{border-color:#f7d46d;box-shadow:0 0 0 2px #f7d46d25,0 8px 22px #0007}
+.player-box.folded{position:relative;overflow:hidden;border-color:#ff5d6870;background:linear-gradient(145deg,#17151be8,#090a0fe8);filter:grayscale(.72);opacity:.64}
+.folded-seat .hole{opacity:.42;filter:grayscale(1)}
+.folded-overlay{position:absolute;z-index:5;inset:0;display:grid;place-content:center;text-align:center;background:linear-gradient(135deg,#160b0dcc,#631823b8);pointer-events:none;transform:rotate(-4deg)}
+.folded-overlay b{color:#fff0f0;font-size:23px;line-height:1;font-weight:1000;letter-spacing:.08em;text-shadow:0 2px 8px #000,0 0 15px #ff4c5d}
+.folded-overlay small{margin-top:3px;color:#ffadb3;font-size:7px;font-weight:1000;letter-spacing:.18em}
+.folded .player-meta,.folded .poker-face{opacity:.48}
 .player-name{font-size:11px;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .player-stack{font-size:10px;color:#ffe188}.player-bet{font-size:9px;color:#97dbc1}
 .dealer-dot{display:inline-grid;place-items:center;width:16px;height:16px;border-radius:50%;background:#fff;color:#111;font-size:9px;font-weight:1000;margin-left:4px}
