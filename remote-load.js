@@ -21,10 +21,14 @@ async function load(url,{init=false,source='target'}={}){
         user_id BIGINT NOT NULL,
         amount BIGINT NOT NULL,
         balance_after BIGINT NOT NULL,
+        amount_text TEXT,
+        balance_after_text TEXT,
         type TEXT NOT NULL,
         memo TEXT NOT NULL,
         created_at BIGINT NOT NULL
       )`);
+      await c.query('ALTER TABLE junja_club_ledger ADD COLUMN IF NOT EXISTS amount_text TEXT');
+      await c.query('ALTER TABLE junja_club_ledger ADD COLUMN IF NOT EXISTS balance_after_text TEXT');
     }
     const state=await c.query('SELECT payload FROM junja_club_state WHERE id=1');
     if(!state.rows[0]) return null;
