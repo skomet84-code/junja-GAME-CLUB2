@@ -16,7 +16,7 @@ const originalReadFileSync = fs.readFileSync.bind(fs);
 const poolInitAnchor = "if(gameStateGet('slot_jackpot_pool',null)==null)gameStateSet('slot_jackpot_pool',SLOT_JACKPOT_BASE);";
 const eventStatePatch = `${poolInitAnchor}\n\nconst TEMP_SLOT_777_EVENT_KEY='slot_777_event_20260920_5pct_restart';\nif(gameStateGet(TEMP_SLOT_777_EVENT_KEY,null)==null){\n  gameStateSet(TEMP_SLOT_777_EVENT_KEY,{active:true,startedAt:Date.now(),targetPct:5});\n}\nfunction tempSlot777EventActive(){\n  const state=gameStateGet(TEMP_SLOT_777_EVENT_KEY,null);\n  return state===true||!!state?.active;\n}`;
 
-const oldGridBuild = "      const grid=Array.from({length:3},()=>Array.from({length:3},()=>pick()));";
+const oldGridBuild = "      let grid=Array.from({length:3},()=>Array.from({length:3},()=>pick()));";
 const temporaryGridBuild = `      // TEMP EVENT: exactly 5% total 777 jackpot chance until first winner.
       const sevenEventActive=tempSlot777EventActive();
       const hasSevenPayline=(g)=>SLOT_LINES.some(line=>line.cells.every(([r,c])=>g[r][c]==='7️⃣'));
