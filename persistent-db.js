@@ -35,6 +35,8 @@ const EXTRA_COLUMNS = {
     ['roulette_profit','INTEGER NOT NULL DEFAULT 0']
   ],
   users: [
+    // Compatibility only: these columns may exist in snapshots written by the reverted large-money build.
+    ['balance_text','TEXT'],
     ['is_admin','INTEGER NOT NULL DEFAULT 0'],
     ['is_disabled','INTEGER NOT NULL DEFAULT 0'],
     ['rank_level','INTEGER NOT NULL DEFAULT 0'],
@@ -43,6 +45,13 @@ const EXTRA_COLUMNS = {
     ['rank_free_slot_used','INTEGER NOT NULL DEFAULT 0'],
     ['rank_free_wheel_date','TEXT'],
     ['rank_free_wheel_used','INTEGER NOT NULL DEFAULT 0']
+  ],
+  ledger: [
+    ['amount_text','TEXT'],
+    ['balance_after_text','TEXT']
+  ],
+  admin_audit: [
+    ['amount_text','TEXT']
   ],
   user_loadout: [
     ['character','TEXT']
@@ -111,6 +120,22 @@ function loadRemoteSnapshotSync(){
 }
 
 function qIdent(s){ return '"'+String(s).replace(/"/g,'""')+'"'; }
+
+const JS_SAFE_MAX=BigInt(Number.MAX_SAFE_INTEGER), JS_SAFE_MIN=-JS_SAFE_MAX;
+function normalizeSqliteValue(v){
+  if(typeof v!=='bigint') return v;
+  return v<=JS_SAFE_MAX&&v>=JS_SAFE_MIN ? Number(v) : v.toString();
+}
+function normalizeSqliteRow(row){
+  if(!row||typeof row!=='object') return row;
+  for(const k of Object.keys(row)) row[k]=normalizeSqliteValue(row[k]);
+  return row;
+}
+function readableStatement(nativeDb,sql){
+  const stmt=nativeDb.prepare(sql);
+  if(typeof stmt.setReadBigInts==='function') stmt.setReadBigInts(true);
+  return stmt;
+}
 
 class DatabaseSync {
   constructor(filename){
@@ -193,11 +218,11 @@ class DatabaseSync {
   }
 
   prepare(sql){
-    const stmt=this._native.prepare(sql);
+    const stmt=readableStatement(this._native,sql);
     const self=this;
     return {
-      get(...args){ return stmt.get(...args); },
-      all(...args){ return stmt.all(...args); },
+      get(...args){ return normalizeSqliteRow(stmt.get(...args)); },
+      all(...args){ return stmt.all(...args).map(normalizeSqliteRow); },
       run(...args){
         const r=stmt.run(...args);
         if(self._enabled && isMutationSql(sql)) self._scheduleSave();
@@ -211,14 +236,14 @@ class DatabaseSync {
   _snapshot(){
     const tables={};
     for(const t of SNAPSHOT_TABLES){
-      try{tables[t]=this._native.prepare(`SELECT * FROM ${t}`).all();}
+      try{tables[t]=readableStatement(this._native,`SELECT * FROM ${t}`).all().map(normalizeSqliteRow);}
       catch{tables[t]=[];}
     }
     return {version:2,updatedAt:Date.now(),tables};
   }
 
   _ledgerDelta(afterId, limit=1000){
-    return this._native.prepare('SELECT * FROM ledger WHERE id>? ORDER BY id LIMIT ?').all(afterId,limit);
+    return readableStatement(this._native,'SELECT * FROM ledger WHERE id>? ORDER BY id LIMIT ?').all(afterId,limit).map(normalizeSqliteRow);
   }
 
   _scheduleSave(){
