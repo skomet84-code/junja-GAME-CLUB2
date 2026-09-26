@@ -2394,4 +2394,11 @@ const server=http.createServer(async(req,res)=>{
   }catch(e){console.error(e); if(!res.headersSent)json(res,500,{error:e.message||'서버 오류가 발생했습니다.'});else try{res.end()}catch{}}
 });
 
-server.listen(PORT,HOST,()=>console.log(`JUNJA GAME CLUB listening on http://${HOST}:${PORT}`));
+server.listen(PORT,HOST,()=>{
+  console.log(`JUNJA GAME CLUB listening on http://${HOST}:${PORT}`);
+  const users=db.prepare('SELECT id FROM users').all();
+  const valid=users.filter(u=>userPublic(u.id)).length;
+  console.log('[ACCOUNT VERIFIED] '+JSON.stringify({users:users.length,readable:valid,ultimateItems:SHOP_ITEMS.filter(x=>x.collection==='ultimate').length}));
+  // One verification after deployment; no polling or automatic recovery loop.
+  if(process.env.DATABASE_URL)setTimeout(()=>db.verifySavedState().catch(e=>console.error('[SAVED STATE VERIFY]',e.message)),30000).unref();
+});

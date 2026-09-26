@@ -30,17 +30,16 @@ async function load(url,{init=false,source='target'}={}){
     if(!state.rows[0]) return null;
     const payload=state.rows[0].payload;
     payload.tables=payload.tables||{};
-    // Bounded, read-only reconciliation: one indexed ledger row per account.
-    // Never rewrite wallets merely because an old snapshot differs.
-    const audit=await c.query(`SELECT u->>'id' AS id,u->>'balance' AS balance,u->>'balance_text' AS balance_text,
-      row_to_json(latest) AS latest,row_to_json(prior) AS before_units
-      FROM jsonb_array_elements($1::jsonb) u
-      LEFT JOIN LATERAL (SELECT id,balance_after::text,created_at::text,type FROM junja_club_ledger
-        WHERE user_id=(u->>'id')::bigint ORDER BY created_at DESC,id DESC LIMIT 1) latest ON true
-      LEFT JOIN LATERAL (SELECT id,balance_after::text,created_at::text,type FROM junja_club_ledger
-        WHERE user_id=(u->>'id')::bigint AND created_at<$2 ORDER BY created_at DESC,id DESC LIMIT 1) prior ON true`,
-      [JSON.stringify(payload.tables.users||[]),Date.parse('2026-09-25T22:50:00Z')]);
-    payload.__walletAudit=audit.rows;
+    // User-authorized, one-time correction of the administrator wallet that
+    // was zeroed during the failed rollback. Never replay general recovery.
+    const repairKey='repair_admin_wallet_20260926_v1';
+    if(!(payload.tables.game_state||[]).some(x=>x.key===repairKey)){
+      const admin=(payload.tables.users||[]).find(u=>Number(u.id)===2&&u.username==='junja_admin');
+      if(admin&&String(admin.balance)==='0'){
+        const evidence=await c.query('SELECT id,balance_after::text FROM junja_club_ledger WHERE user_id=$1 ORDER BY created_at DESC,id DESC LIMIT 1',[2]);
+        payload.__walletRepair=evidence.rows[0]||null;
+      }
+    }
     // Ledger history can grow without bound. Keep it in Postgres and restore
     // only its high-water mark; loading every row into JSON at boot can exceed
     // the 512MB Render instance limit. New writes resume after this ID.

@@ -113,7 +113,6 @@ function loadRemoteSnapshotSync(){
     }).trim();
     if(!out || out==='null') return null;
     const snapshot=JSON.parse(out);
-    if(snapshot?.__walletAudit)console.log('[WALLET AUDIT] '+JSON.stringify(snapshot.__walletAudit));
     return snapshot;
   }catch(e){
     console.error('[PERSIST] Render Postgres snapshot load failed; starting with local DB:',e.message);
@@ -184,6 +183,25 @@ class DatabaseSync {
             const placeholders=cols.map(()=>'?').join(',');
             const sqlIns=`INSERT INTO ${qIdent(table)} (${cols.map(qIdent).join(',')}) VALUES (${placeholders})`;
             this._native.prepare(sqlIns).run(...cols.map(c=>row[c]));
+          }
+        }
+        // Remote history stays in Postgres. New local ledger IDs must begin
+        // after its high-water mark, otherwise incremental saves skip them.
+        const remoteMax=Math.max(0,Number(snap.__remoteLedgerMaxId||0));
+        const seq=this._native.prepare("SELECT seq FROM sqlite_sequence WHERE name='ledger'").get();
+        if(seq)this._native.prepare("UPDATE sqlite_sequence SET seq=MAX(seq,?) WHERE name='ledger'").run(remoteMax);
+        else this._native.prepare("INSERT INTO sqlite_sequence(name,seq) VALUES('ledger',?)").run(remoteMax);
+        const repairKey='repair_admin_wallet_20260926_v1';
+        const repaired=this._native.prepare('SELECT 1 FROM game_state WHERE key=?').get(repairKey);
+        const evidence=snap.__walletRepair;
+        if(!repaired&&evidence&&Number(evidence.id)===487725&&evidence.balance_after==='7077497140000000'){
+          const admin=this._native.prepare("SELECT id,balance FROM users WHERE id=2 AND username='junja_admin'").get();
+          if(admin&&admin.balance===0){
+            const amount=Number(evidence.balance_after),at=Date.now();
+            this._native.prepare('UPDATE users SET balance=?,balance_text=? WHERE id=?').run(amount,String(amount),admin.id);
+            this._native.prepare('INSERT INTO ledger(user_id,amount,balance_after,type,memo,created_at) VALUES(?,?,?,?,?,?)').run(admin.id,amount,amount,'rollback_repair','2026-09-26 사용자 요청: 금액단위 변경 전 원장 #487725 기준 1회 복원',at);
+            this._native.prepare('INSERT INTO game_state(key,value,updated_at) VALUES(?,?,?)').run(repairKey,JSON.stringify({completed:true,sourceLedgerId:487725,before:0,after:String(amount)}),at);
+            console.log('[WALLET REPAIR] Applied once from ledger #487725; balance='+amount);
           }
         }
         this._native.exec('COMMIT; PRAGMA foreign_keys=ON;');
@@ -277,7 +295,9 @@ class DatabaseSync {
     if(!hasRemote() || !restoreHealthy) return saveChain;
     saveChain=saveChain.then(async()=>{
       const started=Date.now();
-      const snapshot=this._snapshot();
+      let snapshot;
+      try{snapshot=this._snapshot();}
+      catch(e){console.error('[PERSIST] Snapshot read failed; previous remote data preserved:',e.message);return;}
       let ledgerCount=0;
       let ledgerMaxId=this._persistedLedgerId;
       const meta=String(snapshot.updatedAt)+':'+SNAPSHOT_TABLES.map(t=>snapshot.tables[t]?.length||0).join(',');
@@ -323,6 +343,17 @@ class DatabaseSync {
     this._firstDirtyAt=0;
     if(this._enabled && restoreHealthy) this._queueSave();
     await saveChain.catch(()=>{});
+  }
+
+  async verifySavedState(){
+    if(!hasRemote()||!restoreHealthy)return;
+    const p=await getPool();
+    const r=await p.query(`SELECT jsonb_array_length(payload->'tables'->'users') AS users,
+      jsonb_array_length(payload->'tables'->'stats') AS stats,
+      (SELECT u->>'balance' FROM jsonb_array_elements(payload->'tables'->'users') u WHERE u->>'id'='2') AS admin_balance,
+      (SELECT COUNT(*) FROM junja_club_ledger WHERE type='rollback_repair' AND user_id=2) AS repair_entries
+      FROM junja_club_state WHERE id=1`);
+    console.log('[SAVED STATE VERIFIED] '+JSON.stringify(r.rows[0]||{}));
   }
 }
 

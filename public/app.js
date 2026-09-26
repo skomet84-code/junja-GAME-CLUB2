@@ -138,6 +138,7 @@ async function purgeLegacyAppCaches(){
 }
 async function boot(){try{const d=await api('/api/me');me=d.user;bootMain();}catch{$('#authScreen').classList.remove('hidden')}}
 function bootMain(){
+  if(!me?.id){$('#mainApp')?.classList.add('hidden');$('#authScreen')?.classList.remove('hidden');if($('#authMsg'))$('#authMsg').textContent='계정 정보를 불러오지 못했습니다. 다시 로그인해주세요.';return;}
   // v2.4.2 RECOVERY: one optional UI/service failure must never stop the whole casino.
   try{document.body.classList.remove('modal-open','jackpot-open');$('#helpModal')?.classList.add('hidden');$('#slotJackpotOverlay')?.classList.add('hidden')}catch(e){console.warn('[JGC UI RESET]',e)}
   $('#authScreen')?.classList.add('hidden');$('#mainApp')?.classList.remove('hidden');
