@@ -156,14 +156,8 @@ source = replaceOne(source, oldWalletChange, newWalletChange, 'bigint wallet set
 // so this can execute only once for this table.
 source = replaceOne(
   source,
-  `for (const e of staleEscrows) {
-  if (e.amount > 0) walletChange(e.user_id, e.amount, 'recovery', \`${e.game} 방 서버 재시작 자동 환급\`);
-}`,
-  `for (const e of staleEscrows) {
-  const failedJunjaHoldemCashout=Number(e.user_id)===2&&e.game==='solo_holdem'&&String(e.amount)==='7015497137345000';
-  const recoveryAmount=failedJunjaHoldemCashout?'14030994273900000':e.amount;
-  if(walletInt(recoveryAmount)>0n)walletChange(e.user_id,recoveryAmount,failedJunjaHoldemCashout?'solo_holdem_cashout_recovery':'recovery',failedJunjaHoldemCashout?'AI 홀덤 승리금 정산 복구':\`${e.game} 방 서버 재시작 자동 환급\`);
-}`,
+  "for (const e of staleEscrows) {\n  if (e.amount > 0) walletChange(e.user_id, e.amount, 'recovery', \`${e.game} 방 서버 재시작 자동 환급\`);\n}",
+  "for (const e of staleEscrows) {\n  const failedJunjaHoldemCashout=Number(e.user_id)===2&&e.game==='solo_holdem'&&String(e.amount)==='7015497137345000';\n  const recoveryAmount=failedJunjaHoldemCashout?'14030994273900000':e.amount;\n  if(walletInt(recoveryAmount)>0n)walletChange(e.user_id,recoveryAmount,failedJunjaHoldemCashout?'solo_holdem_cashout_recovery':'recovery',failedJunjaHoldemCashout?'AI 홀덤 승리금 정산 복구':\`${e.game} 방 서버 재시작 자동 환급\`);\n}",
   'failed holdem cashout one-time recovery'
 );
 
