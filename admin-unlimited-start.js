@@ -150,17 +150,7 @@ const newWalletChange = `function walletChange(userId, amount, type, memo){
 }`;
 source = replaceOne(source, oldWalletChange, newWalletChange, 'bigint wallet settlement');
 
-// Preserve the exact failed AI hold'em cashout shown by the user before this deploy.
-// Restore the displayed final table stack exactly once. The normal stale-escrow
-// refund runs first; this correction then tops the admin wallet up only to the
-// confirmed final stack, so the original buy-in is not double-counted.
-source = replaceOne(
-  source,
-  "db.exec('DELETE FROM room_escrow');",
-  "db.exec('DELETE FROM room_escrow');\nconst failedCashoutRepairKey='repair_holdem_cashout_20260926_14030994273900000';\nif(!gameStateGet(failedCashoutRepairKey,false)){\n  const repairUser=db.prepare(\"SELECT id,balance FROM users WHERE id=2 AND username='junja_admin'\").get();\n  if(repairUser){\n    const target=14030994273900000n,current=walletInt(repairUser.balance);\n    if(current<target)walletChange(repairUser.id,target-current,'solo_holdem_cashout_recovery','AI 홀덤 승리금 14,030,994,273,900,000 G 정산 복구');\n    gameStateSet(failedCashoutRepairKey,{completed:true,target:String(target),before:String(current),at:now()});\n    console.log('[HOLDEM CASHOUT REPAIR] target='+String(target)+' before='+String(current));\n  }\n}",
-  'failed holdem cashout exact one-time recovery'
-);
-
+// Previous one-time hold'em payout repair has been retired; future deploys must not modify balances.
 // Render deploys overlap old/new instances briefly. Flush the corrected new state
 // once after the old instance has exited, then verify the remote snapshot.
 source = replaceOne(
