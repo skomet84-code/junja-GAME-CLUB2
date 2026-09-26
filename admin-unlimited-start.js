@@ -27,7 +27,7 @@ function replaceOne(source, oldText, newText, label, required = true) {
 // ---- Static client patch ---------------------------------------------------
 let appSource = fs.readFileSync(appJsPath, 'utf8');
 
-// Admin wallet accepts exact round-money values up to 1경 (10^16 G).
+// Admin wallet amount input is no longer capped at 1경; server storage remains bounded by SQLite int64.
 appSource = appSource.replace('max="1000000000"', ' '.repeat('max="1000000000"'.length));
 
 // All game wager controls: fixed 100k client caps become wallet-limited.
@@ -93,49 +93,117 @@ fs.createReadStream = function patchedStaticReadStream(filePath, options) {
 const serverPath = path.join(__dirname, 'server.js');
 let source = fs.readFileSync(serverPath, 'utf8');
 
-// Preserve v2.4.3 admin wallet hotfix with safe integer protection.
+// Large-wallet compatibility: keep all game rules intact, but store wallet arithmetic
+// as SQLite INTEGER via BigInt so balances above JS Number.MAX_SAFE_INTEGER can settle.
+source = replaceOne(
+  source,
+  "// If the server restarted while rooms were active, return virtual chips safely.",
+  `function walletInt(v){
+  if(typeof v==='bigint')return v;
+  if(typeof v==='number'){
+    if(!Number.isFinite(v)||!Number.isInteger(v))throw new Error('게임머니 값이 올바르지 않습니다.');
+    return BigInt(String(v));
+  }
+  const s=String(v??'').trim();
+  if(!/^-?\\d+$/.test(s))throw new Error('게임머니 값이 올바르지 않습니다.');
+  return BigInt(s);
+}
+function walletOut(v){
+  const n=typeof v==='bigint'?v:walletInt(v),lim=BigInt(Number.MAX_SAFE_INTEGER);
+  return n<=lim&&n>=-lim?Number(n):n.toString();
+}
+
+// If the server restarted while rooms were active, return virtual chips safely.`,
+  'large wallet helpers'
+);
+
+const oldWalletChange = `function walletChange(userId, amount, type, memo){
+  const tx = db.transaction ? db.transaction : null;
+  db.exec('BEGIN IMMEDIATE');
+  try{
+    const u=db.prepare('SELECT balance FROM users WHERE id=?').get(userId);
+    if(!u) throw new Error('사용자를 찾을 수 없습니다.');
+    const next=u.balance+amount;
+    if(next<0) throw new Error('게임머니가 부족합니다.');
+    db.prepare('UPDATE users SET balance=? WHERE id=?').run(next,userId);
+    db.prepare('INSERT INTO ledger(user_id,amount,balance_after,type,memo,created_at) VALUES(?,?,?,?,?,?)')
+      .run(userId,amount,next,type,memo,now());
+    db.exec('COMMIT');
+    return next;
+  }catch(e){ db.exec('ROLLBACK'); throw e; }
+}`;
+const newWalletChange = `function walletChange(userId, amount, type, memo){
+  const tx = db.transaction ? db.transaction : null;
+  db.exec('BEGIN IMMEDIATE');
+  try{
+    const u=db.prepare('SELECT balance FROM users WHERE id=?').get(userId);
+    if(!u) throw new Error('사용자를 찾을 수 없습니다.');
+    const current=walletInt(u.balance),delta=walletInt(amount),next=current+delta;
+    if(next<0n) throw new Error('게임머니가 부족합니다.');
+    if(next>9000000000000000000n) throw new Error('보유 게임머니 저장 한도를 초과합니다.');
+    db.prepare('UPDATE users SET balance=? WHERE id=?').run(next,userId);
+    db.prepare('INSERT INTO ledger(user_id,amount,balance_after,type,memo,created_at) VALUES(?,?,?,?,?,?)')
+      .run(userId,delta,next,type,memo,now());
+    db.exec('COMMIT');
+    return walletOut(next);
+  }catch(e){ db.exec('ROLLBACK'); throw e; }
+}`;
+source = replaceOne(source, oldWalletChange, newWalletChange, 'bigint wallet settlement');
+
+// Preserve the exact failed AI hold'em cashout shown by the user before this deploy.
+// If the matching stale escrow exists after restart, return the full winning table stack,
+// not merely the original buy-in. The escrow is deleted by the existing recovery flow,
+// so this can execute only once for this table.
+source = replaceOne(
+  source,
+  `for (const e of staleEscrows) {
+  if (e.amount > 0) walletChange(e.user_id, e.amount, 'recovery', \`${e.game} 방 서버 재시작 자동 환급\`);
+}`,
+  `for (const e of staleEscrows) {
+  const failedJunjaHoldemCashout=Number(e.user_id)===2&&e.game==='solo_holdem'&&String(e.amount)==='7015497137345000';
+  const recoveryAmount=failedJunjaHoldemCashout?'14030994273900000':e.amount;
+  if(walletInt(recoveryAmount)>0n)walletChange(e.user_id,recoveryAmount,failedJunjaHoldemCashout?'solo_holdem_cashout_recovery':'recovery',failedJunjaHoldemCashout?'AI 홀덤 승리금 정산 복구':\`${e.game} 방 서버 재시작 자동 환급\`);
+}`,
+  'failed holdem cashout one-time recovery'
+);
+
+// Admin wallet: remove the artificial 1경 ceiling while staying within SQLite INTEGER storage.
 const oldAdminValidation = "if(!Number.isInteger(raw)||raw<1||raw>1000000000)return json(res,400,{error:'조정 금액은 1~1,000,000,000 G 범위의 정수로 입력하세요.'});";
-const newAdminValidation = "if(!Number.isInteger(raw)||raw<1||raw>10000000000000000)return json(res,400,{error:'조정 금액은 1G~1경 G 범위의 정수로 입력하세요.'});";
+const newAdminValidation = "if(!Number.isInteger(raw)||raw<1||raw>9000000000000000000)return json(res,400,{error:'조정 금액이 올바르지 않거나 저장 한도를 초과합니다.'});";
 source = replaceOne(source, oldAdminValidation, newAdminValidation, 'admin wallet validation');
 
-const oldBalanceGuard = "const next=u.balance+amount;\n    if(next<0) throw new Error('게임머니가 부족합니다.');";
-const newBalanceGuard = "const next=Number(u.balance)+Number(amount);\n    if(!Number.isInteger(next)||next>10000000000000000) throw new Error('보유 게임머니 최대 1경 G를 초과합니다.');\n    if(next<0) throw new Error('게임머니가 부족합니다.');";
-source = replaceOne(source, oldBalanceGuard, newBalanceGuard, 'wallet safe integer guard');
-
-// 1경 wallet compatibility only. The persistence layer returns balances above
-// Number.MAX_SAFE_INTEGER as decimal strings, so normalize balance arithmetic
-// without changing game rules, payouts, collections, or display-unit policy.
+// Direct balance paths retained from the stable core: only remove the former 1경 ceiling.
 source = replaceOne(
   source,
   "const u=db.prepare('SELECT balance FROM users WHERE id=?').get(userId),next=Number(u.balance)+prize;if(!Number.isSafeInteger(next))throw new Error('보유 게임머니 한도를 초과합니다.');",
-  "const u=db.prepare('SELECT balance FROM users WHERE id=?').get(userId),next=Number(u.balance)+prize;if(!Number.isInteger(next)||next>10000000000000000)throw new Error('보유 게임머니 최대 1경 G를 초과합니다.');",
-  'daily draw 1경 wallet'
+  "const u=db.prepare('SELECT balance FROM users WHERE id=?').get(userId),next=Number(u.balance)+prize;if(!Number.isInteger(next)||next>9000000000000000000)throw new Error('보유 게임머니 저장 한도를 초과합니다.');",
+  'daily draw large wallet'
 );
 source = replaceOne(
   source,
   "const senderNext=sender.balance-total,targetNext=target.balance+amount,t=now();\n    if(!Number.isSafeInteger(senderNext)||!Number.isSafeInteger(targetNext))throw new Error('게임머니 한도를 초과합니다.');",
-  "const senderNext=Number(sender.balance)-total,targetNext=Number(target.balance)+amount,t=now();\n    if(!Number.isInteger(senderNext)||!Number.isInteger(targetNext)||senderNext<0||targetNext>10000000000000000)throw new Error('보유 게임머니 최대 1경 G를 초과합니다.');",
-  'friend transfer 1경 wallet'
+  "const senderNext=Number(sender.balance)-total,targetNext=Number(target.balance)+amount,t=now();\n    if(!Number.isInteger(senderNext)||!Number.isInteger(targetNext)||senderNext<0||targetNext>9000000000000000000)throw new Error('보유 게임머니 저장 한도를 초과합니다.');",
+  'friend transfer large wallet'
 );
 source = replaceOne(
   source,
   "const balance=u.balance+refund;\n        if(!Number.isSafeInteger(balance))throw new Error('게임머니 한도를 초과합니다.');",
-  "const balance=Number(u.balance)+refund;\n        if(!Number.isInteger(balance)||balance>10000000000000000)throw new Error('보유 게임머니 최대 1경 G를 초과합니다.');",
-  'holdem cashout 1경 wallet'
+  "const balance=Number(u.balance)+refund;\n        if(!Number.isInteger(balance)||balance>9000000000000000000)throw new Error('보유 게임머니 저장 한도를 초과합니다.');",
+  'holdem departure large wallet'
 );
 source = replaceOne(
   source,
   "const wn=w.balance+stake,ln=l.balance-stake,t=now();",
-  "const wn=Number(w.balance)+stake,ln=Number(l.balance)-stake,t=now();if(!Number.isInteger(wn)||wn>10000000000000000)throw new Error('보유 게임머니 최대 1경 G를 초과합니다.');",
-  'baccarat settlement 1경 wallet'
+  "const wn=Number(w.balance)+stake,ln=Number(l.balance)-stake,t=now();if(!Number.isInteger(wn)||wn>9000000000000000000)throw new Error('보유 게임머니 저장 한도를 초과합니다.');",
+  'baccarat large wallet'
 );
 source = replaceOne(
   source,
   "if(!Number.isSafeInteger(bal))throw new Error('게임머니 한도를 초과합니다.');",
-  "if(!Number.isInteger(bal)||bal>10000000000000000)throw new Error('보유 게임머니 최대 1경 G를 초과합니다.');",
-  'daily bonus 1경 wallet'
+  "if(!Number.isInteger(bal)||bal>9000000000000000000)throw new Error('보유 게임머니 저장 한도를 초과합니다.');",
+  'daily bonus large wallet'
 );
-source = source.split("!Number.isSafeInteger(buyIn)||buyIn<1000").join("!Number.isInteger(buyIn)||buyIn<1000||buyIn>10000000000000000");
+source = source.split("!Number.isSafeInteger(buyIn)||buyIn<1000").join("!Number.isInteger(buyIn)||buyIn<1000||buyIn>9000000000000000000");
 
 
 // Remove the fixed game wager ceiling globally. Individual endpoints already
