@@ -187,6 +187,16 @@ class DatabaseSync {
         this._native.exec('COMMIT; PRAGMA foreign_keys=ON;');
         const restoredRows=TABLES.reduce((n,t)=>n+(snap.tables[t]?.length||0),0);
         const restoredUsers=(snap.tables.users||[]).length;
+        const auditUsers=this._native.prepare('SELECT id,balance,balance_text,is_admin,is_disabled FROM users');
+        auditUsers.setReadBigInts(true);
+        const wallets=auditUsers.all();
+        const counts={};
+        for(const table of ['users','stats','sessions','user_inventory','user_loadout'])counts[table]=this._native.prepare(`SELECT COUNT(*) AS n FROM ${table}`).get().n;
+        counts.missingStats=this._native.prepare('SELECT COUNT(*) AS n FROM users u LEFT JOIN stats s ON s.user_id=u.id WHERE s.user_id IS NULL').get().n;
+        counts.validSessions=this._native.prepare('SELECT COUNT(*) AS n FROM sessions WHERE expires_at>?').get(Date.now()).n;
+        counts.unsafeWallets=wallets.filter(u=>u.balance>BigInt(Number.MAX_SAFE_INTEGER)).length;
+        counts.textWalletMismatches=wallets.filter(u=>u.balance_text!=null&&String(u.balance)!==u.balance_text).length;
+        console.log('[RESTORE AUDIT] '+JSON.stringify({snapshotAt:snap.updatedAt,counts,adminWallets:wallets.filter(u=>u.is_admin===1n).map(u=>({id:String(u.id),balance:String(u.balance),balance_text:u.balance_text,disabled:String(u.is_disabled)}))}));
         if(hasRemote() && restoredUsers===0) throw new Error('Safety stop: persistent snapshot contains zero users.');
         this._restoredFromLegacy=snap.__restoreSource==='legacy';
         this._persistedLedgerId=this._restoredFromLegacy?0:Math.max(0,Number(snap.__remoteLedgerMaxId||0));
