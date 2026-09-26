@@ -151,6 +151,16 @@ const newWalletChange = `function walletChange(userId, amount, type, memo){
 source = replaceOne(source, oldWalletChange, newWalletChange, 'bigint wallet settlement');
 
 // Previous one-time hold'em payout repair has been retired; future deploys must not modify balances.
+
+// Correct only the duplicate escrow refund created by the retired repair.
+// Subtract the duplicated recovered stack exactly once, preserving any later
+// legitimate wins/losses. The threshold prevents accidental repeat execution.
+source = replaceOne(
+  source,
+  "db.exec('DELETE FROM room_escrow');",
+  "db.exec('DELETE FROM room_escrow');\nconst duplicateCashoutFixKey='repair_duplicate_holdem_refund_20260926_v1';\nconst duplicateAdmin=db.prepare(\"SELECT id,balance FROM users WHERE id=2 AND username='junja_admin'\").get();\nif(duplicateAdmin&&!gameStateGet(duplicateCashoutFixKey,false)){\n  const current=walletInt(duplicateAdmin.balance),duplicate=14030994273900000n;\n  if(current>=20000000000000000n){\n    walletChange(duplicateAdmin.id,-duplicate,'duplicate_cashout_repair','중복 홀덤 정산 복구분 1회 제거');\n    gameStateSet(duplicateCashoutFixKey,{completed:true,removed:String(duplicate),before:String(current),after:String(current-duplicate),at:now()});\n    console.log('[DUPLICATE CASHOUT FIX] before='+String(current)+' after='+String(current-duplicate));\n  }\n}",
+  'duplicate holdem cashout correction'
+);
 // Render deploys overlap old/new instances briefly. Flush the corrected new state
 // once after the old instance has exited, then verify the remote snapshot.
 source = replaceOne(
