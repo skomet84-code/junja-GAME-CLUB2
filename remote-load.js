@@ -30,19 +30,16 @@ async function load(url,{init=false,source='target'}={}){
     if(!state.rows[0]) return null;
     const payload=state.rows[0].payload;
     payload.tables=payload.tables||{};
-    const legacyLedger=Array.isArray(payload.tables.ledger)?payload.tables.ledger:[];
-    let external=[];
+    // Ledger history can grow without bound. Keep it in Postgres and restore
+    // only its high-water mark; loading every row into JSON at boot can exceed
+    // the 512MB Render instance limit. New writes resume after this ID.
+    let remoteLedgerMaxId=0;
     try{
-      const lr=await c.query('SELECT id,user_id,amount,balance_after,type,memo,created_at FROM junja_club_ledger ORDER BY id');
-      external=lr.rows.map(r=>({
-        id:n(r.id),user_id:n(r.user_id),amount:n(r.amount),balance_after:n(r.balance_after),
-        type:r.type,memo:r.memo,created_at:n(r.created_at)
-      }));
+      const lr=await c.query('SELECT COALESCE(MAX(id),0) AS max_id FROM junja_club_ledger');
+      remoteLedgerMaxId=Number(lr.rows[0]?.max_id||0);
     }catch{}
-    const ids=new Set(external.map(r=>String(r.id)));
-    const missingLegacy=legacyLedger.filter(r=>!ids.has(String(r.id)));
-    payload.tables.ledger=external.concat(missingLegacy).sort((a,b)=>Number(a.id)-Number(b.id));
-    payload.__remoteLedgerMaxId=external.length?Number(external[external.length-1].id):0;
+    payload.tables.ledger=[];
+    payload.__remoteLedgerMaxId=remoteLedgerMaxId;
     payload.__restoreSource=source;
     return payload;
   }finally{
