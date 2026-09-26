@@ -27,7 +27,7 @@ function replaceOne(source, oldText, newText, label, required = true) {
 // ---- Static client patch ---------------------------------------------------
 let appSource = fs.readFileSync(appJsPath, 'utf8');
 
-// Admin wallet remains unlimited within JS safe integer range.
+// Admin wallet accepts exact round-money values up to 1경 (10^16 G).
 appSource = appSource.replace('max="1000000000"', ' '.repeat('max="1000000000"'.length));
 
 // All game wager controls: fixed 100k client caps become wallet-limited.
@@ -95,12 +95,48 @@ let source = fs.readFileSync(serverPath, 'utf8');
 
 // Preserve v2.4.3 admin wallet hotfix with safe integer protection.
 const oldAdminValidation = "if(!Number.isInteger(raw)||raw<1||raw>1000000000)return json(res,400,{error:'조정 금액은 1~1,000,000,000 G 범위의 정수로 입력하세요.'});";
-const newAdminValidation = "if(!Number.isSafeInteger(raw)||raw<1)return json(res,400,{error:'조정 금액은 1G 이상의 안전한 정수로 입력하세요.'});";
+const newAdminValidation = "if(!Number.isInteger(raw)||raw<1||raw>10000000000000000)return json(res,400,{error:'조정 금액은 1G~1경 G 범위의 정수로 입력하세요.'});";
 source = replaceOne(source, oldAdminValidation, newAdminValidation, 'admin wallet validation');
 
 const oldBalanceGuard = "const next=u.balance+amount;\n    if(next<0) throw new Error('게임머니가 부족합니다.');";
-const newBalanceGuard = "const next=u.balance+amount;\n    if(!Number.isSafeInteger(next)) throw new Error('잔액이 시스템 안전 정수 범위를 초과합니다.');\n    if(next<0) throw new Error('게임머니가 부족합니다.');";
+const newBalanceGuard = "const next=Number(u.balance)+Number(amount);\n    if(!Number.isInteger(next)||next>10000000000000000) throw new Error('보유 게임머니 최대 1경 G를 초과합니다.');\n    if(next<0) throw new Error('게임머니가 부족합니다.');";
 source = replaceOne(source, oldBalanceGuard, newBalanceGuard, 'wallet safe integer guard');
+
+// 1경 wallet compatibility only. The persistence layer returns balances above
+// Number.MAX_SAFE_INTEGER as decimal strings, so normalize balance arithmetic
+// without changing game rules, payouts, collections, or display-unit policy.
+source = replaceOne(
+  source,
+  "const u=db.prepare('SELECT balance FROM users WHERE id=?').get(userId),next=Number(u.balance)+prize;if(!Number.isSafeInteger(next))throw new Error('보유 게임머니 한도를 초과합니다.');",
+  "const u=db.prepare('SELECT balance FROM users WHERE id=?').get(userId),next=Number(u.balance)+prize;if(!Number.isInteger(next)||next>10000000000000000)throw new Error('보유 게임머니 최대 1경 G를 초과합니다.');",
+  'daily draw 1경 wallet'
+);
+source = replaceOne(
+  source,
+  "const senderNext=sender.balance-total,targetNext=target.balance+amount,t=now();\n    if(!Number.isSafeInteger(senderNext)||!Number.isSafeInteger(targetNext))throw new Error('게임머니 한도를 초과합니다.');",
+  "const senderNext=Number(sender.balance)-total,targetNext=Number(target.balance)+amount,t=now();\n    if(!Number.isInteger(senderNext)||!Number.isInteger(targetNext)||senderNext<0||targetNext>10000000000000000)throw new Error('보유 게임머니 최대 1경 G를 초과합니다.');",
+  'friend transfer 1경 wallet'
+);
+source = replaceOne(
+  source,
+  "const balance=u.balance+refund;\n        if(!Number.isSafeInteger(balance))throw new Error('게임머니 한도를 초과합니다.');",
+  "const balance=Number(u.balance)+refund;\n        if(!Number.isInteger(balance)||balance>10000000000000000)throw new Error('보유 게임머니 최대 1경 G를 초과합니다.');",
+  'holdem cashout 1경 wallet'
+);
+source = replaceOne(
+  source,
+  "const wn=w.balance+stake,ln=l.balance-stake,t=now();",
+  "const wn=Number(w.balance)+stake,ln=Number(l.balance)-stake,t=now();if(!Number.isInteger(wn)||wn>10000000000000000)throw new Error('보유 게임머니 최대 1경 G를 초과합니다.');",
+  'baccarat settlement 1경 wallet'
+);
+source = replaceOne(
+  source,
+  "if(!Number.isSafeInteger(bal))throw new Error('게임머니 한도를 초과합니다.');",
+  "if(!Number.isInteger(bal)||bal>10000000000000000)throw new Error('보유 게임머니 최대 1경 G를 초과합니다.');",
+  'daily bonus 1경 wallet'
+);
+source = source.split("!Number.isSafeInteger(buyIn)||buyIn<1000").join("!Number.isInteger(buyIn)||buyIn<1000||buyIn>10000000000000000");
+
 
 // Remove the fixed game wager ceiling globally. Individual endpoints already
 // reject bets larger than the user's wallet; walletWager() remains wallet-capped.
