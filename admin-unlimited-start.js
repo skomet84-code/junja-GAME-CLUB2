@@ -263,13 +263,40 @@ const newHoldemBot = `function holdemBotHoleProfile(cards){
   const premium=(pair&&hi>=11)||(hi===14&&lo>=12)||(hi===13&&lo===12&&suited);
   return {score:Math.max(.05,Math.min(.99,score)),premium};
 }
-function holdemBotEquity(hp,board,samples=84){
-  const hole=(hp?.hole||[]).filter(Boolean),known=new Set([...hole,...(board||[])]);
-  const base=cardDeck().filter(c=>!known.has(c)),needBoard=Math.max(0,5-(board||[]).length);
+function holdemBotTrackHuman(r,userId,action,raiseTo,toCall,hp,rp){
+  if(!r||!r.solo||r.game!=='holdem'||userId<=0||!r.hand)return;
+  const read=r._holdemBotRead||(r._holdemBotRead={hands:[]}),key=String(r.hand.startedAt||'')+'|'+String(r.hand.dealerSeat??'');
+  let hand=read.hands[read.hands.length-1];
+  if(!hand||hand.key!==key){hand={key,actions:0,passive:0,raises:0,allIn:false,folded:false};read.hands.push(hand);if(read.hands.length>31)read.hands.splice(0,read.hands.length-31);}
+  hand.actions++;
+  if(action==='fold'){hand.folded=true;return;}
+  if(action==='check'||action==='call')hand.passive++;
+  if(action==='raise'){
+    hand.raises++;
+    const maxTo=Number(hp?.roundBet||0)+Number(rp?.stack||0),n=Number(raiseTo);
+    if(Number.isFinite(n)&&n>=maxTo)hand.allIn=true;
+  }else if(action==='call'&&Number(rp?.stack||0)>0&&Number(toCall)>=Number(rp.stack))hand.allIn=true;
+}
+function holdemBotReadStats(r){
+  const hands=(r?._holdemBotRead?.hands||[]).slice(-31),current=hands[hands.length-1]||null,prior=hands.slice(0,-1).slice(-30),n=prior.length;
+  const actions=prior.reduce((a,h)=>a+Number(h.actions||0),0),passive=prior.reduce((a,h)=>a+Number(h.passive||0),0);
+  const allInRate=n?prior.filter(h=>h.allIn).length/n:.12,foldRate=n?prior.filter(h=>h.folded).length/n:.25,passiveRate=actions?passive/actions:.5;
+  const clamp01=v=>Math.max(0,Math.min(1,v));
+  let trap=n>=4?clamp01((.14-allInRate)/.14)*.5+clamp01((passiveRate-.55)/.35)*.35+clamp01((foldRate-.18)/.5)*.15:.15;
+  if(current?.allIn&&Number(current.passive||0)>0)trap=Math.min(1,trap+.12+Math.min(.18,Number(current.passive||0)*.06));
+  return {hands:n,allInRate,foldRate,passiveRate,trap,currentPassive:Number(current?.passive||0)};
+}
+function holdemBotEquity(hp,board,samples=84,oppMinScore=0){
+  const hole=(hp?.hole||[]).filter(Boolean),known=new Set([...hole,...(board||[])]),base=cardDeck().filter(c=>!known.has(c)),needBoard=Math.max(0,5-(board||[]).length);
   let wins=0,ties=0,total=0;
   for(let n=0;n<samples;n++){
     const pool=[...base],take=()=>{const i=crypto.randomInt(pool.length);return pool.splice(i,1)[0];};
-    const opp=[take(),take()],run=[...(board||[])];for(let i=0;i<needBoard;i++)run.push(take());
+    let opp=null;
+    if(oppMinScore>0&&base.length>=2){
+      for(let tries=0;tries<28&&!opp;tries++){const a=crypto.randomInt(base.length),b0=crypto.randomInt(base.length-1),b=b0>=a?b0+1:b0,cand=[base[a],base[b]];if(holdemBotHoleProfile(cand).score>=oppMinScore)opp=cand;}
+    }
+    if(opp){for(const c of opp){const i=pool.indexOf(c);if(i>=0)pool.splice(i,1);}}else opp=[take(),take()];
+    const run=[...(board||[])];for(let i=0;i<needBoard;i++)run.push(take());
     const a=eval7([...hole,...run]),b=eval7([...opp,...run]),cmp=compareRank(a,b);
     if(cmp>0)wins++;else if(cmp===0)ties++;total++;
   }
@@ -278,33 +305,40 @@ function holdemBotEquity(hp,board,samples=84){
 function pokerBotDrive(r,userId){
   let guard=0;
   while(r.hand&&r.hand.phase!=='complete'&&r.hand.turnUserId!==userId&&guard++<20){
-    const botId=soloPokerBotId(userId),h=r.hand,hp=h.p[botId],rp=roomPlayer(r,botId),up=roomPlayer(r,userId),uh=h.p[userId];
+    const botId=soloPokerBotId(userId),h=r.hand,hp=h.p[botId],rp=roomPlayer(r,botId),uh=h.p[userId];
     if(!hp||!rp)break;
-    const toCall=Math.max(0,h.currentBet-hp.roundBet),pot=Math.max(1,pokerPot(h)),equity=holdemBotEquity(hp,h.board,84),potOdds=toCall/Math.max(1,pot+toCall);
-    const profile=holdemBotHoleProfile(hp.hole),boardCount=h.board.length,stackTotal=rp.stack+hp.roundBet,callFrac=toCall/Math.max(1,rp.stack),userAllIn=!!uh?.allIn;
+    const toCall=Math.max(0,h.currentBet-hp.roundBet),pot=Math.max(1,pokerPot(h)),profile=holdemBotHoleProfile(hp.hole),boardCount=h.board.length,callFrac=toCall/Math.max(1,rp.stack),userAllIn=!!uh?.allIn,read=holdemBotReadStats(r);
+    const rangeFloor=userAllIn?Math.min(.82,.54+read.trap*.25+(read.currentPassive>0?.035:0)):0;
+    const equity=holdemBotEquity(hp,h.board,userAllIn?104:84,rangeFloor),potOdds=toCall/Math.max(1,pot+toCall);
     let action='check',raiseTo=0;
     const maxTo=hp.roundBet+rp.stack,minTo=h.currentBet+h.minRaise;
+    const passivePressure=read.hands>=4?Math.max(0,Math.min(.28,(read.passiveRate-.55)*.65)):0;
     const raiseBy=(pct,minBB=2)=>Math.min(maxTo,Math.max(minTo,h.currentBet+Math.max(h.minRaise,Math.floor(Math.max(r.bigBlind*minBB,pot*pct)/r.bigBlind)*r.bigBlind)));
     if(toCall===0){
       let betChance=equity>=.78?.94:equity>=.66?.82:equity>=.57?.64:equity>=.5?.38:.08;
-      if(boardCount===0){betChance=Math.max(betChance,profile.premium?.95:profile.score>=.66?.78:profile.score>=.5?.52:.12);}
+      if(boardCount===0)betChance=Math.max(betChance,profile.premium?.96:profile.score>=.66?.82:profile.score>=.5?.58:.14);
+      betChance=Math.min(.97,betChance+passivePressure);
       if(rp.stack>r.bigBlind*3&&Math.random()<betChance){
         action='raise';
-        const pct=equity>=.8?.86:equity>=.68?.68:equity>=.57?.52:.38;
-        raiseTo=raiseBy(pct,boardCount===0?(profile.premium?3.2:2.4):2);
+        const pct=(equity>=.8?.88:equity>=.68?.7:equity>=.57?.54:.4)+passivePressure*.45;
+        raiseTo=raiseBy(pct,boardCount===0?(profile.premium?3.5:2.7):2.2);
       }
     }else{
-      let margin=userAllIn?.075:callFrac>.65?.065:callFrac>.35?.045:.025;
+      let margin=userAllIn?.085:callFrac>.65?.065:callFrac>.35?.045:.025;
       if(boardCount===0&&!profile.premium&&callFrac>.55)margin+=.035;
-      const required=Math.min(.93,potOdds+margin);
-      const monster=equity>=.79,veryStrong=equity>=.69,profitable=equity>=required;
+      let required=Math.min(.95,potOdds+margin);
+      if(userAllIn){
+        const adaptiveFloor=read.hands>=4?.57+read.trap*.23:.58;
+        required=Math.max(required,Math.min(.86,adaptiveFloor+(read.currentPassive>0?.025:0)));
+      }
+      const monster=equity>=.81,veryStrong=equity>=.71,profitable=equity>=required;
       if(!profitable){
         action='fold';
       }else{
-        let raiseChance=monster?.82:veryStrong?.52:equity>=.6?.24:.05;
+        let raiseChance=monster?.84:veryStrong?.54:equity>=.61?.24:.04;
         if(userAllIn)raiseChance=0;
         if(rp.stack>toCall+r.bigBlind*3&&Math.random()<raiseChance){
-          action='raise';raiseTo=raiseBy(monster?.92:veryStrong?.7:.5,2.5);
+          action='raise';raiseTo=raiseBy(monster?.94:veryStrong?.72:.52,2.7);
         }else action='call';
       }
     }
@@ -312,6 +346,13 @@ function pokerBotDrive(r,userId){
   }
 }`;
 source = replaceOne(source, oldHoldemBot, newHoldemBot, 'holdem extreme AI');
+
+source = replaceOne(
+  source,
+  "  const toCall=Math.max(0,h.currentBet-hp.roundBet);\n  if(action==='fold'){hp.folded=true;hp.acted=true;}",
+  "  const toCall=Math.max(0,h.currentBet-hp.roundBet);\n  if(r.solo&&userId>0)holdemBotTrackHuman(r,userId,action,raiseTo,toCall,hp,rp);\n  if(action==='fold'){hp.folded=true;hp.acted=true;}",
+  'holdem adaptive human action tracker'
+);
 
 const oldSevenBot = `function sevenBotDrive(s){
   let guard=0;while(s&&!s.complete&&s.turn==='bot'&&guard++<5){
