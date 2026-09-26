@@ -229,6 +229,9 @@ const ROOM_REACTIONS = {
 };
 
 const SHOP_ITEMS = [
+  {id:'frame_ultimate_solar',category:'frame',name:'태초의 왕관',icon:'♛',rarity:'ultimate',price:10000000000000,collection:'ultimate',featured:true,desc:'궁극 컬렉션 · 황금 태양환과 왕관이 빛나는 절대자의 테두리. 구매 즉시 자동 장착.'},
+  {id:'frame_ultimate_void',category:'frame',name:'종언의 블랙홀',icon:'✦',rarity:'ultimate',price:10000000000000,collection:'ultimate',featured:true,desc:'궁극 컬렉션 · 보랏빛 궤도와 청록 성운이 회전하는 심연의 테두리. 구매 즉시 자동 장착.'},
+  {id:'frame_ultimate_seraph',category:'frame',name:'영원의 세라핌',icon:'♜',rarity:'ultimate',price:10000000000000,collection:'ultimate',featured:true,desc:'궁극 컬렉션 · 백금 날개와 얼음빛 광륜이 펼쳐지는 천상의 테두리. 구매 즉시 자동 장착.'},
   {id:'char_f_happy_exclusive',category:'character',gender:'F',asset:'/art/special/happy-exclusive.png',name:'HAPPY ♥',icon:'♥',rarity:'prestige',price:0,desc:'햅피 전용 · 사쿠라 핑크 애니메이션 미소녀 스페셜 캐릭터',happyOnly:true,featured:true},
   {id:'char_lim_f_black_rose',category:'character',gender:'F',asset:'/art/special/limited-f-black-rose.webp',name:'블랙로즈 딜러',icon:'♠',rarity:'limited',price:10000000000,collection:'limited',featured:true,desc:'LIMITED COLLECTION · 기간 한정 스페셜 캐릭터'},
   {id:'char_lim_f_sakura',category:'character',gender:'F',asset:'/art/special/limited-f-sakura.webp',name:'벚꽃 무녀',icon:'🌸',rarity:'limited',price:10000000000,collection:'limited',featured:true,desc:'LIMITED COLLECTION · 기간 한정 스페셜 캐릭터'},
