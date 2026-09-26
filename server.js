@@ -665,8 +665,8 @@ const SOCIAL_RANKS = [
   {level:8,name:'공작',icon:'👑',cost:1000000000000,className:'duke'},
   {level:9,name:'왕',icon:'♔',cost:3000000000000,className:'king'},
   {level:10,name:'황제',icon:'🏰',cost:10000000000000,className:'emperor'},
-  {level:11,name:'JUNJA ROYAL',icon:'J',cost:30000000000000,className:'royal'},
-  {level:12,name:'GOD JUNJA',icon:'G',cost:100000000000000,className:'god'}
+  {level:11,name:'JUNJA ROYAL',icon:'J',cost:100000000000000,className:'royal'},
+  {level:12,name:'GOD JUNJA',icon:'G',cost:500000000000000,className:'god'}
 ];
 function socialRankPerks(level){
   level=Math.max(0,Math.min(SOCIAL_RANKS.length-1,Number(level)||0));

@@ -3,7 +3,7 @@ const fs=require('node:fs'),path=require('node:path');
 const server=fs.readFileSync(path.join(__dirname,'..','server.js'),'utf8');
 const rankJs=fs.readFileSync(path.join(__dirname,'..','public','rank-system.js'),'utf8');
 const rankCss=fs.readFileSync(path.join(__dirname,'..','public','rank-system.css'),'utf8');
-if(!server.includes("{level:12,name:'GOD JUNJA',icon:'G',cost:100000000000000,className:'god'}"))throw new Error('GOD JUNJA rank definition missing');
+if(!server.includes("{level:12,name:'GOD JUNJA',icon:'G',cost:500000000000000,className:'god'}"))throw new Error('GOD JUNJA rank definition missing');
 if(!server.includes("Math.min(SOCIAL_RANKS.length-1"))throw new Error('Dynamic social rank clamp missing');
 if(!server.includes("level>=12?6:level>=11?4"))throw new Error('GOD daily draw perk missing');
 if(!server.includes("10000000000][level]||0"))throw new Error('GOD daily salary missing');
