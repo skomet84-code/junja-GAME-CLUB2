@@ -151,14 +151,23 @@ const newWalletChange = `function walletChange(userId, amount, type, memo){
 source = replaceOne(source, oldWalletChange, newWalletChange, 'bigint wallet settlement');
 
 // Preserve the exact failed AI hold'em cashout shown by the user before this deploy.
-// If the matching stale escrow exists after restart, return the full winning table stack,
-// not merely the original buy-in. The escrow is deleted by the existing recovery flow,
-// so this can execute only once for this table.
+// Restore the displayed final table stack exactly once. The normal stale-escrow
+// refund runs first; this correction then tops the admin wallet up only to the
+// confirmed final stack, so the original buy-in is not double-counted.
 source = replaceOne(
   source,
-  "for (const e of staleEscrows) {\n  if (e.amount > 0) walletChange(e.user_id, e.amount, 'recovery', \`${e.game} 방 서버 재시작 자동 환급\`);\n}",
-  "for (const e of staleEscrows) {\n  const failedJunjaHoldemCashout=Number(e.user_id)===2&&e.game==='solo_holdem'&&String(e.amount)==='7015497137345000';\n  const recoveryAmount=failedJunjaHoldemCashout?'14030994273900000':e.amount;\n  if(walletInt(recoveryAmount)>0n)walletChange(e.user_id,recoveryAmount,failedJunjaHoldemCashout?'solo_holdem_cashout_recovery':'recovery',failedJunjaHoldemCashout?'AI 홀덤 승리금 정산 복구':\`${e.game} 방 서버 재시작 자동 환급\`);\n}",
-  'failed holdem cashout one-time recovery'
+  "db.exec('DELETE FROM room_escrow');",
+  "db.exec('DELETE FROM room_escrow');\nconst failedCashoutRepairKey='repair_holdem_cashout_20260926_14030994273900000';\nif(!gameStateGet(failedCashoutRepairKey,false)){\n  const repairUser=db.prepare(\"SELECT id,balance FROM users WHERE id=2 AND username='junja_admin'\").get();\n  if(repairUser){\n    const target=14030994273900000n,current=walletInt(repairUser.balance);\n    if(current<target)walletChange(repairUser.id,target-current,'solo_holdem_cashout_recovery','AI 홀덤 승리금 14,030,994,273,900,000 G 정산 복구');\n    gameStateSet(failedCashoutRepairKey,{completed:true,target:String(target),before:String(current),at:now()});\n    console.log('[HOLDEM CASHOUT REPAIR] target='+String(target)+' before='+String(current));\n  }\n}",
+  'failed holdem cashout exact one-time recovery'
+);
+
+// Render deploys overlap old/new instances briefly. Flush the corrected new state
+// once after the old instance has exited, then verify the remote snapshot.
+source = replaceOne(
+  source,
+  "if(process.env.DATABASE_URL)setTimeout(()=>db.verifySavedState().catch(e=>console.error('[SAVED STATE VERIFY]',e.message)),30000).unref();",
+  "if(process.env.DATABASE_URL)setTimeout(async()=>{try{await db.flush();await db.verifySavedState();}catch(e){console.error('[SAVED STATE VERIFY]',e.message)}},30000).unref();",
+  'post-deploy persistence flush'
 );
 
 // Admin wallet: remove the artificial 1경 ceiling while staying within SQLite INTEGER storage.
