@@ -417,6 +417,24 @@ const SLOT_SYMBOLS = [
   // 🍀/👑 remain removed. Regular symbols share the remaining 97%.
   {s:'🍒',w:23},{s:'🍋',w:20},{s:'🍊',w:18},{s:'🔔',w:15},{s:'⭐',w:12},{s:'💎',w:9},{s:'7️⃣',w:1.5},{s:'J',w:1.5}
 ];
+function slot777BetBoostPct(bet){
+  const n=Number(bet)||0;
+  if(n>=10000000000)return 10; // 100억+
+  if(n>=1000000000)return 8;   // 10억+
+  if(n>=100000000)return 6;    // 1억+
+  if(n>=10000000)return 4;     // 1천만+
+  if(n>=1000000)return 2;      // 100만+
+  return 0;
+}
+function slotSymbolsForBet(bet){
+  // Boost is defined against a completed 777 line, not a single reel cell.
+  // Cube-root keeps one specific 3-cell 777 line at roughly +2/+4/+6/+8/+10%.
+  const boost=slot777BetBoostPct(bet),baseSeven=1.5;
+  if(!boost)return SLOT_SYMBOLS;
+  const seven=baseSeven*Math.cbrt(1+boost/100);
+  const delta=seven-baseSeven;
+  return SLOT_SYMBOLS.map(x=>x.s==='7️⃣'?{...x,w:seven}:x.s==='🍒'?{...x,w:x.w-delta}:x);
+}
 const SLOT_MULT = {'🍒':1,'🍋':3,'🍊':5,'🔔':8,'⭐':10,'💎':20,'7️⃣':1000,'J':800};
 const SLOT_LINES = [
   { key:'top', label:'TOP', cssClass:'top', cells:[[0,0],[0,1],[0,2]] },
@@ -2113,7 +2131,7 @@ const server=http.createServer(async(req,res)=>{
       const u=requireAuth(req,res);if(!u)return;const b=await readBody(req),royalSlotUnlimited=Number(u.rank?.level||0)>=9;let bet;try{bet=b.useRankFree?1000:(royalSlotUnlimited?walletWager(b.bet,u.balance,1000,1000):gameWager(b.bet,1000,1000000000,1000))}catch(e){return json(res,400,{error:e.message})};
       const freePlay=consumeRankFreePlay(u.id,'slot',!!b.useRankFree);if(freePlay.free)bet=Number(socialRankPerksForUser(u.id).freeSlotBet||10000000);if(!freePlay.free&&u.balance<bet)return json(res,400,{error:'게임머니가 부족합니다.'});
       if(!freePlay.free)walletChange(u.id,-bet,'slot_bet',`슬롯 베팅 ${formatMoney(bet)}G`);
-      const slotLuck=0;const pick=()=>{const weighted=SLOT_SYMBOLS,total=100;let n=(crypto.randomInt(1000000)/1000000)*total;for(const x of weighted){if(n<x.w)return x.s;n-=x.w;}return '🍒';};
+      const slotLuck=0,jackpotBoostPct=slot777BetBoostPct(bet),slotWeights=slotSymbolsForBet(bet);const pick=()=>{const weighted=slotWeights,total=100;let n=(crypto.randomInt(1000000)/1000000)*total;for(const x of weighted){if(n<x.w)return x.s;n-=x.w;}return '🍒';};
       let grid=Array.from({length:3},()=>Array.from({length:3},()=>pick()));
       const slot777EventTriggered=slot777EventActive()&&(crypto.randomInt(1000000)/1000000)<SLOT_777_EVENT_CHANCE;
       if(slot777EventTriggered){
@@ -2149,7 +2167,7 @@ const server=http.createServer(async(req,res)=>{
       const payout=regularPayout+jackpotAward,profit=payout-(freePlay.free?0:bet);
       db.prepare('UPDATE stats SET slot_spins=slot_spins+1, slot_wins=slot_wins+?, slot_profit=slot_profit+? WHERE user_id=?').run(payout>(freePlay.free?0:bet)?1:0,profit,u.id);if(sevenJackpot||slot777EventTriggered)pushRefresh();
       const jackpotLine=winLines.find(w=>!w.scatter&&(w.symbols?.[0]==='7️⃣'||w.symbols?.[0]==='J'));
-      return json(res,200,{grid,bet,payout,regularPayout,profit,totalMultiplier,winLines,user:userPublic(u.id),jackpot:!!jackpotLine,jackpotSymbol:jackpotLine?.symbols?.[0]||null,poolJackpot:sevenJackpot,jackpotAward,jackpotContribution,jackpotPool:pool,jackpotBase:SLOT_JACKPOT_BASE,slotLuckPct:slotLuck,rankFreePlay:freePlay});
+      return json(res,200,{grid,bet,payout,regularPayout,profit,totalMultiplier,winLines,user:userPublic(u.id),jackpot:!!jackpotLine,jackpotSymbol:jackpotLine?.symbols?.[0]||null,poolJackpot:sevenJackpot,jackpotAward,jackpotContribution,jackpotPool:pool,jackpotBase:SLOT_JACKPOT_BASE,slotLuckPct:slotLuck,jackpotBoostPct,rankFreePlay:freePlay});
     }
 
     if(url.pathname==='/api/roulette/spin'&&req.method==='POST'){
