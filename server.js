@@ -1268,11 +1268,11 @@ function pokerBotDrive(r,userId){
   }
 }
 function soloPokerStart(user){
-  const buyIn=Math.floor(Number(user.balance||0));
+  const buyIn=Math.min(10000000000000,Math.floor(Number(user.balance||0)));
   if(soloHoldem.has(user.id))throw new Error('이미 AI 홀덤 테이블이 열려 있습니다.');
   if(!Number.isSafeInteger(buyIn)||buyIn<1000)throw new Error('홀덤 테이블 입장에는 최소 1,000G가 필요합니다.');
-  walletChange(user.id,-buyIn,'solo_holdem_buyin',`AI 홀덤 전액 스택 입장 ${formatMoney(buyIn)}G`);
-  const botId=soloPokerBotId(user.id),smallBlind=Math.max(1000,Math.min(50000,Math.floor((buyIn*.002)/1000)*1000||1000)),bigBlind=smallBlind*2;
+  walletChange(user.id,-buyIn,'solo_holdem_buyin',`AI 홀덤 테이블 입장 (최대 10조) ${formatMoney(buyIn)}G`);
+  const botId=soloPokerBotId(user.id),smallBlind=Math.max(500,Math.min(500000000,Math.floor(buyIn/200/500)*500)),bigBlind=smallBlind*2;
   const r={id:`SOLOH${user.id}`,solo:true,name:'J-BOT HEADS UP',game:'holdem',buyIn,maxPlayers:2,hostId:user.id,smallBlind,bigBlind,players:[
     {userId:user.id,nickname:user.nickname,avatar:user.avatar,seat:0,stack:buyIn},
     {userId:botId,nickname:'J-BOT',avatar:6,seat:1,stack:buyIn,bot:true}

@@ -13,7 +13,7 @@
 <link rel="stylesheet" href="/treasure-raid.css?v=4">
 <script defer src="/network-client.js?v=20260925"></script>
 <script defer src="/treasure-raid.js?v=6"></script>
-<script defer src="/app.js?v=rankmoney-20260926-1"></script>
+<script defer src="/app.js?v=holdem-ai-20260926-2"></script>
 <script defer src="/rank-system.js?v=20260925"></script>
 </head>
 <body>
@@ -89,7 +89,7 @@
         <div id="holdemMultiArea">
           <div id="holdemBrowser" class="room-browser"><div class="panel create-room premium-panel"><h3>홀덤방 만들기</h3><div class="all-wallet-entry"><span>💼</span><div><b>전액 스택 입장</b><small>입장 순간 내 보유 게임머니 전체가 테이블 칩으로 이동하고, 나갈 때 남은 칩을 다시 정산해.</small></div></div><div class="form-grid"><label>인원<select id="holdemMax"><option>2</option><option>3</option><option>4</option><option selected>6</option></select></label></div><button id="createHoldem" class="primary full" type="button">보유머니 전액으로 친구방 만들기</button></div><div class="panel room-list-card premium-panel"><div class="section-head"><div><small>OPEN TABLES</small><h3>열린 홀덤방</h3></div><button class="ghost" id="refreshHoldem" type="button">새로고침</button></div><div id="holdemRooms" class="room-list"></div></div></div><div id="holdemRoom" class="hidden"></div>
         </div>
-        <div id="holdemSoloArea" class="hidden"><div id="holdemSoloStart" class="solo-start panel"><img loading="lazy" decoding="async" src="/art/poker-mascot.svg" alt="J-BOT"><div><small>HEADS UP VS J-BOT</small><h3>AI와 1:1 홀덤 · 즉시 플레이</h3><p>입장 시 보유 게임머니 전체를 테이블 스택으로 가져가고, 나갈 때 남은 칩을 다시 게임머니로 정산해. 10만G 재입장 반복이 없어.</p><div class="all-wallet-entry mini"><span>ALL</span><div><b>MY WALLET → TABLE STACK</b><small>최소 1,000G · 별도 바이인 상한 없음</small></div></div><button id="startSoloHoldem" class="primary full" type="button">보유머니 전액으로 J-BOT과 시작</button></div></div><div id="holdemSoloRoom" class="hidden"></div></div>
+        <div id="holdemSoloArea" class="hidden"><div id="holdemSoloStart" class="solo-start panel"><img loading="lazy" decoding="async" src="/art/poker-mascot.svg" alt="J-BOT"><div><small>HEADS UP VS J-BOT</small><h3>AI와 1:1 홀덤 · 즉시 플레이</h3><p>최대 10조까지 테이블 칩으로 가져가고, 초과 금액은 지갑에 남아. 나갈 때 남은 칩을 정산해. 블라인드는 입장 칩에 따라 최대 5억 / 10억.</p><div class="all-wallet-entry mini"><span>10조</span><div><b>MY WALLET → TABLE STACK</b><small>최소 1,000G · AI전 입장 칩 최대 10조</small></div></div><button id="startSoloHoldem" class="primary full" type="button">최대 10조 칩으로 J-BOT과 시작</button></div></div><div id="holdemSoloRoom" class="hidden"></div></div>
       </section>
 
       <section id="view-yut" class="view">
@@ -267,3 +267,4 @@
 </div>
 </body>
 </html>
+
