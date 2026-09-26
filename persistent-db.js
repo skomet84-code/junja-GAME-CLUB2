@@ -112,7 +112,9 @@ function loadRemoteSnapshotSync(){
       env:process.env,encoding:'utf8',stdio:['ignore','pipe','pipe'],timeout:60000,maxBuffer:192*1024*1024
     }).trim();
     if(!out || out==='null') return null;
-    return JSON.parse(out);
+    const snapshot=JSON.parse(out);
+    if(snapshot?.__walletAudit)console.log('[WALLET AUDIT] '+JSON.stringify(snapshot.__walletAudit));
+    return snapshot;
   }catch(e){
     console.error('[PERSIST] Render Postgres snapshot load failed; starting with local DB:',e.message);
     return null;
@@ -246,8 +248,9 @@ class DatabaseSync {
   _snapshot(){
     const tables={};
     for(const t of SNAPSHOT_TABLES){
-      try{tables[t]=readableStatement(this._native,`SELECT * FROM ${t}`).all().map(normalizeSqliteRow);}
-      catch{tables[t]=[];}
+      // A read failure is not an empty table. Abort the save so good remote
+      // account data cannot be silently overwritten with an empty array.
+      tables[t]=readableStatement(this._native,`SELECT * FROM ${t}`).all().map(normalizeSqliteRow);
     }
     return {version:2,updatedAt:Date.now(),tables};
   }

@@ -182,6 +182,9 @@ for (const e of staleEscrows) {
 db.exec('DELETE FROM room_escrow');
 
 db.exec('DELETE FROM sessions WHERE expires_at < ' + Date.now());
+// A missing statistics row must never make an existing account disappear.
+// Preserve every existing statistic and wallet; only fill absent rows.
+db.exec('INSERT OR IGNORE INTO stats(user_id) SELECT id FROM users');
 
 const rooms = new Map();
 const soloHoldem = new Map();
@@ -712,7 +715,7 @@ function userPublic(userId){
     s.seotda_games,s.seotda_wins,s.gostop_games,s.gostop_wins,s.solo_poker_wins,s.solo_yut_wins,
     s.horse_races,s.horse_wins,s.horse_profit,s.bigwheel_plays,s.bigwheel_wins,s.bigwheel_profit,s.sicbo_plays,s.sicbo_wins,s.sicbo_profit,
     s.seven_games,s.seven_wins,s.baccarat_games,s.baccarat_wins,s.baccarat_profit,s.roulette_plays,s.roulette_wins,s.roulette_profit
-    FROM users u JOIN stats s ON s.user_id=u.id WHERE u.id=?`).get(userId);
+    FROM users u LEFT JOIN stats s ON s.user_id=u.id WHERE u.id=?`).get(userId);
   if(!u) return null;
   return {...u, avatarEmoji:AVATARS[u.avatar%AVATARS.length], cosmetics:cosmeticsPublic(userId,true), rank:socialRankPublic(userId), dailyAvailable:u.last_daily!==kstDate()};
 }
