@@ -1401,3 +1401,26 @@ button:not(:disabled){touch-action:manipulation}
 .ultimate-aura{position:absolute;inset:-10px;z-index:1;border-radius:inherit;pointer-events:none}.ultimate-aura:before,.ultimate-aura:after{content:'';position:absolute;inset:0;border:1px solid #ffffff55;border-radius:inherit;animation:ultimateRing 2.2s linear infinite}.ultimate-aura:after{inset:-6px;opacity:.45;animation-direction:reverse}.ultimate-aura>b{position:absolute;right:-8px;top:-12px;color:#fff0a0;font-size:14px;text-shadow:0 0 10px #fff,0 0 20px #ffd969}.ultimate-aura>i{display:none}
 @keyframes ultimateSolar{to{filter:brightness(1.12);box-shadow:0 0 0 3px #fff1aa,0 0 0 6px #c99b32,0 0 24px #ffe68e,0 0 58px #ffb13399}}@keyframes ultimateVoid{to{filter:hue-rotate(16deg) brightness(1.08);box-shadow:0 0 0 3px #b9f8ff,0 0 0 6px #654bc9,0 0 24px #9d8bff,0 0 58px #42e9ee99}}@keyframes ultimateSeraph{to{filter:brightness(1.14);box-shadow:0 0 0 3px #fff,0 0 0 6px #b9e5f4,0 0 26px #fff,0 0 60px #a8eaff99}}@keyframes ultimateRing{to{transform:rotate(360deg)}}
 @media(max-width:700px){.ultimate-vault{align-items:flex-start;flex-direction:column}.ultimate-vault button{width:100%}}
+
+
+/* 777 JACKPOT HALL OF FAME · 2026-09-27 */
+.slot-hof-card{position:relative;overflow:hidden;padding:16px;background:radial-gradient(circle at 8% 0%,rgba(255,202,70,.13),transparent 34%),linear-gradient(145deg,rgba(36,25,10,.96),rgba(12,13,22,.98));border-color:rgba(245,205,104,.34)!important}
+.slot-hof-card:before{content:'777';position:absolute;right:-4px;top:-22px;font-size:78px;font-weight:1000;letter-spacing:-8px;color:rgba(255,207,76,.055);pointer-events:none}
+.slot-hof-head{position:relative;display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:12px}
+.slot-hof-head small{display:block;color:#e5bf64;font-size:9px;font-weight:1000;letter-spacing:.16em}
+.slot-hof-head h3{margin:4px 0 0;font-size:17px}
+.slot-hof-head>span{font-size:9px;color:#8e98ac;white-space:nowrap;padding-top:3px}
+.slot-hof-list{display:grid;gap:8px;position:relative}
+.slot-hof-row{display:grid;grid-template-columns:62px minmax(90px,1fr) minmax(120px,1.35fr);gap:9px;align-items:center;padding:10px 11px;border:1px solid rgba(255,220,133,.13);border-radius:12px;background:rgba(255,255,255,.035)}
+.slot-hof-round{display:inline-flex;align-items:center;justify-content:center;min-height:28px;border-radius:9px;background:linear-gradient(135deg,#8a5e12,#e7bd56);color:#120d04;font-size:11px;font-weight:1000;box-shadow:inset 0 1px rgba(255,255,255,.35)}
+.slot-hof-winner,.slot-hof-money{display:flex;flex-direction:column;gap:2px;min-width:0}
+.slot-hof-winner b{font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.slot-hof-winner small,.slot-hof-money small{font-size:9px;color:#8993a6}
+.slot-hof-money{text-align:right;align-items:flex-end}
+.slot-hof-money strong{max-width:100%;font-size:12px;color:#ffe18a;word-break:break-all}
+@media(max-width:700px){
+  .slot-hof-card{padding:13px}
+  .slot-hof-row{grid-template-columns:56px minmax(72px,.8fr) minmax(105px,1.25fr);gap:7px;padding:9px}
+  .slot-hof-money strong{font-size:11px}
+  .slot-hof-head>span{display:none}
+}
