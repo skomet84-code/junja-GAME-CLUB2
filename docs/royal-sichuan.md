@@ -1,56 +1,47 @@
-# Royal Sichuan — 왕관의 정원
+# Royal Sichuan — 2026-09-27 update
 
-A standalone first release integrated into the JUNJA LAND lobby. Four chapters,
-24 progressive stages, 12 original vector tile symbols, a generated royal garden
-background, 5-combo fever (12 seconds / 3×), hints, deterministic deadlock recovery,
-up/down gravity, Korean-local-date daily puzzle, and untimed relaxation mode.
+## Multiplayer ranked battles
 
-Reference review (2026-09-27):
-- Anipang Sichuan: stage/mission variety, recognizable tiles.
-  https://apps.apple.com/kr/app/id592065188
-- Tantan Sichuan: chapter rewards and collectible progression (not its multiplayer).
-  https://play.google.com/store/apps/details?id=com.neptune.tantan
-- Simple Shisen: difficulty progression and usability.
-  https://play.google.com/store/apps/details?id=jp.analogsoft.SimpleShisenSho
-Original concept: royal botanical environments, gem/heraldic tile vocabulary,
-chapter crown collection, and visible gold connection paths. No competitor art used.
+- Public room list and one-tap joining; no room password or code entry. Existing account login is still required.
+- 2–8 individual competitors; no teams. Everyone receives the host theme and identical seeded board.
+- The selected capacity must be filled and every player must consent via Ready. Stakes are debited atomically once, at start.
+- Stake: 1,000–100,000,000,000,000 G, in 1,000 G increments.
+- Ranking: non-forfeited players first, then clear order, pairs connected, and server-computed score. Unfinished players continue after the first clear. The round settles when everyone finishes, one competitor remains, or the deadline passes.
+- Prizes by non-forfeited count: 1–2 players 100% to first; 3 players 70/30; 4–8 players 60/30/10. Ties share the prizes for occupied positions. All payouts together equal all stakes. No house fee.
+- Result displays every player's rank, verified score, own payout and individual net profit/loss. Host can advance to the next round, switch theme, or leave; other players follow host choices automatically.
+- Each subsequent round cuts 12 seconds from that theme's base timer, down to 60 seconds. A theme change resets to round 1. Every new round requires consent again.
+- Mid-round forfeits retain their stake in the prize pool. Leaving after a verified finish preserves the result. Restarted servers refund interrupted stakes once through atomic SQLite transactions using the existing persisted room_escrow table.
+- Server replays legal moves/hints/shuffles; client score, pair count and clear claims are not trusted. Round IDs reject stale requests, and settlement is idempotent. Full bot detection is not claimed.
+- Wallet arithmetic for this mode and rank promotion is exact BigInt-backed SQLite INTEGER arithmetic, including existing balances above JavaScript's safe integer range.
 
-## Scope and persistence
+## Single player
 
-Single-player points only; no wallet awards or wagers. Progress and daily bests
-are device-local, partitioned by the existing account ID; they are not server
-rankings, cloud saves, or anti-cheat protected. The UI discloses local storage.
-Daily layout is identical for a date, changes at midnight Asia/Seoul, and retries
-retain its seed. Journey and relaxation retries generate a new layout.
+Four chapters / 24 stages, daily KST puzzle, and relaxation mode retain device-local progress. Clearing the campaign unlocks the infinite tower from floor 25. High floors now shorten down to 60 seconds, with gravity and crown trials preserved.
 
-The iframe is created lazily on first entry. Its CSS and JS have no effect on the
-other games. Host navigation and document visibility pause the clock. No fetch,
-DB writes, network polling, streamed music, or new runtime dependencies are added.
-The existing service worker handles versioned static resources normally.
+## Traffic and persistence
 
-## Rules and verification
+No new remote service, streaming music, or database polling was added. Room list refresh is user-driven. Active room updates use non-overlapping 3-second polling; move batches are sent at most once per 2 seconds plus finish. Board state stays in memory; stakes/payouts use the existing persistence infrastructure. Timers stop on leaving the room.
 
-At most two turns, no occupied intermediate cell, outside border allowed. Board
-construction records a valid removal order. After gravity, a deadlock causes a
-free solvable re-layout preserving the remaining multiset. Timed input is locked
-once the result has been produced. Stage rewards are stars and chapter emblems.
+## Revised promotion prices
 
-Run `node tests/sichuan-engine.cjs` (no dependencies). It compares the pathfinder
-with an independent bounded-turn walk oracle and clears 288 stage/seed boards,
-then checks gravity, deterministic generation and KST midnight.
+| Rank | Cost G |
+|---|---:|
+| 평민 | 0 |
+| 상인 | 10억 |
+| 부호 | 100억 |
+| 귀족 | 1,000억 |
+| 남작 | 5,000억 |
+| 자작 | 1조 |
+| 백작 | 3조 |
+| 후작 | 5조 |
+| 공작 | 10조 |
+| 왕 | 30조 |
+| 황제 | 100조 |
+| JUNJA ROYAL | 300조 |
+| GOD JUNJA | 1,000조 |
 
-Optional browser gate: `node tests/sichuan-browser.cjs` with Playwright installed,
-or set `PLAYWRIGHT_MODULE` and `CHROMIUM_PATH` to existing runtime paths. It checks
-a full clear, saved progression, mobile widths, pause, timeout, daily retry,
-relaxation, hints and multiset-preserving shuffle. Physical iOS Safari testing
-remains a release follow-up; Chromium emulation is not a substitute for it.
+These are per-step promotion prices. Existing ranks and perks remain intact; no retroactive charges.
 
-## Art provenance
+## Verification
 
-`public/sichuan/garden.webp` is a 368 KB optimized project asset generated using
-the built-in image-generation tool. Prompt: lavish enchanted royal conservatory
-at midnight; emerald/teal architecture, gilded arches, crescent moon, distant
-palace, magnolia/peonies, reflective water and subtle gold dust; premium stylized
-3D fantasy art; landscape composition, quiet central 60%, detail on edges/top;
-no UI, tiles, text, characters or watermarks. The original PNG is not required
-at runtime. Tile symbols are original code-native SVG for legibility.
+`npm run check`, `npm run test:treasure`, and optional Playwright gates `tests/sichuan-browser.cjs` and `tests/sichuan-multiplayer-browser.cjs`. The deployed Docker command is `node admin-unlimited-start.js`; local integration tests use that exact entry point.

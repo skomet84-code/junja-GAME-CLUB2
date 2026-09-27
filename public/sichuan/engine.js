@@ -40,7 +40,7 @@ function towerConfig(floor){
  floor=Math.max(25,Math.floor(Number(floor)||25));
  const depth=floor-25,phase=depth%6,cycle=Math.floor(depth/6);
  const rows=phase<2?10:12,gravity=phase===2?'down':phase===4?'up':null;
- return{level:floor,floor,world:depth%4,cols:6,rows,types:Math.min(12,8+Math.floor(depth/4)),seconds:Math.max(105,210-Math.floor(depth/3)*6),gravity,comboWindow:Math.max(3200,5200-cycle*180),seal:(floor%10===0),tower:true};
+ return{level:floor,floor,world:depth%4,cols:6,rows,types:Math.min(12,8+Math.floor(depth/4)),seconds:Math.max(60,210-Math.floor(depth/3)*6),gravity,comboWindow:Math.max(3200,5200-cycle*180),seal:(floor%10===0),tower:true};
 }
 function createTower(floor,seed){
  const c=towerConfig(floor),random=rng(seed),mask=Array(c.cols*c.rows).fill(1),phase=(floor-25)%6;

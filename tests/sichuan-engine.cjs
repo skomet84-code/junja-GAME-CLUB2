@@ -16,6 +16,7 @@ for(let level=1;level<=24;level++)for(let seed=1;seed<=12;seed++){
  let live=g.board.slice(),turn=0;while(live.some(Boolean)){let m=E.moves(live,g.cols,g.rows,true)[0];if(!m){live=E.reshuffle(live,g.cols,g.rows,E.rng(seed+turn));m=E.moves(live,g.cols,g.rows,true)[0];}assert.ok(m);live[m.a]=live[m.b]=0;live=E.compact(live,g.cols,g.rows,g.gravity);assert.ok(++turn<=g.board.length/2);}
 }
 for(let floor=25;floor<=60;floor++)for(let seed=1;seed<=3;seed++){const g=E.createTower(floor,seed),b=g.board.slice();assert.equal(g.floor,floor);assert.ok(g.seconds>=105);let turn=0;while(b.some(Boolean)){let m=E.moves(b,g.cols,g.rows,true)[0];if(!m){const resh=E.reshuffle(b,g.cols,g.rows,E.rng(seed+floor+turn));b.splice(0,b.length,...resh);m=E.moves(b,g.cols,g.rows,true)[0];}assert.ok(m,`tower move ${floor}`);b[m.a]=b[m.b]=0;const compacted=E.compact(b,g.cols,g.rows,g.gravity);b.splice(0,b.length,...compacted);assert.ok(++turn<=g.board.length/2);}}
+assert.ok(E.towerConfig(90).seconds<E.towerConfig(60).seconds);assert.equal(E.towerConfig(1000).seconds,60);
 assert.deepEqual(E.create(9,123),E.create(9,123));
 assert.deepEqual(E.compact([1,0,0,2,3,0],2,3,'down'),[0,0,1,0,3,2]);
 assert.deepEqual(E.compact([1,0,0,2,3,0],2,3,'up'),[1,2,3,0,0,0]);

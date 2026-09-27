@@ -1,5 +1,5 @@
 (()=>{'use strict';
-const fmt=n=>new Intl.NumberFormat('ko-KR').format(Number(n||0));
+const fmt=n=>{n=Number(n||0);if(n>=1e12&&n%1e12===0)return (n/1e12).toLocaleString('ko-KR')+'조';if(n>=1e8&&n%1e8===0)return (n/1e8).toLocaleString('ko-KR')+'억';return new Intl.NumberFormat('ko-KR').format(n);};
 let state=null;
 function toast(msg){const el=document.getElementById('toast');if(el){el.textContent=msg;el.classList.add('show');setTimeout(()=>el.classList.remove('show'),3200)}else alert(msg)}
 async function api(path,opt={}){if(typeof window.api==='function')return window.api(path,opt);const r=await fetch(path,{credentials:'same-origin',headers:{'Content-Type':'application/json'},...opt});const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error||'요청 실패');return d}

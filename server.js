@@ -203,6 +203,7 @@ function recordSlot777Jackpot(user,{jackpotAward,regularPayout,bet}){
 }
 
 
+const sichuanBattle=require('./sichuan-battle-server')({db,crypto,readBody,requireAuth,json,rateLimit});
 // If the server restarted while rooms were active, return virtual chips safely.
 const staleEscrows = db.prepare('SELECT room_id,user_id,amount,game FROM room_escrow').all();
 for (const e of staleEscrows) {
@@ -226,55 +227,6 @@ const authAttempts = new Map();
 const liveFloors = new Map();
 const soloSeven = new Map();
 const baccaratRooms = new Map();
-const sichuanBattles = new Map();
-
-function cleanupSichuanBattles(){
-  const t=Date.now();
-  for(const [code,r] of sichuanBattles){
-    const age=t-Number(r.updatedAt||r.createdAt||t);
-    const ttl=r.status==='complete'?10*60*1000:35*60*1000;
-    if(age>ttl)sichuanBattles.delete(code);
-  }
-}
-function sichuanBattleCode(){
-  const alphabet='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  for(let tries=0;tries<20;tries++){
-    let code='';for(let i=0;i<6;i++)code+=alphabet[crypto.randomInt(alphabet.length)];
-    if(!sichuanBattles.has(code))return code;
-  }
-  throw new Error('대전방 코드를 만들지 못했습니다.');
-}
-function sichuanBattlePlayer(r,userId){return r.players.find(p=>Number(p.userId)===Number(userId))||null;}
-function sichuanBattlePublic(r,userId){
-  return{
-    code:r.code,status:r.status,level:r.level,seed:(r.status==='waiting'?null:r.seed),hostId:Number(r.hostId),
-    createdAt:r.createdAt,startedAt:r.startedAt||null,endedAt:r.endedAt||null,winnerId:r.winnerId||null,
-    me:Number(userId),
-    players:r.players.map(p=>({userId:p.userId,nickname:p.nickname,ready:!!p.ready,pairs:Number(p.pairs||0),score:Number(p.score||0),combo:Number(p.combo||0),done:!!p.done,cleared:!!p.cleared,finishedAt:p.finishedAt||null}))
-  };
-}
-function resetSichuanBattle(r,{level=null}={}){
-  if(level!=null)r.level=Number(level);
-  r.status='waiting';r.seed=null;r.startedAt=null;r.endedAt=null;r.winnerId=null;r.updatedAt=Date.now();
-  r.players.forEach(x=>{x.ready=false;x.pairs=0;x.score=0;x.combo=0;x.done=false;x.cleared=false;x.finishedAt=null;});
-  return r;
-}
-function finalizeSichuanBattle(r){
-  if(r.status!=='playing')return;
-  const cleared=r.players.filter(p=>p.cleared);
-  if(cleared.length){
-    cleared.sort((a,b)=>Number(a.finishedAt||Infinity)-Number(b.finishedAt||Infinity));
-    r.winnerId=cleared[0].userId;r.status='complete';r.endedAt=Date.now();r.updatedAt=r.endedAt;return;
-  }
-  if(r.players.length===2&&r.players.every(p=>p.done)){
-    const ranked=[...r.players].sort((a,b)=>(Number(b.pairs||0)-Number(a.pairs||0))||(Number(b.score||0)-Number(a.score||0))||(Number(a.finishedAt||Infinity)-Number(b.finishedAt||Infinity)));
-    const a=ranked[0],b=ranked[1];
-    r.winnerId=(Number(a.pairs||0)===Number(b.pairs||0)&&Number(a.score||0)===Number(b.score||0))?null:a.userId;
-    r.status='complete';r.endedAt=Date.now();r.updatedAt=r.endedAt;
-  }
-}
-
-
 const AVATARS = ['🧑‍💼','😎','🧢','👑','🐯','🐻','🦊','🐼','🐸','🦁'];
 const LIVE_GAMES = new Set(['slot','holdem','sevenpoker','yut','seotda','gostop','horse','bigwheel','sicbo','baccarat','roulette']);
 const ROOM_REACTIONS = {
@@ -747,18 +699,18 @@ function equipShopItem(userId,category,itemId){
 
 const SOCIAL_RANKS = [
   {level:0,name:'평민',icon:'◇',cost:0,className:'commoner'},
-  {level:1,name:'상인',icon:'🪙',cost:100000000,className:'merchant'},
-  {level:2,name:'부호',icon:'💎',cost:1000000000,className:'tycoon'},
-  {level:3,name:'귀족',icon:'✦',cost:10000000000,className:'noble'},
-  {level:4,name:'남작',icon:'♜',cost:50000000000,className:'baron'},
-  {level:5,name:'자작',icon:'♞',cost:100000000000,className:'viscount'},
-  {level:6,name:'백작',icon:'♛',cost:300000000000,className:'count'},
-  {level:7,name:'후작',icon:'⚜',cost:500000000000,className:'marquis'},
-  {level:8,name:'공작',icon:'👑',cost:1000000000000,className:'duke'},
-  {level:9,name:'왕',icon:'♔',cost:3000000000000,className:'king'},
-  {level:10,name:'황제',icon:'🏰',cost:10000000000000,className:'emperor'},
-  {level:11,name:'JUNJA ROYAL',icon:'J',cost:100000000000000,className:'royal'},
-  {level:12,name:'GOD JUNJA',icon:'G',cost:500000000000000,className:'god'}
+  {level:1,name:'상인',icon:'🪙',cost:1000000000,className:'merchant'},
+  {level:2,name:'부호',icon:'💎',cost:10000000000,className:'tycoon'},
+  {level:3,name:'귀족',icon:'✦',cost:100000000000,className:'noble'},
+  {level:4,name:'남작',icon:'♜',cost:500000000000,className:'baron'},
+  {level:5,name:'자작',icon:'♞',cost:1000000000000,className:'viscount'},
+  {level:6,name:'백작',icon:'♛',cost:3000000000000,className:'count'},
+  {level:7,name:'후작',icon:'⚜',cost:5000000000000,className:'marquis'},
+  {level:8,name:'공작',icon:'👑',cost:10000000000000,className:'duke'},
+  {level:9,name:'왕',icon:'♔',cost:30000000000000,className:'king'},
+  {level:10,name:'황제',icon:'🏰',cost:100000000000000,className:'emperor'},
+  {level:11,name:'JUNJA ROYAL',icon:'J',cost:300000000000000,className:'royal'},
+  {level:12,name:'GOD JUNJA',icon:'G',cost:1000000000000000,className:'god'}
 ];
 function socialRankPerks(level){
   level=Math.max(0,Math.min(SOCIAL_RANKS.length-1,Number(level)||0));
@@ -805,17 +757,17 @@ function socialRankPublic(userId){
 function promoteSocialRank(userId){
   db.exec('BEGIN IMMEDIATE');
   try{
-    const u=db.prepare('SELECT balance,rank_level FROM users WHERE id=?').get(userId);
+    const u=db.prepare('SELECT CAST(balance AS TEXT) AS balance,rank_level FROM users WHERE id=?').get(userId);
     if(!u)throw new Error('사용자를 찾을 수 없습니다.');
     const level=Math.max(0,Math.min(SOCIAL_RANKS.length-1,Number(u.rank_level||0)));
     const next=SOCIAL_RANKS[level+1];
     if(!next)throw new Error('이미 GOD JUNJA 최고 신분입니다.');
-    if(u.balance<next.cost)throw new Error(`신분 상승에 ${formatMoney(next.cost)} G가 필요합니다.`);
-    const balance=u.balance-next.cost,t=now();
+    if(BigInt(u.balance)<BigInt(next.cost))throw new Error(`신분 상승에 ${formatMoney(next.cost)} G가 필요합니다.`);
+    const balance=BigInt(u.balance)-BigInt(next.cost),t=now();
     db.prepare('UPDATE users SET balance=?,rank_level=? WHERE id=?').run(balance,next.level,userId);
     db.prepare('INSERT INTO ledger(user_id,amount,balance_after,type,memo,created_at) VALUES(?,?,?,?,?,?)').run(userId,-next.cost,balance,'rank_promotion',`신분 상승 · ${next.name}`,t);
     db.exec('COMMIT');
-    return {balance,rank:socialRankPublic(userId)};
+    return {balance:balance<=BigInt(Number.MAX_SAFE_INTEGER)?Number(balance):String(balance),rank:socialRankPublic(userId)};
   }catch(e){try{db.exec('ROLLBACK')}catch{};throw e;}
 }
 
@@ -2041,7 +1993,8 @@ const server=http.createServer(async(req,res)=>{
     const url=new URL(req.url,`http://${req.headers.host||'localhost'}`);
     if(!sameOriginPost(req)){return json(res,403,{error:'잘못된 요청 출처입니다.'});}
     if(url.pathname.startsWith('/api/treasure-raid')){if(await treasureRaid.handle(req,res,url))return;}
-    if(url.pathname==='/healthz')return json(res,200,{ok:true,rooms:rooms.size+baccaratRooms.size+sichuanBattles.size+treasureRaid.roomCount(),online:onlineCount()});
+    if(url.pathname.startsWith('/api/sichuan/battle')){if(await sichuanBattle.handle(req,res,url))return;}
+    if(url.pathname==='/healthz')return json(res,200,{ok:true,rooms:rooms.size+baccaratRooms.size+sichuanBattle.roomCount()+treasureRaid.roomCount(),online:onlineCount()});
     if(url.pathname==='/api/register'&&req.method==='POST'){
       const ip=req.socket.remoteAddress||'ip';if(!rateLimit('reg:'+ip,6,60000))return json(res,429,{error:'잠시 후 다시 시도하세요.'});
       const b=await readBody(req);const username=escText(b.username,20).toLowerCase(),nickname=escText(b.nickname,14),password=String(b.password||'');
@@ -2076,60 +2029,6 @@ const server=http.createServer(async(req,res)=>{
       const token=parseCookies(req).sid;if(token)db.prepare('DELETE FROM sessions WHERE token=?').run(token);return json(res,200,{ok:true},{'Set-Cookie':'sid=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0'});
     }
     if(url.pathname==='/api/me'&&req.method==='GET'){const u=requireAuth(req,res);if(!u)return;const includePresence=url.searchParams.get('presence')==='1';return json(res,200,{user:u,online:onlineCount(),presence:includePresence?presenceSnapshot():[]});}
-    if(url.pathname==='/api/sichuan/battle/create'&&req.method==='POST'){
-      const u=requireAuth(req,res);if(!u)return;cleanupSichuanBattles();
-      if(!rateLimit('sichuan_create:'+u.id,10,60000))return json(res,429,{error:'대전방 생성이 너무 빠릅니다.'});
-      const b=await readBody(req);const allowed=new Set([6,12,18,24]);const level=allowed.has(Number(b.level))?Number(b.level):18;
-      for(const [code,r] of sichuanBattles){if(r.status==='waiting'&&sichuanBattlePlayer(r,u.id))sichuanBattles.delete(code);}
-      const code=sichuanBattleCode(),t=Date.now();
-      const r={code,status:'waiting',hostId:u.id,level,seed:null,createdAt:t,updatedAt:t,startedAt:null,endedAt:null,winnerId:null,players:[{userId:u.id,nickname:u.nickname,ready:false,pairs:0,score:0,combo:0,done:false,cleared:false,finishedAt:null}]};
-      sichuanBattles.set(code,r);return json(res,201,{room:sichuanBattlePublic(r,u.id)});
-    }
-    {
-      const m=url.pathname.match(/^\/api\/sichuan\/battle\/([A-Z0-9]{6})(?:\/(join|ready|progress|leave|rematch|theme))?$/i);
-      if(m){
-        const u=requireAuth(req,res);if(!u)return;cleanupSichuanBattles();const code=String(m[1]).toUpperCase(),op=m[2]||'',r=sichuanBattles.get(code);
-        if(!r)return json(res,404,{error:'대전방을 찾을 수 없습니다.'});
-        let p=sichuanBattlePlayer(r,u.id);
-        if(!op&&req.method==='GET'){if(!p)return json(res,403,{error:'이 대전방 참가자가 아닙니다.'});r.updatedAt=Date.now();return json(res,200,{room:sichuanBattlePublic(r,u.id)});}
-        if(op==='join'&&req.method==='POST'){
-          if(!p){if(r.status!=='waiting')return json(res,409,{error:'이미 시작된 대전입니다.'});if(r.players.length>=2)return json(res,409,{error:'이미 두 명이 참가 중입니다.'});p={userId:u.id,nickname:u.nickname,ready:false,pairs:0,score:0,combo:0,done:false,cleared:false,finishedAt:null};r.players.push(p);}
-          r.updatedAt=Date.now();return json(res,200,{room:sichuanBattlePublic(r,u.id)});
-        }
-        if(!p)return json(res,403,{error:'이 대전방 참가자가 아닙니다.'});
-        if(op==='rematch'&&req.method==='POST'){
-          if(r.status==='playing')return json(res,409,{error:'진행 중인 대전은 다시 시작할 수 없습니다.'});
-          resetSichuanBattle(r);return json(res,200,{room:sichuanBattlePublic(r,u.id)});
-        }
-        if(op==='theme'&&req.method==='POST'){
-          if(Number(r.hostId)!==Number(u.id))return json(res,403,{error:'테마는 방장만 변경할 수 있습니다.'});
-          if(r.status==='playing')return json(res,409,{error:'진행 중에는 테마를 변경할 수 없습니다.'});
-          const b=await readBody(req),allowed=new Set([6,12,18,24]),level=Number(b.level);
-          if(!allowed.has(level))return json(res,400,{error:'선택할 수 없는 테마입니다.'});
-          resetSichuanBattle(r,{level});return json(res,200,{room:sichuanBattlePublic(r,u.id)});
-        }
-        if(op==='ready'&&req.method==='POST'){
-          if(r.status!=='waiting')return json(res,409,{error:'대기 중인 방이 아닙니다.'});const b=await readBody(req);p.ready=b.ready!==false;r.updatedAt=Date.now();
-          if(r.players.length===2&&r.players.every(x=>x.ready)){r.status='playing';r.seed=crypto.randomInt(1,0x7fffffff);r.startedAt=Date.now()+3500;r.players.forEach(x=>{x.pairs=0;x.score=0;x.combo=0;x.done=false;x.cleared=false;x.finishedAt=null;});}
-          return json(res,200,{room:sichuanBattlePublic(r,u.id)});
-        }
-        if(op==='progress'&&req.method==='POST'){
-          if(r.status!=='playing')return json(res,409,{error:'진행 중인 대전이 아닙니다.',room:sichuanBattlePublic(r,u.id)});
-          if(!rateLimit('sichuan_progress:'+u.id,180,60000))return json(res,429,{error:'대전 상태 전송이 너무 빠릅니다.'});
-          const b=await readBody(req);p.pairs=Math.max(0,Math.min(60,Math.floor(Number(b.pairs)||0)));p.score=Math.max(0,Math.min(99999999,Math.floor(Number(b.score)||0)));p.combo=Math.max(0,Math.min(999,Math.floor(Number(b.combo)||0)));
-          if(b.done&&!p.done){p.done=true;p.cleared=!!b.cleared;p.finishedAt=Date.now();}
-          r.updatedAt=Date.now();finalizeSichuanBattle(r);return json(res,200,{room:sichuanBattlePublic(r,u.id)});
-        }
-        if(op==='leave'&&req.method==='POST'){
-          const wasHost=Number(r.hostId)===Number(u.id);r.players=r.players.filter(x=>Number(x.userId)!==Number(u.id));r.updatedAt=Date.now();
-          if(r.status==='playing'&&r.players.length===1){r.winnerId=r.players[0].userId;r.status='complete';r.endedAt=Date.now();}
-          if(wasHost&&r.players.length)r.hostId=r.players[0].userId;
-          if(!r.players.length)sichuanBattles.delete(code);
-          return json(res,200,{ok:true});
-        }
-        return json(res,405,{error:'지원하지 않는 요청입니다.'});
-      }
-    }
     if(url.pathname==='/api/rank'&&req.method==='GET'){const u=requireAuth(req,res);if(!u)return;return json(res,200,{rank:socialRankPublic(u.id),user:userPublic(u.id),ranks:SOCIAL_RANKS});}
     if(url.pathname==='/api/rank/promote'&&req.method==='POST'){
       const u=requireAuth(req,res);if(!u)return;
