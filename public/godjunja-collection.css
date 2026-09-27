@@ -1,0 +1,27 @@
+/* GOD JUNJA · restrained white gold, amethyst and porcelain. */
+.god-vault{position:relative;isolation:isolate;display:flex;align-items:center;justify-content:space-between;gap:24px;overflow:hidden;padding:32px;margin:18px 0;border:1px solid #e5c994;border-radius:22px;background:radial-gradient(ellipse at 90% 10%,#8159ad65,transparent 60%),linear-gradient(120deg,#171022,#352443 60%,#171021);box-shadow:inset 0 0 0 5px #fff1cd08,0 8px 35px #0003;color:#fff2dd}
+.god-vault:after{content:'J';position:absolute;right:24%;top:-50px;z-index:-1;color:#ead3a310;font:260px Georgia,serif}
+.god-vault small{font-size:9px;letter-spacing:3px;color:#e9cfa0}.god-vault h3{font:36px Georgia,serif;letter-spacing:5px;margin:12px 0}.god-vault p{font-size:13px;color:#eee1fa}.god-vault span{font-size:11px;color:#bfb0ce}.god-vault button{border:1px solid #e5c994;background:linear-gradient(120deg,#faf0d5,#d7b77e);color:#382648;border-radius:10px;padding:14px 20px;font-weight:800}
+.shop-item.god-item{border:1px solid #cfb080!important;background:linear-gradient(145deg,#332641,#15111e 55%,#282033)!important;box-shadow:inset 0 0 0 3px #f3d9990b,0 6px 20px #0003}
+.god-item .rarity,.god-item .shop-price b{color:#f5deae!important}.god-item .prestige-badge{background:#ead6aa!important;color:#352144!important;font-size:9px}.god-item .shop-item-copy h3{color:#fff2dd}.god-item .shop-item-copy p{color:#c8b8d8}.god-item .primary{background:linear-gradient(120deg,#faf1d9,#d3ae75);color:#32203d;border:1px solid #f6e1b3}
+.god-item [class*="preview-"]{background:radial-gradient(ellipse at center,#78569a55,transparent 73%)}
+.styled-avatar.frame-godjunja_eternity{border:3px solid #fff4d6!important;box-shadow:0 0 0 2px #bc9246,0 0 0 5px #ded0ff70,0 0 20px #ad81da80!important;overflow:visible!important}
+.god-orbit{position:absolute;inset:-10px;pointer-events:none;z-index:4;border:1px solid #e6c994;border-radius:inherit;transform:rotate(-7deg)}
+.god-orbit i{position:absolute;inset:3px;border:1px solid #fcf0d680;border-radius:inherit;transform:rotate(14deg)}
+.god-orbit b{position:absolute;right:-5px;bottom:-7px;color:#fff2cc;font-size:15px;text-shadow:0 0 8px #bc8dff;animation:god-jewel 4s ease-in-out infinite}
+.god-name-seal{position:absolute;bottom:-8px;left:50%;transform:translateX(-50%);z-index:7;display:grid;place-items:center;width:19px;height:19px;border:1px solid #f5d99c;border-radius:50%;background:#39234f;color:#fff0cb;font:bold 12px Georgia,serif;pointer-events:none}
+.styled-avatar .avatar-costume:has(.god-costume-art){right:-12%;top:-30%;width:62%;font-size:0!important;transform:rotate(10deg)}
+.styled-avatar .god-costume-art{width:100%!important;height:auto!important;max-width:none!important;border:0!important;border-radius:0!important;object-fit:contain!important;filter:drop-shadow(0 2px 3px #2a174d)}
+.styled-avatar .avatar-pet:has(.god-pet-art){width:68%;left:-24%;bottom:-15%;font-size:0!important;animation:none}
+.styled-avatar .god-pet-art{width:100%!important;height:auto!important;max-width:none!important;border:0!important;border-radius:0!important;object-fit:contain!important;filter:drop-shadow(0 1px 3px #382044)}
+.god-pet-showcase{width:110px;height:110px;object-fit:contain;filter:drop-shadow(0 0 10px #cfa2f860)}
+.god-item .shop-title-preview span{padding:12px 18px;border:1px solid #d9b774;background:linear-gradient(100deg,#eee0c6,#fff9ed,#d8bde8);color:#4a2c5f;letter-spacing:2px;font-weight:900;box-shadow:0 0 18px #d9b6ff40}
+.god-item .shop-bubble-preview{border:1px solid #b79bd4;border-radius:20px 20px 20px 4px;color:#f7e7c7;background:linear-gradient(135deg,#593775,#271a39)}
+.god-oracle{background:linear-gradient(120deg,#f8edda,#dec9f1)!important;border:2px solid #c6a467!important;color:#45295b!important;box-shadow:0 0 17px #b597d85c!important}.god-oracle b,.god-oracle span,.god-oracle small{color:#45295b!important}
+.shop-table-preview.table_godjunja_palace,body.skin-table-godjunja_palace :is(.poker-table,.seven-felt,.baccarat-table){background:radial-gradient(ellipse at 50% 40%,#62417e,#33233f 60%,#211628)!important;border-color:#cbb17f!important;box-shadow:inset 0 0 0 3px #ffefcb,inset 0 0 0 6px #aa8546,inset 0 0 55px #14081b,0 0 0 2px #e5d3af!important}
+body.skin-table-godjunja_palace :is(.poker-table,.seven-felt,.baccarat-table):before{content:'';position:absolute;inset:18%;background:url('/art/godjunja/seal.svg') center/contain no-repeat;opacity:.07;pointer-events:none}
+.shop-card-preview.card_godjunja_seal,body.skin-card-godjunja_seal .card.back{background:#271a39 url('/art/godjunja/seal.svg') center/100% 100% no-repeat!important;border-color:#e6c98d!important;box-shadow:0 0 10px #d0adf040!important;color:transparent!important}
+.shop-card-preview.card_godjunja_seal>*{visibility:hidden}body.skin-card-godjunja_seal .card.back:after{content:''!important}
+@keyframes god-jewel{50%{opacity:.55;transform:scale(.85)}}
+@media(max-width:620px){.god-vault{padding:20px;gap:15px;align-items:flex-start;flex-direction:column}.god-vault h3{font-size:28px}.god-vault button{width:100%}.god-vault small{letter-spacing:1.8px}.god-pet-showcase{width:70px;height:85px}.god-item .shop-title-preview span{font-size:10px;padding:8px;letter-spacing:1px}.god-orbit{inset:-6px}.god-name-seal{width:15px;height:15px;font-size:10px}}
+@media(prefers-reduced-motion:reduce){.god-orbit b{animation:none}}

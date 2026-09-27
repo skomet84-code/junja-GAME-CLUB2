@@ -201,6 +201,10 @@ const baccaratRooms = new Map();
 const AVATARS = ['🧑‍💼','😎','🧢','👑','🐯','🐻','🦊','🐼','🐸','🦁'];
 const LIVE_GAMES = new Set(['slot','holdem','sevenpoker','yut','seotda','gostop','horse','bigwheel','sicbo','baccarat','roulette']);
 const ROOM_REACTIONS = {
+  godone:{emoji:'♛',label:'유일무이',pack:'bubble_godjunja_oracle'},
+  godclass:{emoji:'✧',label:'품격을 증명하지',pack:'bubble_godjunja_oracle'},
+  godworld:{emoji:'♜',label:'내 세계에 온 걸 환영해',pack:'bubble_godjunja_oracle'},
+  godfate:{emoji:'✦',label:'운명은 내 편',pack:'bubble_godjunja_oracle'},
   frustrated:{emoji:'😫',label:'답답해!',pack:'base'},
   hurry:{emoji:'⏩',label:'빨리빨리!',pack:'base'},
   cry:{emoji:'😭',label:'으앙 ㅠㅠ',pack:'base'},
@@ -232,6 +236,13 @@ const ROOM_REACTIONS = {
 };
 
 const SHOP_ITEMS = [
+  {id:'frame_godjunja_eternity',category:'frame',name:'영원의 후광',icon:'✧',rarity:'sovereign',price:0,adminOnly:true,collection:'godjunja',featured:true,desc:'겹겹의 백금 궤도와 자수정 광채 · 갓준자 전용 테두리'},
+  {id:'costume_godjunja_crown',category:'costume',name:'절대자의 왕관',icon:'♛',rarity:'sovereign',price:0,adminOnly:true,collection:'godjunja',featured:true,desc:'화이트 골드와 자수정으로 새긴 단 하나의 왕관',asset:'/art/godjunja/crown.svg'},
+  {id:'title_godjunja_one',category:'title',name:'GOD JUNJA · 유일무이',icon:'♛',rarity:'sovereign',price:0,adminOnly:true,collection:'godjunja',featured:true,desc:'모든 시선이 기억하는 단 하나의 이름'},
+  {id:'pet_godjunja_dragon',category:'pet',name:'백금신룡 · 아우렐리온',icon:'✦',rarity:'sovereign',price:0,adminOnly:true,collection:'godjunja',featured:true,desc:'백금 날개와 자수정 눈동자의 전용 수호신룡',asset:'/art/godjunja/sovereign-dragon.webp'},
+  {id:'table_godjunja_palace',category:'table_skin',name:'천상의 성역',icon:'♜',rarity:'sovereign',price:0,adminOnly:true,collection:'godjunja',featured:true,desc:'홀덤·세븐포커·바카라에 펼쳐지는 보라빛 황실 테이블'},
+  {id:'card_godjunja_seal',category:'card_back',name:'절대자의 인장',icon:'J',rarity:'sovereign',price:0,adminOnly:true,collection:'godjunja',featured:true,desc:'화이트 골드 J 문장 · 나의 카드 뒷면에 새긴 인장',asset:'/art/godjunja/seal.svg'},
+  {id:'bubble_godjunja_oracle',category:'bubble_pack',name:'신의 한마디',icon:'✧',rarity:'sovereign',price:0,adminOnly:true,collection:'godjunja',featured:true,desc:'유일무이 · 품격을 증명하지 · 내 세계에 온 걸 환영해 · 운명은 내 편'},
   {id:'char_godjunja_imperial',category:'character',gender:'M',asset:'/art/special/godjunja-imperial.webp',name:'갓준자 · 임페리얼 화이트',icon:'♛',rarity:'prestige',price:0,adminOnly:true,collection:'godjunja',featured:true,desc:'GOD JUNJA 전용 의상 · 화이트 골드 황실'},
   {id:'char_godjunja_monochrome',category:'character',gender:'M',asset:'/art/special/godjunja-monochrome.webp',name:'갓준자 · 모노크롬 로얄',icon:'♛',rarity:'prestige',price:0,adminOnly:true,collection:'godjunja',featured:true,desc:'GOD JUNJA 전용 의상 · 화이트 수트와 블랙 실크'},
   {id:'char_godjunja_moonlight',category:'character',gender:'M',asset:'/art/special/godjunja-moonlight.webp',name:'갓준자 · 문라이트 팰리스',icon:'♛',rarity:'prestige',price:0,adminOnly:true,collection:'godjunja',featured:true,desc:'GOD JUNJA 전용 의상 · 달빛 궁전 테라스'},
@@ -601,7 +612,7 @@ function cosmeticsPublic(userId,includePrivate=false){
 }
 function reactionAllowed(userId,key){
   const def=ROOM_REACTIONS[key];if(!def)return false;if(def.pack==='base')return true;
-  const load=ensureLoadout(userId);return load.bubble_pack===def.pack && inventoryIds(userId).has(def.pack);
+  const load=ensureLoadout(userId);return load.bubble_pack===def.pack && (SHOP_BY_ID[def.pack]?.adminOnly ? !!db.prepare('SELECT is_admin FROM users WHERE id=?').get(userId)?.is_admin : inventoryIds(userId).has(def.pack));
 }
 function isHappyUser(userId){const u=db.prepare('SELECT username,nickname FROM users WHERE id=?').get(userId);return !!u&&(String(u.username||'').trim().toLowerCase()==='햅피'||String(u.username||'').trim().toLowerCase()==='happy'||String(u.nickname||'').trim().toLowerCase()==='햅피'||String(u.nickname||'').trim().toLowerCase()==='happy');}
 function shopState(userId){
