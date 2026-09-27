@@ -36,9 +36,22 @@ function arrange(mask,cols,rows,kinds,random=Math.random){
 function config(level){level=Math.max(1,Math.min(24,Math.floor(level)));const world=Math.floor((level-1)/6),step=(level-1)%6;return{level,world,cols:6,rows:8+(step>=2?2:0)+(step>=4?2:0),types:Math.min(12,6+world*2+Math.floor(step/2)),seconds:180+step*12-world*12,gravity:world===1?'down':world===3?'up':null,comboWindow:world===2?4000:6000,seal:step===5};}
 function create(level,seed){const c=config(level),random=rng(seed),mask=Array(c.cols*c.rows).fill(1);if((level-1)%6===1|| (level-1)%6===4){for(const row of[2,c.rows-3])for(const col of[2,3])mask[row*c.cols+col]=0;}
  const kinds=Array.from({length:mask.filter(Boolean).length/2},(_,i)=>i%c.types+1);return{...c,...arrange(mask,c.cols,c.rows,kinds,random)};}
+function towerConfig(floor){
+ floor=Math.max(25,Math.floor(Number(floor)||25));
+ const depth=floor-25,phase=depth%6,cycle=Math.floor(depth/6);
+ const rows=phase<2?10:12,gravity=phase===2?'down':phase===4?'up':null;
+ return{level:floor,floor,world:depth%4,cols:6,rows,types:Math.min(12,8+Math.floor(depth/4)),seconds:Math.max(105,210-Math.floor(depth/3)*6),gravity,comboWindow:Math.max(3200,5200-cycle*180),seal:(floor%10===0),tower:true};
+}
+function createTower(floor,seed){
+ const c=towerConfig(floor),random=rng(seed),mask=Array(c.cols*c.rows).fill(1),phase=(floor-25)%6;
+ if(phase===1||phase===4){for(const row of[2,c.rows-3])for(const col of[2,3])mask[row*c.cols+col]=0;}
+ if(phase===3){for(let y=2;y<c.rows-2;y+=3){mask[y*c.cols]=0;mask[y*c.cols+c.cols-1]=0;}}
+ const kinds=Array.from({length:mask.filter(Boolean).length/2},(_,i)=>i%c.types+1);
+ return{...c,...arrange(mask,c.cols,c.rows,kinds,random)};
+}
 function compact(board,cols,rows,direction){if(!direction)return board.slice();const out=board.map(()=>0);for(let x=0;x<cols;x++){const values=[];for(let y=0;y<rows;y++)if(board[y*cols+x])values.push(board[y*cols+x]);const offset=direction==='down'?rows-values.length:0;values.forEach((v,y)=>out[(y+offset)*cols+x]=v);}return out;}
 function reshuffle(board,cols,rows,random=Math.random){const counts=new Map();for(const v of board)if(v)counts.set(v,(counts.get(v)||0)+1);const kinds=[];for(const[v,n]of counts){if(n%2)throw new Error('Unpaired tile');for(let i=0;i<n/2;i++)kinds.push(v);}return arrange(board,cols,rows,kinds,random).board;}
 function dateKey(date=new Date()){return new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Seoul',year:'numeric',month:'2-digit',day:'2-digit'}).format(date);}
 function dateSeed(key){let seed=0;for(const c of key)seed=(Math.imul(seed,31)+c.charCodeAt(0))|0;return seed>>>0;}
-return{rng,path,moves,arrange,config,create,compact,reshuffle,dateKey,dateSeed};
+return{rng,path,moves,arrange,config,create,towerConfig,createTower,compact,reshuffle,dateKey,dateSeed};
 });
