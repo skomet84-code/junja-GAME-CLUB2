@@ -26,12 +26,12 @@ const key='junja-royal-sichuan-v1:'+account;
 let progress={stars:{},best:{},daily:{},tower:{floor:25,best:24}},storageAvailable=true;
 try{const p=JSON.parse(localStorage.getItem(key)||'null');if(p&&typeof p==='object'){for(const k of['stars','best','daily'])if(p[k]&&typeof p[k]==='object')progress[k]=p[k];if(p.tower&&typeof p.tower==='object')progress.tower={floor:Math.max(25,Number(p.tower.floor)||25),best:Math.max(24,Number(p.tower.best)||24)};}}catch{storageAvailable=false;}
 let game=null,selected=-1,busy=false,paused=false,raf=0,lastTick=0,sound=false,audio=null,epoch=0;
-let battle=null,battlePollTimer=null,battlePushTimer=null,battleMe=null;
+let battle=null,battlePollTimer=null,battlePushTimer=null,battleStartTimer=null;
 function save(){try{localStorage.setItem(key,JSON.stringify(progress));}catch{storageAvailable=false;}}
 function icon(id){const[s,c,p]=symbols[id-1];return `<svg viewBox="0 0 64 64" aria-hidden="true" fill="${c}" stroke="${c}" stroke-width="1.4" stroke-linejoin="round">${p}</svg><span class="tile-mark">${String(id).padStart(2,'0')}</span>`;}
 function unlocked(){let n=1;while(n<=24&&progress.stars[n])n++;return Math.min(24,n);}
 function campaignComplete(){for(let i=1;i<=24;i++)if(!progress.stars[i])return false;return true;}
-function stopBattlePolling(){clearInterval(battlePollTimer);battlePollTimer=null;clearTimeout(battlePushTimer);battlePushTimer=null;}
+function stopBattlePolling(){clearInterval(battlePollTimer);battlePollTimer=null;clearTimeout(battlePushTimer);battlePushTimer=null;clearTimeout(battleStartTimer);battleStartTimer=null;}
 async function battleApi(path,opts={}){const res=await fetch('/api/sichuan/battle'+path,{...opts,headers:{'Content-Type':'application/json',...(opts.headers||{})},credentials:'same-origin'});let data={};try{data=await res.json()}catch{}if(!res.ok){const e=new Error(data.error||'대전 서버에 연결하지 못했습니다.');e.room=data.room;throw e;}return data;}
 async function leaveBattle(silent=true){if(!battle?.room?.code)return;const code=battle.room.code;stopBattlePolling();battle=null;try{await battleApi('/'+code+'/leave',{method:'POST',body:'{}'});}catch(e){if(!silent)status(e.message);}}
 function lobby(){if(game?.mode==='battle'&&battle?.room?.status!=='complete')leaveBattle(true);else stopBattlePolling();epoch++;cancelAnimationFrame(raf);game=null;busy=false;paused=false;$('#modal').close();document.body.classList.remove('in-game');$('#lobby').hidden=false;$('#play').hidden=true;$('#battle-strip').hidden=true;document.body.dataset.world='0';
@@ -82,7 +82,7 @@ function updateBattleStrip(){
  if(!battle?.room||!game||game.mode!=='battle')return;const room=battle.room,me=room.players.find(p=>Number(p.userId)===Number(room.me)),rival=room.players.find(p=>Number(p.userId)!==Number(room.me)),total=Math.max(1,game.totalPairs||1);
  $('#battle-code').textContent=room.code;$('#battle-me-name').textContent=me?.nickname||'나';$('#battle-rival-name').textContent=rival?.nickname||'상대';$('#battle-me-pairs').textContent=game.pairs+'/'+total;$('#battle-rival-pairs').textContent=(rival?.pairs||0)+'/'+total;$('#battle-me-bar').style.width=Math.min(100,game.pairs/total*100)+'%';$('#battle-rival-bar').style.width=Math.min(100,Number(rival?.pairs||0)/total*100)+'%';
 }
-function startBattlePolling(){stopBattlePolling();battlePollTimer=setInterval(()=>pollBattle().catch(()=>{}),1800);}
+function startBattlePolling(){clearInterval(battlePollTimer);battlePollTimer=setInterval(()=>pollBattle().catch(()=>{}),2500);}
 async function pollBattle(){
  if(!battle?.room?.code)return;const d=await battleApi('/'+battle.room.code);battle.room=d.room;
  if(d.room.status==='waiting'){if(!game||game.mode!=='battle')modal(battleRoomMarkup(d.room));return;}
@@ -104,7 +104,7 @@ async function joinBattle(){
  const code=String($('#battle-code-input')?.value||'').trim().toUpperCase();if(code.length!==6){modal('<h2>방 코드 확인</h2><p>6자리 대전방 코드를 입력해주세요.</p><button class="gold-button" data-action="battle-lobby">다시 입력</button>');return;}
  try{const d=await battleApi('/'+encodeURIComponent(code)+'/join',{method:'POST',body:'{}'});showBattleRoom(d.room);}catch(e){modal('<h2>대전방 참가 실패</h2><p>'+esc(e.message)+'</p><button class="gold-button" data-action="battle-lobby">다시 입력</button>');}
 }
-function startBattleRoom(room){battle=battle||{};battle.room=room;battle.resultShown=false;const elapsed=Math.max(0,Date.now()-Number(room.startedAt||Date.now()));start(room.level,'battle',{seed:room.seed,elapsed});startBattlePolling();}
+function startBattleRoom(room){battle=battle||{};battle.room=room;battle.resultShown=false;const startAt=Number(room.startedAt||Date.now()),wait=startAt-Date.now();startBattlePolling();if(wait>30){modal('<small>ROYAL BATTLE</small><h2>두 플레이어 준비 완료</h2><p>동일한 시작 시각에 맞춰 왕관 쟁탈전을 시작합니다.</p><div class="result-score">VS</div>');clearTimeout(battleStartTimer);battleStartTimer=setTimeout(()=>startBattleRoom(room),wait+25);return;}const elapsed=Math.max(0,Date.now()-startAt);start(room.level,'battle',{seed:room.seed,elapsed});}
 async function toggleBattleReady(){
  if(!battle?.room)return;const me=battle.room.players.find(p=>Number(p.userId)===Number(battle.room.me));try{const d=await battleApi('/'+battle.room.code+'/ready',{method:'POST',body:JSON.stringify({ready:!me?.ready})});battle.room=d.room;if(d.room.status==='playing')startBattleRoom(d.room);else showBattleRoom(d.room);}catch(e){modal('<h2>준비 상태 오류</h2><p>'+esc(e.message)+'</p><button class="outline-button" data-action="battle-lobby">대전 메뉴</button>');}
 }
