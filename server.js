@@ -1512,8 +1512,14 @@ const ROULETTE_WHEEL=[0,32,15,19,4,21,2,25,17,34,6,27,13,36,11,30,8,23,10,5,24,1
 const ROULETTE_RED=new Set([1,3,5,7,9,12,14,16,18,19,21,23,25,27,30,32,34,36]);
 function rouletteColor(n){return n===0?'green':ROULETTE_RED.has(n)?'red':'black';}
 function rouletteRows(row){row=Number(row);if(row<1||row>12)return[];return [row*3-2,row*3-1,row*3];}
+function rouletteInteger(value){
+  if(typeof value==='number'&&!Number.isSafeInteger(value))throw new Error('큰 룰렛 금액은 정확한 정수 문자열로 전송해주세요. 새로고침 후 다시 시도해주세요.');
+  const text=String(value??'');
+  if(!/^-?\d{1,20}$/.test(text))throw new Error('룰렛 금액은 정수로 입력해주세요.');
+  return BigInt(text);
+}
 function rouletteValidateBet(b){
-  const kind=String(b?.kind||''),amount=Math.floor(Number(b?.amount||0));if(!Number.isSafeInteger(amount)||amount<1000)throw new Error('룰렛 칩은 최소 1,000G부터 걸 수 있습니다.');const target=b?.target;
+  const kind=String(b?.kind||''),value=rouletteInteger(b?.amount);if(value<1000n)throw new Error('룰렛 칩은 최소 1,000G부터 걸 수 있습니다.');const amount=value.toString(),target=b?.target;
   if(kind==='straight'){const n=Number(target);if(!Number.isInteger(n)||n<0||n>36)throw new Error('잘못된 숫자 베팅입니다.');return {kind,target:n,amount,mult:36,label:String(n)};}
   if(kind==='split'){const a=(Array.isArray(target)?target:[]).map(Number).sort((x,y)=>x-y);if(a.length!==2||a[0]===a[1]||a.some(n=>n<0||n>36))throw new Error('스플릿 숫자를 확인해주세요.');const valid=(a[0]===0&&[1,2,3].includes(a[1]))||(a[0]>0&&((Math.abs(a[0]-a[1])===3)||(a[1]-a[0]===1&&Math.floor((a[0]-1)/3)===Math.floor((a[1]-1)/3))));if(!valid)throw new Error('서로 붙어 있는 두 숫자만 SPLIT 가능해.');return {kind,target:a,amount,mult:18,label:a.join('/')};}
   if(kind==='street'){const row=Number(target);if(!rouletteRows(row).length)throw new Error('STREET를 확인해줘.');return {kind,target:row,amount,mult:12,label:rouletteRows(row).join('-')};}
@@ -1525,7 +1531,44 @@ function rouletteValidateBet(b){
 }
 let rouletteEventArmed=false;
 function rouletteBetWins(b,n){if(b.kind==='straight')return n===b.target;if(b.kind==='split'||b.kind==='corner')return b.target.includes(n);if(b.kind==='street')return rouletteRows(b.target).includes(n);if(b.kind==='sixline')return [...rouletteRows(b.target),...rouletteRows(b.target+1)].includes(n);if(b.kind==='dozen')return n>=1+(b.target-1)*12&&n<=b.target*12;if(b.kind==='column')return n>0&&((n-1)%3)+1===b.target;if(b.kind==='red')return rouletteColor(n)==='red';if(b.kind==='black')return rouletteColor(n)==='black';if(b.kind==='odd')return n>0&&n%2===1;if(b.kind==='even')return n>0&&n%2===0;if(b.kind==='low')return n>=1&&n<=18;if(b.kind==='high')return n>=19&&n<=36;return false;}
-function rouletteSpin(user,rawBets){if(!Array.isArray(rawBets)||!rawBets.length)throw new Error('룰렛 베팅을 하나 이상 올려줘.');if(rawBets.length>30)throw new Error('한 라운드에는 최대 30개 베팅까지 가능해.');const bets=rawBets.map(rouletteValidateBet),totalBet=bets.reduce((a,b)=>a+b.amount,0);if(totalBet>user.balance)throw new Error('전체 베팅금이 보유 게임머니보다 많아.');walletChange(user.id,-totalBet,'roulette_bet',`유럽식 룰렛 ${bets.length}개 베팅 · ${formatMoney(totalBet)}G`);const ROULETTE_EVENT_RATE=.10;const eventHit=rouletteEventArmed&&crypto.randomInt(10000)<Math.floor(ROULETTE_EVENT_RATE*10000);const winningNumbers=[];for(let n=0;n<=36;n++){if(bets.some(b=>rouletteBetWins(b,n)))winningNumbers.push(n);}const eventWinner=eventHit&&winningNumbers.length>0;const number=eventWinner?winningNumbers[crypto.randomInt(winningNumbers.length)]:crypto.randomInt(37),color=rouletteColor(number);if(eventWinner)rouletteEventArmed=false;let payout=0;const settled=bets.map(b=>{const won=rouletteBetWins(b,number),returned=won?b.amount*b.mult:0;payout+=returned;return {...b,won,returned};});if(payout>0)walletChange(user.id,payout,'roulette_win',`룰렛 ${number} ${color.toUpperCase()} · 지급 ${formatMoney(payout)}G`);const profit=payout-totalBet;db.prepare('UPDATE stats SET roulette_plays=roulette_plays+1,roulette_wins=roulette_wins+?,roulette_profit=roulette_profit+? WHERE user_id=?').run(payout>0?1:0,profit,user.id);pushRefresh();return {number,color,index:ROULETTE_WHEEL.indexOf(number),bets:settled,totalBet,payout,profit};}
+function rouletteSpin(user,rawBets){
+  if(!Array.isArray(rawBets)||!rawBets.length)throw new Error('룰렛 베팅을 하나 이상 올려줘.');
+  if(rawBets.length>30)throw new Error('한 라운드에는 최대 30개 베팅까지 가능해.');
+  const bets=rawBets.map(rouletteValidateBet),totalBet=bets.reduce((a,b)=>a+BigInt(b.amount),0n);
+  let result,eventWinner=false;
+  db.exec('BEGIN IMMEDIATE');
+  try{
+    const fresh=db.prepare('SELECT CAST(balance AS TEXT) AS balance FROM users WHERE id=?').get(user.id);
+    if(!fresh)throw new Error('사용자를 찾을 수 없습니다.');
+    const balance=BigInt(fresh.balance),remaining=balance-totalBet;
+    if(remaining<0n)throw new Error('전체 베팅금이 보유 게임머니보다 많아.');
+    const stats=db.prepare('SELECT CAST(roulette_profit AS TEXT) AS profit FROM stats WHERE user_id=?').get(user.id);
+    const previousProfit=BigInt(stats?.profit||0),winningNumbers=[];
+    // Reject an unpayable slip before drawing or debiting; never forfeit a winning payout.
+    for(let n=0;n<=36;n++){
+      const paid=bets.reduce((a,b)=>a+(rouletteBetWins(b,n)?BigInt(b.amount)*BigInt(b.mult):0n),0n);
+      if(remaining+paid>9000000000000000000n)throw new Error('예상 당첨금이 게임머니 저장 한도를 초과합니다. 베팅금액을 줄여주세요.');
+      const net=previousProfit+paid-totalBet;
+      if(net>9223372036854775807n||net< -9223372036854775808n)throw new Error('룰렛 누적 손익 저장 한도를 초과합니다.');
+      if(paid>0n)winningNumbers.push(n);
+    }
+    const eventHit=rouletteEventArmed&&crypto.randomInt(10000)<1000;
+    eventWinner=eventHit&&winningNumbers.length>0;
+    const number=eventWinner?winningNumbers[crypto.randomInt(winningNumbers.length)]:crypto.randomInt(37),color=rouletteColor(number);
+    let payout=0n;
+    const settled=bets.map(b=>{const won=rouletteBetWins(b,number),returned=won?BigInt(b.amount)*BigInt(b.mult):0n;payout+=returned;return {...b,won,returned:returned.toString()};});
+    const profit=payout-totalBet,next=remaining+payout,t=now();
+    db.prepare('UPDATE users SET balance=? WHERE id=?').run(next,user.id);
+    const ledger=db.prepare('INSERT INTO ledger(user_id,amount,balance_after,type,memo,created_at) VALUES(?,?,?,?,?,?)');
+    ledger.run(user.id,-totalBet,remaining,'roulette_bet',`유럽식 룰렛 ${bets.length}개 베팅 · ${formatMoney(totalBet)}G`,t);
+    if(payout>0n)ledger.run(user.id,payout,next,'roulette_win',`룰렛 ${number} ${color.toUpperCase()} · 지급 ${formatMoney(payout)}G`,t);
+    db.prepare('UPDATE stats SET roulette_plays=roulette_plays+1,roulette_wins=roulette_wins+?,roulette_profit=? WHERE user_id=?').run(payout>0n?1:0,previousProfit+profit,user.id);
+    result={number,color,index:ROULETTE_WHEEL.indexOf(number),bets:settled,totalBet:totalBet.toString(),payout:payout.toString(),profit:profit.toString()};
+    db.exec('COMMIT');
+  }catch(e){db.exec('ROLLBACK');throw e;}
+  if(eventWinner)rouletteEventArmed=false;
+  pushRefresh();return result;
+}
 
 // ---------- Big Wheel & Sic Bo v1.3 ----------
 const BIG_WHEEL_DEFS = {
