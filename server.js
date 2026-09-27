@@ -232,6 +232,10 @@ const ROOM_REACTIONS = {
 };
 
 const SHOP_ITEMS = [
+  {id:'char_godjunja_imperial',category:'character',gender:'M',asset:'/art/special/godjunja-imperial.webp',name:'갓준자 · 임페리얼 화이트',icon:'♛',rarity:'prestige',price:0,adminOnly:true,collection:'godjunja',featured:true,desc:'GOD JUNJA 전용 의상 · 화이트 골드 황실'},
+  {id:'char_godjunja_monochrome',category:'character',gender:'M',asset:'/art/special/godjunja-monochrome.webp',name:'갓준자 · 모노크롬 로얄',icon:'♛',rarity:'prestige',price:0,adminOnly:true,collection:'godjunja',featured:true,desc:'GOD JUNJA 전용 의상 · 화이트 수트와 블랙 실크'},
+  {id:'char_godjunja_moonlight',category:'character',gender:'M',asset:'/art/special/godjunja-moonlight.webp',name:'갓준자 · 문라이트 팰리스',icon:'♛',rarity:'prestige',price:0,adminOnly:true,collection:'godjunja',featured:true,desc:'GOD JUNJA 전용 의상 · 달빛 궁전 테라스'},
+  {id:'char_godjunja_signature',category:'character',gender:'M',asset:'/art/special/godjunja-signature.webp',name:'갓준자 · 시그니처 로얄',icon:'♛',rarity:'prestige',price:0,adminOnly:true,collection:'godjunja',featured:true,desc:'GOD JUNJA 전용 의상 · 골드 라이온 왕좌'},
   {id:'frame_ultimate_solar',category:'frame',name:'태초의 왕관',icon:'♛',rarity:'ultimate',price:10000000000000,collection:'ultimate',featured:true,desc:'궁극 컬렉션 · 황금 태양환과 왕관이 빛나는 절대자의 테두리. 구매 즉시 자동 장착.'},
   {id:'frame_ultimate_void',category:'frame',name:'종언의 블랙홀',icon:'✦',rarity:'ultimate',price:10000000000000,collection:'ultimate',featured:true,desc:'궁극 컬렉션 · 보랏빛 궤도와 청록 성운이 회전하는 심연의 테두리. 구매 즉시 자동 장착.'},
   {id:'frame_ultimate_seraph',category:'frame',name:'영원의 세라핌',icon:'♜',rarity:'ultimate',price:10000000000000,collection:'ultimate',featured:true,desc:'궁극 컬렉션 · 백금 날개와 얼음빛 광륜이 펼쳐지는 천상의 테두리. 구매 즉시 자동 장착.'},
