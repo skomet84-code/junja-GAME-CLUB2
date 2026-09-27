@@ -23,12 +23,17 @@ const symbols=[
 ];
 const account=new URLSearchParams(location.search).get('player')||'guest';
 const key='junja-royal-sichuan-v1:'+account;
-let progress={stars:{},best:{},daily:{}},storageAvailable=true;
-try{const p=JSON.parse(localStorage.getItem(key)||'null');if(p&&typeof p==='object')for(const k of['stars','best','daily'])if(p[k]&&typeof p[k]==='object')progress[k]=p[k];}catch{storageAvailable=false;}
+let progress={stars:{},best:{},daily:{},tower:{floor:25,best:24}},storageAvailable=true;
+try{const p=JSON.parse(localStorage.getItem(key)||'null');if(p&&typeof p==='object'){for(const k of['stars','best','daily'])if(p[k]&&typeof p[k]==='object')progress[k]=p[k];if(p.tower&&typeof p.tower==='object')progress.tower={floor:Math.max(25,Number(p.tower.floor)||25),best:Math.max(24,Number(p.tower.best)||24)};}}catch{storageAvailable=false;}
 let game=null,selected=-1,busy=false,paused=false,raf=0,lastTick=0,sound=false,audio=null,epoch=0;
+let battle=null,battlePollTimer=null,battlePushTimer=null,battleMe=null;
 function save(){try{localStorage.setItem(key,JSON.stringify(progress));}catch{storageAvailable=false;}}
 function icon(id){const[s,c,p]=symbols[id-1];return `<svg viewBox="0 0 64 64" aria-hidden="true" fill="${c}" stroke="${c}" stroke-width="1.4" stroke-linejoin="round">${p}</svg><span class="tile-mark">${String(id).padStart(2,'0')}</span>`;}
 function unlocked(){let n=1;while(n<=24&&progress.stars[n])n++;return Math.min(24,n);}
+function campaignComplete(){for(let i=1;i<=24;i++)if(!progress.stars[i])return false;return true;}
+function stopBattlePolling(){clearInterval(battlePollTimer);battlePollTimer=null;clearTimeout(battlePushTimer);battlePushTimer=null;}
+async function battleApi(path,opts={}){const res=await fetch('/api/sichuan/battle'+path,{...opts,headers:{'Content-Type':'application/json',...(opts.headers||{})},credentials:'same-origin'});let data={};try{data=await res.json()}catch{}if(!res.ok){const e=new Error(data.error||'대전 서버에 연결하지 못했습니다.');e.room=data.room;throw e;}return data;}
+async function leaveBattle(silent=true){if(!battle?.room?.code)return;const code=battle.room.code;stopBattlePolling();battle=null;try{await battleApi('/'+code+'/leave',{method:'POST',body:'{}'});}catch(e){if(!silent)status(e.message);}}
 function lobby(){epoch++;cancelAnimationFrame(raf);game=null;busy=false;paused=false;$('#modal').close();document.body.classList.remove('in-game');$('#lobby').hidden=false;$('#play').hidden=true;document.body.dataset.world='0';
  $('#worlds').innerHTML=worlds.map((w,wi)=>`<article class="world-card"><div class="world-art"><span>${w.icon}</span></div><div class="world-meta"><small>CHAPTER 0${wi+1}</small><h3>${w.name}</h3><p>${w.rule}</p><div class="stage-dots">${Array.from({length:6},(_,i)=>{const l=wi*6+i+1;return `<button data-level="${l}" ${l>unlocked()?'disabled':''} class="${progress.stars[l]?'cleared':l===unlocked()?'next':''}" aria-label="${l} 스테이지${progress.stars[l]?', 별 '+progress.stars[l]+'개':''}">${l>unlocked()?'·':l}</button>`;}).join('')}</div></div></article>`).join('');
  $('#progress').textContent=Object.keys(progress.stars).filter(k=>Number(k)>=1&&Number(k)<=24).length+' / 24';
