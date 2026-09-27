@@ -12,7 +12,7 @@ async function start(){
   for(let i=0;i<140;i++){try{if((await fetch(base+'/healthz')).ok)return;}catch{}await new Promise(r=>setTimeout(r,35));}
   throw Error('startup failed '+logs);
 }
-async function stop(){if(child){const p=new Promise(r=>child.once('exit',r));child.kill('SIGTERM');await p;child=null;}}
+async function stop(){if(child&&child.exitCode===null){const p=new Promise(r=>child.once('exit',r));child.kill('SIGTERM');await p;child=null;}}
 async function api(url,body){
   const r=await fetch(base+url,{method:body===undefined?'GET':'POST',headers:{'Content-Type':'application/json',Cookie:cookie},body:body===undefined?undefined:JSON.stringify(body)});
   if(r.headers.get('set-cookie'))cookie=r.headers.get('set-cookie').split(';')[0];
@@ -34,12 +34,23 @@ async function api(url,body){
   let seven=await api('/api/solo/seven/start',{});
   assert.equal(String(seven.user.balance),'0','exact full-wallet debit at table entry');
   assert.ok(seven.game&&Number(seven.game.stack.user)>0,'table stack created');
+  const firstAnte=original/100n;
+  assert.equal(BigInt(seven.game.ante),firstAnte,'exact 1% ante without a 5,000G cap');
+  assert.equal(BigInt(seven.game.handContrib.user),firstAnte,'current hand contribution excludes previous losses');
+  assert.equal(BigInt(seven.game.pot),BigInt(seven.game.handContrib.user)+BigInt(seven.game.handContrib.bot),'pot equals exact contributions');
+
   if(!seven.game.complete){
     assert.equal(seven.game.turn,'user','bot drive must return control to the user');
     seven=await api('/api/solo/seven/action',{action:'fold'});
     assert.equal(seven.game.complete,true);
   }
+  seven=await api('/api/solo/seven/next',{});
+  const secondAnte=(original-firstAnte)/100n;
+  assert.equal(BigInt(seven.game.ante),secondAnte,'next hand uses remaining stack, not original buy-in');
+  assert.equal(BigInt(seven.game.handContrib.user),secondAnte,'new hand resets contribution');
+  await api('/api/solo/seven/action',{action:'fold'});
   const cash=await api('/api/solo/seven/leave',{});
+  assert.equal(BigInt(cash.cashout),original-firstAnte-secondAnte,'two folds lose exactly two antes');
   const afterSeven=(await api('/api/me')).user;
   assert.equal(String(afterSeven.balance),String(cash.cashout),'cashout and wallet must match exactly');
   assert.ok(BigInt(String(afterSeven.balance))>10000000000000n,'large wallet remains usable after one hand');

@@ -1752,13 +1752,20 @@ function sevenPay(s,side,amount){
   sevenEscrowSync(s);return amount;
 }
 function sevenDealCard(s,side,faceUp){ s.cards[side].push(s.deck.pop());s.faceUp[side].push(!!faceUp); }
+// Each new solo hand charges 1% of the current stack, capped by the bot's coverage.
+function sevenAnte(s){
+  const user=BigInt(s.exactStack?.user??Math.floor(s.stack.user));
+  const bot=BigInt(s.exactStack?.bot??Math.floor(s.stack.bot));
+  const requested=user/100n||1n,matched=requested<bot?requested:bot;
+  return s.exactStack?matched:Number(matched);
+}
 function sevenBeginHand(s){
   if(s.stack.user<1000)throw new Error('테이블 칩이 1,000G 미만이야. 칩 정산 후 다시 입장해줘.');
   if(s.stack.bot<1000)s.stack.bot=Math.max(s.buyIn,s.stack.user);
   s.handNo=(s.handNo||0)+1;s.handStartStack=Number(s.stack.user||0);s.street=3;s.phase='playing';s.complete=false;s.result=null;s.pot=0;s.deck=shuffle(cardDeck());
   s.cards={user:[],bot:[]};s.faceUp={user:[],bot:[]};s.roundBet={user:0,bot:0};s.handContrib={user:0,bot:0};s.currentBet=0;s.minRaise=Math.max(1000,Math.floor(s.buyIn/20/1000)*1000);s.acted={user:false,bot:false};s.folded={user:false,bot:false};s.lastAction='새 핸드';s.startedAt=now();
-  const ante=Math.max(1000,Math.min(5000,Math.floor(s.buyIn/50/1000)*1000||1000));s.ante=ante;
-  sevenPay(s,'user',Math.min(ante,s.stack.user));sevenPay(s,'bot',Math.min(ante,s.stack.bot));
+  const ante=sevenAnte(s);s.ante=String(ante);
+  sevenPay(s,'user',ante);sevenPay(s,'bot',ante);
   // Ante는 팟/총투입금에는 포함되지만 각 스트리트의 베팅액에는 포함하지 않는다.
   // 여기서 초기화하지 않으면 3rd street에서 check-check 후에도 라운드가 끝나지 않는다.
   s.roundBet={user:0,bot:0};s.currentBet=0;
@@ -1836,7 +1843,7 @@ function sevenPublic(s){
   if(!s)return null;const botCards=s.cards.bot.map((c,i)=>s.complete||s.faceUp.bot[i]?c:'XX');
   const userRound=Number(s.roundBet?.user||0),call=Math.max(0,Number(s.currentBet||0)-userRound),maxRaiseTo=sevenEffectiveMaxTo(s,'user'),allInAmount=Math.max(0,maxRaiseTo-userRound),rawMin=Number(s.currentBet||0)===0?Number(s.minRaise||1000):Number(s.currentBet||0)+Number(s.minRaise||1000);
   const legal=s.turn==='user'&&!s.complete?{toCall:call,maxRaiseTo,allInAmount,tableStack:Number(s.stack?.user||0),opponentStack:Number(s.stack?.bot||0),minRaiseTo:Math.min(maxRaiseTo,rawMin),canRaise:maxRaiseTo>Number(s.currentBet||0)}:null;
-  return {buyIn:s.buyIn,handNo:s.handNo,phase:s.phase,complete:s.complete,street:s.street,pot:s.pot,ante:s.ante,turn:s.turn,lastAction:s.lastAction,stack:s.stack,roundBet:s.roundBet,currentBet:s.currentBet,minRaise:s.minRaise,legal,cards:{user:s.cards.user,bot:botCards},faceUp:s.faceUp,result:s.result,userStatus:sevenCurrentStatus(s,'user'),botVisibleStatus:pokerHandStatus(sevenVisibleCards(s,'bot'))};
+  return {buyIn:s.buyIn,handNo:s.handNo,phase:s.phase,complete:s.complete,street:s.street,pot:s.exactPot??s.pot,handContrib:s.exactHandContrib??s.handContrib,ante:s.ante,turn:s.turn,lastAction:s.lastAction,stack:s.stack,roundBet:s.roundBet,currentBet:s.currentBet,minRaise:s.minRaise,legal,cards:{user:s.cards.user,bot:botCards},faceUp:s.faceUp,result:s.result,userStatus:sevenCurrentStatus(s,'user'),botVisibleStatus:pokerHandStatus(sevenVisibleCards(s,'bot'))};
 }
 function sevenStart(user){
   const buyIn=Math.floor(Number(user.balance||0));if(!Number.isSafeInteger(buyIn)||buyIn<1000)throw new Error('세븐포커 테이블 입장에는 최소 1,000G가 필요해.');if(soloSeven.has(user.id))throw new Error('이미 세븐포커 테이블에 앉아 있어.');
