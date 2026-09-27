@@ -2093,7 +2093,7 @@ const server=http.createServer(async(req,res)=>{
         if(!p)return json(res,403,{error:'이 대전방 참가자가 아닙니다.'});
         if(op==='ready'&&req.method==='POST'){
           if(r.status!=='waiting')return json(res,409,{error:'대기 중인 방이 아닙니다.'});const b=await readBody(req);p.ready=b.ready!==false;r.updatedAt=Date.now();
-          if(r.players.length===2&&r.players.every(x=>x.ready)){r.status='playing';r.seed=crypto.randomInt(1,0x7fffffff);r.startedAt=Date.now()+1500;r.players.forEach(x=>{x.pairs=0;x.score=0;x.combo=0;x.done=false;x.cleared=false;x.finishedAt=null;});}
+          if(r.players.length===2&&r.players.every(x=>x.ready)){r.status='playing';r.seed=crypto.randomInt(1,0x7fffffff);r.startedAt=Date.now()+3500;r.players.forEach(x=>{x.pairs=0;x.score=0;x.combo=0;x.done=false;x.cleared=false;x.finishedAt=null;});}
           return json(res,200,{room:sichuanBattlePublic(r,u.id)});
         }
         if(op==='progress'&&req.method==='POST'){
