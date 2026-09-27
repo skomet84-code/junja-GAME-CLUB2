@@ -247,11 +247,17 @@ function sichuanBattleCode(){
 function sichuanBattlePlayer(r,userId){return r.players.find(p=>Number(p.userId)===Number(userId))||null;}
 function sichuanBattlePublic(r,userId){
   return{
-    code:r.code,status:r.status,level:r.level,seed:(r.status==='waiting'?null:r.seed),
+    code:r.code,status:r.status,level:r.level,seed:(r.status==='waiting'?null:r.seed),hostId:Number(r.hostId),
     createdAt:r.createdAt,startedAt:r.startedAt||null,endedAt:r.endedAt||null,winnerId:r.winnerId||null,
     me:Number(userId),
     players:r.players.map(p=>({userId:p.userId,nickname:p.nickname,ready:!!p.ready,pairs:Number(p.pairs||0),score:Number(p.score||0),combo:Number(p.combo||0),done:!!p.done,cleared:!!p.cleared,finishedAt:p.finishedAt||null}))
   };
+}
+function resetSichuanBattle(r,{level=null}={}){
+  if(level!=null)r.level=Number(level);
+  r.status='waiting';r.seed=null;r.startedAt=null;r.endedAt=null;r.winnerId=null;r.updatedAt=Date.now();
+  r.players.forEach(x=>{x.ready=false;x.pairs=0;x.score=0;x.combo=0;x.done=false;x.cleared=false;x.finishedAt=null;});
+  return r;
 }
 function finalizeSichuanBattle(r){
   if(r.status!=='playing')return;
@@ -2076,11 +2082,11 @@ const server=http.createServer(async(req,res)=>{
       const b=await readBody(req);const allowed=new Set([6,12,18,24]);const level=allowed.has(Number(b.level))?Number(b.level):18;
       for(const [code,r] of sichuanBattles){if(r.status==='waiting'&&sichuanBattlePlayer(r,u.id))sichuanBattles.delete(code);}
       const code=sichuanBattleCode(),t=Date.now();
-      const r={code,status:'waiting',level,seed:null,createdAt:t,updatedAt:t,startedAt:null,endedAt:null,winnerId:null,players:[{userId:u.id,nickname:u.nickname,ready:false,pairs:0,score:0,combo:0,done:false,cleared:false,finishedAt:null}]};
+      const r={code,status:'waiting',hostId:u.id,level,seed:null,createdAt:t,updatedAt:t,startedAt:null,endedAt:null,winnerId:null,players:[{userId:u.id,nickname:u.nickname,ready:false,pairs:0,score:0,combo:0,done:false,cleared:false,finishedAt:null}]};
       sichuanBattles.set(code,r);return json(res,201,{room:sichuanBattlePublic(r,u.id)});
     }
     {
-      const m=url.pathname.match(/^\/api\/sichuan\/battle\/([A-Z0-9]{6})(?:\/(join|ready|progress|leave))?$/i);
+      const m=url.pathname.match(/^\/api\/sichuan\/battle\/([A-Z0-9]{6})(?:\/(join|ready|progress|leave|rematch|theme))?$/i);
       if(m){
         const u=requireAuth(req,res);if(!u)return;cleanupSichuanBattles();const code=String(m[1]).toUpperCase(),op=m[2]||'',r=sichuanBattles.get(code);
         if(!r)return json(res,404,{error:'대전방을 찾을 수 없습니다.'});
@@ -2091,6 +2097,17 @@ const server=http.createServer(async(req,res)=>{
           r.updatedAt=Date.now();return json(res,200,{room:sichuanBattlePublic(r,u.id)});
         }
         if(!p)return json(res,403,{error:'이 대전방 참가자가 아닙니다.'});
+        if(op==='rematch'&&req.method==='POST'){
+          if(r.status==='playing')return json(res,409,{error:'진행 중인 대전은 다시 시작할 수 없습니다.'});
+          resetSichuanBattle(r);return json(res,200,{room:sichuanBattlePublic(r,u.id)});
+        }
+        if(op==='theme'&&req.method==='POST'){
+          if(Number(r.hostId)!==Number(u.id))return json(res,403,{error:'테마는 방장만 변경할 수 있습니다.'});
+          if(r.status==='playing')return json(res,409,{error:'진행 중에는 테마를 변경할 수 없습니다.'});
+          const b=await readBody(req),allowed=new Set([6,12,18,24]),level=Number(b.level);
+          if(!allowed.has(level))return json(res,400,{error:'선택할 수 없는 테마입니다.'});
+          resetSichuanBattle(r,{level});return json(res,200,{room:sichuanBattlePublic(r,u.id)});
+        }
         if(op==='ready'&&req.method==='POST'){
           if(r.status!=='waiting')return json(res,409,{error:'대기 중인 방이 아닙니다.'});const b=await readBody(req);p.ready=b.ready!==false;r.updatedAt=Date.now();
           if(r.players.length===2&&r.players.every(x=>x.ready)){r.status='playing';r.seed=crypto.randomInt(1,0x7fffffff);r.startedAt=Date.now()+3500;r.players.forEach(x=>{x.pairs=0;x.score=0;x.combo=0;x.done=false;x.cleared=false;x.finishedAt=null;});}
@@ -2104,8 +2121,9 @@ const server=http.createServer(async(req,res)=>{
           r.updatedAt=Date.now();finalizeSichuanBattle(r);return json(res,200,{room:sichuanBattlePublic(r,u.id)});
         }
         if(op==='leave'&&req.method==='POST'){
-          r.players=r.players.filter(x=>Number(x.userId)!==Number(u.id));r.updatedAt=Date.now();
+          const wasHost=Number(r.hostId)===Number(u.id);r.players=r.players.filter(x=>Number(x.userId)!==Number(u.id));r.updatedAt=Date.now();
           if(r.status==='playing'&&r.players.length===1){r.winnerId=r.players[0].userId;r.status='complete';r.endedAt=Date.now();}
+          if(wasHost&&r.players.length)r.hostId=r.players[0].userId;
           if(!r.players.length)sichuanBattles.delete(code);
           return json(res,200,{ok:true});
         }
