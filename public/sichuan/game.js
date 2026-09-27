@@ -134,11 +134,11 @@ $('#continue').onclick=()=>campaignComplete()?start(progress.tower.floor,'tower'
 $('#sound').onclick=()=>{sound=!sound;$('#sound').setAttribute('aria-pressed',String(sound));$('#sound').setAttribute('aria-label',sound?'효과음 끄기':'효과음 켜기');beep('match');};
 $('#home').onclick=e=>{e.preventDefault();if(game&&!game.done)pause();else lobby();};
 $('#exit').onclick=()=>{pause();if(window.parent!==window)window.parent.postMessage({type:'junja-sichuan-exit'},location.origin);else location.href='/';};
-$('#modal').addEventListener('click',e=>{const a=e.target.closest('[data-action]')?.dataset.action;if(!a)return;if(a==='resume')resume();if(a==='lobby')lobby();if(a==='next')start(game.level+1);if(a==='retry')start(game.level,game.mode);if(a==='tower')start(25,'tower');if(a==='tower-next')start(game.level+1,'tower');if(a==='battle-lobby')openBattle();if(a==='battle-create')createBattle();if(a==='battle-join')joinBattle();if(a==='battle-ready')toggleBattleReady();if(a==='battle-leave'){leaveBattle(true).finally(()=>openBattle());}if(a==='close-help'){if(game&&!game.done)resume();else $('#modal').close();}});
+$('#modal').addEventListener('click',e=>{const a=e.target.closest('[data-action]')?.dataset.action;if(!a)return;if(a==='resume')resume();if(a==='lobby')lobby();if(a==='next')start(game.level+1);if(a==='retry')start(game.level,game.mode);if(a==='tower')start(progress.tower.floor,'tower');if(a==='tower-next')start(game.level+1,'tower');if(a==='battle-lobby')openBattle();if(a==='battle-create')createBattle();if(a==='battle-join')joinBattle();if(a==='battle-ready')toggleBattleReady();if(a==='battle-leave'){leaveBattle(true).finally(()=>openBattle());}if(a==='close-help'){if(game&&!game.done)resume();else $('#modal').close();}});
 $('#modal').addEventListener('cancel',e=>{e.preventDefault();if(game&&!game.done)resume();else if(game?.done)lobby();else $('#modal').close();});
 window.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('#modal').open)pause();});
 document.addEventListener('visibilitychange',()=>{if(document.hidden)pause();});window.addEventListener('pagehide',pause);
-window.addEventListener('message',e=>{if(e.origin===location.origin&&e.source===window.parent&&e.data?.type==='junja-sichuan-pause')pause();});
+window.addEventListener('message',e=>{if(e.origin!==location.origin||e.source!==window.parent||e.data?.type!=='junja-sichuan-pause')return;if(battle?.room&&battle.room.status!=='complete'){leaveBattle(true);if(game){game.done=true;cancelAnimationFrame(raf);}return;}pause();});
 window.addEventListener('resize',()=>{$('#connections').innerHTML='';});
 lobby();
 })();
