@@ -15,8 +15,9 @@ for(let level=1;level<=24;level++)for(let seed=1;seed<=12;seed++){
  const g=E.create(level,seed),b=g.board.slice();assert.equal(b.filter(Boolean).length%2,0);for(const[a,z]of g.solution){assert.ok(E.path(b,g.cols,g.rows,a,z),`solution level ${level}`);b[a]=b[z]=0;}assert.ok(b.every(v=>!v));
  let live=g.board.slice(),turn=0;while(live.some(Boolean)){let m=E.moves(live,g.cols,g.rows,true)[0];if(!m){live=E.reshuffle(live,g.cols,g.rows,E.rng(seed+turn));m=E.moves(live,g.cols,g.rows,true)[0];}assert.ok(m);live[m.a]=live[m.b]=0;live=E.compact(live,g.cols,g.rows,g.gravity);assert.ok(++turn<=g.board.length/2);}
 }
+for(let floor=25;floor<=60;floor++)for(let seed=1;seed<=3;seed++){const g=E.createTower(floor,seed),b=g.board.slice();assert.equal(g.floor,floor);assert.ok(g.seconds>=105);let turn=0;while(b.some(Boolean)){let m=E.moves(b,g.cols,g.rows,true)[0];if(!m){const resh=E.reshuffle(b,g.cols,g.rows,E.rng(seed+floor+turn));b.splice(0,b.length,...resh);m=E.moves(b,g.cols,g.rows,true)[0];}assert.ok(m,`tower move ${floor}`);b[m.a]=b[m.b]=0;const compacted=E.compact(b,g.cols,g.rows,g.gravity);b.splice(0,b.length,...compacted);assert.ok(++turn<=g.board.length/2);}}
 assert.deepEqual(E.create(9,123),E.create(9,123));
 assert.deepEqual(E.compact([1,0,0,2,3,0],2,3,'down'),[0,0,1,0,3,2]);
 assert.deepEqual(E.compact([1,0,0,2,3,0],2,3,'up'),[1,2,3,0,0,0]);
 assert.equal(E.dateKey(new Date('2026-09-27T14:59:59Z')),'2026-09-27');assert.equal(E.dateKey(new Date('2026-09-27T15:00:00Z')),'2026-09-28');
-console.log('SICHUAN_ENGINE_OK: oracle comparisons, 288 boards solved, gravity, deadlocks, deterministic daily and KST boundary');
+console.log('SICHUAN_ENGINE_OK: campaign + tower boards solved, gravity, deadlocks, deterministic daily and KST boundary');
