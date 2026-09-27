@@ -85,17 +85,29 @@ function updateBattleStrip(){
 function startBattlePolling(){clearInterval(battlePollTimer);battlePollTimer=setInterval(()=>pollBattle().catch(()=>{}),2500);}
 async function pollBattle(){
  if(!battle?.room?.code)return;const d=await battleApi('/'+battle.room.code);battle.room=d.room;
- if(d.room.status==='waiting'){if(!game||game.mode!=='battle')modal(battleRoomMarkup(d.room));return;}
- if(d.room.status==='playing'){if(!game||game.mode!=='battle')startBattleRoom(d.room);else updateBattleStrip();return;}
+ if(d.room.status==='waiting'){showBattleRoom(d.room);return;}
+ if(d.room.status==='playing'){if(!game||game.mode!=='battle'||game.done)startBattleRoom(d.room);else updateBattleStrip();return;}
  if(d.room.status==='complete')showBattleResult(d.room);
 }
-function battleRoomMarkup(room){
- const me=room.players.find(p=>Number(p.userId)===Number(room.me)),cards=room.players.map(p=>'<div class="battle-player-card '+(p.ready?'ready':'')+'"><b>'+esc(p.nickname)+'</b><span>'+(p.ready?'✓ 준비 완료':'대기 중')+'</span></div>').join('')+(room.players.length<2?'<div class="battle-player-card"><b>상대 기다리는 중</b><span>코드로 참가하면 바로 표시됩니다.</span></div>':'');
- return '<div class="battle-room"><small>ROYAL BATTLE · PRIVATE ROOM</small><h2>같은 판에서 정면승부</h2><div class="battle-room-code">'+room.code+'</div><p>친구에게 이 6자리 코드를 알려주세요. 두 명 모두 준비하면 같은 배치로 동시에 시작합니다.</p><div class="battle-players">'+cards+'</div><button class="gold-button" data-action="battle-ready">'+(me?.ready?'준비 취소':'준비 완료')+'</button><button class="outline-button" data-action="battle-leave">방 나가기</button></div>';
+function battleTheme(level){
+ const map={6:{name:'에메랄드 정원',sub:'CHAPTER 1 · 클래식'},12:{name:'달빛의 회랑',sub:'CHAPTER 2 · 중력'},18:{name:'별의 도서관',sub:'CHAPTER 3 · 스피드 피버'},24:{name:'황금 왕좌',sub:'CHAPTER 4 · 로열 중력'}};
+ return map[Number(level)]||map[18];
 }
-function showBattleRoom(room){battle=battle||{};battle.room=room;battle.resultShown=false;modal(battleRoomMarkup(room));startBattlePolling();}
+function battleThemeOptions(selected){
+ return [6,12,18,24].map(level=>{const t=battleTheme(level);return '<option value="'+level+'" '+(Number(selected)===level?'selected':'')+'>'+t.sub+' · '+t.name+'</option>';}).join('');
+}
+function battleRoomMarkup(room){
+ const me=room.players.find(p=>Number(p.userId)===Number(room.me)),isHost=Number(room.hostId)===Number(room.me),theme=battleTheme(room.level),cards=room.players.map(p=>'<div class="battle-player-card '+(p.ready?'ready':'')+'"><b>'+esc(p.nickname)+(Number(p.userId)===Number(room.hostId)?' ♛':'')+'</b><span>'+(p.ready?'✓ 준비 완료':'대기 중')+'</span></div>').join('')+(room.players.length<2?'<div class="battle-player-card"><b>상대 기다리는 중</b><span>코드만 입력하면 방장 테마가 자동 적용됩니다.</span></div>':'');
+ return '<div class="battle-room"><small>ROYAL BATTLE · PRIVATE ROOM</small><h2>방장 테마로 자동 매칭</h2><div class="battle-room-code">'+room.code+'</div><div class="battle-theme-summary"><small>HOST THEME</small><b>'+esc(theme.name)+'</b><span>'+esc(theme.sub)+'</span></div><p>'+(isHost?'내가 고른 테마가 두 플레이어에게 똑같이 적용됩니다.':'테마를 따로 맞출 필요가 없습니다. 방장이 선택한 테마가 자동 적용됩니다.')+'</p><div class="battle-players">'+cards+'</div>'+(isHost?'<button class="outline-button" data-action="battle-theme">테마 바꾸기</button>':'')+'<button class="gold-button" data-action="battle-ready">'+(me?.ready?'준비 취소':'준비 완료')+'</button><button class="outline-button" data-action="battle-exit">대전방 나가기</button></div>';
+}
+function showBattleRoom(room){
+ battle=battle||{};battle.room=room;battle.resultShown=false;
+ if(game?.mode==='battle'){game.done=true;cancelAnimationFrame(raf);}
+ modal(battleRoomMarkup(room));startBattlePolling();
+}
 async function openBattle(){
- stopBattlePolling();battle=null;modal('<small>ROYAL BATTLE · 1 VS 1</small><h2>친구와 왕관 쟁탈전</h2><p>게임머니 베팅 없이 실력만 겨룹니다. 서버에는 방 상태와 진행도만 가볍게 전송하고, 패 판정은 각 기기에서 처리합니다.</p><label><small>대전 난이도</small><select id="battle-level" class="battle-select"><option value="6">CHAPTER 1 · 클래식</option><option value="12">CHAPTER 2 · 중력</option><option value="18" selected>CHAPTER 3 · 스피드 피버</option><option value="24">CHAPTER 4 · 황금 왕좌</option></select></label><button class="gold-button" data-action="battle-create">새 대전방 만들기</button><div class="battle-join"><input id="battle-code-input" maxlength="6" autocomplete="off" placeholder="6자리 방 코드"><button class="outline-button" data-action="battle-join">코드로 참가</button></div><button class="outline-button" data-action="close-help">닫기</button>');
+ stopBattlePolling();battle=null;
+ modal('<small>ROYAL BATTLE · 1 VS 1</small><h2>방장이 테마를 정하면 끝</h2><p><b>방을 만드는 사람만 테마를 선택</b>하면 됩니다. 참가자는 방 코드만 입력하면 방장의 테마와 동일한 판이 자동 적용됩니다.</p><label><small>방장 테마 선택</small><select id="battle-level" class="battle-select">'+battleThemeOptions(18)+'</select></label><button class="gold-button" data-action="battle-create">이 테마로 대전방 만들기</button><div class="battle-join"><input id="battle-code-input" maxlength="6" autocomplete="off" placeholder="6자리 방 코드"><button class="outline-button" data-action="battle-join">방장 테마로 참가</button></div><button class="outline-button" data-action="close-help">닫기</button>');
 }
 async function createBattle(){
  const level=Number($('#battle-level')?.value||18);try{const d=await battleApi('/create',{method:'POST',body:JSON.stringify({level})});showBattleRoom(d.room);}catch(e){modal('<h2>대전방을 만들지 못했어요</h2><p>'+esc(e.message)+'</p><button class="gold-button" data-action="battle-lobby">다시 시도</button>');}
@@ -104,9 +116,24 @@ async function joinBattle(){
  const code=String($('#battle-code-input')?.value||'').trim().toUpperCase();if(code.length!==6){modal('<h2>방 코드 확인</h2><p>6자리 대전방 코드를 입력해주세요.</p><button class="gold-button" data-action="battle-lobby">다시 입력</button>');return;}
  try{const d=await battleApi('/'+encodeURIComponent(code)+'/join',{method:'POST',body:'{}'});showBattleRoom(d.room);}catch(e){modal('<h2>대전방 참가 실패</h2><p>'+esc(e.message)+'</p><button class="gold-button" data-action="battle-lobby">다시 입력</button>');}
 }
-function startBattleRoom(room){battle=battle||{};battle.room=room;battle.resultShown=false;const startAt=Number(room.startedAt||Date.now()),wait=startAt-Date.now();startBattlePolling();if(wait>30){modal('<small>ROYAL BATTLE</small><h2>두 플레이어 준비 완료</h2><p>동일한 시작 시각에 맞춰 왕관 쟁탈전을 시작합니다.</p><div class="result-score">VS</div>');clearTimeout(battleStartTimer);battleStartTimer=setTimeout(()=>startBattleRoom(room),wait+25);return;}const elapsed=Math.max(0,Date.now()-startAt);start(room.level,'battle',{seed:room.seed,elapsed});}
+function openBattleThemePicker(){
+ if(!battle?.room)return;const room=battle.room;if(Number(room.hostId)!==Number(room.me)){showBattleRoom(room);return;}
+ modal('<small>HOST THEME SELECT</small><h2>이번 대전 테마 변경</h2><p>방장이 고르면 상대 화면도 자동으로 같은 테마로 바뀝니다.</p><select id="battle-theme-select" class="battle-select">'+battleThemeOptions(room.level)+'</select><button class="gold-button" data-action="battle-theme-apply">이 테마 적용</button><button class="outline-button" data-action="battle-room-back">취소</button>');
+}
+async function applyBattleTheme(){
+ if(!battle?.room)return;const level=Number($('#battle-theme-select')?.value||battle.room.level);
+ try{const d=await battleApi('/'+battle.room.code+'/theme',{method:'POST',body:JSON.stringify({level})});showBattleRoom(d.room);}catch(e){modal('<h2>테마 변경 실패</h2><p>'+esc(e.message)+'</p><button class="outline-button" data-action="battle-room-back">대전방으로</button>');}
+}
+async function rematchBattle(){
+ if(!battle?.room)return;try{const d=await battleApi('/'+battle.room.code+'/rematch',{method:'POST',body:'{}'});game=null;showBattleRoom(d.room);}catch(e){modal('<h2>재대결 준비 실패</h2><p>'+esc(e.message)+'</p><button class="outline-button" data-action="battle-room-back">대전방으로</button>');}
+}
+function startBattleRoom(room){
+ battle=battle||{};battle.room=room;battle.resultShown=false;const startAt=Number(room.startedAt||Date.now()),wait=startAt-Date.now(),theme=battleTheme(room.level);startBattlePolling();
+ if(wait>30){modal('<small>ROYAL BATTLE · '+esc(theme.name)+'</small><h2>두 플레이어 준비 완료</h2><p>방장이 선택한 <b>'+esc(theme.name)+'</b> 테마로 동시에 시작합니다.</p><div class="result-score">VS</div>');clearTimeout(battleStartTimer);battleStartTimer=setTimeout(()=>startBattleRoom(room),wait+25);return;}
+ const elapsed=Math.max(0,Date.now()-startAt);start(room.level,'battle',{seed:room.seed,elapsed});
+}
 async function toggleBattleReady(){
- if(!battle?.room)return;const me=battle.room.players.find(p=>Number(p.userId)===Number(battle.room.me));try{const d=await battleApi('/'+battle.room.code+'/ready',{method:'POST',body:JSON.stringify({ready:!me?.ready})});battle.room=d.room;if(d.room.status==='playing')startBattleRoom(d.room);else showBattleRoom(d.room);}catch(e){modal('<h2>준비 상태 오류</h2><p>'+esc(e.message)+'</p><button class="outline-button" data-action="battle-lobby">대전 메뉴</button>');}
+ if(!battle?.room)return;const me=battle.room.players.find(p=>Number(p.userId)===Number(battle.room.me));try{const d=await battleApi('/'+battle.room.code+'/ready',{method:'POST',body:JSON.stringify({ready:!me?.ready})});battle.room=d.room;if(d.room.status==='playing')startBattleRoom(d.room);else showBattleRoom(d.room);}catch(e){modal('<h2>준비 상태 오류</h2><p>'+esc(e.message)+'</p><button class="outline-button" data-action="battle-room-back">대전방으로</button>');}
 }
 function queueBattleProgress(){if(!battle?.room||!game||game.mode!=='battle'||game.done)return;clearTimeout(battlePushTimer);battlePushTimer=setTimeout(()=>pushBattleProgress(false,false).catch(()=>{}),650);}
 async function pushBattleProgress(done=false,cleared=false){
@@ -116,9 +143,10 @@ function finishBattle(cleared){
  if(!game||game.done)return;game.done=true;cancelAnimationFrame(raf);hud();modal('<small>ROYAL BATTLE</small><h2>'+(cleared?'정원을 모두 연결했어요!':'시간 종료')+'</h2><p>두 플레이어의 진행도를 확인하고 있습니다.</p><div class="result-score">'+game.score.toLocaleString()+'</div><small>POINTS</small>');pushBattleProgress(true,cleared).catch(()=>{});startBattlePolling();
 }
 function showBattleResult(room){
- if(!battle)battle={};battle.room=room;if(battle.resultShown)return;battle.resultShown=true;stopBattlePolling();if(game?.mode==='battle'){game.done=true;cancelAnimationFrame(raf);updateBattleStrip();}
- const me=room.players.find(p=>Number(p.userId)===Number(room.me)),rival=room.players.find(p=>Number(p.userId)!==Number(room.me)),draw=!room.winnerId,win=Number(room.winnerId)===Number(room.me);
- modal('<div class="modal-badge">'+(draw?'✦':win?'♛':'☾')+'</div><small>ROYAL BATTLE RESULT</small><h2>'+(draw?'완벽한 무승부':win?'왕관 쟁탈전 승리!':'이번 왕관은 상대에게')+'</h2><div class="result-stats"><div><small>'+esc(me?.nickname||'나')+'</small><b>'+(me?.pairs||0)+'쌍 · '+Number(me?.score||0).toLocaleString()+'</b></div><div><small>'+esc(rival?.nickname||'상대')+'</small><b>'+(rival?.pairs||0)+'쌍 · '+Number(rival?.score||0).toLocaleString()+'</b></div></div><button class="gold-button" data-action="battle-lobby">새 대전 시작</button><button class="outline-button" data-action="lobby">정원 선택으로</button>');
+ if(!battle)battle={};battle.room=room;if(battle.resultShown)return;battle.resultShown=true;if(game?.mode==='battle'){game.done=true;cancelAnimationFrame(raf);updateBattleStrip();}
+ const me=room.players.find(p=>Number(p.userId)===Number(room.me)),rival=room.players.find(p=>Number(p.userId)!==Number(room.me)),isHost=Number(room.hostId)===Number(room.me),draw=!room.winnerId,win=Number(room.winnerId)===Number(room.me),theme=battleTheme(room.level);
+ modal('<div class="modal-badge">'+(draw?'✦':win?'♛':'☾')+'</div><small>ROYAL BATTLE RESULT · '+esc(theme.name)+'</small><h2>'+(draw?'완벽한 무승부':win?'왕관 쟁탈전 승리!':'이번 왕관은 상대에게')+'</h2><div class="result-stats"><div><small>'+esc(me?.nickname||'나')+'</small><b>'+(me?.pairs||0)+'쌍 · '+Number(me?.score||0).toLocaleString()+'</b></div><div><small>'+esc(rival?.nickname||'상대')+'</small><b>'+(rival?.pairs||0)+'쌍 · '+Number(rival?.score||0).toLocaleString()+'</b></div></div><button class="gold-button" data-action="battle-rematch">같은 테마로 재대결 ↻</button>'+(isHost?'<button class="outline-button" data-action="battle-theme">다른 테마 선택</button>':'<p>다른 테마는 방장이 선택하면 내 화면에도 자동 적용됩니다.</p>')+'<button class="outline-button" data-action="battle-exit">대전방 나가기</button>');
+ startBattlePolling();
 }
 function finish(won){if(!game||game.done)return;if(game.mode==='battle'){finishBattle(won);return;}game.done=true;cancelAnimationFrame(raf);const timeBonus=game.mode==='zen'?0:Math.max(0,Math.floor(game.seconds-game.elapsed/1000))*10;let stars=0;
  if(won){game.score+=timeBonus;stars=1+(game.used<=2?1:0)+(game.used===0&&game.elapsed<=game.seconds*700?1:0);if(game.mode==='journey'){progress.stars[game.level]=Math.max(Number(progress.stars[game.level])||0,stars);progress.best[game.level]=Math.max(Number(progress.best[game.level])||0,game.score);}else if(game.mode==='daily'){progress.daily[game.day]=Math.max(Number(progress.daily[game.day])||0,game.score);const days=Object.keys(progress.daily).sort();while(days.length>30)delete progress.daily[days.shift()];}else if(game.mode==='tower'){progress.tower.best=Math.max(Number(progress.tower.best)||24,game.level);progress.tower.floor=Math.max(Number(progress.tower.floor)||25,game.level+1);}save();beep('win');}hud();
@@ -134,7 +162,7 @@ $('#continue').onclick=()=>campaignComplete()?start(progress.tower.floor,'tower'
 $('#sound').onclick=()=>{sound=!sound;$('#sound').setAttribute('aria-pressed',String(sound));$('#sound').setAttribute('aria-label',sound?'효과음 끄기':'효과음 켜기');beep('match');};
 $('#home').onclick=e=>{e.preventDefault();if(game&&!game.done)pause();else lobby();};
 $('#exit').onclick=()=>{pause();if(window.parent!==window)window.parent.postMessage({type:'junja-sichuan-exit'},location.origin);else location.href='/';};
-$('#modal').addEventListener('click',e=>{const a=e.target.closest('[data-action]')?.dataset.action;if(!a)return;if(a==='resume')resume();if(a==='lobby')lobby();if(a==='next')start(game.level+1);if(a==='retry')start(game.level,game.mode);if(a==='tower')start(progress.tower.floor,'tower');if(a==='tower-next')start(game.level+1,'tower');if(a==='battle-lobby')openBattle();if(a==='battle-create')createBattle();if(a==='battle-join')joinBattle();if(a==='battle-ready')toggleBattleReady();if(a==='battle-leave'){leaveBattle(true).finally(()=>openBattle());}if(a==='close-help'){if(game&&!game.done)resume();else $('#modal').close();}});
+$('#modal').addEventListener('click',e=>{const a=e.target.closest('[data-action]')?.dataset.action;if(!a)return;if(a==='resume')resume();if(a==='lobby')lobby();if(a==='next')start(game.level+1);if(a==='retry')start(game.level,game.mode);if(a==='tower')start(progress.tower.floor,'tower');if(a==='tower-next')start(game.level+1,'tower');if(a==='battle-lobby')openBattle();if(a==='battle-create')createBattle();if(a==='battle-join')joinBattle();if(a==='battle-ready')toggleBattleReady();if(a==='battle-theme')openBattleThemePicker();if(a==='battle-theme-apply')applyBattleTheme();if(a==='battle-rematch')rematchBattle();if(a==='battle-room-back'&&battle?.room)showBattleRoom(battle.room);if(a==='battle-exit'){leaveBattle(true).finally(()=>lobby());}if(a==='close-help'){if(game&&!game.done)resume();else $('#modal').close();}});
 $('#modal').addEventListener('cancel',e=>{e.preventDefault();if(game&&!game.done)resume();else if(game?.done)lobby();else $('#modal').close();});
 window.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('#modal').open)pause();});
 document.addEventListener('visibilitychange',()=>{if(document.hidden)pause();});window.addEventListener('pagehide',pause);
