@@ -1,0 +1,51 @@
+/* JUNJA ROYAL+ ASCENSION SHOP · isolated boutique visuals */
+.royal-ascension-vault{position:relative;overflow:hidden;margin:16px 0 18px;padding:22px;border:1px solid rgba(246,207,108,.42);background:
+radial-gradient(circle at 12% 8%,rgba(171,119,33,.23),transparent 32%),
+radial-gradient(circle at 90% 0,rgba(132,31,42,.22),transparent 34%),
+linear-gradient(135deg,#090b12 0%,#15100d 44%,#08090e 100%);box-shadow:inset 0 0 0 1px rgba(255,255,255,.025),0 22px 60px rgba(0,0,0,.28)}
+.royal-ascension-vault:before{content:"";position:absolute;inset:-50% -15%;pointer-events:none;background:linear-gradient(105deg,transparent 38%,rgba(255,236,167,.08) 46%,rgba(255,255,255,.17) 50%,rgba(255,236,167,.06) 54%,transparent 62%);transform:translateX(-55%) rotate(3deg);animation:royalSweep 7s ease-in-out infinite}
+.royal-ascension-vault:after{content:"♔";position:absolute;right:20px;top:12px;font-size:86px;line-height:1;color:rgba(246,210,118,.055);filter:drop-shadow(0 0 24px rgba(224,179,75,.12));pointer-events:none}
+@keyframes royalSweep{0%,58%{transform:translateX(-60%) rotate(3deg)}82%,100%{transform:translateX(70%) rotate(3deg)}}
+.royal-vault-copy{position:relative;z-index:2;max-width:760px}
+.royal-vault-copy small{display:block;letter-spacing:.18em;font-size:11px;font-weight:900;color:#e8ca78}
+.royal-vault-copy h3{margin:5px 0 7px;font-size:26px;letter-spacing:.06em;background:linear-gradient(90deg,#fff3be,#d8a94c 54%,#fff4cb);-webkit-background-clip:text;background-clip:text;color:transparent;text-shadow:0 0 28px rgba(220,174,73,.11)}
+.royal-vault-copy p{margin:0;color:#c9c2b6;font-size:13px;line-height:1.6}
+.royal-step-track{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:14px}
+.royal-step-track span{display:flex;align-items:center;gap:6px;padding:8px 10px;border-radius:999px;border:1px solid rgba(232,196,106,.24);background:rgba(255,255,255,.035);font-size:11px;font-weight:800;color:#d7cfbf}
+.royal-step-track span b{display:grid;place-items:center;width:22px;height:22px;border-radius:50%;background:linear-gradient(145deg,#f9df91,#8c5d18);color:#171006;box-shadow:0 0 18px rgba(229,183,76,.18)}
+.royal-step-track i{color:#8f7a50;font-style:normal;font-weight:900}
+.royal-vault-portraits{position:relative;z-index:2;display:grid;grid-template-columns:repeat(6,minmax(58px,1fr));gap:8px;margin-top:18px}
+.royal-vault-portraits button{position:relative;overflow:hidden;min-height:112px;padding:0;border:1px solid rgba(237,204,112,.22);border-radius:14px;background:#090a0d;box-shadow:0 8px 25px rgba(0,0,0,.2);cursor:pointer}
+.royal-vault-portraits button:after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,transparent 38%,rgba(2,3,7,.9));pointer-events:none}
+.royal-vault-portraits img{width:100%;height:112px;object-fit:cover;object-position:center 18%;transition:transform .35s ease,filter .35s ease;filter:saturate(1.06) contrast(1.03)}
+.royal-vault-portraits button:hover img{transform:scale(1.06);filter:saturate(1.18) contrast(1.06)}
+.royal-vault-portraits span{position:absolute;z-index:2;left:7px;bottom:6px;font-size:9px;font-weight:950;letter-spacing:.08em;color:#f5d985;text-shadow:0 2px 7px #000}
+.royal-vault-open{position:relative;z-index:2;margin-top:15px;width:100%;padding:13px 15px;border:1px solid rgba(248,220,139,.44);border-radius:13px;background:linear-gradient(90deg,#7d5217,#e0b95f 46%,#9b6b25);color:#130d05;font-weight:950;letter-spacing:.04em;box-shadow:0 10px 28px rgba(177,123,36,.18);cursor:pointer}
+
+.shop-item.royalclub-item{position:relative;overflow:hidden;border-color:rgba(234,198,101,.35);background:
+radial-gradient(circle at 92% 0,rgba(156,96,26,.18),transparent 29%),
+linear-gradient(180deg,rgba(20,18,18,.98),rgba(7,8,12,.99));box-shadow:0 16px 42px rgba(0,0,0,.28),inset 0 0 0 1px rgba(255,255,255,.02)}
+.shop-item.royalclub-item:before{content:"";position:absolute;z-index:1;inset:0;pointer-events:none;background:linear-gradient(112deg,transparent 24%,rgba(248,220,145,.07) 49%,transparent 68%);transform:translateX(-55%);transition:transform .8s ease}
+.shop-item.royalclub-item:hover:before{transform:translateX(55%)}
+.shop-item.royalclub-item:hover{border-color:rgba(255,222,132,.62);box-shadow:0 22px 55px rgba(0,0,0,.34),0 0 30px rgba(216,167,64,.11)}
+.shop-item.royalclub-item>*{position:relative;z-index:2}
+.royal-badge{background:linear-gradient(90deg,#5f3b12,#b9832c)!important;color:#fff0bb!important;border:1px solid rgba(255,223,137,.34)!important}
+.shop-character-preview.royal-character-preview{height:310px;border-color:rgba(239,204,112,.25);background:#07080b}
+.shop-character-preview.royal-character-preview img{object-position:center 18%;filter:saturate(1.08) contrast(1.035) brightness(.98)}
+.shop-item.royalclub-item:hover .royal-character-preview img{transform:scale(1.025);filter:saturate(1.16) contrast(1.055) brightness(1.02)}
+.shop-character-preview.royal-character-preview:before{content:"";position:absolute;z-index:2;inset:0;pointer-events:none;background:linear-gradient(90deg,rgba(0,0,0,.28),transparent 18%,transparent 82%,rgba(0,0,0,.25)),radial-gradient(circle at 50% 18%,rgba(251,224,147,.08),transparent 34%)}
+.shop-character-preview.royal-character-preview .character-preview-meta{left:14px;right:14px;bottom:12px;display:flex;align-items:flex-end;justify-content:space-between;gap:10px}
+.shop-character-preview.royal-character-preview .character-preview-meta span{padding:5px 8px;border-radius:999px;border:1px solid rgba(242,211,125,.31);background:rgba(13,10,7,.72);color:#eed17c;font-weight:900;letter-spacing:.08em}
+.shop-character-preview.royal-character-preview .character-preview-meta b{max-width:55%;font-size:15px;line-height:1.08;text-align:right;color:#fff7d9;text-shadow:0 2px 10px #000}
+.shop-item.royalclub-item .shop-price b{color:#f0d07a}
+.shop-item.royalclub-item .buy-luxury:not(:disabled){background:linear-gradient(90deg,#745019,#c7973f,#7b541b);border-color:#d6af5a;color:#fff4ca;font-weight:900}
+.shop-item.royalclub-item .buy-luxury:disabled{border-color:#4e4638;color:#938b7c;background:#111115}
+
+@media(max-width:740px){
+  .royal-ascension-vault{padding:17px 14px}
+  .royal-vault-copy h3{font-size:21px}
+  .royal-step-track{gap:5px}.royal-step-track span{font-size:10px;padding:7px 8px}.royal-step-track i{display:none}
+  .royal-vault-portraits{grid-template-columns:repeat(3,1fr);gap:7px}
+  .royal-vault-portraits button,.royal-vault-portraits img{height:104px;min-height:104px}
+  .shop-character-preview.royal-character-preview{height:285px}
+}
