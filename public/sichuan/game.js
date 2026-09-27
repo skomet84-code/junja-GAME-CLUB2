@@ -76,6 +76,50 @@ function action(kind){if(!game||game.done||busy||paused)return;if(kind==='hint'&
 function modal(html){$('#modal-content').innerHTML=html;if(!$('#modal').open)$('#modal').showModal();}
 function resume(){if(!game||game.done)return;$('#modal').close();paused=false;lastTick=performance.now();cancelAnimationFrame(raf);raf=requestAnimationFrame(tick);}
 function pause(){if(!game||game.done||paused)return;paused=true;cancelAnimationFrame(raf);modal('<small>TAKE A BREATH</small><h2>잠시 쉬어가세요</h2><p>정원은 그대로 기다리고 있어요.<br>시간과 콤보가 멈췄습니다.</p><button class="gold-button" data-action="resume">계속 플레이</button><button class="outline-button" data-action="lobby">정원 선택으로</button>');}
+
+function esc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
+function updateBattleStrip(){
+ if(!battle?.room||!game||game.mode!=='battle')return;const room=battle.room,me=room.players.find(p=>Number(p.userId)===Number(room.me)),rival=room.players.find(p=>Number(p.userId)!==Number(room.me)),total=Math.max(1,game.totalPairs||1);
+ $('#battle-code').textContent=room.code;$('#battle-me-name').textContent=me?.nickname||'나';$('#battle-rival-name').textContent=rival?.nickname||'상대';$('#battle-me-pairs').textContent=game.pairs+'/'+total;$('#battle-rival-pairs').textContent=(rival?.pairs||0)+'/'+total;$('#battle-me-bar').style.width=Math.min(100,game.pairs/total*100)+'%';$('#battle-rival-bar').style.width=Math.min(100,Number(rival?.pairs||0)/total*100)+'%';
+}
+function startBattlePolling(){stopBattlePolling();battlePollTimer=setInterval(()=>pollBattle().catch(()=>{}),1800);}
+async function pollBattle(){
+ if(!battle?.room?.code)return;const d=await battleApi('/'+battle.room.code);battle.room=d.room;
+ if(d.room.status==='waiting'){if(!game||game.mode!=='battle')modal(battleRoomMarkup(d.room));return;}
+ if(d.room.status==='playing'){if(!game||game.mode!=='battle')startBattleRoom(d.room);else updateBattleStrip();return;}
+ if(d.room.status==='complete')showBattleResult(d.room);
+}
+function battleRoomMarkup(room){
+ const me=room.players.find(p=>Number(p.userId)===Number(room.me)),cards=room.players.map(p=>'<div class="battle-player-card '+(p.ready?'ready':'')+'"><b>'+esc(p.nickname)+'</b><span>'+(p.ready?'✓ 준비 완료':'대기 중')+'</span></div>').join('')+(room.players.length<2?'<div class="battle-player-card"><b>상대 기다리는 중</b><span>코드로 참가하면 바로 표시됩니다.</span></div>':'');
+ return '<div class="battle-room"><small>ROYAL BATTLE · PRIVATE ROOM</small><h2>같은 판에서 정면승부</h2><div class="battle-room-code">'+room.code+'</div><p>친구에게 이 6자리 코드를 알려주세요. 두 명 모두 준비하면 같은 배치로 동시에 시작합니다.</p><div class="battle-players">'+cards+'</div><button class="gold-button" data-action="battle-ready">'+(me?.ready?'준비 취소':'준비 완료')+'</button><button class="outline-button" data-action="battle-leave">방 나가기</button></div>';
+}
+function showBattleRoom(room){battle=battle||{};battle.room=room;battle.resultShown=false;modal(battleRoomMarkup(room));startBattlePolling();}
+async function openBattle(){
+ stopBattlePolling();battle=null;modal('<small>ROYAL BATTLE · 1 VS 1</small><h2>친구와 왕관 쟁탈전</h2><p>게임머니 베팅 없이 실력만 겨룹니다. 서버에는 방 상태와 진행도만 가볍게 전송하고, 패 판정은 각 기기에서 처리합니다.</p><label><small>대전 난이도</small><select id="battle-level" class="battle-select"><option value="6">CHAPTER 1 · 클래식</option><option value="12">CHAPTER 2 · 중력</option><option value="18" selected>CHAPTER 3 · 스피드 피버</option><option value="24">CHAPTER 4 · 황금 왕좌</option></select></label><button class="gold-button" data-action="battle-create">새 대전방 만들기</button><div class="battle-join"><input id="battle-code-input" maxlength="6" autocomplete="off" placeholder="6자리 방 코드"><button class="outline-button" data-action="battle-join">코드로 참가</button></div><button class="outline-button" data-action="close-help">닫기</button>');
+}
+async function createBattle(){
+ const level=Number($('#battle-level')?.value||18);try{const d=await battleApi('/create',{method:'POST',body:JSON.stringify({level})});showBattleRoom(d.room);}catch(e){modal('<h2>대전방을 만들지 못했어요</h2><p>'+esc(e.message)+'</p><button class="gold-button" data-action="battle-lobby">다시 시도</button>');}
+}
+async function joinBattle(){
+ const code=String($('#battle-code-input')?.value||'').trim().toUpperCase();if(code.length!==6){modal('<h2>방 코드 확인</h2><p>6자리 대전방 코드를 입력해주세요.</p><button class="gold-button" data-action="battle-lobby">다시 입력</button>');return;}
+ try{const d=await battleApi('/'+encodeURIComponent(code)+'/join',{method:'POST',body:'{}'});showBattleRoom(d.room);}catch(e){modal('<h2>대전방 참가 실패</h2><p>'+esc(e.message)+'</p><button class="gold-button" data-action="battle-lobby">다시 입력</button>');}
+}
+function startBattleRoom(room){battle=battle||{};battle.room=room;battle.resultShown=false;const elapsed=Math.max(0,Date.now()-Number(room.startedAt||Date.now()));start(room.level,'battle',{seed:room.seed,elapsed});startBattlePolling();}
+async function toggleBattleReady(){
+ if(!battle?.room)return;const me=battle.room.players.find(p=>Number(p.userId)===Number(battle.room.me));try{const d=await battleApi('/'+battle.room.code+'/ready',{method:'POST',body:JSON.stringify({ready:!me?.ready})});battle.room=d.room;if(d.room.status==='playing')startBattleRoom(d.room);else showBattleRoom(d.room);}catch(e){modal('<h2>준비 상태 오류</h2><p>'+esc(e.message)+'</p><button class="outline-button" data-action="battle-lobby">대전 메뉴</button>');}
+}
+function queueBattleProgress(){if(!battle?.room||!game||game.mode!=='battle'||game.done)return;clearTimeout(battlePushTimer);battlePushTimer=setTimeout(()=>pushBattleProgress(false,false).catch(()=>{}),650);}
+async function pushBattleProgress(done=false,cleared=false){
+ if(!battle?.room||!game||game.mode!=='battle')return null;const d=await battleApi('/'+battle.room.code+'/progress',{method:'POST',body:JSON.stringify({pairs:game.pairs,score:game.score,combo:game.bestCombo,done,cleared})});battle.room=d.room;updateBattleStrip();if(d.room.status==='complete')showBattleResult(d.room);return d.room;
+}
+function finishBattle(cleared){
+ if(!game||game.done)return;game.done=true;cancelAnimationFrame(raf);hud();modal('<small>ROYAL BATTLE</small><h2>'+(cleared?'정원을 모두 연결했어요!':'시간 종료')+'</h2><p>두 플레이어의 진행도를 확인하고 있습니다.</p><div class="result-score">'+game.score.toLocaleString()+'</div><small>POINTS</small>');pushBattleProgress(true,cleared).catch(()=>{});startBattlePolling();
+}
+function showBattleResult(room){
+ if(!battle)battle={};battle.room=room;if(battle.resultShown)return;battle.resultShown=true;stopBattlePolling();if(game?.mode==='battle'){game.done=true;cancelAnimationFrame(raf);updateBattleStrip();}
+ const me=room.players.find(p=>Number(p.userId)===Number(room.me)),rival=room.players.find(p=>Number(p.userId)!==Number(room.me)),draw=!room.winnerId,win=Number(room.winnerId)===Number(room.me);
+ modal('<div class="modal-badge">'+(draw?'✦':win?'♛':'☾')+'</div><small>ROYAL BATTLE RESULT</small><h2>'+(draw?'완벽한 무승부':win?'왕관 쟁탈전 승리!':'이번 왕관은 상대에게')+'</h2><div class="result-stats"><div><small>'+esc(me?.nickname||'나')+'</small><b>'+(me?.pairs||0)+'쌍 · '+Number(me?.score||0).toLocaleString()+'</b></div><div><small>'+esc(rival?.nickname||'상대')+'</small><b>'+(rival?.pairs||0)+'쌍 · '+Number(rival?.score||0).toLocaleString()+'</b></div></div><button class="gold-button" data-action="battle-lobby">새 대전 시작</button><button class="outline-button" data-action="lobby">정원 선택으로</button>');
+}
 function finish(won){if(!game||game.done)return;game.done=true;cancelAnimationFrame(raf);const timeBonus=game.mode==='zen'?0:Math.max(0,Math.floor(game.seconds-game.elapsed/1000))*10;let stars=0;
  if(won){game.score+=timeBonus;stars=1+(game.used<=2?1:0)+(game.used===0&&game.elapsed<=game.seconds*700?1:0);if(game.mode==='journey'){progress.stars[game.level]=Math.max(Number(progress.stars[game.level])||0,stars);progress.best[game.level]=Math.max(Number(progress.best[game.level])||0,game.score);}else if(game.mode==='daily'){progress.daily[game.day]=Math.max(Number(progress.daily[game.day])||0,game.score);const days=Object.keys(progress.daily).sort();while(days.length>30)delete progress.daily[days.shift()];}save();beep('win');}hud();
  modal(`<div class="modal-badge">${won?worlds[game.world].icon:'☾'}</div><small>${won?'GARDEN COMPLETE':'ANOTHER CHANCE'}</small><h2>${won?(game.seal&&game.mode==='journey'?'왕관을 찾았어요':'정원이 빛나기 시작합니다'):'별빛이 잠시 쉬어갑니다'}</h2>${won?`<div class="result-stars" aria-label="별 ${stars}개">${'★'.repeat(stars)}${'☆'.repeat(3-stars)}</div>`:'<p>찾아낸 길을 기억하며, 다시 한번 도전해 보세요.</p>'}<div class="result-score">${game.score.toLocaleString()}</div><small>POINTS</small><div class="result-stats"><div><small>최고 콤보</small><b>${game.bestCombo}</b></div><div><small>연결한 패</small><b>${game.pairs}쌍</b></div><div><small>시간 보너스</small><b>${won?timeBonus:0}</b></div></div>${won&&game.mode==='journey'&&game.level<24?'<button class="gold-button" data-action="next">다음 정원으로 ↗</button>':'<button class="gold-button" data-action="retry">한 번 더 도전</button>'}<button class="outline-button" data-action="lobby">정원 선택으로</button><p>${storageAvailable?'기록은 이 기기에 저장됩니다.':'저장 공간을 사용할 수 없어 기록이 유지되지 않아요.'}</p>`);
