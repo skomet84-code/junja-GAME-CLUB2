@@ -740,7 +740,7 @@ function consumeRankFreePlay(userId,kind,useFree=false){
   if(limit<1)throw new Error('현재 신분에는 사용할 수 있는 무료권이 없습니다.');
   if(used>=limit)throw new Error('오늘 사용할 수 있는 신분 무료권을 모두 사용했습니다.');
   const info=db.prepare(`UPDATE users SET ${dateCol}=?,${usedCol}=? WHERE id=? AND (${dateCol} IS NULL OR ${dateCol}<>? OR ${usedCol}<?)`).run(d,used+1,userId,d,limit);
-  if(info.changes!==1)throw new Error('무료권 사용 상태가 변경되었습니다. 다시 시도해주세요.');
+  if(Number(info.changes)!==1)throw new Error('무료권 사용 상태가 변경되었습니다. 다시 시도해주세요.');
   used++;return {free:true,used,limit,left:Math.max(0,limit-used)};
 }
 function rankFreePlayState(userId,kind){
