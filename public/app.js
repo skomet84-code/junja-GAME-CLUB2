@@ -258,7 +258,7 @@ async function go(view){
   if(currentRoomId&&view!==currentGame){toast('먼저 멀티 게임방에서 나가기를 눌러줘.');return}
   const prevView=currentView;if(prevView==='treasure'&&view!=='treasure')window.JunjaTreasureRaid?.leaveView?.();currentView=view;document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));$('#view-'+view)?.classList.add('active');window.scrollTo({top:0,behavior:'smooth'});
   if(LIVE_GAME_VIEWS.has(view))startLiveFloor(view);else if(LIVE_GAME_VIEWS.has(prevView)||liveGame)stopLiveFloor();
-  if(prevView==='horse'&&view!=='horse')stopHorseMeet();if(view==='lobby')await loadLobby();if(view==='shop')await loadShop();if(view==='slot'){initSlotMachine();refreshSlotJackpot(true)}if(view==='holdem')await loadRooms('holdem');if(view==='sevenpoker')await loadRooms('sevenpoker');if(view==='baccarat')await loadBaccaratRooms();if(view==='yut')await loadRooms('yut');if(view==='ledger')await loadLedger();if(view==='seotda')await loadRooms('seotda');if(view==='gostop')await loadGostop();if(view==='horse')startHorseMeet();if(view==='bigwheel')initBigWheel();if(view==='sicbo')initSicbo();if(view==='roulette')initRoulette();if(view==='treasure')await window.JunjaTreasureRaid?.enter?.(me);if(view==='admin')await loadAdmin('');
+  if(prevView==='horse'&&view!=='horse')stopHorseMeet();if(view==='lobby')await loadLobby();if(view==='shop')await loadShop();if(view==='slot'){initSlotMachine();refreshSlotJackpot(true);refreshSlotJackpotHistory(true)}if(view==='holdem')await loadRooms('holdem');if(view==='sevenpoker')await loadRooms('sevenpoker');if(view==='baccarat')await loadBaccaratRooms();if(view==='yut')await loadRooms('yut');if(view==='ledger')await loadLedger();if(view==='seotda')await loadRooms('seotda');if(view==='gostop')await loadGostop();if(view==='horse')startHorseMeet();if(view==='bigwheel')initBigWheel();if(view==='sicbo')initSicbo();if(view==='roulette')initRoulette();if(view==='treasure')await window.JunjaTreasureRaid?.enter?.(me);if(view==='admin')await loadAdmin('');
 }
 let leaderboardSnapshot=null,leaderboardLoadedAt=0;
 async function loadLobby(full=true){try{
@@ -530,7 +530,7 @@ async function spin({manual=false,fast=false}={}){
     const serverBet=Number(d.bet||0),beforeBalance=Number(me?.balance||0),afterBalance=Number(d.user?.balance||0),netChange=afterBalance-beforeBalance;if(!useRankFree&&serverBet!==selectedBet){throw new Error(`베팅금액 확인 오류 · 요청 ${money(selectedBet)} / 서버 ${money(serverBet)}`)}
     if(d.payout>0){$('#slotResult').innerHTML=`<strong>${d.jackpot?'🔥 JACKPOT! ':''}${money(d.payout)} 당첨 · x${d.totalMultiplier}</strong><span>잔액 ${money(beforeBalance)} → ${money(afterBalance)} (${netChange>=0?'+':''}${money(netChange)})</span>`;fx(d.jackpot?'jackpot':'win');if(d.jackpot||(d.winLines||[]).length>1)confetti()}
     else $('#slotResult').innerHTML=`<strong>-${money(d.bet)} · 다음 SPIN 도전</strong><span>잔액 ${money(beforeBalance)} → ${money(afterBalance)} (${money(netChange)})</span>`;
-    me=d.user;updateHeader();if($('#slotJackpotAmount'))$('#slotJackpotAmount').textContent=money(d.jackpotPool);if($('#lobbyJackpotAmount'))$('#lobbyJackpotAmount').textContent=money(d.jackpotPool);updateSlotSession(d);if(d.jackpot)showSlotJackpot(d);return d
+    me=d.user;updateHeader();if($('#slotJackpotAmount'))$('#slotJackpotAmount').textContent=money(d.jackpotPool);if($('#lobbyJackpotAmount'))$('#lobbyJackpotAmount').textContent=money(d.jackpotPool);updateSlotSession(d);if(d.jackpot)showSlotJackpot(d);if(d.poolJackpot)refreshSlotJackpotHistory(true);return d
   }catch(e){
     (slotSpinState?.timers||[]).forEach(clearInterval);(slotSpinState?.animations||[]).forEach(a=>a.cancel());slotSpinState=null;
     $$('.slot-column').forEach(c=>c.classList.remove('spinning'));$('#slotGrid').classList.remove('is-spinning');toast(e.message);$('#slotResult').textContent='자동/수동 SPIN을 중지했어. 잔액과 베팅금액을 확인해.';return false
@@ -860,6 +860,22 @@ function stopHorseAuto(){horseAutoRemaining=0;horseAutoTotal=0;horseAutoBetRound
 function updateHorseAutoUi(){const st=$('#horseAutoStatus'),stop=$('#horseAutoStop');if(st)st.textContent=horseAutoRemaining?`남은 ${horseAutoRemaining}/${horseAutoTotal}`:'수동';if(stop)stop.disabled=!horseAutoRemaining}
 async function maybeHorseAuto(r){if(!horseAutoRemaining||!r||document.hidden||currentView!=='horse'||horseAutoBusy)return;if(r.phase==='betting'&&!r.myBet&&horseAutoBetRound!==r.id){horseAutoBetRound=r.id;const ok=await startHorseRace(true);if(ok){horseAutoRemaining=Math.max(0,horseAutoRemaining-1);if(!horseAutoRemaining){horseAutoTotal=0;horseAutoBetRound=null}updateHorseAutoUi()}}}
 async function refreshSlotJackpot(silent=true){try{const d=await api('/api/slot/jackpot');const text=money(d.pool);if($('#lobbyJackpotAmount'))$('#lobbyJackpotAmount').textContent=text;if($('#slotJackpotAmount'))$('#slotJackpotAmount').textContent=text;return d}catch(e){if(!silent)toast(e.message)}}
+function slotJackpotDateText(row){
+  if(row?.awardedDate)return String(row.awardedDate).replace(/-/g,'.');
+  if(row?.awardedAt)return new Intl.DateTimeFormat('ko-KR',{timeZone:'Asia/Seoul',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date(Number(row.awardedAt)));
+  return '날짜 미상';
+}
+async function refreshSlotJackpotHistory(silent=true){
+  const root=$('#slotJackpotHistory');if(!root)return;
+  try{
+    const d=await api('/api/slot/jackpot-history'),rows=Array.isArray(d.rows)?d.rows:[];
+    root.innerHTML=rows.length?rows.map(r=>{
+      const live=r.source==='live',total=Number(r.totalPayout||0),pool=Number(r.jackpotAmount||0);
+      return `<div class="slot-hof-row"><span class="slot-hof-round">${Number(r.round)||0}회차</span><div class="slot-hof-winner"><b>${html(r.nickname||'알 수 없음')}</b><small>${slotJackpotDateText(r)}${live?' · LIVE':' · 복원 기록'}</small></div><div class="slot-hof-money"><strong>${money(pool)}</strong>${live&&total>pool?`<small>총 지급 ${money(total)}</small>`:''}</div></div>`;
+    }).join(''):'<div class="empty">아직 777 당첨 기록이 없어.</div>';
+    return d;
+  }catch(e){root.innerHTML='<div class="empty">777 기록을 불러오지 못했어.</div>';if(!silent)toast(e.message)}
+}
 
 // SEOTDA
 function resetSeotdaUI(){if($('#seotdaTable')?.classList.contains('hidden'))$('#seotdaStart')?.classList.remove('hidden')}
