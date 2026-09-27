@@ -930,7 +930,7 @@ async function runRankFreeSlotAuto(){
   rankFreeSlotAutoRunning=true;autoSpinStop=false;rankFreeSlotNext=false;
   const stop=$('#autoStopBtn'),status=$('#autoSpinStatus'),freeBtn=$('#slotRankFreeBtn');
   if(stop)stop.disabled=false;if(freeBtn)freeBtn.disabled=true;
-  $('[data-auto-spin]').forEach(b=>b.disabled=true);$('.bet-chip').forEach(b=>b.disabled=true);if($('#slotBetInput'))$('#slotBetInput').disabled=true;
+  document.querySelectorAll('[data-auto-spin]').forEach(b=>b.disabled=true);document.querySelectorAll('.bet-chip').forEach(b=>b.disabled=true);if($('#slotBetInput'))$('#slotBetInput').disabled=true;
   let done=0;
   try{
     while(left>0&&!autoSpinStop){
@@ -948,7 +948,7 @@ async function runRankFreeSlotAuto(){
   }finally{
     rankFreeSlotNext=false;rankFreeSlotAutoRunning=false;
     if(stop)stop.disabled=true;
-    $('[data-auto-spin]').forEach(b=>b.disabled=false);$('.bet-chip').forEach(b=>b.disabled=false);if($('#slotBetInput'))$('#slotBetInput').disabled=false;
+    document.querySelectorAll('[data-auto-spin]').forEach(b=>b.disabled=false);document.querySelectorAll('.bet-chip').forEach(b=>b.disabled=false);if($('#slotBetInput'))$('#slotBetInput').disabled=false;
     if(status)status.textContent=autoSpinStop?`무료권 자동회전 중지 · ${done}회 완료`:`무료권 자동회전 완료 · ${done}회`;
     autoSpinStop=false;updateRankFreeUi();
   }
