@@ -1,5 +1,5 @@
 const $=(s,r=document)=>r.querySelector(s), $$=(s,r=document)=>[...r.querySelectorAll(s)];
-let rankFreeSlotNext=false,rankFreeWheelNext=false;let me=null,currentView='lobby',currentRoomId=null,currentGame=null,events=null,selectedBet=10000,refreshTimer=null,slotSpinState=null,autoSpinRunning=false,autoSpinStop=false,slotSession={spins:0,wins:0,net:0,best:0,recent:[]},selectedYutMoveIndex=0,selectedSoloYutMoveIndex=0,horseCardData=null,horseRacing=false,horseLastResult=null,bigWheelSelected='x2',bigWheelSpinning=false,bigWheelAngle=0,sicboSelected='small',sicboRolling=false,roomPollTimer=null,roomRefreshBusy=false,lastRoomVersion=-1,roomSeenMembers=new Map(),liveGame=null,liveHeartbeatTimer=null,liveKnownIds=new Set(),liveInitialized=false,liveRefreshBusy=false,resumeSyncBusy=false,lastResumeSyncAt=0,networkFailureStreak=0,sevenAutoTimer=null,holdemAutoTimer=null,baccaratAutoTimer=null,baccaratLastAutoRound=-1,networkDegraded=false,bigWheelAutoStop=false,sicboAutoStop=false,bigWheelAutoRunning=false,sicboAutoRunning=false,shopData=null,shopCategory='all',shopOwnedOnly=false,shopCharacterGender='all',horseMeetTimer=null,horseMeetData=null,horseAnimatedRoundId=null,horseAnimationFrame=null,horseAutoRemaining=0,horseAutoTotal=0,horseAutoBetRound=null,horseAutoBusy=false,slotJackpotPollTimer=null,rouletteMode='straight',rouletteChip=10000,rouletteBets=[],rouletteSpinning=false,rouletteWheelAngle=0,rouletteBallAngle=0,roulettePending=[],audioScene='lobby',soloYutReplayBusy=false;
+let rankFreeSlotNext=false,rankFreeWheelNext=false;let me=null,currentView='lobby',currentRoomId=null,currentGame=null,events=null,selectedBet=10000,refreshTimer=null,slotSpinState=null,autoSpinRunning=false,rankFreeSlotAutoRunning=false,autoSpinStop=false,slotSession={spins:0,wins:0,net:0,best:0,recent:[]},selectedYutMoveIndex=0,selectedSoloYutMoveIndex=0,horseCardData=null,horseRacing=false,horseLastResult=null,bigWheelSelected='x2',bigWheelSpinning=false,bigWheelAngle=0,sicboSelected='small',sicboRolling=false,roomPollTimer=null,roomRefreshBusy=false,lastRoomVersion=-1,roomSeenMembers=new Map(),liveGame=null,liveHeartbeatTimer=null,liveKnownIds=new Set(),liveInitialized=false,liveRefreshBusy=false,resumeSyncBusy=false,lastResumeSyncAt=0,networkFailureStreak=0,sevenAutoTimer=null,holdemAutoTimer=null,baccaratAutoTimer=null,baccaratLastAutoRound=-1,networkDegraded=false,bigWheelAutoStop=false,sicboAutoStop=false,bigWheelAutoRunning=false,sicboAutoRunning=false,shopData=null,shopCategory='all',shopOwnedOnly=false,shopCharacterGender='all',horseMeetTimer=null,horseMeetData=null,horseAnimatedRoundId=null,horseAnimationFrame=null,horseAutoRemaining=0,horseAutoTotal=0,horseAutoBetRound=null,horseAutoBusy=false,slotJackpotPollTimer=null,rouletteMode='straight',rouletteChip=10000,rouletteBets=[],rouletteSpinning=false,rouletteWheelAngle=0,rouletteBallAngle=0,roulettePending=[],audioScene='lobby',soloYutReplayBusy=false;
 const SLOT_SYMBOLS=['🍒','🍋','🍊','🔔','⭐','💎','7️⃣','J'];
 const SLOT_CELL_CLASS={'🍒':'cherry','🍋':'lemon','🍊':'orange','🔔':'bell','⭐':'star','💎':'diamond','7️⃣':'seven','J':'junja'};
 const REACTION_META={godone:['♛','유일무이','bubble_godjunja_oracle'],godclass:['✧','품격을 증명하지','bubble_godjunja_oracle'],godworld:['♜','내 세계에 온 걸 환영해','bubble_godjunja_oracle'],godfate:['✦','운명은 내 편','bubble_godjunja_oracle'],frustrated:['😫','답답해!','base'],hurry:['⏩','빨리빨리!','base'],cry:['😭','으앙 ㅠㅠ','base'],laugh:['😂','ㅋㅋㅋㅋ','base'],wow:['😲','헐?!','base'],sad:['😢','슬퍼...','base'],nice:['😎','나이스~','base'],go:['🔥','가즈아!','base'],lucky:['🍀','오늘 느낌 온다!','bubble_hype'],gg:['🤝','굿게임!','bubble_hype'],boom:['💥','터졌다!','bubble_hype'],clutch:['🎯','딱 맞췄다!','bubble_hype'],heart:['💖','좋아좋아!','bubble_cute'],wink:['😉','찡긋~','bubble_cute'],pout:['🥺','한 번만...','bubble_cute'],clap:['👏','박수!','bubble_cute'],crown:['👑','품격 있게~','bubble_royal'],sparkle:['✨','클래스가 다르지','bubble_royal'],salute:['🫡','인정!','bubble_royal'],throne:['🪑','왕좌는 내 자리','bubble_royal'],bigbet:['💸','큰 판 간다!','bubble_highroller'],chips:['🪙','칩 쌓아!','bubble_highroller'],allin:['🔥','올인 감성!','bubble_highroller'],myday:['😎','오늘은 내 날','bubble_highroller'],legend:['⚡','전설 등장!','bubble_legend'],classup:['👑','이게 클래스','bubble_legend'],mood:['✨','분위기 잡았다','bubble_legend'],finish:['🏆','끝내자!','bubble_legend']};
@@ -191,7 +191,7 @@ function bindMain(){
     on('#sicboRollBtn','click',()=>rollSicbo(false));$$('[data-sicbo-auto]').forEach(b=>b.addEventListener('click',()=>runSicboAuto(Number(b.dataset.sicboAuto))));on('#sicboAutoStop','click',()=>{sicboAutoStop=true});$$('[data-sicbo-bet]').forEach(b=>b.addEventListener('click',()=>selectSicboBet(b.dataset.sicboBet)));
     on('#rouletteSpinBtn','click',spinRoulette);on('#rouletteUndo','click',()=>{rouletteBets.pop();renderRouletteBets()});on('#rouletteClear','click',()=>{rouletteBets=[];roulettePending=[];renderRouletteBets();renderRouletteBoard()});$$('[data-rmode]').forEach(b=>b.addEventListener('click',()=>{rouletteMode=b.dataset.rmode;roulettePending=[];$$('[data-rmode]').forEach(x=>x.classList.toggle('active',x===b));renderRouletteBoard()}));$$('[data-rchip]').forEach(b=>b.addEventListener('click',()=>{rouletteChip=b.dataset.rchip==='max'?'max':Number(b.dataset.rchip);$$('[data-rchip]').forEach(x=>x.classList.toggle('active',x===b));fx('chip')}));
     on('#slotRankFreeBtn','click',()=>runRankFreeSlotAuto());on('#spinBtn','click',()=>spin({manual:true}));on('#slotBetInput','input',e=>syncSlotBetInput(e.target));on('#slotBetInput','change',e=>normalizeSlotBetInput(e.target));$$('[data-auto-spin]').forEach(b=>b.addEventListener('click',()=>runAutoSpins(Number(b.dataset.autoSpin))));on('#autoStopBtn','click',()=>{autoSpinStop=true;if($('#autoSpinStatus'))$('#autoSpinStatus').textContent='중지 요청...'});on('#slotSessionReset','click',resetSlotSession);on('#jackpotContinueBtn','click',closeSlotJackpot);
-    document.addEventListener('visibilitychange',()=>{if(document.hidden&&autoSpinRunning){autoSpinStop=true;if($('#autoSpinStatus'))$('#autoSpinStatus').textContent='화면 전환으로 자동 중지';}});
+    document.addEventListener('visibilitychange',()=>{if(document.hidden&&(autoSpinRunning||rankFreeSlotAutoRunning)){autoSpinStop=true;if($('#autoSpinStatus'))$('#autoSpinStatus').textContent='화면 전환으로 자동 중지';}});
     const betRoot=$('#betRow');if(betRoot&&!betRoot.children.length)for(const b of [100000,1000000,10000000,100000000]){const el=document.createElement('button');el.type='button';el.className='bet-chip'+(b===selectedBet?' active':'');el.textContent=({100000:'10만',1000000:'100만',10000000:'1,000만',100000000:'1억'})[b];el.onclick=()=>{selectedBet=b;if($('#slotBetInput'))$('#slotBetInput').value=b;$$('.bet-chip').forEach(x=>x.classList.remove('active'));el.classList.add('active');updateCurrentBetLabel();fx()};betRoot.appendChild(el)}
     on('#helpBtn','click',()=>openHelp(currentView));const rememberHelp=()=>{try{storageSet('jgc_help_seen_242','1')}catch{}};const closeHelpSafe=()=>{closeHelp();rememberHelp()};on('#closeHelp','click',closeHelpSafe);on('#helpDone','click',closeHelpSafe);on('.help-backdrop','click',closeHelpSafe);$$('[data-open-help]').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();openHelp(b.dataset.openHelp)}));$$('[data-help-tab]').forEach(b=>b.addEventListener('click',()=>setHelpTab(b.dataset.helpTab)));document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('#helpModal')?.classList.contains('hidden'))closeHelpSafe()});
     $$('[data-mode-game]').forEach(b=>b.addEventListener('click',()=>switchMode(b.dataset.modeGame,b.dataset.mode)));
@@ -458,7 +458,7 @@ function resetSlotSession(){slotSession={spins:0,wins:0,net:0,best:0,recent:[]};
 function closeSlotJackpot(){$('#slotJackpotOverlay')?.classList.add('hidden');document.body.classList.remove('jackpot-open')}
 function jackpotConfetti(){for(let wave=0;wave<3;wave++)setTimeout(()=>{for(let i=0;i<60;i++){const x=document.createElement('i');x.className='jackpot-confetti';const fromLeft=Math.random()<.5;x.style.left=(fromLeft?-2:102)+'vw';x.style.top=(10+Math.random()*55)+'vh';x.style.setProperty('--tx',`${(fromLeft?1:-1)*(35+Math.random()*75)}vw`);x.style.setProperty('--ty',`${(-20+Math.random()*95)}vh`);x.style.setProperty('--rot',`${360+Math.random()*1080}deg`);x.style.setProperty('--delay',`${Math.random()*.18}s`);document.body.appendChild(x);setTimeout(()=>x.remove(),2600)}},wave*320)}
 function showSlotJackpot(d){
-  autoSpinStop=true;
+  if(!rankFreeSlotAutoRunning)autoSpinStop=true;
   const isSeven=d.jackpotSymbol==='7️⃣',overlay=$('#slotJackpotOverlay');if(!overlay)return;
   overlay.classList.remove('hidden','j-jackpot','seven-jackpot');overlay.classList.add(isSeven?'seven-jackpot':'j-jackpot');
   $('#jackpotTitle').textContent=isSeven?'RED 777 JACKPOT':'JUNJA J JACKPOT';
@@ -520,7 +520,7 @@ function setAutoSpinUi(active,status='수동 모드'){
   if($('#spinBtn'))$('#spinBtn').disabled=active||!!slotSpinState
 }
 async function spin({manual=false,fast=false}={}){
-  const btn=$('#spinBtn');if(slotSpinState||(manual&&autoSpinRunning))return false;
+  const btn=$('#spinBtn');if(slotSpinState||(manual&&(autoSpinRunning||rankFreeSlotAutoRunning)))return false;
   selectedBet=normalizeSlotBet($('#slotBetInput')?.value||selectedBet);if($('#slotBetInput'))$('#slotBetInput').value=selectedBet;updateCurrentBetLabel();
   if(manual){btn.disabled=true;btn.textContent='SPINNING'}
   $('#slotResult').textContent='릴 회전 중...';startSlotSpin(fast);
@@ -921,7 +921,38 @@ async function spinBigWheel(auto=false,forceRankFree=false){
   }catch(e){toast(e.message);$('#bigWheelResult').textContent='오류가 발생했어. 다시 시도해줘.'}finally{$('.bigwheel-stage')?.classList.remove('wheel-live');bigWheelSpinning=false;btn.disabled=false;btn.textContent='SPIN THE WHEEL'}return ok
 }
 function selectBigWheelBet(key){bigWheelSelected=key;$$('[data-wheel-bet]').forEach(b=>b.classList.toggle('active',b.dataset.wheelBet===key));fx()}
-async function runRankFreeSlotAuto(){if(autoSpinRunning)return;const left=Number(me?.rank?.freePlay?.slot?.left||0),bet=rankFreeInfo('slot').bet;if(left<1||bet<1){toast('사용 가능한 신분 무료권이 없어.');return}selectedBet=bet;if($('#slotBetInput'))$('#slotBetInput').value=bet;autoSpinRunning=true;autoSpinStop=false;const stop=$('#autoStopBtn'),status=$('#autoSpinStatus');if(stop)stop.disabled=false;for(let i=0;i<left&&!autoSpinStop;i++){if(status)status.textContent=`신분 무료권 자동회전 ${i+1}/${left}`;rankFreeSlotNext=true;const ok=await spin({fast:true});if(!ok){rankFreeSlotNext=false;break}if(i<left-1&&!autoSpinStop)await sleep(450)}autoSpinRunning=false;if(stop)stop.disabled=true;if(status)status.textContent=autoSpinStop?'중지됨':'무료권 자동회전 완료';updateRankFreeUi()}
+async function runRankFreeSlotAuto(){
+  if(rankFreeSlotAutoRunning||autoSpinRunning||slotSpinState)return;
+  let left=Number(me?.rank?.freePlay?.slot?.left||0);
+  const bet=Number(rankFreeInfo('slot').bet||0);
+  if(left<1||bet<1){toast('사용 가능한 신분 무료권이 없어.');updateRankFreeUi();return}
+  selectedBet=bet;if($('#slotBetInput'))$('#slotBetInput').value=bet;updateCurrentBetLabel();
+  rankFreeSlotAutoRunning=true;autoSpinStop=false;rankFreeSlotNext=false;
+  const stop=$('#autoStopBtn'),status=$('#autoSpinStatus'),freeBtn=$('#slotRankFreeBtn');
+  if(stop)stop.disabled=false;if(freeBtn)freeBtn.disabled=true;
+  $('[data-auto-spin]').forEach(b=>b.disabled=true);$('.bet-chip').forEach(b=>b.disabled=true);if($('#slotBetInput'))$('#slotBetInput').disabled=true;
+  let done=0;
+  try{
+    while(left>0&&!autoSpinStop){
+      if(status)status.textContent=`신분 무료권 자동회전 ${done+1}회째 · ${left}회 남음`;
+      rankFreeSlotNext=true;
+      const result=await spin({fast:true});
+      rankFreeSlotNext=false;
+      if(!result)break;
+      done++;
+      const serverLeft=Number(result.rankFreePlay?.left);
+      left=Number.isFinite(serverLeft)?Math.max(0,serverLeft):Math.max(0,left-1);
+      if(result.jackpot){await sleep(900);closeSlotJackpot()}
+      if(left>0&&!autoSpinStop)await sleep(350);
+    }
+  }finally{
+    rankFreeSlotNext=false;rankFreeSlotAutoRunning=false;
+    if(stop)stop.disabled=true;
+    $('[data-auto-spin]').forEach(b=>b.disabled=false);$('.bet-chip').forEach(b=>b.disabled=false);if($('#slotBetInput'))$('#slotBetInput').disabled=false;
+    if(status)status.textContent=autoSpinStop?`무료권 자동회전 중지 · ${done}회 완료`:`무료권 자동회전 완료 · ${done}회`;
+    autoSpinStop=false;updateRankFreeUi();
+  }
+}
 
 async function runRankFreeWheelAuto(){
   if(bigWheelAutoRunning||bigWheelSpinning)return;
