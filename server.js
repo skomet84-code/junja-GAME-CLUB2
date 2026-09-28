@@ -458,9 +458,9 @@ for(const item of SHOP_ITEMS){if(SHOP_PERKS[item.id])item.perk={...SHOP_PERKS[it
 const SHOP_BY_ID = Object.fromEntries(SHOP_ITEMS.map(x=>[x.id,Object.freeze({...x})]));
 const LOADOUT_FIELDS = new Set(['character','costume','frame','title','pet','table_skin','card_back','bubble_pack']);
 const SLOT_SYMBOLS = [
-  // v2.8.14: slightly lower slot hit rate. 7 and J are 1.5% each before any explicit equipped-item perk.
-  // 🍀/👑 remain removed. Regular symbols share the remaining 97%.
-  {s:'🍒',w:23},{s:'🍋',w:20},{s:'🍊',w:18},{s:'🔔',w:15},{s:'⭐',w:12},{s:'💎',w:9},{s:'7️⃣',w:1.5},{s:'J',w:1.5}
+  // v2.8.15: lower only the base 7 symbol chance to 1.0%; keep J at 1.5%.
+  // The removed 0.5% is returned to 🍒 so the total remains exactly 100%.
+  {s:'🍒',w:23.5},{s:'🍋',w:20},{s:'🍊',w:18},{s:'🔔',w:15},{s:'⭐',w:12},{s:'💎',w:9},{s:'7️⃣',w:1},{s:'J',w:1.5}
 ];
 function slot777BetBoostPct(bet){
   const n=Number(bet)||0;
@@ -474,7 +474,7 @@ function slot777BetBoostPct(bet){
 function slotSymbolsForBet(bet){
   // Boost is defined against a completed 777 line, not a single reel cell.
   // Cube-root keeps one specific 3-cell 777 line at roughly +2/+4/+6/+8/+10%.
-  const boost=slot777BetBoostPct(bet),baseSeven=1.5;
+  const boost=slot777BetBoostPct(bet),baseSeven=1;
   if(!boost)return SLOT_SYMBOLS;
   const seven=baseSeven*Math.cbrt(1+boost/100);
   const delta=seven-baseSeven;
