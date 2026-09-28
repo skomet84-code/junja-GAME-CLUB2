@@ -568,11 +568,26 @@ function stopRoomPolling(){if(roomPollTimer){clearInterval(roomPollTimer);roomPo
 function startRoomPolling(){stopRoomPolling();if(!currentRoomId)return;roomPollTimer=setInterval(()=>{if(!document.hidden&&currentRoomId&&currentView===currentGame)loadCurrentRoom(true).catch(()=>{})},60000)}
 async function resumeMyRoom(){
   try{
-    const d=await api('/api/my-room');if(!d.room)return;
-    currentRoomId=d.room.id;currentGame=d.room.game;currentView=d.room.game;
-    $$('.view').forEach(v=>v.classList.remove('active'));$('#view-'+currentView)?.classList.add('active');
-    renderRoom(d.room);startRoomPolling();if(LIVE_GAME_VIEWS.has(d.room.game))startLiveFloor(d.room.game);toast(`진행 중인 ${d.room.name}으로 복귀했어.`);
-  }catch{}
+    const d=await api('/api/my-room');
+    if(!d.room){if(currentRoomId)finishRoomExit();return;}
+    const room=d.room;
+    // Treasure Raid owns its room state and settlement UI separately.
+    if(room.game==='treasure'){
+      currentRoomId=null;currentGame=null;lastRoomVersion=-1;stopRoomPolling();
+      await go('treasure');
+    }else{
+      if(currentView==='treasure')window.JunjaTreasureRaid?.leaveView?.();
+      currentRoomId=room.id;currentGame=room.game;currentView=room.game;
+      $$('.view').forEach(v=>v.classList.remove('active'));$('#view-'+currentView)?.classList.add('active');
+      // Rejoining must reveal the multi area even when the solo tab was selected.
+      $$(`[data-mode-game="${room.game}"]`).forEach(b=>b.classList.toggle('active',b.dataset.mode==='multi'));
+      $(`#${room.game}MultiArea`)?.classList.remove('hidden');
+      $(`#${room.game}SoloArea`)?.classList.add('hidden');
+      renderRoom(room);startRoomPolling();if(LIVE_GAME_VIEWS.has(room.game))startLiveFloor(room.game);
+    }
+    window.scrollTo({top:0,behavior:'smooth'});
+    toast(`참가 기록이 남아 있는 ${room.name}으로 이동했어. 나가기를 누르면 정산 후 다른 방에 입장할 수 있어.`);
+  }catch(e){toast('참가 중인 방을 확인하지 못했어. '+e.message)}
 }
 function roomParticipantChips(room){return `<div class="room-participant-strip">${room.players.map(p=>`<div class="participant-chip ${p.ready?'ready':''} ${p.userId===me.id?'me':''}">${avatarImg(p.avatar,p.nickname,'mini-face',p.cosmetics)}<b>${html(p.nickname)}</b>${room.status==='WAITING'?`<i>${p.ready?'READY':'WAIT'}</i>`:''}${room.hostId===p.userId?'<em>HOST</em>':''}${reactionBubble(room,p.userId)}</div>`).join('')}</div>`}
 function roomTurnBanner(room){

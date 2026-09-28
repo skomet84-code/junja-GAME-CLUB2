@@ -2392,7 +2392,7 @@ const server=http.createServer(async(req,res)=>{
       return json(res,200,{order:order.map((h,i)=>({id:h.id,name:h.name,color:h.color,coat:h.coat,finish:i+1})),result,user:userPublic(u.id)});
     }
     if(url.pathname==='/api/my-room'&&req.method==='GET'){
-      const u=requireAuth(req,res);if(!u)return;const r=findUserRoom(u.id);if(r)return json(res,200,{room:personalizedRoom(r,u.id)});const br=baccaratFindUser(u.id);return json(res,200,{room:br?baccaratPublic(br,u.id):null});
+      const u=requireAuth(req,res);if(!u)return;const r=findUserRoom(u.id);if(r)return json(res,200,{room:personalizedRoom(r,u.id)});const br=baccaratFindUser(u.id);if(br)return json(res,200,{room:baccaratPublic(br,u.id)});const tr=treasureRaid.findUserRoom(u.id);return json(res,200,{room:tr?{id:tr.id,game:'treasure',name:tr.name}:null});
     }
     if(url.pathname==='/api/rooms'&&req.method==='GET'){
       const u=requireAuth(req,res);if(!u)return;const game=url.searchParams.get('game');const list=[...rooms.values()].filter(r=>!game||r.game===game).map(roomSummary).sort((a,b)=>a.status.localeCompare(b.status));return json(res,200,{rooms:list});
