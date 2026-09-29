@@ -4,6 +4,8 @@ const {spawn}=require('node:child_process');
 const {DatabaseSync}=require('node:sqlite');
 const fs=require('node:fs'),os=require('node:os'),path=require('node:path');
 const dir=fs.mkdtempSync(path.join(os.tmpdir(),'junja-seven-large-'));
+const appSource=fs.readFileSync(path.join(__dirname,'..','public','app.js'),'utf8');
+assert.ok(appSource.includes("$$('[data-seven-action]',root).forEach"),'Seven Poker action buttons must bind as a NodeList collection');
 const port=18329,base='http://127.0.0.1:'+port;
 let child,cookie='';
 async function start(){
