@@ -231,6 +231,110 @@ source = replaceOne(source, "function sevenStart(user){\n  const buyIn=Math.floo
 source = replaceOne(source, "function sevenCashout(userId){const s=soloSeven.get(userId);if(!s)return 0;if(!s.complete)throw new Error('진행 중인 핸드가 끝난 뒤 정산할 수 있어.');const amt=Math.max(0,Math.floor(s.stack.user));if(amt)walletChange(userId,amt,'seven_cashout','세븐포커 테이블 칩 정산');escrowDelete(sevenKey(userId),userId);soloSeven.delete(userId);return amt;}", "function sevenCashout(userId){const s=soloSeven.get(userId);if(!s)return 0;if(!s.complete)throw new Error('진행 중인 핸드가 끝난 뒤 정산할 수 있어.');const exactAmt=s.exactStack?sevenExactStack(s,'user'):walletInt(Math.max(0,Math.floor(s.stack.user)));if(exactAmt>0n)walletChange(userId,exactAmt,'seven_cashout','세븐포커 테이블 칩 정산');escrowDelete(sevenKey(userId),userId);soloSeven.delete(userId);return walletOut(exactAmt);}", "seven exact large-wallet cashout");
 
 
+// Seven Poker exact street accounting + server-authoritative ALL-IN.
+// Never trust a browser Number for high-value table-chip settlement.
+source = replaceOne(
+  source,
+  "    s.exactHandContrib[side]=(walletInt(s.exactHandContrib[side]||0)+exactPay).toString();\n    s.exactPot=(walletInt(s.exactPot||0)+exactPay).toString();",
+  "    s.exactHandContrib[side]=(walletInt(s.exactHandContrib[side]||0)+exactPay).toString();\n    s.exactRoundBet=s.exactRoundBet||{user:'0',bot:'0'};\n    s.exactRoundBet[side]=(walletInt(s.exactRoundBet[side]||0)+exactPay).toString();\n    s.exactPot=(walletInt(s.exactPot||0)+exactPay).toString();",
+  'seven exact street contribution'
+);
+source = replaceOne(
+  source,
+  "s.cards={user:[],bot:[]};s.faceUp={user:[],bot:[]};s.roundBet={user:0,bot:0};s.handContrib={user:0,bot:0};s.exactHandContrib={user:'0',bot:'0'};s.currentBet=0;",
+  "s.cards={user:[],bot:[]};s.faceUp={user:[],bot:[]};s.roundBet={user:0,bot:0};s.handContrib={user:0,bot:0};s.exactHandContrib={user:'0',bot:'0'};s.exactRoundBet={user:'0',bot:'0'};s.exactCurrentBet='0';s.currentBet=0;",
+  'seven exact street init'
+);
+source = replaceOne(
+  source,
+  "  s.roundBet={user:0,bot:0};s.currentBet=0;\n  for(let i=0;i<2;i++){sevenDealCard(s,'user',false);sevenDealCard(s,'bot',false);}sevenDealCard(s,'user',true);sevenDealCard(s,'bot',true);",
+  "  s.roundBet={user:0,bot:0};s.exactRoundBet={user:'0',bot:'0'};s.currentBet=0;s.exactCurrentBet='0';\n  for(let i=0;i<2;i++){sevenDealCard(s,'user',false);sevenDealCard(s,'bot',false);}sevenDealCard(s,'user',true);sevenDealCard(s,'bot',true);",
+  'seven exact ante reset'
+);
+
+const oldSevenAdvance = `function sevenAdvanceStreet(s){
+  if(sevenAllIn(s,'user')||sevenAllIn(s,'bot')){sevenShowdown(s);return;}
+  if(s.street>=7){sevenShowdown(s);return;}
+  s.street+=1;const faceUp=s.street<7;sevenDealCard(s,'user',faceUp);sevenDealCard(s,'bot',faceUp);
+  s.roundBet={user:0,bot:0};s.currentBet=0;s.acted={user:false,bot:false};s.turn=sevenOpeningSide(s);s.lastAction=\`${s.street===7?'RIVER':' '+s.street+'TH STREET'} 카드 오픈\`;
+}`;
+const newSevenAdvance = `function sevenAdvanceStreet(s){
+  if(sevenAllIn(s,'user')||sevenAllIn(s,'bot')){sevenShowdown(s);return;}
+  if(s.street>=7){sevenShowdown(s);return;}
+  s.street+=1;const faceUp=s.street<7;sevenDealCard(s,'user',faceUp);sevenDealCard(s,'bot',faceUp);
+  s.roundBet={user:0,bot:0};if(s.exactStack){s.exactRoundBet={user:'0',bot:'0'};s.exactCurrentBet='0';}s.currentBet=0;s.acted={user:false,bot:false};s.turn=sevenOpeningSide(s);s.lastAction=\`${s.street===7?'RIVER':' '+s.street+'TH STREET'} 카드 오픈\`;
+}`;
+source = replaceOne(source, oldSevenAdvance, newSevenAdvance, 'seven exact street reset');
+
+const oldSevenAction = `function sevenAction(s,side,action,raiseTo){
+  if(!s||s.complete||s.phase!=='playing')throw new Error('진행 중인 세븐포커 핸드가 없어.');
+  if(s.turn!==side)throw new Error('지금은 네 차례가 아니야.');
+  const other=sevenOther(side),call=Math.max(0,s.currentBet-s.roundBet[side]);
+  if(action==='fold'){s.folded=s.folded||{};s.folded[side]=true;sevenFinishFold(s,other);return;}
+  if(action==='check'){if(call>0)throw new Error('상대 베팅이 있어 체크할 수 없어.');s.acted[side]=true;s.lastAction=\`${side==='user'?'나':'J-BOT'} 체크\`;sevenAfterAction(s,side);return;}
+  if(action==='call'){
+    const paid=sevenPay(s,side,call);s.acted[side]=true;s.lastAction=\`${side==='user'?'나':'J-BOT'} ${paid?\`콜 ${formatMoney(paid)}G\`:'체크'}\`;sevenAfterAction(s,side);return;
+  }
+  if(action==='raise'){
+    let target=Math.floor(Number(raiseTo));if(!Number.isFinite(target))throw new Error('레이즈 금액을 확인해줘.');
+    const maxTarget=sevenEffectiveMaxTo(s,side),minTarget=s.currentBet===0?s.minRaise:s.currentBet+s.minRaise;
+    if(maxTarget<=s.currentBet)throw new Error('상대가 더 이상 받을 수 있는 칩이 없어. CALL 또는 CHECK를 선택해줘.');
+    target=Math.min(maxTarget,target);
+    if(target<=s.currentBet&&maxTarget>s.currentBet)throw new Error(\`최소 ${formatMoney(Math.min(minTarget,maxTarget))}G 이상으로 레이즈해줘.\`);
+    if(target<minTarget&&target!==maxTarget)throw new Error(\`최소 ${formatMoney(Math.min(minTarget,maxTarget))}G 이상으로 레이즈해줘.\`);
+    const pay=target-s.roundBet[side];sevenPay(s,side,pay);const old=s.currentBet;s.currentBet=Math.max(s.currentBet,s.roundBet[side]);if(s.currentBet>old)s.minRaise=Math.max(s.minRaise,s.currentBet-old);s.acted={user:false,bot:false};s.acted[side]=true;s.lastAction=\`${side==='user'?'나':'J-BOT'} 레이즈 ${formatMoney(s.currentBet)}G\`;sevenAfterAction(s,side);return;
+  }
+  throw new Error('지원하지 않는 액션이야.');
+}`;
+
+const newSevenAction = `function sevenExactRoundBet(s,side){return walletInt(s.exactRoundBet?.[side]??Math.floor(Number(s.roundBet?.[side]||0)));}
+function sevenExactCurrentBet(s){return walletInt(s.exactCurrentBet??Math.floor(Number(s.currentBet||0)));}
+function sevenExactCapTo(s,side){
+  const other=sevenOther(side),mine=sevenExactRoundBet(s,side)+sevenExactStack(s,side),cover=sevenExactRoundBet(s,other)+sevenExactStack(s,other);
+  return mine<cover?mine:cover;
+}
+function sevenAction(s,side,action,raiseTo){
+  if(!s||s.complete||s.phase!=='playing')throw new Error('진행 중인 세븐포커 핸드가 없어.');
+  if(s.turn!==side)throw new Error('지금은 네 차례가 아니야.');
+  const other=sevenOther(side),exact=!!s.exactStack,currentExact=exact?sevenExactCurrentBet(s):0n,roundExact=exact?sevenExactRoundBet(s,side):0n;
+  const callExact=exact&&currentExact>roundExact?currentExact-roundExact:0n,call=exact?Number(callExact):Math.max(0,s.currentBet-s.roundBet[side]);
+  if(action==='fold'){s.folded=s.folded||{};s.folded[side]=true;sevenFinishFold(s,other);return;}
+  if(action==='check'){if(exact?callExact>0n:call>0)throw new Error('상대 베팅이 있어 체크할 수 없어.');s.acted[side]=true;s.lastAction=\`${side==='user'?'나':'J-BOT'} 체크\`;sevenAfterAction(s,side);return;}
+  if(action==='call'){
+    const paid=sevenPay(s,side,exact?callExact:call);s.acted[side]=true;s.lastAction=\`${side==='user'?'나':'J-BOT'} ${paid?\`콜 ${formatMoney(paid)}G\`:'체크'}\`;sevenAfterAction(s,side);return;
+  }
+  if(action==='allin'){
+    if(!exact){const target=sevenEffectiveMaxTo(s,side);if(target<=s.currentBet)return sevenAction(s,side,call>0?'call':'check');return sevenAction(s,side,'raise',target);}
+    const target=sevenExactCapTo(s,side);
+    if(target<=roundExact)throw new Error('올인할 수 있는 칩이 없어.');
+    const pay=target-roundExact,old=currentExact;sevenPay(s,side,pay);
+    if(target>old){s.exactCurrentBet=target.toString();s.currentBet=Number(target);const inc=Number(target-old);if(Number.isFinite(inc))s.minRaise=Math.max(s.minRaise,inc);}
+    s.acted={user:false,bot:false};s.acted[side]=true;s.lastAction=\`${side==='user'?'나':'J-BOT'} 올인 ${formatMoney(walletOut(target))}G\`;sevenAfterAction(s,side);return;
+  }
+  if(action==='raise'){
+    if(exact){
+      let target;try{target=walletInt(raiseTo);}catch{throw new Error('레이즈 금액을 확인해줘.');}
+      const maxTarget=sevenExactCapTo(s,side),minRaise=walletInt(Math.max(1000,Math.floor(Number(s.minRaise||1000)))),minTarget=currentExact===0n?minRaise:currentExact+minRaise;
+      if(maxTarget<=currentExact)throw new Error('상대가 더 이상 받을 수 있는 칩이 없어. CALL 또는 CHECK를 선택해줘.');
+      if(target>maxTarget)target=maxTarget;
+      if(target<=currentExact)throw new Error(\`최소 ${formatMoney(walletOut(minTarget<maxTarget?minTarget:maxTarget))}G 이상으로 레이즈해줘.\`);
+      if(target<minTarget&&target!==maxTarget)throw new Error(\`최소 ${formatMoney(walletOut(minTarget<maxTarget?minTarget:maxTarget))}G 이상으로 레이즈해줘.\`);
+      const pay=target-roundExact;sevenPay(s,side,pay);const old=currentExact;s.exactCurrentBet=target.toString();s.currentBet=Number(target);
+      const inc=Number(target-old);if(Number.isFinite(inc)&&inc>0)s.minRaise=Math.max(s.minRaise,inc);
+      s.acted={user:false,bot:false};s.acted[side]=true;s.lastAction=\`${side==='user'?'나':'J-BOT'} 레이즈 ${formatMoney(walletOut(target))}G\`;sevenAfterAction(s,side);return;
+    }
+    let target=Math.floor(Number(raiseTo));if(!Number.isFinite(target))throw new Error('레이즈 금액을 확인해줘.');
+    const maxTarget=sevenEffectiveMaxTo(s,side),minTarget=s.currentBet===0?s.minRaise:s.currentBet+s.minRaise;
+    if(maxTarget<=s.currentBet)throw new Error('상대가 더 이상 받을 수 있는 칩이 없어. CALL 또는 CHECK를 선택해줘.');
+    target=Math.min(maxTarget,target);
+    if(target<=s.currentBet&&maxTarget>s.currentBet)throw new Error(\`최소 ${formatMoney(Math.min(minTarget,maxTarget))}G 이상으로 레이즈해줘.\`);
+    if(target<minTarget&&target!==maxTarget)throw new Error(\`최소 ${formatMoney(Math.min(minTarget,maxTarget))}G 이상으로 레이즈해줘.\`);
+    const pay=target-s.roundBet[side];sevenPay(s,side,pay);const old=s.currentBet;s.currentBet=Math.max(s.currentBet,s.roundBet[side]);if(s.currentBet>old)s.minRaise=Math.max(s.minRaise,s.currentBet-old);s.acted={user:false,bot:false};s.acted[side]=true;s.lastAction=\`${side==='user'?'나':'J-BOT'} 레이즈 ${formatMoney(s.currentBet)}G\`;sevenAfterAction(s,side);return;
+  }
+  throw new Error('지원하지 않는 액션이야.');
+}`;
+source = replaceOne(source, oldSevenAction, newSevenAction, 'seven exact all-in action');
+
 // Remove the fixed game wager ceiling globally. Individual endpoints already
 // reject bets larger than the user's wallet; walletWager() remains wallet-capped.
 const oldGameWager = "function gameWager(v,min=1000,max=5000000,step=1000){\n  const n=Math.floor(Number(v));\n  if(!Number.isFinite(n)||n<min||n>max||n%step!==0) throw new Error(`금액은 ${formatMoney(min)}G~${formatMoney(max)}G 범위에서 ${formatMoney(step)}G 단위로 입력하세요.`);\n  return n;\n}";

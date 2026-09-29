@@ -59,5 +59,29 @@ async function api(url,body){
   const holdem=await api('/api/solo/holdem/start',{});
   assert.equal(BigInt(String(holdem.user.balance)),holdBefore-10000000000000n,'holdem 10T buy-in remains unchanged');
   await api('/api/solo/holdem/leave',{});
+
+  // Regression: a >MAX_SAFE_INTEGER ALL-IN must never round through browser/server Number math.
+  const allInLogin={username:'seven_allin_fixture',nickname:'세븐올인검증',password:'local-test-only'};
+  const allInUser=(await api('/api/register',allInLogin)).user;
+  await stop();
+  const allInOriginal=118925832869123457n;
+  const db2=new DatabaseSync(path.join(dir,'club.db'));
+  db2.prepare('UPDATE users SET balance=? WHERE id=?').run(allInOriginal,allInUser.id);db2.close();
+  cookie='';await start();await api('/api/login',allInLogin);
+  let allIn=await api('/api/solo/seven/start',{});
+  assert.equal(String(allIn.user.balance),'0','all-in fixture enters with exact full-wallet debit');
+  assert.equal(allIn.game.turn,'user','all-in fixture must return control to user');
+  allIn=await api('/api/solo/seven/action',{action:'allin'});
+  assert.equal(allIn.game.complete,true,'server-authoritative all-in must resolve the hand');
+  assert.equal(BigInt(allIn.game.handContrib.user),allInOriginal,'all-in must commit the exact original stack without Number rounding');
+  const allInPot=BigInt(allIn.game.pot);
+  assert.ok(allInPot>BigInt(Number.MAX_SAFE_INTEGER),'all-in pot must remain above Number.MAX_SAFE_INTEGER');
+  const allInWinner=allIn.game.result?.winner;
+  const allInCash=await api('/api/solo/seven/leave',{});
+  const expectedCash=allInWinner==='user'?allInPot:allInWinner==='tie'?allInPot/2n:0n;
+  assert.equal(BigInt(allInCash.cashout),expectedCash,'all-in winner settlement must equal the exact pot share');
+  const afterAllIn=(await api('/api/me')).user;
+  assert.equal(BigInt(String(afterAllIn.balance)),expectedCash,'wallet after all-in cashout must exactly match table settlement');
+
   console.log('SEVEN_LARGE_WALLET_EXACT_ENTRY_CASHOUT_AND_HOLDEM_COMPAT_OK');
 }finally{await stop();fs.rmSync(dir,{recursive:true,force:true});}})().catch(e=>{console.error(e);process.exitCode=1;});
