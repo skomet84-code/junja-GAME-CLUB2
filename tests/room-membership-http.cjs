@@ -9,7 +9,7 @@ const net=require('node:net');
   const socket=net.createServer();await new Promise(r=>socket.listen(0,'127.0.0.1',r));
   const port=socket.address().port;await new Promise(r=>socket.close(r));
   const data=fs.mkdtempSync(path.join(os.tmpdir(),'holdem-http-'));
-  const child=spawn(process.execPath,['admin-unlimited-start.js'],{env:{...process.env,PORT:String(port),HOST:'127.0.0.1',DATA_DIR:data,DATABASE_URL:'',RESTORE_DATABASE_URL:''},stdio:['ignore','pipe','pipe']});
+  const child=spawn(process.execPath,['admin-unlimited-start.js'],{env:{...process.env,ADMIN_USERNAME:'',ADMIN_PASSWORD:'',PORT:String(port),HOST:'127.0.0.1',DATA_DIR:data,DATABASE_URL:'',RESTORE_DATABASE_URL:''},stdio:['ignore','pipe','pipe']});
   let logs='';child.stdout.on('data',b=>logs+=b);child.stderr.on('data',b=>logs+=b);
   const base=`http://127.0.0.1:${port}`;
   try{
