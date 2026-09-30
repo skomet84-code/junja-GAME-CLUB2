@@ -717,7 +717,7 @@ function socialRankPerks(level){
   level=Math.max(0,Math.min(SOCIAL_RANKS.length-1,Number(level)||0));
   const extraDraws=level>=12?6:level>=11?4:level>=9?3:level>=6?2:level>=3?1:0;
   const dailyBonusPct=[0,5,10,15,20,30,40,50,65,80,100,150,300][level]||0;
-  const dailySalary=[0,1000000,3000000,10000000,30000000,70000000,150000000,300000000,600000000,1200000000,2500000000,5000000000,10000000000][level]||0;
+  const dailySalary=[1000000,3000000,10000000,30000000,50000000,100000000,200000000,300000000,600000000,1200000000,2500000000,5000000000,10000000000][level]||0;
   const transferFeePct=[2,2,1.8,1.6,1.4,1.2,1,0.8,0.6,0.4,0.2,0,0][level]||0;
   const freeSlots=[0,0,0,5,8,12,18,25,35,50,70,100,200][level]||0;
   const freeSlotBet=[0,0,0,100000,200000,300000,500000,1000000,2000000,3000000,5000000,10000000,10000000][level]||0;
@@ -773,14 +773,14 @@ function promoteSocialRank(userId){
 }
 
 function userPublic(userId){
-  const u=db.prepare(`SELECT u.id,u.username,u.nickname,u.balance,u.avatar,u.created_at,u.last_daily,u.is_admin,u.is_disabled,
+  const u=db.prepare(`SELECT u.id,u.username,u.nickname,u.balance,u.avatar,u.created_at,u.last_daily,u.last_rank_salary,u.is_admin,u.is_disabled,
     s.slot_spins,s.slot_wins,s.slot_profit,s.poker_hands,s.poker_wins,s.yut_games,s.yut_wins,
     s.seotda_games,s.seotda_wins,s.gostop_games,s.gostop_wins,s.solo_poker_wins,s.solo_yut_wins,
     s.horse_races,s.horse_wins,s.horse_profit,s.bigwheel_plays,s.bigwheel_wins,s.bigwheel_profit,s.sicbo_plays,s.sicbo_wins,s.sicbo_profit,
     s.seven_games,s.seven_wins,s.baccarat_games,s.baccarat_wins,s.baccarat_profit,s.roulette_plays,s.roulette_wins,s.roulette_profit
     FROM users u LEFT JOIN stats s ON s.user_id=u.id WHERE u.id=?`).get(userId);
   if(!u) return null;
-  return {...u, avatarEmoji:AVATARS[u.avatar%AVATARS.length], cosmetics:cosmeticsPublic(userId,true), rank:socialRankPublic(userId), dailyAvailable:u.last_daily!==kstDate()};
+  return {...u, avatarEmoji:AVATARS[u.avatar%AVATARS.length], cosmetics:cosmeticsPublic(userId,true), rank:socialRankPublic(userId), dailyAvailable:u.last_daily!==kstDate(), rankSalaryAvailable:u.last_rank_salary!==kstDate()};
 }
 
 function parseCookies(req){
@@ -2147,7 +2147,23 @@ const server=http.createServer(async(req,res)=>{
     if(url.pathname==='/api/daily-draw/pick'&&req.method==='POST'){const u=requireAuth(req,res);if(!u)return;if(!rateLimit('daily_draw:'+u.id,8,60000))return json(res,429,{error:'뽑기 요청이 너무 빠릅니다.'});const b=await readBody(req);try{const result=dailyDrawPick(u.id,b.number);pushRefresh();return json(res,200,{ok:true,...result,user:userPublic(u.id)});}catch(e){return json(res,409,{error:e.message,state:dailyDrawState(u.id)});}}
     if(url.pathname==='/api/daily'&&req.method==='POST'){
       const u=requireAuth(req,res);if(!u)return;const d=kstDate();if(u.last_daily===d)return json(res,409,{error:'오늘 출석 보너스는 이미 받았습니다.'});
-      const cosmeticPct=Number(cosmeticsPublic(u.id,true)?.perks?.dailyBonusPct||0),rankPerks=socialRankPerksForUser(u.id),rankPct=Number(rankPerks.dailyBonusPct||0),dailyPct=cosmeticPct+rankPct;db.exec('BEGIN IMMEDIATE');try{const fresh=db.prepare('SELECT balance,last_daily,last_rank_salary FROM users WHERE id=?').get(u.id);if(!fresh)throw new Error('사용자를 찾을 수 없습니다.');if(fresh.last_daily===d){db.exec('ROLLBACK');return json(res,409,{error:'오늘 출석 보너스는 이미 받았습니다.'});}const dailyAmount=Math.floor(50000*(1+dailyPct/100)),salary=(fresh.last_rank_salary===d?0:Number(rankPerks.dailySalary||0)),interestPct=Number(rankPerks.dailyInterestPct||0),interest=Math.min(100000000,Math.max(0,Math.floor(Number(fresh.balance||0)*interestPct/100))),total=dailyAmount+salary+interest,bal=Number(fresh.balance||0)+total;if(!Number.isSafeInteger(bal))throw new Error('게임머니 한도를 초과합니다.');db.prepare('UPDATE users SET balance=?,last_daily=?,last_rank_salary=? WHERE id=?').run(bal,d,d,u.id);db.prepare('INSERT INTO ledger(user_id,amount,balance_after,type,memo,created_at) VALUES(?,?,?,?,?,?)').run(u.id,total,bal,'daily',`오늘의 출석 ${formatMoney(dailyAmount)}G${salary?` · 신분 월급 ${formatMoney(salary)}G`:''}${interest?` · 신분 이자 ${formatMoney(interest)}G`:''}`,now());db.exec('COMMIT');pushRefresh();return json(res,200,{balance:bal,amount:total,attendanceAmount:dailyAmount,rankSalary:salary,rankInterest:interest,rankInterestPct:interestPct,dailyBonusPct:dailyPct,rankBonusPct:rankPct});}catch(e){try{db.exec('ROLLBACK')}catch{}throw e;}
+      const cosmeticPct=Number(cosmeticsPublic(u.id,true)?.perks?.dailyBonusPct||0),rankPerks=socialRankPerksForUser(u.id),rankPct=Number(rankPerks.dailyBonusPct||0),dailyPct=cosmeticPct+rankPct;db.exec('BEGIN IMMEDIATE');try{const fresh=db.prepare('SELECT balance,last_daily FROM users WHERE id=?').get(u.id);if(!fresh)throw new Error('사용자를 찾을 수 없습니다.');if(fresh.last_daily===d){db.exec('ROLLBACK');return json(res,409,{error:'오늘 출석 보너스는 이미 받았습니다.'});}const dailyAmount=Math.floor(50000*(1+dailyPct/100)),interestPct=Number(rankPerks.dailyInterestPct||0),interest=Math.min(100000000,Math.max(0,Math.floor(Number(fresh.balance||0)*interestPct/100))),total=dailyAmount+interest,bal=Number(fresh.balance||0)+total;if(!Number.isSafeInteger(bal))throw new Error('게임머니 한도를 초과합니다.');db.prepare('UPDATE users SET balance=?,last_daily=? WHERE id=?').run(bal,d,u.id);db.prepare('INSERT INTO ledger(user_id,amount,balance_after,type,memo,created_at) VALUES(?,?,?,?,?,?)').run(u.id,total,bal,'daily',`오늘의 출석 ${formatMoney(dailyAmount)}G${interest?` · 신분 이자 ${formatMoney(interest)}G`:''}`,now());db.exec('COMMIT');pushRefresh();return json(res,200,{balance:bal,amount:total,attendanceAmount:dailyAmount,rankInterest:interest,rankInterestPct:interestPct,dailyBonusPct:dailyPct,rankBonusPct:rankPct});}catch(e){try{db.exec('ROLLBACK')}catch{}throw e;}
+    }
+    if(url.pathname==='/api/rank/salary'&&req.method==='POST'){
+      const u=requireAuth(req,res);if(!u)return;if(!rateLimit('rank_salary:'+u.id,4,60000))return json(res,429,{error:'일급 요청이 너무 빠릅니다.'});
+      const d=kstDate(),rank=socialRankPublic(u.id),salary=BigInt(Math.max(0,Math.trunc(Number(rank?.perks?.dailySalary||0))));
+      if(salary<1n)return json(res,409,{error:'현재 신분에는 지급되는 일급이 없습니다.'});
+      db.exec('BEGIN IMMEDIATE');
+      try{
+        const fresh=db.prepare('SELECT CAST(balance AS TEXT) AS balance,last_rank_salary FROM users WHERE id=?').get(u.id);
+        if(!fresh)throw new Error('사용자를 찾을 수 없습니다.');
+        if(fresh.last_rank_salary===d){db.exec('ROLLBACK');return json(res,409,{error:'오늘 신분 일급은 이미 받았습니다.'});}
+        const balance=BigInt(String(fresh.balance||0))+salary,t=now();
+        db.prepare('UPDATE users SET balance=?,last_rank_salary=? WHERE id=?').run(balance,d,u.id);
+        db.prepare('INSERT INTO ledger(user_id,amount,balance_after,type,memo,created_at) VALUES(?,?,?,?,?,?)').run(u.id,Number(salary),balance,'rank_daily_salary',`신분 일급 · ${rank.name} ${formatMoney(Number(salary))}G`,t);
+        db.exec('COMMIT');pushRefresh();
+        return json(res,200,{ok:true,amount:Number(salary),balance:balance<=BigInt(Number.MAX_SAFE_INTEGER)?Number(balance):String(balance),rank:rank.name,user:userPublic(u.id)});
+      }catch(e){try{db.exec('ROLLBACK')}catch{}throw e;}
     }
     if(url.pathname==='/api/ledger'&&req.method==='GET'){
       const u=requireAuth(req,res);if(!u)return;const rows=db.prepare('SELECT amount,balance_after,type,memo,created_at FROM ledger WHERE user_id=? ORDER BY id DESC LIMIT 30').all(u.id);return json(res,200,{rows});
