@@ -14,7 +14,7 @@ const dir=fs.mkdtempSync(path.join(os.tmpdir(),'junja-royal-plus-'));
 const port=18341,base='http://127.0.0.1:'+port;
 let child,cookie='';
 async function start(){
-  child=spawn(process.execPath,['admin-unlimited-start.js'],{cwd:root,env:{...process.env,PORT:String(port),DATA_DIR:dir,DATABASE_URL:'',RESTORE_DATABASE_URL:''},stdio:['ignore','pipe','pipe']});
+  child=spawn(process.execPath,['admin-unlimited-start.js'],{cwd:root,env:{...process.env,ADMIN_USERNAME:'',ADMIN_PASSWORD:'',PORT:String(port),DATA_DIR:dir,DATABASE_URL:'',RESTORE_DATABASE_URL:''},stdio:['ignore','pipe','pipe']});
   let logs='';child.stdout.on('data',x=>logs+=x);child.stderr.on('data',x=>logs+=x);
   for(let i=0;i<150;i++){try{if((await fetch(base+'/healthz')).ok)return;}catch{}await new Promise(r=>setTimeout(r,35));}
   throw Error('startup failed '+logs);
