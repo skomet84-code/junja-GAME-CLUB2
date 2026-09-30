@@ -229,13 +229,22 @@ class DatabaseSync {
         console.error('[PERSIST] Snapshot restore failed; remote writes DISABLED for safety:',e);
       }
     }else{
-      restoreHealthy=!hasRemote();
-      console.log(hasRemote()?'[PERSIST] Render Postgres connected but no previous snapshot exists; remote writes DISABLED for safety.':'[PERSIST] DATABASE_URL not set; local SQLite mode.');
+      const freshRemoteInit=hasRemote() && String(process.env.ALLOW_EMPTY_REMOTE_INIT||'').trim()==='1';
+      restoreHealthy=!hasRemote() || freshRemoteInit;
+      if(freshRemoteInit){
+        console.log('[PERSIST] Render Postgres connected with no previous snapshot; fresh-start initialization enabled.');
+      }else{
+        console.log(hasRemote()?'[PERSIST] Render Postgres connected but no previous snapshot exists; remote writes DISABLED for safety.':'[PERSIST] DATABASE_URL not set; local SQLite mode.');
+      }
     }
     this._restored=true;
     this._enabled=true;
+    const freshRemoteInit=hasRemote() && String(process.env.ALLOW_EMPTY_REMOTE_INIT||'').trim()==='1' && !this._restore;
     if(this._restoredFromLegacy && restoreHealthy){
       console.log('[PERSIST] Legacy snapshot recovered; copying it once into private Render Postgres.');
+      this._queueSave();
+    }else if(freshRemoteInit && restoreHealthy){
+      console.log('[PERSIST] Fresh-start database detected; seeding private Render Postgres from the current local state.');
       this._queueSave();
     }
   }
