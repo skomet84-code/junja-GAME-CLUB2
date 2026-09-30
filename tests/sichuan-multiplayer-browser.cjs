@@ -2,7 +2,7 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),os=require('node:os'),path=require('node:path'),{spawn}=require('node:child_process');
 const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'playwright'),E=require('../public/sichuan/engine'),{DatabaseSync}=require('node:sqlite');
 (async()=>{
- const dir=fs.mkdtempSync(path.join(os.tmpdir(),'sichuan-browser-')),port=18317,base='http://127.0.0.1:'+port;let logs='';const child=spawn(process.execPath,['admin-unlimited-start.js'],{cwd:path.join(__dirname,'..'),env:{...process.env,PORT:String(port),DATA_DIR:dir,DATABASE_URL:'',RESTORE_DATABASE_URL:''},stdio:['ignore','pipe','pipe']});child.stdout.on('data',x=>logs+=x);child.stderr.on('data',x=>logs+=x);let browser;
+ const dir=fs.mkdtempSync(path.join(os.tmpdir(),'sichuan-browser-')),port=18317,base='http://127.0.0.1:'+port;let logs='';const child=spawn(process.execPath,['admin-unlimited-start.js'],{cwd:path.join(__dirname,'..'),env:{...process.env,ADMIN_USERNAME:'',ADMIN_PASSWORD:'',PORT:String(port),DATA_DIR:dir,DATABASE_URL:'',RESTORE_DATABASE_URL:''},stdio:['ignore','pipe','pipe']});child.stdout.on('data',x=>logs+=x);child.stderr.on('data',x=>logs+=x);let browser;
  try{
   for(let i=0;i<100;i++){if(child.exitCode!==null)throw Error(logs);try{if((await fetch(base+'/healthz')).ok)break;}catch{}await new Promise(r=>setTimeout(r,50));}
   const cookies=[];async function api(id,url,body){const res=await fetch(base+url,{method:body?'POST':'GET',headers:{'Content-Type':'application/json',Cookie:cookies[id]||''},body:body?JSON.stringify(body):undefined});if(res.headers.get('set-cookie'))cookies[id]=res.headers.get('set-cookie').split(';')[0];const d=await res.json();assert.ok(res.ok,JSON.stringify(d));return d;}
