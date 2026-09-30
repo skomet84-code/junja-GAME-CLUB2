@@ -7,7 +7,7 @@ const dir=fs.mkdtempSync(path.join(os.tmpdir(),'junja-account-'));
 const port=18267,base=`http://127.0.0.1:${port}`;
 let child,cookie='';
 async function start(){
-  child=spawn(process.execPath,['admin-unlimited-start.js'],{env:{...process.env,PORT:String(port),DATA_DIR:dir,DATABASE_URL:'',RESTORE_DATABASE_URL:''},stdio:'ignore'});
+  child=spawn(process.execPath,['admin-unlimited-start.js'],{env:{...process.env,ADMIN_USERNAME:'',ADMIN_PASSWORD:'',PORT:String(port),DATA_DIR:dir,DATABASE_URL:'',RESTORE_DATABASE_URL:''},stdio:'ignore'});
   for(let i=0;i<100;i++){try{if((await fetch(base+'/healthz')).ok)return;}catch{}await new Promise(r=>setTimeout(r,30));}
   throw Error('startup failed');
 }
