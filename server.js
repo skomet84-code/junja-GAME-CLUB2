@@ -1817,7 +1817,9 @@ function sevenBeginHand(s){
 }
 function sevenRoundDone(s){
   const active=['user','bot'].filter(x=>!s.folded?.[x]);if(active.length<2)return true;
-  const can=active.filter(x=>!sevenAllIn(s,x));if(can.length<=1)return true;
+  const can=active.filter(x=>!sevenAllIn(s,x));
+  // 한쪽이 올인해도 상대의 CALL/FOLD 결정이 끝나기 전에는 쇼다운으로 넘기지 않는다.
+  if(can.length===0)return true;
   return can.every(x=>s.acted[x]&&s.roundBet[x]===s.currentBet);
 }
 function sevenFinishFold(s,winner){
