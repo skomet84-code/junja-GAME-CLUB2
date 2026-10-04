@@ -241,10 +241,11 @@ function connectEvents(){
   };
   events=JunjaNetwork.createEventStream(window,e=>{
     let msg={};try{msg=JSON.parse(e.data||'{}')}catch{}
+    if(msg.goldenbell){if(currentView==='goldenbell')window.JunjaGoldenbell?.refresh?.();return;}
     // Filter before coalescing so an unrelated room cannot swallow our update.
     if(msg.roomId&&currentRoomId&&String(msg.roomId)!==String(currentRoomId))return;
     pending=true;schedule();
-  },state=>setNetworkState(state));
+  },state=>{setNetworkState(state);if(state==='online'&&currentView==='goldenbell')window.JunjaGoldenbell?.refresh?.();});
 }
 function updateHeader(){if(!me)return;$('#walletBalance').textContent=money(me.balance);updateSlotBetLimitUi();$('#avatarEmoji').innerHTML=avatarImg(me.avatar,me.nickname,'header-face',me.cosmetics);$('#nickName').textContent=me.nickname;const title=equippedTitle(me.cosmetics);$('#profileBtn')?.setAttribute('data-title',title);$('#dailyBtn').disabled=!me.dailyAvailable;const dailyPct=Number(me.cosmetics?.perks?.dailyBonusPct||0)+Number(me.rank?.perks?.dailyBonusPct||0),dailyAmt=Math.floor(50000*(1+dailyPct/100));$('#dailyBtn').textContent=me.dailyAvailable?`🎁 출석 +${money(dailyAmt)}${dailyPct?` · +${dailyPct}%`:''}`:'✓ 오늘 출석 완료';const salaryBtn=$('#rankSalaryBtn'),salaryAmt=Number(me.rank?.perks?.dailySalary||0);if(salaryBtn){salaryBtn.disabled=!me.rankSalaryAvailable;salaryBtn.textContent=me.rankSalaryAvailable?`💰 ${me.rank?.name||'신분'} 일급 +${money(salaryAmt)}`:'✓ 오늘 일급 수령 완료';}$('#adminBtn')?.classList.toggle('hidden',!me.is_admin);applyCosmetics();updateRankFreeUi();window.JunjaRank?.decorate?.(me)}
 function renderLobbyPresence(rows=[]){
@@ -258,9 +259,9 @@ async function go(view){
   if(currentRoomId&&view!==currentGame){toast('먼저 멀티 게임방에서 나가기를 눌러줘.');return}
   if(currentView==='sichuan'&&view!=='sichuan')document.getElementById('sichuanFrame')?.contentWindow?.postMessage({type:'junja-sichuan-pause'},location.origin);
   if(view==='sichuan'){const frame=document.getElementById('sichuanFrame');const src='/sichuan/index.html?v=5&player='+encodeURIComponent(String(me?.id||'guest'));if(frame&&frame.getAttribute('src')!==src)frame.setAttribute('src',src);}
-  const prevView=currentView;if(prevView==='treasure'&&view!=='treasure')window.JunjaTreasureRaid?.leaveView?.();currentView=view;document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));$('#view-'+view)?.classList.add('active');window.scrollTo({top:0,behavior:'smooth'});
+  const prevView=currentView;if(prevView==='goldenbell'&&view!=='goldenbell')window.JunjaGoldenbell?.leaveView?.();if(prevView==='treasure'&&view!=='treasure')window.JunjaTreasureRaid?.leaveView?.();currentView=view;document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));$('#view-'+view)?.classList.add('active');window.scrollTo({top:0,behavior:'smooth'});
   if(LIVE_GAME_VIEWS.has(view))startLiveFloor(view);else if(LIVE_GAME_VIEWS.has(prevView)||liveGame)stopLiveFloor();
-  if(prevView==='horse'&&view!=='horse')stopHorseMeet();if(view==='lobby')await loadLobby();if(view==='shop')await loadShop();if(view==='slot'){initSlotMachine();refreshSlotJackpot(true);refreshSlotJackpotHistory(true)}if(view==='holdem')await loadRooms('holdem');if(view==='sevenpoker')await loadRooms('sevenpoker');if(view==='baccarat')await loadBaccaratRooms();if(view==='yut')await loadRooms('yut');if(view==='ledger')await loadLedger();if(view==='seotda')await loadRooms('seotda');if(view==='gostop')await loadGostop();if(view==='horse')startHorseMeet();if(view==='bigwheel')initBigWheel();if(view==='sicbo')initSicbo();if(view==='roulette')initRoulette();if(view==='treasure')await window.JunjaTreasureRaid?.enter?.(me);if(view==='admin')await loadAdmin('');
+  if(prevView==='horse'&&view!=='horse')stopHorseMeet();if(view==='lobby')await loadLobby();if(view==='shop')await loadShop();if(view==='slot'){initSlotMachine();refreshSlotJackpot(true);refreshSlotJackpotHistory(true)}if(view==='holdem')await loadRooms('holdem');if(view==='sevenpoker')await loadRooms('sevenpoker');if(view==='baccarat')await loadBaccaratRooms();if(view==='yut')await loadRooms('yut');if(view==='ledger')await loadLedger();if(view==='seotda')await loadRooms('seotda');if(view==='gostop')await loadGostop();if(view==='horse')startHorseMeet();if(view==='bigwheel')initBigWheel();if(view==='sicbo')initSicbo();if(view==='roulette')initRoulette();if(view==='treasure')await window.JunjaTreasureRaid?.enter?.(me);if(view==='goldenbell')await window.JunjaGoldenbell?.enter?.();if(view==='admin')await loadAdmin('');
 }
 let leaderboardSnapshot=null,leaderboardLoadedAt=0;
 async function loadLobby(full=true){try{
@@ -573,7 +574,9 @@ async function resumeMyRoom(){
     if(!d.room){if(currentRoomId)finishRoomExit();return;}
     const room=d.room;
     // Treasure Raid owns its room state and settlement UI separately.
-    if(room.game==='treasure'){
+    if(room.game==='goldenbell'){
+      currentRoomId=null;currentGame=null;lastRoomVersion=-1;stopRoomPolling();await go('goldenbell');
+    }else if(room.game==='treasure'){
       currentRoomId=null;currentGame=null;lastRoomVersion=-1;stopRoomPolling();
       await go('treasure');
     }else{

@@ -1,6 +1,6 @@
 'use strict';
 const E=require('./public/sichuan/engine');
-module.exports=function createSichuanBattle({db,crypto,readBody,requireAuth,json,rateLimit}){
+module.exports=function createSichuanBattle({db,crypto,readBody,requireAuth,json,rateLimit,isUserBusy=()=>false}){
  const rooms=new Map(),levels=[6,12,18,24];
  const tx=fn=>{db.exec('BEGIN IMMEDIATE');try{const v=fn();db.exec('COMMIT');return v;}catch(e){db.exec('ROLLBACK');throw e;}};
  function money(id,amount,type,memo){
@@ -72,7 +72,7 @@ module.exports=function createSichuanBattle({db,crypto,readBody,requireAuth,json
    if(url.pathname==='/api/sichuan/battle/rooms'&&req.method==='GET')return reply(200,{rooms:[...rooms.values()].filter(r=>r.status==='waiting'&&r.players.length<r.maxPlayers).slice(-30).reverse().map(r=>({code:r.code,host:r.players.find(p=>p.userId===r.hostId)?.nickname||'방장',level:r.level,roundNo:r.roundNo,seconds:r.seconds,bet:r.bet,players:r.players.length,maxPlayers:r.maxPlayers})),activeCode:activeRoom(u.id)?.code||null});
    if(url.pathname==='/api/sichuan/battle/create'&&req.method==='POST'){
     const b=await readBody(req);if(!rateLimit('sichuan_create:'+u.id,10,60000))return reply(429,{error:'잠시 후 방을 만들어주세요.'});
-    if(activeRoom(u.id))return reply(409,{error:'참가 중인 사천성 방에서 먼저 나가주세요.'});
+    if(activeRoom(u.id)||isUserBusy(u.id))return reply(409,{error:'참가 중인 사천성 방에서 먼저 나가주세요.'});
     const maxPlayers=Number(b.maxPlayers||2),bet=Number(b.bet??1000000);
     if(!Number.isInteger(maxPlayers)||maxPlayers<2||maxPlayers>8)throw Error('참가 인원은 2~8명으로 선택해주세요.');
     if(!Number.isSafeInteger(bet)||bet<1000||bet>100000000000000||bet%1000)throw Error('베팅은 1,000G~100조G, 1,000G 단위로 입력해주세요.');
@@ -89,7 +89,7 @@ module.exports=function createSichuanBattle({db,crypto,readBody,requireAuth,json
    if(req.method!=='POST')return reply(405,{error:'지원하지 않는 요청입니다.'});
    if(op==='join'){
     if(p?.left)throw Error('이미 나간 판입니다. 다음 라운드에 참가해주세요.');
-    if(!p){if(activeRoom(u.id))throw Error('기존 사천성 방에서 먼저 나가주세요.');if(r.status!=='waiting'||r.players.length>=r.maxPlayers)throw Error('시작되었거나 인원이 가득 찬 방입니다.');p=player(u);r.players.push(p);r.players.forEach(x=>x.ready=false);}
+    if(!p){if(activeRoom(u.id)||isUserBusy(u.id))throw Error('기존 사천성 방에서 먼저 나가주세요.');if(r.status!=='waiting'||r.players.length>=r.maxPlayers)throw Error('시작되었거나 인원이 가득 찬 방입니다.');p=player(u);r.players.push(p);r.players.forEach(x=>x.ready=false);}
    }else{
     if(!p||p.left)return reply(403,{error:'이 방 참가자가 아닙니다.'});
     if(op==='leave'){
@@ -112,5 +112,5 @@ module.exports=function createSichuanBattle({db,crypto,readBody,requireAuth,json
    r.updatedAt=Date.now();return reply(200,{room:pub(r,u.id)});
   }catch(e){return reply(400,{error:e.message});}
  }
- return {handle,roomCount:()=>rooms.size,close:()=>clearInterval(timer)};
+ return {handle,hasUser:id=>!!activeRoom(id),roomCount:()=>rooms.size,close:()=>clearInterval(timer)};
 };
