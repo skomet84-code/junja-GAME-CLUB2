@@ -58,5 +58,5 @@ async function multiplayer(mode='score',n=3,entry=1000){let r=await ok(1,'/creat
  // Twelve players, ready gate and unauthorized start.
  r=await ok(1,'/create',{mode:'score',maxPlayers:12});for(let id=2;id<=12;id++)await ok(id,'/'+r.id+'/join',{});assert.equal((await call(13,'/'+r.id+'/join',{})).status,400);assert.equal((await call(1,'/'+r.id+'/start',{})).status,400);assert.equal((await call(2,'/'+r.id+'/start',{})).status,400);
  await ok(1,'/'+r.id+'/leave',{});r=await ok(2,'/'+r.id);assert.equal(r.hostId,2);await leaveAll(r);
- console.log('GOLDENBELL_OK: 440 questions including level-4 expansion, solo, 12 seats, survival revival, deadlines, answer locking, atomic funding, exact payouts, restart refunds, daily cap and persistent records');
+ console.log('GOLDENBELL_OK: 470 questions including expanded nonsense and level-4 banks, solo, 12 seats, survival revival, deadlines, answer locking, atomic funding, exact payouts, restart refunds, daily cap and persistent records');
  }finally{game.close();db.close();}})().catch(e=>{console.error(e);process.exitCode=1;});
