@@ -21,7 +21,12 @@ module.exports = function createGoldenbell({db,crypto,readBody,requireAuth,json,
     money(e.user_id,e.amount,'goldenbell_refund');
     db.prepare('DELETE FROM room_escrow WHERE room_id=? AND user_id=?').run(e.room_id,e.user_id);
   }});
-  function stats(id){return get('goldenbell:stats:'+id,{games:0,wins:0,bells:0,best:0,streak:0,categories:{}});}
+  function stats(id){
+    const s=get('goldenbell:stats:'+id,{games:0,wins:0,bells:0,random30Bells:0,best:0,streak:0,categories:{}});
+    // Preserve records created before the random-30 leaderboard field existed.
+    if(s.random30Bells===undefined)s.random30Bells=Number(s.bells||0);
+    return s;
+  }
   function daily(id){const v=get('goldenbell:daily:'+id,{});return v.day===day()?v:{day:day(),used:0};}
   function shuffle(a){a=[...a];for(let i=a.length-1;i>0;i--){const j=crypto.randomInt(i+1);[a[i],a[j]]=[a[j],a[i]];}return a;}
   function difficultyDeck(pool){
@@ -78,7 +83,7 @@ module.exports = function createGoldenbell({db,crypto,readBody,requireAuth,json,
       if(r.entry){const held=db.prepare('SELECT amount FROM room_escrow WHERE room_id=? AND user_id=?').get(r.id,p.id);if(Number(held?.amount)!==r.entry)throw Error('참가비 정산 확인이 필요합니다.');}
       const amount=payouts.get(p.id)||0;if(amount)money(p.id,amount,'goldenbell_payout');
       db.prepare('DELETE FROM room_escrow WHERE room_id=? AND user_id=?').run(r.id,p.id);
-      const s=stats(p.id);s.nickname=p.nickname;s.games++;s.wins+=r.mode!=='solo'&&winners.includes(p.id)?1:0;s.bells+=p.correct===r.total&&!p.left?1:0;s.best=Math.max(s.best,p.correct);s.streak=Math.max(s.streak,p.bestStreak);
+      const s=stats(p.id),perfect=p.correct===r.total&&!p.left,random30Perfect=r.category==='전체'&&r.total===30&&p.correct===30&&!p.left;s.nickname=p.nickname;s.games++;s.wins+=r.mode!=='solo'&&winners.includes(p.id)?1:0;s.bells+=perfect?1:0;s.random30Bells=Number(s.random30Bells||0)+(random30Perfect?1:0);s.best=Math.max(s.best,p.correct);s.streak=Math.max(s.streak,p.bestStreak);
       for(const [cat,v] of Object.entries(p.categories)){const old=s.categories[cat]||{correct:0,total:0};s.categories[cat]={correct:old.correct+v.correct,total:old.total+v.total};}
       put('goldenbell:stats:'+p.id,s);
     }});
@@ -131,7 +136,7 @@ module.exports = function createGoldenbell({db,crypto,readBody,requireAuth,json,
       const b=req.method==='POST'?await readBody(req):{};
       if(url.pathname==='/api/goldenbell'&&req.method==='GET'){
         const r=mine(u.id);if(r&&r.deadline&&now()>=r.deadline){tick(r);publish(r);}
-        return reply(200,{room:r?pub(r,u.id):null,categories:[...new Set(BANK.map(q=>q.category))].map(name=>({name,count:BANK.filter(q=>q.category===name).length})),questionCount:BANK.length,dailyRemaining:Math.max(0,DAY_LIMIT-daily(u.id).used),stats:stats(u.id),rooms:[...rooms.values()].filter(r=>r.phase==='waiting'&&r.mode!=='solo').map(r=>({id:r.id,mode:r.mode,category:r.category,entry:r.entry,players:r.players.length,maxPlayers:r.maxPlayers,host:r.players[0]?.nickname})),leaders:db.prepare("SELECT value FROM game_state WHERE key LIKE 'goldenbell:stats:%'").all().map(x=>JSON.parse(x.value)).sort((a,b)=>b.bells-a.bells||b.wins-a.wins||b.best-a.best).slice(0,10)});
+        return reply(200,{room:r?pub(r,u.id):null,categories:[...new Set(BANK.map(q=>q.category))].map(name=>({name,count:BANK.filter(q=>q.category===name).length})),questionCount:BANK.length,dailyRemaining:Math.max(0,DAY_LIMIT-daily(u.id).used),stats:stats(u.id),rooms:[...rooms.values()].filter(r=>r.phase==='waiting'&&r.mode!=='solo').map(r=>({id:r.id,mode:r.mode,category:r.category,entry:r.entry,players:r.players.length,maxPlayers:r.maxPlayers,host:r.players[0]?.nickname})),leaders:db.prepare("SELECT value FROM game_state WHERE key LIKE 'goldenbell:stats:%'").all().map(x=>{const s=JSON.parse(x.value);return {...s,random30Bells:Number(s.random30Bells??s.bells??0)};}).sort((a,b)=>b.random30Bells-a.random30Bells||b.wins-a.wins||b.best-a.best).slice(0,10)});
       }
       if(url.pathname==='/api/goldenbell/create'&&req.method==='POST'){
         if(mine(u.id)||isUserBusy(u.id))throw Error('참가 중인 게임방에서 먼저 나와주세요.');
