@@ -24,6 +24,18 @@ module.exports = function createGoldenbell({db,crypto,readBody,requireAuth,json,
   function stats(id){return get('goldenbell:stats:'+id,{games:0,wins:0,bells:0,best:0,streak:0,categories:{}});}
   function daily(id){const v=get('goldenbell:daily:'+id,{});return v.day===day()?v:{day:day(),used:0};}
   function shuffle(a){a=[...a];for(let i=a.length-1;i>0;i--){const j=crypto.randomInt(i+1);[a[i],a[j]]=[a[j],a[i]];}return a;}
+  function difficultyDeck(pool){
+    const groups=new Map();
+    for(const q of pool){if(!groups.has(q.level))groups.set(q.level,[]);groups.get(q.level).push(q)}
+    for(const list of groups.values()){const mixed=shuffle(list);list.length=0;list.push(...mixed)}
+    // Every round now reaches the hard bank. The final slot is always level 4
+    // when the selected category has enough questions.
+    const plan=[1,1,1,1,2,2,2,2,2,2,2,2,3,3,3,3,3,3,3,3,3,3,3,3,4,4,4,4,4,4],out=[];
+    for(const level of plan){const list=groups.get(level)||[];if(list.length)out.push(list.pop());}
+    const rest=shuffle([...groups.values()].flat());
+    while(out.length<Math.min(30,pool.length)&&rest.length)out.push(rest.pop());
+    return out.slice(0,30);
+  }
   function deck(category){
     let pool=BANK.filter(q=>category==='전체'||q.category===category);
     // Mixed rounds are balanced across categories, then arranged by difficulty.
@@ -32,7 +44,7 @@ module.exports = function createGoldenbell({db,crypto,readBody,requireAuth,json,
       for(const key of Object.keys(groups))groups[key]=shuffle(groups[key]);
       while(pool.length<30){for(const key of shuffle(Object.keys(groups))){if(groups[key].length)pool.push(groups[key].pop());if(pool.length===30)break;}}
     }else pool=shuffle(pool).slice(0,30);
-    return pool.sort((a,b)=>a.level-b.level).map(q=>{
+    return difficultyDeck(pool).map(q=>{
       const options=q.options.length===2?[...q.options]:shuffle(q.options);return {...q,options,answer:options.indexOf(q.options[q.answer])};
     });
   }

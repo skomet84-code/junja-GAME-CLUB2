@@ -1,7 +1,7 @@
 # 준자 골든벨
 
-- 15 categories, 380 original Korean questions; four choices and O/X.
-- Mixed mode: 30 questions balanced across categories; category mode: up to 30 available questions. One question cannot repeat in the same round. Difficulty increases through the round.
+- 15 categories, 440 original Korean questions; four choices and O/X. The expansion adds 60 level-4 questions across history, people, science, sports, film, music, food, geography, games, language, entertainment, animals and math.
+- Mixed mode: 30 questions balanced across categories; category mode: up to 30 available questions. One question cannot repeat in the same round. Every round now follows a difficulty curve of 4 easy, 8 normal, 12 hard and 6 extreme questions whenever that category has enough questions.
 - Solo: 3 lives, 20-second questions. First 3 starts per KST day are rewarded, subsequent plays are practice. Each correct answer pays 10,000 G, 10/20 correct adds 50,000/100,000 G, a perfect run adds 500,000 G. Paid once on finish/quit; beginning a run consumes the daily allowance.
 - Multiplayer: 2–12 players, host starts once everyone is ready. Score mode or survival; questions 10 and 20 revive eliminated players who answer correctly. If all living players are wrong, elimination is waived for that question.
 - Entry: free or 1,000 G increments up to 1 billion G. Deducted atomically when starting; no charge for a waiting room. Survivor status, last surviving round, correct count and server-measured answer time determine survival ranking. Score mode uses correct count and server-measured answer time. All exact ties split occupied prizes.

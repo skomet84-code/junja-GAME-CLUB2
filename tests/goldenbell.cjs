@@ -1,9 +1,9 @@
 'use strict';
 const assert=require('node:assert/strict'),{DatabaseSync}=require('node:sqlite'),crypto=require('node:crypto');
 const bank=require('../goldenbell-questions'),factory=require('../goldenbell-server');
-for(const q of bank){assert.ok(q.text&&q.explanation);assert.ok([2,4].includes(q.options.length),q.text);assert.equal(new Set(q.options).size,q.options.length,q.text);assert.ok(q.options[q.answer]);assert.ok([1,2,3].includes(q.level));}
-assert.equal(new Set(bank.map(q=>q.text)).size,bank.length);assert.ok(bank.length>=350);assert.equal(new Set(bank.map(q=>q.category)).size,15);
-for(const q of bank.filter(q=>q.category==='수학·두뇌')){const nums=q.text.match(/\d+/g).map(Number);assert.equal(Number(q.options[q.answer]),q.text.includes('+')?nums[0]+nums[1]*nums[2]:nums[0]*nums[1]);}
+for(const q of bank){assert.ok(q.text&&q.explanation);assert.ok([2,4].includes(q.options.length),q.text);assert.equal(new Set(q.options).size,q.options.length,q.text);assert.ok(q.options[q.answer]);assert.ok([1,2,3,4].includes(q.level));}
+assert.equal(new Set(bank.map(q=>q.text)).size,bank.length);assert.ok(bank.length>=400);assert.equal(new Set(bank.map(q=>q.category)).size,15);assert.ok(bank.filter(q=>q.level===4).length>=50);
+for(const q of bank.filter(q=>q.category==='수학·두뇌'&&(q.text.includes('×')||q.text.includes(' + ')))){const nums=q.text.match(/\d+/g).map(Number);assert.equal(Number(q.options[q.answer]),q.text.includes('+')?nums[0]+nums[1]*nums[2]:nums[0]*nums[1]);}
 const db=new DatabaseSync(':memory:');db.exec(`CREATE TABLE users(id INTEGER PRIMARY KEY,balance INTEGER);CREATE TABLE ledger(id INTEGER PRIMARY KEY,user_id INTEGER,amount INTEGER,balance_after INTEGER,type TEXT,memo TEXT,created_at INTEGER);CREATE TABLE game_state(key TEXT PRIMARY KEY,value TEXT,updated_at INTEGER);CREATE TABLE room_escrow(room_id TEXT,user_id INTEGER,amount INTEGER,game TEXT,created_at INTEGER,PRIMARY KEY(room_id,user_id));`);
 for(let i=1;i<=15;i++)db.prepare('INSERT INTO users VALUES(?,?)').run(i,10000000000000001n);
 let time=Date.UTC(2026,9,4,0),busy=false;const pending=new Map();let timer=0;
@@ -58,5 +58,5 @@ async function multiplayer(mode='score',n=3,entry=1000){let r=await ok(1,'/creat
  // Twelve players, ready gate and unauthorized start.
  r=await ok(1,'/create',{mode:'score',maxPlayers:12});for(let id=2;id<=12;id++)await ok(id,'/'+r.id+'/join',{});assert.equal((await call(13,'/'+r.id+'/join',{})).status,400);assert.equal((await call(1,'/'+r.id+'/start',{})).status,400);assert.equal((await call(2,'/'+r.id+'/start',{})).status,400);
  await ok(1,'/'+r.id+'/leave',{});r=await ok(2,'/'+r.id);assert.equal(r.hostId,2);await leaveAll(r);
- console.log('GOLDENBELL_OK: 380 questions, solo, 12 seats, survival revival, deadlines, answer locking, atomic funding, exact payouts, restart refunds, daily cap and persistent records');
+ console.log('GOLDENBELL_OK: 440 questions including level-4 expansion, solo, 12 seats, survival revival, deadlines, answer locking, atomic funding, exact payouts, restart refunds, daily cap and persistent records');
  }finally{game.close();db.close();}})().catch(e=>{console.error(e);process.exitCode=1;});
