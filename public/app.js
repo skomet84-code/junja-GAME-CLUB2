@@ -135,11 +135,11 @@ $$('[data-auth-tab]').forEach(b=>b.onclick=()=>setAuthTab(b.dataset.authTab));
 $('#loginForm').onsubmit=async e=>{e.preventDefault();ensureAudioUnlocked(false);const f=new FormData(e.currentTarget);try{const d=await api('/api/login',{method:'POST',body:JSON.stringify(Object.fromEntries(f))});me=d.user;bootMain();}catch(err){$('#authMsg').textContent=err.message}};
 $('#registerForm').onsubmit=async e=>{e.preventDefault();ensureAudioUnlocked(false);const f=new FormData(e.currentTarget);try{const d=await api('/api/register',{method:'POST',body:JSON.stringify(Object.fromEntries(f))});me=d.user;bootMain();}catch(err){$('#authMsg').textContent=err.message}};
 async function purgeLegacyAppCaches(){
-  // v2.4.2 RECOVERY: mixed PWA caches can leave HTML/JS from different versions.
+  // v2.4.3 RECOVERY: mixed PWA caches can leave HTML/JS from different versions.
   // Run once per browser and keep the live web app network-first until stability is verified.
   try{
-    if(storageGet('jgc_cache_recovery_242')==='1')return;
-    storageSet('jgc_cache_recovery_242','1');
+    if(storageGet('jgc_cache_recovery_243')==='1')return;
+    storageSet('jgc_cache_recovery_243','1');
     if('serviceWorker' in navigator){
       const regs=await navigator.serviceWorker.getRegistrations();
       await Promise.all(regs.map(r=>r.unregister().catch(()=>false)));
@@ -153,7 +153,7 @@ async function purgeLegacyAppCaches(){
 async function boot(){try{const d=await api('/api/me');me=d.user;bootMain();}catch{$('#authScreen').classList.remove('hidden')}}
 function bootMain(){
   if(!me?.id){$('#mainApp')?.classList.add('hidden');$('#authScreen')?.classList.remove('hidden');if($('#authMsg'))$('#authMsg').textContent='계정 정보를 불러오지 못했습니다. 다시 로그인해주세요.';return;}
-  // v2.4.2 RECOVERY: one optional UI/service failure must never stop the whole casino.
+  // v2.4.3 RECOVERY: one optional UI/service failure must never stop the whole casino.
   try{document.body.classList.remove('modal-open','jackpot-open');$('#helpModal')?.classList.add('hidden');$('#slotJackpotOverlay')?.classList.add('hidden')}catch(e){console.warn('[JGC UI RESET]',e)}
   $('#authScreen')?.classList.add('hidden');$('#mainApp')?.classList.remove('hidden');
   try{updateHeader()}catch(e){console.error('[JGC HEADER]',e)}
