@@ -1185,7 +1185,9 @@ button:not(:disabled){touch-action:manipulation}
 
 /* v335: Seven Poker raise amount visibility on iOS/mobile */
 #sevenRaiseTo,
-.seven-raise input#sevenRaiseTo{
+#sevenMultiRaise,
+.seven-raise input#sevenRaiseTo,
+.seven-raise input#sevenMultiRaise{
   color:#fff !important;
   -webkit-text-fill-color:#fff !important;
   opacity:1 !important;
@@ -1196,13 +1198,17 @@ button:not(:disabled){touch-action:manipulation}
   text-shadow:none !important;
 }
 #sevenRaiseTo:focus,
-.seven-raise input#sevenRaiseTo:focus{
+#sevenMultiRaise:focus,
+.seven-raise input#sevenRaiseTo:focus,
+.seven-raise input#sevenMultiRaise:focus{
   color:#fff !important;
   -webkit-text-fill-color:#fff !important;
   opacity:1 !important;
 }
 #sevenRaiseTo:disabled,
-#sevenRaiseTo[readonly]{
+#sevenRaiseTo[readonly],
+#sevenMultiRaise:disabled,
+#sevenMultiRaise[readonly]{
   color:#fff !important;
   -webkit-text-fill-color:#fff !important;
   opacity:1 !important;
@@ -1423,4 +1429,18 @@ button:not(:disabled){touch-action:manipulation}
   .slot-hof-row{grid-template-columns:56px minmax(72px,.8fr) minmax(105px,1.25fr);gap:7px;padding:9px}
   .slot-hof-money strong{font-size:11px}
   .slot-hof-head>span{display:none}
+}
+
+/* v356: Seven Poker multi mobile raise visibility + bottom ready controls */
+.seven-multi-complete{display:flex!important;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;padding:10px!important;background:rgba(7,12,22,.96)!important;border:1px solid rgba(245,210,108,.32)!important}
+.seven-ready-copy{display:flex;flex-direction:column;gap:2px;margin-right:4px}.seven-ready-copy b{color:#fff3bd}.seven-ready-copy span{font-size:10px;color:#aeb8c5}
+.seven-multi-complete button{min-height:42px;font-weight:900}
+.seven-auto-ready{display:flex;align-items:center;gap:6px;padding:8px 10px;border-radius:10px;background:rgba(255,255,255,.06);font-size:10px;font-weight:900;color:#dfe7ef;cursor:pointer}
+.seven-auto-ready input{accent-color:#f5d26c;width:17px;height:17px}
+#sevenMultiRaise{color:#fff!important;-webkit-text-fill-color:#fff!important;background:#090c14!important;caret-color:#f5d26c!important;font-weight:900!important;opacity:1!important}
+@media(max-width:720px){
+  .seven-multi-complete{position:sticky!important;bottom:max(8px,env(safe-area-inset-bottom))!important;z-index:45!important;margin-top:8px!important;box-shadow:0 -10px 28px rgba(0,0,0,.45)!important}
+  .seven-ready-copy{width:100%;text-align:center;margin:0 0 2px}
+  .seven-multi-complete .seven-bottom-ready,.seven-multi-complete .seven-bottom-start{flex:1 1 42%;min-width:120px}
+  .seven-auto-ready{flex:1 1 100%;justify-content:center}
 }
