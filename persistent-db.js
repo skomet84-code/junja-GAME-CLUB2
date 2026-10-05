@@ -34,7 +34,10 @@ const EXTRA_COLUMNS = {
     ['roulette_wins','INTEGER NOT NULL DEFAULT 0'],
     ['roulette_profit','INTEGER NOT NULL DEFAULT 0']
   ],
+  room_escrow: [['amount_exact','TEXT']],
   users: [
+    ['balance_exact','TEXT'],
+    ['balance_base','TEXT'],
     // Compatibility only: these columns may exist in snapshots written by the reverted large-money build.
     ['balance_text','TEXT'],
     ['is_admin','INTEGER NOT NULL DEFAULT 0'],
@@ -47,6 +50,8 @@ const EXTRA_COLUMNS = {
     ['rank_free_wheel_used','INTEGER NOT NULL DEFAULT 0']
   ],
   ledger: [
+    ['amount_exact','TEXT'],
+    ['balance_after_exact','TEXT'],
     ['amount_text','TEXT'],
     ['balance_after_text','TEXT']
   ],
@@ -99,6 +104,7 @@ async function getPool(){
       memo TEXT NOT NULL,
       created_at BIGINT NOT NULL
     )`);
+    await pool.query('ALTER TABLE junja_club_ledger ADD COLUMN IF NOT EXISTS amount_exact TEXT, ADD COLUMN IF NOT EXISTS balance_after_exact TEXT');
     await pool.query('CREATE INDEX IF NOT EXISTS idx_junja_club_ledger_user_created ON junja_club_ledger(user_id, created_at DESC, id DESC)');
     remoteReady=true;
   }
@@ -320,10 +326,10 @@ class DatabaseSync {
           const batch=this._ledgerDelta(ledgerMaxId);
           if(!batch.length) break;
           const chunkJson=JSON.stringify(batch);
-          await client.query(`INSERT INTO junja_club_ledger(id,user_id,amount,balance_after,type,memo,created_at)
-            SELECT x.id,x.user_id,x.amount,x.balance_after,x.type,x.memo,x.created_at
+          await client.query(`INSERT INTO junja_club_ledger(id,user_id,amount,balance_after,amount_exact,balance_after_exact,type,memo,created_at)
+            SELECT x.id,x.user_id,x.amount,x.balance_after,x.amount_exact,x.balance_after_exact,x.type,x.memo,x.created_at
             FROM jsonb_to_recordset($1::jsonb)
-              AS x(id BIGINT,user_id BIGINT,amount BIGINT,balance_after BIGINT,type TEXT,memo TEXT,created_at BIGINT)
+              AS x(id BIGINT,user_id BIGINT,amount BIGINT,balance_after BIGINT,amount_exact TEXT,balance_after_exact TEXT,type TEXT,memo TEXT,created_at BIGINT)
             ON CONFLICT(id) DO NOTHING`,[chunkJson]);
           ledgerCount+=batch.length;
           ledgerMaxId=Number(batch[batch.length-1].id);

@@ -94,5 +94,35 @@ async function api(url,body){
   const afterAllIn=(await api('/api/me')).user;
   assert.equal(BigInt(String(afterAllIn.balance)),expectedCash,'wallet after all-in cashout must exactly match table settlement');
 
+  // Greater-than-int64 balances survive escrow, restart recovery, cashout and admin credit.
+  const hugeLogin={username:'seven_huge_fixture',nickname:'세븐초과검증',password:'local-test-only'};
+  const hugeUser=(await api('/api/register',hugeLogin)).user;
+  await stop();
+  const huge=18000000000000000123n,mirror=9000000000000000000n;
+  const hugeDb=new DatabaseSync(path.join(dir,'club.db'));
+  hugeDb.prepare('UPDATE users SET balance=?,balance_exact=?,balance_base=?,is_admin=1 WHERE id=?').run(mirror,String(huge),String(mirror),hugeUser.id);hugeDb.close();
+  cookie='';await start();await api('/api/login',hugeLogin);
+  assert.equal(BigInt((await api('/api/me')).user.balance),huge);
+  const hugeStart=await api('/api/solo/seven/start',{});
+  assert.equal(BigInt(hugeStart.game.buyIn),huge);
+  assert.equal(BigInt(hugeStart.user.balance),0n);
+  await stop();await start();
+  assert.equal(BigInt((await api('/api/me')).user.balance),huge,'restart refunds exact overflowing escrow');
+  await stop();await start();
+  assert.equal(BigInt((await api('/api/me')).user.balance),huge,'restart refund never repeats');
+  const hugeAgain=await api('/api/solo/seven/start',{});
+  const hugeRemaining=huge-huge/100n;
+  assert.equal(BigInt(hugeAgain.game.stack.user),hugeRemaining);
+  const hugeExit=await api('/api/solo/seven/leave',{foldActive:true});
+  assert.equal(BigInt(hugeExit.user.balance),hugeRemaining);
+  const adjustment={userId:hugeUser.id,amount:'92069251103730248',direction:'credit',memo:'exact recovery fixture',requestKey:'seven-overflow-test'};
+  const credit=await api('/api/admin/wallet',adjustment);
+  assert.equal(BigInt(credit.user.balance),hugeRemaining+BigInt(adjustment.amount));
+  await api('/api/admin/wallet',adjustment);
+  assert.equal(BigInt((await api('/api/me')).user.balance),BigInt(credit.user.balance),'recovery request is idempotent');
+  await stop();await start();
+  assert.equal(BigInt((await api('/api/me')).user.balance),BigInt(credit.user.balance));
+  const ledger=await api('/api/ledger');
+  assert.ok(ledger.rows.some(x=>x.type==='seven_cashout'&&BigInt(x.amount)===hugeRemaining),'ledger retains full payout beyond int64');
   console.log('SEVEN_LARGE_WALLET_EXACT_ENTRY_CASHOUT_AND_HOLDEM_COMPAT_OK');
 }finally{await stop();fs.rmSync(dir,{recursive:true,force:true});}})().catch(e=>{console.error(e);process.exitCode=1;});

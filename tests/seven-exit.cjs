@@ -1,6 +1,7 @@
 'use strict';
 const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
 const {DatabaseSync}=require('node:sqlite');
+const exactWallet=require('../exact-wallet');
 const root=path.join(__dirname,'..');
 let server;
 class CaptureModule{static _nodeModulePaths(){return []}_compile(s){server=s}}
@@ -9,17 +10,17 @@ vm.runInNewContext(fs.readFileSync(path.join(root,'admin-unlimited-start.js'),'u
 });
 function fn(name){const start=server.indexOf('function '+name+'(');assert.ok(start>=0,name);const end=server.indexOf('\n}',start);const lineEnd=server.indexOf('\n',start);return server.slice(start,server.slice(start,lineEnd).endsWith('}')?lineEnd:end+2)}
 const db=new DatabaseSync(':memory:');
-db.exec(`CREATE TABLE users(id INTEGER PRIMARY KEY,balance INTEGER);CREATE TABLE ledger(user_id INTEGER,amount INTEGER,balance_after INTEGER,type TEXT,memo TEXT,created_at INTEGER);CREATE TABLE stats(user_id INTEGER,seven_games INTEGER,seven_wins INTEGER);CREATE TABLE room_escrow(room_id TEXT,user_id INTEGER,amount INTEGER);INSERT INTO users VALUES(1,100000000000);INSERT INTO stats VALUES(1,0,0);`);
+db.exec(`CREATE TABLE users(id INTEGER PRIMARY KEY,balance INTEGER,balance_exact TEXT,balance_base TEXT);CREATE TABLE ledger(user_id INTEGER,amount INTEGER,balance_after INTEGER,amount_exact TEXT,balance_after_exact TEXT,type TEXT,memo TEXT,created_at INTEGER);CREATE TABLE stats(user_id INTEGER,seven_games INTEGER,seven_wins INTEGER);CREATE TABLE room_escrow(room_id TEXT,user_id INTEGER,amount INTEGER,amount_exact TEXT,game TEXT,created_at INTEGER,PRIMARY KEY(room_id,user_id));CREATE TABLE game_state(key TEXT PRIMARY KEY,value TEXT,updated_at INTEGER);INSERT INTO users(id,balance) VALUES(1,100000000000);INSERT INTO stats VALUES(1,0,0);`);
 const soloSeven=new Map();
-const ctx=vm.createContext({db:{exec:s=>db.exec(s),prepare:s=>{const q=db.prepare(s);q.setReadBigInts(true);return q}},soloSeven,now:()=>1,sevenKey:id=>'SEVEN'+id,
+const ctx=vm.createContext({exactWallet,db:{exec:s=>db.exec(s),prepare:s=>{const q=db.prepare(s);q.setReadBigInts(true);return q}},soloSeven,now:()=>1,sevenKey:id=>'SEVEN'+id,
   escrowDelete:(key,id)=>db.prepare('DELETE FROM room_escrow WHERE room_id=? AND user_id=?').run(key,id),
   escrowSet:(key,id,n)=>{db.prepare('DELETE FROM room_escrow WHERE user_id=?').run(id);db.prepare('INSERT INTO room_escrow VALUES(?,?,?)').run(key,id,n)}
 });
-for(const name of ['walletInt','walletOut','walletChange','sevenExactStack','sevenFinishFold','sevenCashout'])vm.runInContext(fn(name),ctx);
-const balance=()=>BigInt(db.prepare('SELECT CAST(balance AS TEXT) b FROM users').get().b);
-const chips=9114855859269293000n;
+for(const name of ['walletInt','walletOut','walletChange','sevenExactStack','sevenFinishFold','sevenCashout','escrowSet'])vm.runInContext(fn(name),ctx);
+const balance=()=>exactWallet.read(db.prepare('SELECT CAST(balance AS TEXT) balance,balance_exact,balance_base FROM users').get());
+const chips=9298994361476753000n;
 const s={userId:1,complete:false,stack:{user:Number(chips),bot:10000},exactStack:{user:String(chips),bot:'10000'},exactPot:'12345',pot:12345,handStartStack:Number(chips),buyIn:Number(chips)};
-soloSeven.set(1,s);ctx.escrowSet('SEVEN1',1,chips+1000n);
+soloSeven.set(1,s);ctx.escrowSet('SEVEN1',1,chips+1000n,'seven_poker');
 assert.throws(()=>ctx.sevenCashout(1),/진행 중/,'legacy requests must not silently forfeit');
 assert.equal(s.complete,false);
 db.exec("CREATE TRIGGER fail_payout BEFORE INSERT ON ledger BEGIN SELECT RAISE(ABORT,'test failure'); END");
@@ -32,8 +33,13 @@ assert.equal(BigInt(ctx.sevenCashout(1,true)),chips,'cash out exact screenshot-s
 assert.equal(balance(),chips+100000000000n);assert.equal(soloSeven.has(1),false);
 assert.equal(ctx.sevenCashout(1,true),0);assert.equal(db.prepare('SELECT count(*) n FROM ledger').get().n,1,'duplicate leave never credits twice');
 assert.equal(db.prepare('SELECT count(*) n FROM room_escrow').get().n,0);
-const before=balance();assert.throws(()=>ctx.walletChange(1,9223372036854775807n,'seven_cashout',''),/한도/);assert.equal(balance(),before,'true int64 overflow is rejected');
-ctx.walletChange(1,-1000n,'test_debit','');assert.equal(balance(),before-1000n,'returned chips remain spendable');
+const before=balance();
+ctx.walletChange(1,10000000000000000000n,'seven_cashout','');
+assert.equal(balance(),before+10000000000000000000n,'payouts above int64 remain exact');
+ctx.walletChange(1,-1000n,'test_debit','');assert.equal(balance(),before+10000000000000000000n-1000n);
+db.prepare('UPDATE users SET balance=balance-10000 WHERE id=1').run();
+assert.equal(balance(),before+10000000000000000000n-11000n,'legacy SQL debits preserve the exact overflow');
+const after=balance();assert.throws(()=>ctx.walletChange(1,-after-1n,'test_debit',''),/부족/);assert.equal(balance(),after);
 db.close();
 // UI: cashout waits for an in-flight next-hand request and blocks repeat actions.
 const app=fs.readFileSync(path.join(root,'public/app.js'),'utf8');

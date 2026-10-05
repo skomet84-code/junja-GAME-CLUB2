@@ -5,6 +5,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
 const staticResponse = require('./static-response');
+const exactWallet = require('./exact-wallet');
 const { DatabaseSync } = require('./persistent-db');
 const createTreasureRaid = require('./treasure-raid-server');
 
@@ -209,9 +210,9 @@ const goldenbell=require('./goldenbell-server')({db,crypto,readBody,requireAuth,
 });
 const sichuanBattle=require('./sichuan-battle-server')({db,crypto,readBody,requireAuth,json,rateLimit,isUserBusy:id=>goldenbell.hasUser(id)});
 // If the server restarted while rooms were active, return virtual chips safely.
-const staleEscrows = db.prepare('SELECT room_id,user_id,amount,game FROM room_escrow').all();
+const staleEscrows = db.prepare('SELECT room_id,user_id,COALESCE(amount_exact,CAST(amount AS TEXT)) AS amount,game FROM room_escrow').all();
 for (const e of staleEscrows) {
-  if (e.amount > 0) walletChange(e.user_id, e.amount, 'recovery', `${e.game} 방 서버 재시작 자동 환급`);
+  if (e.amount > 0) walletChange(e.user_id, e.amount, 'recovery', `${e.game} 방 서버 재시작 자동 환급`,e.room_id);
 }
 db.exec('DELETE FROM room_escrow');
 
@@ -777,14 +778,15 @@ function promoteSocialRank(userId){
 }
 
 function userPublic(userId){
-  const u=db.prepare(`SELECT u.id,u.username,u.nickname,u.balance,u.avatar,u.created_at,u.last_daily,u.last_rank_salary,u.is_admin,u.is_disabled,
+  const u=db.prepare(`SELECT u.id,u.username,u.nickname,u.balance,u.balance_exact,u.balance_base,u.avatar,u.created_at,u.last_daily,u.last_rank_salary,u.is_admin,u.is_disabled,
     s.slot_spins,s.slot_wins,s.slot_profit,s.poker_hands,s.poker_wins,s.yut_games,s.yut_wins,
     s.seotda_games,s.seotda_wins,s.gostop_games,s.gostop_wins,s.solo_poker_wins,s.solo_yut_wins,
     s.horse_races,s.horse_wins,s.horse_profit,s.bigwheel_plays,s.bigwheel_wins,s.bigwheel_profit,s.sicbo_plays,s.sicbo_wins,s.sicbo_profit,
     s.seven_games,s.seven_wins,s.baccarat_games,s.baccarat_wins,s.baccarat_profit,s.roulette_plays,s.roulette_wins,s.roulette_profit
     FROM users u LEFT JOIN stats s ON s.user_id=u.id WHERE u.id=?`).get(userId);
   if(!u) return null;
-  return {...u, avatarEmoji:AVATARS[u.avatar%AVATARS.length], cosmetics:cosmeticsPublic(userId,true), rank:socialRankPublic(userId), dailyAvailable:u.last_daily!==kstDate(), rankSalaryAvailable:u.last_rank_salary!==kstDate()};
+  const exactBalance=exactWallet.output(exactWallet.read(u));delete u.balance_exact;delete u.balance_base;
+  return {...u, balance:exactBalance, avatarEmoji:AVATARS[u.avatar%AVATARS.length], cosmetics:cosmeticsPublic(userId,true), rank:socialRankPublic(userId), dailyAvailable:u.last_daily!==kstDate(), rankSalaryAvailable:u.last_rank_salary!==kstDate()};
 }
 
 function parseCookies(req){
@@ -1002,8 +1004,9 @@ function closeRoomAndRefund(r,reason='방 종료 환급'){
 }
 
 function escrowSet(roomId,userId,amount,game){
-  db.prepare(`INSERT INTO room_escrow(room_id,user_id,amount,game,created_at) VALUES(?,?,?,?,?)
-    ON CONFLICT(room_id,user_id) DO UPDATE SET amount=excluded.amount`).run(roomId,userId,amount,game,now());
+  const exact=exactWallet.integer(amount);
+  db.prepare(`INSERT INTO room_escrow(room_id,user_id,amount,amount_exact,game,created_at) VALUES(?,?,?,?,?,?)
+    ON CONFLICT(room_id,user_id) DO UPDATE SET amount=excluded.amount,amount_exact=excluded.amount_exact`).run(roomId,userId,exactWallet.mirror(exact),String(exact),game,now());
 }
 function escrowDelete(roomId,userId){ db.prepare('DELETE FROM room_escrow WHERE room_id=? AND user_id=?').run(roomId,userId); }
 
@@ -2173,7 +2176,7 @@ const server=http.createServer(async(req,res)=>{
       }catch(e){try{db.exec('ROLLBACK')}catch{}throw e;}
     }
     if(url.pathname==='/api/ledger'&&req.method==='GET'){
-      const u=requireAuth(req,res);if(!u)return;const rows=db.prepare('SELECT amount,balance_after,type,memo,created_at FROM ledger WHERE user_id=? ORDER BY id DESC LIMIT 30').all(u.id);return json(res,200,{rows});
+      const u=requireAuth(req,res);if(!u)return;const rows=db.prepare('SELECT id,COALESCE(amount_exact,amount) AS amount,COALESCE(balance_after_exact,balance_after) AS balance_after,type,memo,created_at FROM ledger WHERE user_id=? ORDER BY id DESC LIMIT 30').all(u.id);return json(res,200,{rows});
     }
     if(url.pathname==='/api/leaderboard'&&req.method==='GET'){
       const u=requireAuth(req,res);if(!u)return;const rows=db.prepare(`SELECT u.id,u.nickname,u.balance,u.avatar,s.poker_wins,s.yut_wins,s.slot_profit,s.seotda_wins,s.gostop_wins FROM users u JOIN stats s ON s.user_id=u.id ORDER BY u.balance DESC LIMIT 20`).all().map(x=>({...x,avatarEmoji:AVATARS[x.avatar%AVATARS.length],cosmetics:cosmeticsPublic(x.id),rank:socialRankPublic(x.id)}));return json(res,200,{rows});
