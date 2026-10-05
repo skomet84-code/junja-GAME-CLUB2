@@ -1892,14 +1892,14 @@ function sevenPublic(s){
   if(!s)return null;const botCards=s.cards.bot.map((c,i)=>s.complete||s.faceUp.bot[i]?c:'XX');
   const userRound=Number(s.roundBet?.user||0),call=Math.max(0,Number(s.currentBet||0)-userRound),maxRaiseTo=sevenEffectiveMaxTo(s,'user'),allInAmount=Math.max(0,maxRaiseTo-userRound),rawMin=Number(s.currentBet||0)===0?Number(s.minRaise||1000):Number(s.currentBet||0)+Number(s.minRaise||1000);
   const legal=s.turn==='user'&&!s.complete?{toCall:call,maxRaiseTo,allInAmount,tableStack:Number(s.stack?.user||0),opponentStack:Number(s.stack?.bot||0),minRaiseTo:Math.min(maxRaiseTo,rawMin),canRaise:maxRaiseTo>Number(s.currentBet||0)}:null;
-  return {buyIn:s.buyIn,handNo:s.handNo,phase:s.phase,complete:s.complete,street:s.street,pot:s.exactPot??s.pot,handContrib:s.exactHandContrib??s.handContrib,ante:s.ante,turn:s.turn,lastAction:s.lastAction,stack:s.stack,roundBet:s.roundBet,currentBet:s.currentBet,minRaise:s.minRaise,legal,cards:{user:s.cards.user,bot:botCards},faceUp:s.faceUp,result:s.result,userStatus:sevenCurrentStatus(s,'user'),botVisibleStatus:pokerHandStatus(sevenVisibleCards(s,'bot'))};
+  return {buyIn:s.buyInExact??s.buyIn,handNo:s.handNo,phase:s.phase,complete:s.complete,street:s.street,pot:s.exactPot??s.pot,handContrib:s.exactHandContrib??s.handContrib,ante:s.ante,turn:s.turn,lastAction:s.lastAction,stack:s.exactStack??s.stack,roundBet:s.roundBet,currentBet:s.currentBet,minRaise:s.minRaise,legal,cards:{user:s.cards.user,bot:botCards},faceUp:s.faceUp,result:s.result,userStatus:sevenCurrentStatus(s,'user'),botVisibleStatus:pokerHandStatus(sevenVisibleCards(s,'bot'))};
 }
 function sevenStart(user){
   const buyIn=Math.floor(Number(user.balance||0));if(!Number.isSafeInteger(buyIn)||buyIn<1000)throw new Error('세븐포커 테이블 입장에는 최소 1,000G가 필요해.');if(soloSeven.has(user.id))throw new Error('이미 세븐포커 테이블에 앉아 있어.');
   walletChange(user.id,-buyIn,'seven_buyin',`세븐포커 전액 스택 입장 ${formatMoney(buyIn)}G`);const s={userId:user.id,botId:-200000-user.id,buyIn,stack:{user:buyIn,bot:buyIn},handNo:0};soloSeven.set(user.id,s);escrowSet(sevenKey(user.id),user.id,buyIn,'seven_poker');sevenBeginHand(s);sevenBotDrive(s);return s;
 }
 function sevenNext(userId){const s=soloSeven.get(userId);if(!s)throw new Error('세븐포커 테이블이 없어.');if(!s.complete)throw new Error('현재 핸드가 아직 끝나지 않았어.');sevenBeginHand(s);sevenBotDrive(s);return s;}
-function sevenCashout(userId){const s=soloSeven.get(userId);if(!s)return 0;if(!s.complete)throw new Error('진행 중인 핸드가 끝난 뒤 정산할 수 있어.');const amt=Math.max(0,Math.floor(s.stack.user));if(amt)walletChange(userId,amt,'seven_cashout','세븐포커 테이블 칩 정산');escrowDelete(sevenKey(userId),userId);soloSeven.delete(userId);return amt;}
+function sevenCashout(userId,foldActive=false){const s=soloSeven.get(userId);if(!s)return 0;if(!s.complete){if(!foldActive)throw new Error('진행 중인 핸드가 끝난 뒤 정산할 수 있어.');sevenFinishFold(s,'bot');}const amt=Math.max(0,Math.floor(s.stack.user));if(amt)walletChange(userId,amt,'seven_cashout','세븐포커 테이블 칩 정산');escrowDelete(sevenKey(userId),userId);soloSeven.delete(userId);return amt;}
 
 // ---------- Seven Poker multiplayer · 2-player stud table ----------
 function sevenMIds(r){return orderedPlayers(r).map(p=>p.userId);}
@@ -2345,7 +2345,7 @@ const server=http.createServer(async(req,res)=>{
     if(url.pathname==='/api/solo/seven'&&req.method==='GET'){const u=requireAuth(req,res);if(!u)return;return json(res,200,{game:sevenPublic(soloSeven.get(u.id)||null)});}
     if(url.pathname==='/api/solo/seven/action'&&req.method==='POST'){const u=requireAuth(req,res);if(!u)return;const s=soloSeven.get(u.id);if(!s)return json(res,404,{error:'세븐포커 테이블이 없어.'});const b=await readBody(req);try{sevenAction(s,'user',String(b.action||''),b.raiseTo);sevenBotDrive(s);return json(res,200,{game:sevenPublic(s),user:userPublic(u.id)});}catch(e){return json(res,400,{error:e.message});}}
     if(url.pathname==='/api/solo/seven/next'&&req.method==='POST'){const u=requireAuth(req,res);if(!u)return;try{const s=sevenNext(u.id);return json(res,200,{game:sevenPublic(s),user:userPublic(u.id)});}catch(e){return json(res,400,{error:e.message});}}
-    if(url.pathname==='/api/solo/seven/leave'&&req.method==='POST'){const u=requireAuth(req,res);if(!u)return;try{const amount=sevenCashout(u.id);pushRefresh();return json(res,200,{cashout:amount,user:userPublic(u.id)});}catch(e){return json(res,409,{error:e.message});}}
+    if(url.pathname==='/api/solo/seven/leave'&&req.method==='POST'){const u=requireAuth(req,res);if(!u)return;try{const b=await readBody(req);const amount=sevenCashout(u.id,b.foldActive===true);pushRefresh();return json(res,200,{cashout:amount,user:userPublic(u.id)});}catch(e){return json(res,409,{error:e.message});}}
 
     // Baccarat duel rooms
     if(url.pathname==='/api/baccarat/rooms'&&req.method==='GET'){const u=requireAuth(req,res);if(!u)return;return json(res,200,{rooms:[...baccaratRooms.values()].map(baccaratSummary).sort((a,b)=>b.updatedAt-a.updatedAt)});}

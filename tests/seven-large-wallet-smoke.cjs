@@ -57,7 +57,16 @@ async function api(url,body){
   assert.equal(String(afterSeven.balance),String(cash.cashout),'cashout and wallet must match exactly');
   assert.ok(BigInt(String(afterSeven.balance))>10000000000000n,'large wallet remains usable after one hand');
 
-  const holdBefore=BigInt(String(afterSeven.balance));
+  const active=await api('/api/solo/seven/start',{});
+  const remaining=BigInt(active.game.stack.user);
+  const activeExit=await api('/api/solo/seven/leave',{foldActive:true});
+  assert.equal(BigInt(activeExit.cashout),remaining,'active exit returns remaining chips exactly');
+  assert.equal(BigInt(activeExit.user.balance),remaining);
+  const duplicateExit=await api('/api/solo/seven/leave',{foldActive:true});
+  assert.equal(BigInt(duplicateExit.cashout),0n,'repeated exit cannot duplicate credit');
+  assert.equal(BigInt(duplicateExit.user.balance),remaining);
+  assert.ok(!(await api('/api/solo/seven')).game,'cashout removes the active table');
+  const holdBefore=remaining;
   const holdem=await api('/api/solo/holdem/start',{});
   assert.equal(BigInt(String(holdem.user.balance)),holdBefore-10000000000000n,'holdem 10T buy-in remains unchanged');
   await api('/api/solo/holdem/leave',{});
