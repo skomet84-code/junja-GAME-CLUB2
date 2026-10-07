@@ -26,7 +26,7 @@ async function multiplayer(mode='score',n=3,entry=1000){let r=await ok(1,'/creat
  assert.equal((await call(1,'/'+r.id+'/answer',{token:r.question.token,choice:NaN})).status,400);
  const start=balance(1),seen=new Set();
  while(r.phase!=='complete'){
-  if(r.phase==='question'){assert.ok(!seen.has(r.question.text));seen.add(r.question.text);r=await submit(1,r);assert.equal(r.phase,'reveal');}
+  if(r.phase==='question'){assert.ok(!seen.has(r.question.text));seen.add(r.question.text);r=await submit(1,r);assert.equal(r.phase,'reveal');assert.equal(r.deadline-time,2000,'answer reveal delay is 2 seconds');}
   else r=await next(1,r);
  }
  assert.equal(r.players[0].correct,30);assert.equal(r.players[0].payout,17000000000);assert.equal(balance(1)-start,17000000000n);
