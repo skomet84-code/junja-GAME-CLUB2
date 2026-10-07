@@ -1,8 +1,8 @@
 {
   "name": "junja-game-club",
-  "version": "2.8.25",
+  "version": "2.8.26",
   "private": true,
-  "description": "JUNJA LAND v2.8.25 - hide Treasure Explorers as an admin-only private collection and mask private equipped characters from other users.",
+  "description": "JUNJA LAND v2.8.26 - expand Golden Bell to 545 questions, raise solo rewards, and reduce answer reveal delay to 2 seconds.",
   "type": "commonjs",
   "scripts": {
     "start": "node slot-50pct-until-win-start.js",
