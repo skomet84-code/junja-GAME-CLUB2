@@ -1,8 +1,9 @@
 # 준자 골든벨
 
-- 15 categories, 470 original Korean questions; four choices and O/X. The expansion adds 60 level-4 questions across history, people, science, sports, film, music, food, geography, games, language, entertainment, animals and math.
+- 15 categories, 545 Korean questions; four choices and O/X. The 2026-10-08 expansion adds 75 mid/high-difficulty questions evenly across all 15 categories, on top of the existing level-4 bank.
 - Mixed mode: 30 questions balanced across categories; category mode: up to 30 available questions. One question cannot repeat in the same round. Every round now follows a difficulty curve of 4 easy, 8 normal, 12 hard and 6 extreme questions whenever that category has enough questions.
-- Solo: 3 lives, 20-second questions. First 3 starts per KST day are rewarded, subsequent plays are practice. Each correct answer pays 10,000 G, 10/20 correct adds 50,000/100,000 G, a perfect run adds 500,000 G. Paid once on finish/quit; beginning a run consumes the daily allowance.
+- Solo: 3 lives, 20-second questions. First 3 starts per KST day are rewarded, subsequent plays are practice. Each correct answer pays 100,000,000 G, 10/20 correct adds 1,000,000,000/3,000,000,000 G, and a perfect 30/30 run adds 10,000,000,000 G (17,000,000,000 G total). Paid once on finish/quit; beginning a run consumes the daily allowance.
+- Answer reveal/next-question delay: 2 seconds after everyone has answered or time expires.
 - Multiplayer: 2–12 players, host starts once everyone is ready. Score mode or survival; questions 10 and 20 revive eliminated players who answer correctly. If all living players are wrong, elimination is waived for that question.
 - Entry: free or 1,000 G increments up to 1 billion G. Deducted atomically when starting; no charge for a waiting room. Survivor status, last surviving round, correct count and server-measured answer time determine survival ranking. Score mode uses correct count and server-measured answer time. All exact ties split occupied prizes.
 - Prize pool: one remaining participant 100%, two 70/30%, three or more 60/30/10%. Voluntary departures forfeit eligibility; if everyone leaves, entries are refunded.
