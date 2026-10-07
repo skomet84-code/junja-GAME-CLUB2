@@ -2,7 +2,8 @@
 const BANK = require('./goldenbell-questions');
 module.exports = function createGoldenbell({db,crypto,readBody,requireAuth,json,rateLimit,notify=()=>{},isUserBusy=()=>false,now=Date.now,setTimer=setTimeout,clearTimer=clearTimeout}) {
   const rooms=new Map(), timers=new Map();
-  const DAY_LIMIT=3, QUESTION_MS=20000, REVEAL_MS=5000;
+  const DAY_LIMIT=3, QUESTION_MS=20000, REVEAL_MS=2000;
+  const SOLO_REWARD={correct:100000000,ten:1000000000,twenty:3000000000,perfect:10000000000};
   const tx=fn=>{db.exec('BEGIN IMMEDIATE');try{const out=fn();db.exec('COMMIT');return out;}catch(e){db.exec('ROLLBACK');throw e;}};
   const get=(key,fallback)=>{const row=db.prepare('SELECT value FROM game_state WHERE key=?').get(key);return row?JSON.parse(row.value):fallback;};
   const put=(key,value)=>db.prepare('INSERT INTO game_state(key,value,updated_at) VALUES(?,?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value,updated_at=excluded.updated_at').run(key,JSON.stringify(value),now());
@@ -68,7 +69,7 @@ module.exports = function createGoldenbell({db,crypto,readBody,requireAuth,json,
     if(r.phase==='complete')return;
     const sorted=rankings(r),payouts=new Map(),active=sorted.filter(p=>!p.left);
     if(r.mode==='solo'){
-      const p=r.players[0];payouts.set(p.id,r.rewarded?p.correct*10000+(p.correct>=10?50000:0)+(p.correct>=20?100000:0)+(p.correct===r.total?500000:0):0);
+      const p=r.players[0];payouts.set(p.id,r.rewarded?p.correct*SOLO_REWARD.correct+(p.correct>=10?SOLO_REWARD.ten:0)+(p.correct>=20?SOLO_REWARD.twenty:0)+(p.correct===r.total?SOLO_REWARD.perfect:0):0);
     }else if(!active.length){r.players.forEach(p=>payouts.set(p.id,r.entry));}
     else{
       const weights=active.length===1?[100]:active.length===2?[70,30]:[60,30,10];
