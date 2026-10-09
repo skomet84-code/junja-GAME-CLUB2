@@ -69,7 +69,9 @@ async function load(url,{init=false,source='target'}={}){
     }
     process.stdout.write('null');
   }catch(e){
-    console.error(e.message);
+    console.error('[RAILWAY DB] Startup snapshot read failed:',e.message);
+    // A PostgreSQL outage is not an empty database. Block unsafe local-only launch.
+    process.exitCode=1;
     process.stdout.write('null');
   }
 })();
