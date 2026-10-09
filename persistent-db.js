@@ -76,7 +76,7 @@ function isRailwayPrivateUrl(url){
     // Only the new Railway private-network database is writable in recovery mode.
     // Never connect to or modify the original Render database.
     return /^postgres(?:ql)?:$/.test(u.protocol)
-      && /^[a-z0-9-]+\\.railway\\.internal$/i.test(u.hostname);
+      && /^[a-z0-9-]+\.railway\.internal$/i.test(u.hostname);
   }catch{return false;}
 }
 function hasRemote(){
