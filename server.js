@@ -11,7 +11,8 @@ const createTreasureRaid = require('./treasure-raid-server');
 
 const PORT = Number(process.env.PORT || 10000);
 const HOST = '0.0.0.0';
-const ADMIN_USERNAME = String(process.env.ADMIN_USERNAME || '').trim().toLowerCase();
+const ADMIN_USERNAME = String(process.env.ADMIN_USERNAME || 'admin_junja').trim().toLowerCase();
+const ADMIN_SETUP_HASH = 'dccc80e909dfac3f13c81387d82b712348f16a002c3e7b165c8ee3c51c1f4c88';
 const ADMIN_PASSWORD = String(process.env.ADMIN_PASSWORD || '');
 const ADMIN_NICKNAME = '갓준자';
 const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, 'data');
@@ -2059,6 +2060,32 @@ const server=http.createServer(async(req,res)=>{
     if(url.pathname.startsWith('/api/treasure-raid')){if(await treasureRaid.handle(req,res,url))return;}
     if(url.pathname.startsWith('/api/sichuan/battle')){if(await sichuanBattle.handle(req,res,url))return;}
     if(url.pathname==='/healthz')return json(res,200,{ok:true,rooms:rooms.size+baccaratRooms.size+sichuanBattle.roomCount()+treasureRaid.roomCount()+goldenbell.roomCount(),online:onlineCount()});
+    if(url.pathname==='/api/admin/claim'&&req.method==='POST'){
+      const caller=String(req.headers['x-forwarded-for']||req.socket.remoteAddress||'').split(',')[0].trim();
+      if(!rateLimit('admin-claim:'+caller,5,3600000))return json(res,429,{error:'관리자 개설 시도 횟수를 초과했습니다.'});
+      const b=await readBody(req),proof=String(b.setupCode||'').trim(),password=String(b.password||'');
+      const submitted=crypto.createHash('sha256').update(proof).digest(),expected=Buffer.from(ADMIN_SETUP_HASH,'hex');
+      if(!proof||!crypto.timingSafeEqual(submitted,expected))return json(res,403,{error:'관리자 개설 코드가 올바르지 않습니다.'});
+      if(password.length<12||password.length>72)return json(res,400,{error:'비밀번호는 12~72자로 설정하세요.'});
+      db.exec('BEGIN IMMEDIATE');
+      try{
+        // The claim is one-time: never promote a regular user or overwrite an existing administrator.
+        if(db.prepare('SELECT 1 FROM users WHERE username=?').get(ADMIN_USERNAME)||db.prepare('SELECT 1 FROM users WHERE is_admin=1 LIMIT 1').get()){
+          db.exec('ROLLBACK');
+          return json(res,409,{error:'관리자 계정이 이미 개설되어 있습니다.'});
+        }
+        const salt=randomToken(16),hash=hashPassword(password,salt),t=now();
+        let nickname=ADMIN_NICKNAME;
+        if(db.prepare('SELECT 1 FROM users WHERE nickname=?').get(nickname))nickname=(nickname+'J').slice(0,14);
+        const result=db.prepare('INSERT INTO users(username,pass_salt,pass_hash,nickname,balance,created_at,avatar,is_admin,is_disabled) VALUES(?,?,?,?,?,?,?,?,?)').run(ADMIN_USERNAME,salt,hash,nickname,1000000,t,3,1,0);
+        const uid=Number(result.lastInsertRowid);
+        db.prepare('INSERT INTO stats(user_id) VALUES(?)').run(uid);
+        db.prepare('INSERT INTO ledger(user_id,amount,balance_after,type,memo,created_at) VALUES(?,?,?,?,?,?)').run(uid,1000000,1000000,'admin_seed','일회용 코드로 인증된 운영자 개설',t);
+        db.exec('COMMIT');
+        console.log('[ADMIN] Junja Land verified admin claimed.');
+        return json(res,201,{ok:true,username:ADMIN_USERNAME});
+      }catch(e){try{db.exec('ROLLBACK')}catch{};throw e;}
+    }
     if(url.pathname==='/api/register'&&req.method==='POST'){
       const ip=req.socket.remoteAddress||'ip';if(!rateLimit('reg:'+ip,6,60000))return json(res,429,{error:'잠시 후 다시 시도하세요.'});
       const b=await readBody(req);const username=escText(b.username,20).toLowerCase(),nickname=escText(b.nickname,14),password=String(b.password||'');
