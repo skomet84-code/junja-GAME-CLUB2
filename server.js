@@ -527,7 +527,10 @@ function ensureAdminAccount(){
   const existing=db.prepare('SELECT * FROM users WHERE username=?').get(ADMIN_USERNAME);
   const salt=randomToken(16),hash=hashPassword(ADMIN_PASSWORD,salt),t=now();
   if(existing){
-    db.prepare('UPDATE users SET pass_salt=?,pass_hash=?,nickname=?,is_admin=1,is_disabled=0 WHERE id=?').run(salt,hash,ADMIN_NICKNAME,existing.id);
+    // A player who claimed the reserved username before setup must never
+    // acquire elevated privileges or have their password silently replaced.
+    if(Number(existing.is_admin)!==1)throw new Error('Admin name collision: refusing to promote an unverified player account.');
+    db.prepare('UPDATE users SET pass_salt=?,pass_hash=?,is_disabled=0 WHERE id=?').run(salt,hash,existing.id);
     console.log(`Admin account ready: ${ADMIN_USERNAME}`);
     return;
   }
@@ -2059,6 +2062,7 @@ const server=http.createServer(async(req,res)=>{
     if(url.pathname==='/api/register'&&req.method==='POST'){
       const ip=req.socket.remoteAddress||'ip';if(!rateLimit('reg:'+ip,6,60000))return json(res,429,{error:'잠시 후 다시 시도하세요.'});
       const b=await readBody(req);const username=escText(b.username,20).toLowerCase(),nickname=escText(b.nickname,14),password=String(b.password||'');
+      if(ADMIN_USERNAME&&username===ADMIN_USERNAME)return json(res,403,{error:'관리자 전용 계정입니다.'});
       if(!/^[a-z0-9_]{4,20}$/.test(username))return json(res,400,{error:'아이디는 영문 소문자/숫자/_ 4~20자로 입력하세요.'});
       if(nickname.length<2)return json(res,400,{error:'닉네임은 2자 이상 입력하세요.'});
       if(containsContactInfo(nickname))return json(res,400,{error:'닉네임에는 전화번호, 이메일, SNS ID, 링크 같은 개인정보를 사용할 수 없습니다.'});
