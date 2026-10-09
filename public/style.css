@@ -1444,3 +1444,7 @@ button:not(:disabled){touch-action:manipulation}
   .seven-multi-complete .seven-bottom-ready,.seven-multi-complete .seven-bottom-start{flex:1 1 42%;min-width:120px}
   .seven-auto-ready{flex:1 1 100%;justify-content:center}
 }
+
+/* Keep solo controls in document flow: mobile sticky repainting must not hide them. */
+#sevenPokerTable .seven-action-bar{position:relative;bottom:auto;flex-wrap:wrap}
+#sevenPokerTable .seven-action-bar.complete button{min-height:44px;flex:1 1 140px}
