@@ -23,6 +23,8 @@ function checkRules(){
  b=mustBoard([[3,7,1],[4,7,1],[5,7,1],[6,7,1],[7,6,1],[7,8,1]]);
  assert.equal(rules.place(b,7,7,1).win,true,'exact 5 wins before 3-3 test');
  assert.equal(rules.place(rules.fresh(),15,1,1).ok,false,'out of board');
+ b=mustBoard([[2,7,1],[3,7,1],[4,7,1],[5,7,1],[6,7,1],[7,3,1],[7,4,1],[7,5,1],[7,6,1]]);
+ assert.equal(rules.place(b,7,7,1).win,true,'exact 5 outranks simultaneous overline');
 }
 async function checkRooms(){
  const values=new Map();let time=1000000;
@@ -48,6 +50,7 @@ async function checkRooms(){
  r=await call(1,'POST',path+'/start');
  assert.equal(r.data.room.myTurn,true);
  assert.equal(r.data.room.myColor,1);
+ assert.match((await call(1,'POST',path+'/move',{x:6,y:7})).data.error,/중앙/,'first black move must be center');
  assert.equal((await call(2,'POST',path+'/move',{x:7,y:7})).status,409,'white cannot go first');
  assert.equal((await call(1,'POST',path+'/move',{x:7,y:7})).data.room.board[7][7],1);
  assert.equal((await call(2,'POST',path+'/move',{x:7,y:7})).status,409,'same square');
