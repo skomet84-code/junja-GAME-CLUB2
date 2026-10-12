@@ -113,7 +113,7 @@ function match(r){
  <div class="omk-side"><div class="omk-panel">${playerRow(r,1)}<div style="height:10px"></div>${playerRow(r,2)}</div>
  <div class="omk-clock" id="omkClockBox"><small>${end?'MATCH COMPLETE':'TURN CLOCK'}</small><b id="omkClock">${end?'종료':'90초'}</b></div>
  <div class="omk-status" role="status">${status(r)}</div><div class="omk-controls">
- ${end?btn('rematch',mine?.rematch?'상대의 재대결 신청 기다리는 중':'↻ 재대결 신청','',mine?.rematch?'disabled':''):btn('resign','기권하기','omk-danger')}
+ ${end?(r.players.length===2?btn('rematch',mine?.rematch?'상대의 재대결 신청 기다리는 중':'↻ 재대결 신청','',mine?.rematch?'disabled':''):'<small>상대방이 나갔습니다.</small>'):btn('resign','기권하기','omk-danger')}
  ${btn('leave',end?'대국방 나가기':'나가기 (기권)','omk-ghost')}</div>
  <div class="omk-guide"><strong>렌주 금수 규칙</strong><br>⚫ 흑: 정확히 5목 승리, 3-3·4-4·6목 이상 금지<br>⚪ 백: 5목 이상 승리 · 금수 없음<br>턴당 90초 · 서버에서 착수를 검증합니다.<br>새로고침해도 같은 대국에 복귀합니다.</div></div></div>`;
  tick();
