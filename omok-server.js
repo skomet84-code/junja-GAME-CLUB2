@@ -129,6 +129,7 @@ module.exports=function createOmok({db,crypto,readBody,requireAuth,json,rateLimi
         if(r.phase!=='playing')throw Error('이미 종료된 대국입니다.');
         if(r.colors[user.id]!==r.turn)throw Error('상대방 차례입니다.');
         const x=b.x,y=b.y;
+        if(r.moves===0&&(x!==7||y!==7))throw Error('첫 수는 오목판 중앙(8열 8행)에 놓아주세요.');
         const result=rules.place(r.board,x,y,r.turn);
         if(!result.ok)throw Error(result.error);
         r.last=[x,y];r.moves++;
