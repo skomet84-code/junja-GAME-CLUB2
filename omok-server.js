@@ -1,7 +1,10 @@
 'use strict';
 const rules=require('./omok-engine');
-module.exports=function createOmok({db,crypto,readBody,requireAuth,json,rateLimit,now=Date.now,isUserBusy=()=>false,notify=()=>{},setTimer=setTimeout,clearTimer=clearTimeout}){
+const {Worker}=require('node:worker_threads');
+const {selectMove}=require('./omok-ai');
+module.exports=function createOmok({db,crypto,readBody,requireAuth,json,rateLimit,now=Date.now,isUserBusy=()=>false,notify=()=>{},setTimer=setTimeout,clearTimer=clearTimeout,aiDecide=null}){
   const rooms=new Map(),timers=new Map();
+  const AI_ID=0,AI_NICKNAME='J-BOT · EXTREME';
   const TURN_MS=90000,WAIT_MS=30*60000,DONE_MS=15*60000;
   const getStats=id=>{
     const row=db.prepare('SELECT value FROM game_state WHERE key=?').get('omok:stats:'+id);
@@ -11,7 +14,24 @@ module.exports=function createOmok({db,crypto,readBody,requireAuth,json,rateLimi
     db.prepare('INSERT INTO game_state(key,value,updated_at) VALUES(?,?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value,updated_at=excluded.updated_at')
       .run('omok:stats:'+id,JSON.stringify(s),now());
   }
+  function aiStats(id){
+    const row=db.prepare('SELECT value FROM game_state WHERE key=?').get('omok:ai-stats:'+id);
+    return row?JSON.parse(row.value):{games:0,wins:0,losses:0,draws:0};
+  }
   function record(r,winner){
+    if(r.aiMode){
+      if(r.recorded)return;
+      const person=r.players.find(p=>p.id!==AI_ID);
+      if(!person)return;
+      const s=aiStats(person.id);s.games++;
+      if(winner==null)s.draws++;
+      else if(winner===person.id)s.wins++;
+      else s.losses++;
+      db.prepare('INSERT INTO game_state(key,value,updated_at) VALUES(?,?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value,updated_at=excluded.updated_at')
+        .run('omok:ai-stats:'+person.id,JSON.stringify(s),now());
+      r.recorded=true;
+      return;
+    }
     if(r.recorded||r.players.length!==2)return;
     r.recorded=true;
     for(const p of r.players){
@@ -29,7 +49,7 @@ module.exports=function createOmok({db,crypto,readBody,requireAuth,json,rateLimi
   function disarm(r){const timer=timers.get(r.id);if(timer)clearTimer(timer);timers.delete(r.id);}
   function finish(r,winner,reason,line=[]){
     if(r.phase!=='playing')return;
-    disarm(r);r.phase='complete';r.winner=winner;r.reason=reason;r.line=line;r.deadline=0;r.completedAt=now();
+    disarm(r);r.phase='complete';r.aiThinking=false;r.winner=winner;r.reason=reason;r.line=line;r.deadline=0;r.completedAt=now();
     record(r,winner);publish(r);
   }
   function expire(r){
@@ -54,11 +74,59 @@ module.exports=function createOmok({db,crypto,readBody,requireAuth,json,rateLimi
     }
   }
   function mine(id){cleanup();return [...rooms.values()].find(r=>r.players.some(p=>p.id===Number(id)))||null;}
+  function workerThink(board,color){
+    return new Promise((resolve,reject)=>{
+      const worker=new Worker(require.resolve('./omok-ai-worker.js'),{
+        workerData:{board,color,timeMs:1250},resourceLimits:{maxOldGenerationSizeMb:80}});
+      let done=false;
+      const timer=setTimeout(()=>{if(done)return;done=true;worker.terminate();reject(Error('AI search timed out'));},3500);
+      if(typeof timer.unref==='function')timer.unref();
+      const finish=(error,move)=>{
+        if(done)return;done=true;clearTimeout(timer);worker.terminate();
+        if(error)reject(error);else resolve(move);
+      };
+      worker.once('message',msg=>msg.error?finish(Error(msg.error)):finish(null,msg.move));
+      worker.once('error',err=>finish(err));
+      worker.once('exit',code=>{if(code!==0)finish(Error('AI worker exited: '+code));});
+    });
+  }
+  function queueAi(r){
+    if(!r.aiMode||r.phase!=='playing'||r.turn!==r.colors[AI_ID]||r.aiThinking)return;
+    r.aiThinking=true;disarm(r);r.deadline=0;publish(r);
+    const stamp=r.version;
+    const board=r.board.map(row=>row.slice()),color=r.turn;
+    Promise.resolve().then(()=>aiDecide?aiDecide(board,color):workerThink(board,color))
+      .catch(()=>selectMove(board,color,{timeMs:80}))
+      .then(move=>{
+        if(rooms.get(r.id)!==r||r.version!==stamp||r.phase!=='playing'||r.turn!==color)return;
+        const options=[move,...(function*(){
+          for(let y=0;y<15;y++)for(let x=0;x<15;x++)if(!r.board[y][x])yield {x,y};
+        })()];
+        let chosen=null,result;
+        for(const m of options){
+          if(!m||!Number.isInteger(m.x)||!Number.isInteger(m.y)||m.x<0||m.y<0||m.x>14||m.y>14)continue;
+          if(r.moves===0&&(m.x!==7||m.y!==7))continue;
+          const check=rules.place(r.board,m.x,m.y,color);
+          if(check.ok){chosen=m;result=check;break;}
+        }
+        r.aiThinking=false;
+        if(!chosen){finish(r,null,'무승부');return;}
+        r.last=[chosen.x,chosen.y];r.moves++;
+        if(result.win)finish(r,AI_ID,'AI 오목 완성',result.line);
+        else if(result.draw)finish(r,null,'무승부');
+        else {r.turn=3-color;arm(r);publish(r);}
+      }).catch(error=>{
+        // Never leave a user trapped in a stalled computer turn.
+        console.error('[OMOK AI]',error.message);
+        if(rooms.get(r.id)===r&&r.phase==='playing'&&r.turn===color){r.aiThinking=false;finish(r,r.players.find(p=>p.id!==AI_ID).id,'AI 연산 오류');}
+      });
+  }
   function pub(r,id){
     return {id:r.id,version:r.version,phase:r.phase,round:r.round,board:r.board,last:r.last,line:r.line,
       name:r.name,hostId:r.hostId,players:r.players.map(p=>({id:p.id,nickname:p.nickname,ready:p.ready,rematch:p.rematch,color:r.colors[p.id]||0})),
       selfId:Number(id),myColor:r.colors[id]||0,myTurn:r.phase==='playing'&&r.colors[id]===r.turn,
-      turn:r.turn,deadline:r.deadline,serverNow:now(),winner:r.winner,reason:r.reason,moves:r.moves};
+      turn:r.turn,deadline:r.deadline,serverNow:now(),winner:r.winner,reason:r.reason,moves:r.moves,
+      aiMode:!!r.aiMode,aiThinking:!!r.aiThinking};
   }
   function start(r,again=false){
     if(r.players.length!==2)throw Error('두 명이 모두 입장해야 합니다.');
@@ -69,10 +137,12 @@ module.exports=function createOmok({db,crypto,readBody,requireAuth,json,rateLimi
     r.colors[p1.id]=r.round%2===1?2:1;
     r.players.forEach(p=>{p.ready=false;p.rematch=false;});
     r.board=rules.fresh();r.last=null;r.line=[];r.moves=0;r.turn=1;r.winner=null;r.reason='';
-    r.phase='playing';r.recorded=false;arm(r);publish(r);
+    r.phase='playing';r.recorded=false;r.aiThinking=false;
+    if(r.aiMode&&r.colors[AI_ID]===r.turn)queueAi(r);
+    else {arm(r);publish(r);}
   }
   function list(){
-    return [...rooms.values()].filter(r=>r.phase==='waiting'&&r.players.length<2).map(r=>({
+    return [...rooms.values()].filter(r=>!r.aiMode&&r.phase==='waiting'&&r.players.length<2).map(r=>({
       id:r.id,name:r.name,host:r.players[0].nickname,players:r.players.length
     }));
   }
@@ -90,7 +160,18 @@ module.exports=function createOmok({db,crypto,readBody,requireAuth,json,rateLimi
           .map(row=>({...JSON.parse(row.value),id:Number(row.key.slice('omok:stats:'.length))}))
           .filter(s=>s.games>0).sort((a,b)=>b.wins-a.wins||b.bestStreak-a.bestStreak).slice(0,10)
           .map(s=>({...s,nickname:db.prepare('SELECT nickname FROM users WHERE id=?').get(s.id)?.nickname||'탈퇴 회원'}));
-        return reply(200,{room:r?pub(r,user.id):null,rooms:list(),stats:getStats(user.id),leaders});
+        return reply(200,{room:r?pub(r,user.id):null,rooms:list(),stats:getStats(user.id),aiStats:aiStats(user.id),leaders});
+      }
+      if(url.pathname==='/api/omok/create-ai'&&req.method==='POST'){
+        if(mine(user.id)||isUserBusy(user.id))throw Error('진행 중인 게임방에서 먼저 나와주세요.');
+        if(!rateLimit('omok-ai-create:'+user.id,10,60000))throw Error('AI 대국은 잠시 뒤 다시 시작해주세요.');
+        const id='OM'+crypto.randomBytes(7).toString('hex');
+        const room={id,name:'극한 AI 챌린지',hostId:user.id,
+          players:[{id:user.id,nickname:user.nickname,ready:true,rematch:false},{id:AI_ID,nickname:AI_NICKNAME,ready:true,rematch:false}],
+          colors:{},aiMode:true,aiThinking:false,phase:'waiting',round:0,board:rules.fresh(),last:null,line:[],
+          moves:0,turn:1,winner:null,reason:'',version:0,updated:now(),deadline:0,recorded:false};
+        rooms.set(id,room);start(room);
+        return reply(201,{room:pub(room,user.id)});
       }
       if(url.pathname==='/api/omok/create'&&req.method==='POST'){
         if(mine(user.id)||isUserBusy(user.id))throw Error('진행 중인 게임방에서 먼저 나와주세요.');
@@ -109,7 +190,7 @@ module.exports=function createOmok({db,crypto,readBody,requireAuth,json,rateLimi
       if(op==='join'&&req.method==='POST'){
         if(r.players.some(p=>p.id===user.id))return reply(200,{room:pub(r,user.id)});
         if(mine(user.id)||isUserBusy(user.id))throw Error('다른 게임방에서 먼저 나와주세요.');
-        if(r.phase!=='waiting'||r.players.length!==1)throw Error('이미 시작됐거나 가득 찬 방입니다.');
+        if(r.aiMode||r.phase!=='waiting'||r.players.length!==1)throw Error('이미 시작됐거나 가득 찬 방입니다.');
         r.players.push({id:user.id,nickname:user.nickname,ready:false,rematch:false});
         publish(r);return reply(200,{room:pub(r,user.id)});
       }
@@ -135,12 +216,13 @@ module.exports=function createOmok({db,crypto,readBody,requireAuth,json,rateLimi
         r.last=[x,y];r.moves++;
         if(result.win)finish(r,user.id,'오목 완성',result.line);
         else if(result.draw)finish(r,null,'무승부');
-        else {r.turn=r.turn===1?2:1;arm(r);publish(r);}
+        else {r.turn=r.turn===1?2:1;if(r.aiMode)queueAi(r);else {arm(r);publish(r);}}
       }else if(op==='resign'){
         if(r.phase!=='playing')throw Error('대국 중에만 기권할 수 있습니다.');
         finish(r,r.players.find(x=>x.id!==user.id).id,'기권');
       }else if(op==='rematch'){
         if(r.phase!=='complete'||r.players.length!==2)throw Error('재대결을 진행할 수 없습니다.');
+        if(r.aiMode){start(r,true);return reply(200,{room:pub(r,user.id)});}
         p.rematch=true;
         if(r.players.every(x=>x.rematch))start(r,true);else publish(r);
       }else if(op==='leave'){
