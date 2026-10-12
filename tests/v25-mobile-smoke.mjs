@@ -47,6 +47,18 @@ for (const [name,engine] of engines) {
   await page.waitForSelector('#view-yut.active');
   await page.click('[data-mode-game="yut"][data-mode="solo"]');
   await page.fill('#soloYutBet','200000');
+  const yutHitbox=await page.evaluate(()=>{
+    const ids=['#yutSoloStart','#soloYutBet','#startSoloYut','.solo-start-action','.solo-bet-row'];
+    const rects=Object.fromEntries(ids.map(id=>{
+      const el=document.querySelector(id);const b=el?.getBoundingClientRect();
+      return [id,b?{x:b.x,y:b.y,w:b.width,h:b.height,computed:{display:getComputedStyle(el).display,position:getComputedStyle(el).position,zIndex:getComputedStyle(el).zIndex}}:null];
+    }));
+    const b=document.querySelector('#startSoloYut')?.getBoundingClientRect();
+    const at=b?document.elementFromPoint(b.x+b.width/2,b.y+b.height/2):null;
+    return {rects,at:at?.outerHTML.slice(0,160),viewport:[innerWidth,innerHeight],scroll:[scrollX,scrollY],styles:[...document.styleSheets].map(s=>s.href).filter(Boolean)};
+  });
+  console.log('YUT_BUTTON_HITBOX '+name+' '+JSON.stringify(yutHitbox));
+  await page.screenshot({path:'/tmp/junja-v25-yut-layout-'+name+'.png'});
   await page.click('#startSoloYut');
   await page.waitForSelector('#yutSoloRoom:not(.hidden)',{timeout:8000});
   await page.waitForSelector('#yutSoloRoom .true-yut-board',{timeout:5000});
