@@ -16,23 +16,34 @@ const originalReadFileSync = fs.readFileSync.bind(fs);
 const poolInitAnchor = "if(gameStateGet('slot_jackpot_pool',null)==null)gameStateSet('slot_jackpot_pool',SLOT_JACKPOT_BASE);";
 const eventStatePatch = `${poolInitAnchor}\n\nconst TEMP_SLOT_777_EVENT_KEY='slot_777_event_20260920_5pct_restart';\nif(gameStateGet(TEMP_SLOT_777_EVENT_KEY,null)==null){\n  gameStateSet(TEMP_SLOT_777_EVENT_KEY,{active:true,startedAt:Date.now(),targetPct:5});\n}\nfunction tempSlot777EventActive(){\n  const state=gameStateGet(TEMP_SLOT_777_EVENT_KEY,null);\n  return state===true||!!state?.active;\n}`;
 
-const oldGridBuild = "      const grid=Array.from({length:3},()=>Array.from({length:3},()=>pick()));";
-const temporaryGridBuild = `      // TEMP EVENT: exactly 5% total 777 jackpot chance until first winner.
-      const sevenEventActive=tempSlot777EventActive();
-      const hasSevenPayline=(g)=>SLOT_LINES.some(line=>line.cells.every(([r,c])=>g[r][c]==='7️⃣'));
-      const forceSevenJackpot=sevenEventActive&&crypto.randomInt(1000000)<50000;
-      let grid;
-      if(forceSevenJackpot){
-        grid=Array.from({length:3},()=>Array.from({length:3},()=>pick()));
-        grid[1][0]='7️⃣';grid[1][1]='7️⃣';grid[1][2]='7️⃣';
-      }else if(sevenEventActive){
-        do{grid=Array.from({length:3},()=>Array.from({length:3},()=>pick()));}while(hasSevenPayline(grid));
-      }else{
-        grid=Array.from({length:3},()=>Array.from({length:3},()=>pick()));
+const modernGridBuild = `      let grid=Array.from({length:3},()=>Array.from({length:3},()=>pick()));
+      const slot777EventTriggered=slot777EventActive()&&(crypto.randomInt(1000000)/1000000)<SLOT_777_EVENT_CHANCE;
+      if(slot777EventTriggered){
+        const eventLine=SLOT_LINES[crypto.randomInt(SLOT_LINES.length)];
+        for(const [r,c] of eventLine.cells)grid[r][c]='7️⃣';
       }`;
-
+const temporaryGridBuild = `      // Legacy temporary 5% event, adapted to the current native slot engine.
+      // The active flag and normal slot bet boosts still use the native engine
+      // after the temporary event's first confirmed jackpot.
+      const temporaryFiveActive=tempSlot777EventActive();
+      const slot777EventTriggered=temporaryFiveActive
+        ?crypto.randomInt(1000000)<50000
+        :slot777EventActive()&&(crypto.randomInt(1000000)/1000000)<SLOT_777_EVENT_CHANCE;
+      let grid=Array.from({length:3},()=>Array.from({length:3},()=>pick()));
+      if(temporaryFiveActive&&!slot777EventTriggered){
+        // Avoid accidental 777 wins on untriggered temporary-event spins.
+        const has777=g=>SLOT_LINES.some(line=>line.cells.every(([r,c])=>g[r][c]==='7️⃣'));
+        while(has777(grid))grid=Array.from({length:3},()=>Array.from({length:3},()=>pick()));
+      }
+      if(slot777EventTriggered){
+        const eventLine=SLOT_LINES[crypto.randomInt(SLOT_LINES.length)];
+        for(const [r,c] of eventLine.cells)grid[r][c]='7️⃣';
+      }`;
 const sevenJackpotAnchor = "      const sevenJackpot=winLines.some(w=>!w.scatter&&w.symbols?.[0]==='7️⃣');";
-const autoRestorePatch = `${sevenJackpotAnchor}\n      if(sevenJackpot&&sevenEventActive){\n        gameStateSet(TEMP_SLOT_777_EVENT_KEY,{active:false,startedAt:gameStateGet(TEMP_SLOT_777_EVENT_KEY,{})?.startedAt||null,endedAt:Date.now(),targetPct:5,winnerUserId:u.id,winnerNickname:u.nickname||null});\n      }`;
+const autoRestorePatch = `${sevenJackpotAnchor}
+      if(sevenJackpot&&temporaryFiveActive){
+        gameStateSet(TEMP_SLOT_777_EVENT_KEY,{active:false,startedAt:gameStateGet(TEMP_SLOT_777_EVENT_KEY,{})?.startedAt||null,endedAt:Date.now(),targetPct:5,winnerUserId:u.id,winnerNickname:u.nickname||null});
+      }`;
 
 fs.readFileSync = function temporarySlotOddsRead(filePath, ...args) {
   const result = originalReadFileSync(filePath, ...args);
@@ -43,7 +54,7 @@ fs.readFileSync = function temporarySlotOddsRead(filePath, ...args) {
   if (!source.includes(poolInitAnchor)) {
     throw new Error('[JUNJA SLOT TEMP] jackpot pool anchor not found; refusing unsafe startup');
   }
-  if (!source.includes(oldGridBuild)) {
+  if (!source.includes(modernGridBuild)) {
     throw new Error('[JUNJA SLOT TEMP] slot grid target not found; refusing unsafe startup');
   }
   if (!source.includes(sevenJackpotAnchor)) {
@@ -51,7 +62,7 @@ fs.readFileSync = function temporarySlotOddsRead(filePath, ...args) {
   }
 
   source = source.replace(poolInitAnchor, eventStatePatch);
-  source = source.replace(oldGridBuild, temporaryGridBuild);
+  source = source.replace(modernGridBuild, temporaryGridBuild);
   source = source.replace(sevenJackpotAnchor, autoRestorePatch);
   return isBuffer ? Buffer.from(source, 'utf8') : source;
 };
