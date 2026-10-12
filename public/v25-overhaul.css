@@ -39,3 +39,17 @@ body.junja-v25{background:#06080d;overflow-x:hidden}.junja-v25 main{position:rel
 /* Keep the Yut AI action on its own row: never overlay the wager input on mobile. */
 #view-yut #yutSoloStart .solo-start-action{display:block;position:relative;isolation:isolate;z-index:40;clear:both;width:100%;margin-top:16px;min-height:50px}
 #view-yut #yutSoloStart .solo-start-action>#startSoloYut{position:relative;display:block;z-index:2;width:100%;min-height:50px;margin:0;transform:none;pointer-events:auto;touch-action:manipulation}
+
+/* Prevent 390px Safari/WebKit lobby from widening to fit header/hero buttons. */
+@media(max-width:620px){
+  .junja-v25 .topbar{box-sizing:border-box;width:100%;max-width:100vw;height:auto;min-height:62px;flex-wrap:wrap;gap:7px;padding:9px 10px}
+  .junja-v25 .topbar>*{min-width:0}
+  .junja-v25 .topbar .wallet-pill{min-width:0;max-width:55%;margin-left:auto}
+  .junja-v25 .topbar #profileBtn{min-width:0;max-width:48%;flex:0 1 auto}
+  .junja-v25 .topbar #profileBtn #nickName{display:block;min-width:0;max-width:72px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .junja-v25 #view-lobby .hero{display:block;position:relative;overflow:hidden}
+  .junja-v25 #view-lobby .hero-copy{position:relative;z-index:2;min-width:0;width:100%;max-width:100%}
+  .junja-v25 #view-lobby .hero-character{position:absolute;right:0;top:0;width:52%;height:100%;opacity:.22;pointer-events:none}
+  .junja-v25 #view-lobby .hero-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));width:100%;max-width:100%;gap:8px}
+  .junja-v25 #view-lobby .hero-actions>button{min-width:0;max-width:100%;width:100%;white-space:normal;overflow-wrap:anywhere;padding:9px 5px;font-size:11px;line-height:1.3}
+}
