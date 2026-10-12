@@ -724,7 +724,7 @@ const SOCIAL_RANKS = [
   {level:9,name:'왕',icon:'♔',cost:30000000000000,className:'king'},
   {level:10,name:'황제',icon:'🏰',cost:100000000000000,className:'emperor'},
   {level:11,name:'JUNJA ROYAL',icon:'J',cost:300000000000000,className:'royal'},
-  {level:12,name:'GOD JUNJA',icon:'G',cost:1000000000000000,className:'god'}
+  {level:12,name:'GOD JUNJA',icon:'G',cost:10000000000000000,className:'god'}
 ];
 function socialRankPerks(level){
   level=Math.max(0,Math.min(SOCIAL_RANKS.length-1,Number(level)||0));
@@ -771,17 +771,21 @@ function socialRankPublic(userId){
 function promoteSocialRank(userId){
   db.exec('BEGIN IMMEDIATE');
   try{
-    const u=db.prepare('SELECT CAST(balance AS TEXT) AS balance,rank_level FROM users WHERE id=?').get(userId);
+    const u=db.prepare('SELECT balance,balance_exact,balance_base,rank_level FROM users WHERE id=?').get(userId);
     if(!u)throw new Error('사용자를 찾을 수 없습니다.');
     const level=Math.max(0,Math.min(SOCIAL_RANKS.length-1,Number(u.rank_level||0)));
     const next=SOCIAL_RANKS[level+1];
     if(!next)throw new Error('이미 GOD JUNJA 최고 신분입니다.');
-    if(BigInt(u.balance)<BigInt(next.cost))throw new Error(`신분 상승에 ${formatMoney(next.cost)} G가 필요합니다.`);
-    const balance=BigInt(u.balance)-BigInt(next.cost),t=now();
-    db.prepare('UPDATE users SET balance=?,rank_level=? WHERE id=?').run(balance,next.level,userId);
-    db.prepare('INSERT INTO ledger(user_id,amount,balance_after,type,memo,created_at) VALUES(?,?,?,?,?,?)').run(userId,-next.cost,balance,'rank_promotion',`신분 상승 · ${next.name}`,t);
+    // Keep rank purchases on the same exact-integer wallet path as the rest of JUNJA LAND.
+    const current=exactWallet.read(u),cost=BigInt(next.cost);
+    if(current<cost)throw new Error(`신분 상승에 ${formatMoney(next.cost)} G가 필요합니다.`);
+    const balance=current-cost,mirror=exactWallet.mirror(balance),t=now();
+    db.prepare('UPDATE users SET balance=?,balance_exact=?,balance_base=?,rank_level=? WHERE id=?')
+      .run(mirror,String(balance),String(mirror),next.level,userId);
+    db.prepare('INSERT INTO ledger(user_id,amount,balance_after,amount_exact,balance_after_exact,type,memo,created_at) VALUES(?,?,?,?,?,?,?,?)')
+      .run(userId,exactWallet.mirror(-cost),mirror,String(-cost),String(balance),'rank_promotion',`신분 상승 · ${next.name}`,t);
     db.exec('COMMIT');
-    return {balance:balance<=BigInt(Number.MAX_SAFE_INTEGER)?Number(balance):String(balance),rank:socialRankPublic(userId)};
+    return {balance:exactWallet.output(balance),rank:socialRankPublic(userId)};
   }catch(e){try{db.exec('ROLLBACK')}catch{};throw e;}
 }
 
