@@ -39,7 +39,7 @@ for (const [name,engine] of engines) {
   const slotMax=await page.getAttribute('#slotBetInput','max');
   if(slotValue!=='200000')throw new Error(`${name} slot wager re-clamped to ${slotValue}`);
   // The raw HTML has a safe fallback cap; live UI removes it after initialization.
-  if(slotMax!==null)throw new Error(`${name} slot max attribute still present: ${slotMax}`);
+  if(slotMax!=='1000000000')throw new Error(`${name} default-rank slot input limit mismatch: ${slotMax}`);
   await page.evaluate(()=>go('yut'));
   await page.waitForSelector('#view-yut.active');
   await page.click('[data-mode-game="yut"][data-mode="solo"]');
