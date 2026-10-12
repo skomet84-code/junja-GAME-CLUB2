@@ -75,7 +75,7 @@ function home(){
 }
 function waiting(r){
  const mine=r.players.find(p=>p.id===r.selfId),canStart=r.players.length===2&&r.players.every(p=>p.ready);
- root.innerHTML=`<section class="omk-panel omk-waiting"><span class="omk-badge">WAITING FOR A RIVAL</span><h2>${esc(r.name)}</h2><p>두 사람 모두 준비하면 방장이 대국을 시작할 수 있어요.</p>
+ root.innerHTML=`<section class="omk-panel omk-waiting"><span class="omk-badge">WAITING FOR A RIVAL</span><h2>${esc(r.name)}</h2><p>두 사람 모두 준비하면 방장이 대국을 시작할 수 있어요. 첫 수는 중앙입니다.</p>
  <div class="omk-players-ready">${[0,1].map(i=>{const p=r.players[i];return `<div><b>${i===0?'⚫':'⚪'} ${esc(p?.nickname||'친구 기다리는 중')}</b><small>${p?(p.ready?'✓ 준비 완료':'준비 중'):'초대 링크를 친구에게 전송하세요'}</small></div>`;}).join('')}</div>
  <div class="omk-controls">${btn('invite','🔗 방 초대 링크 복사','omk-secondary')}
  ${btn('ready',mine?.ready?'준비 취소':'✓ 대국 준비하기')}
@@ -95,13 +95,13 @@ function board(r){
   const star=[3,7,11].includes(x)&&[3,7,11].includes(y);
   return `<button role="gridcell" type="button" class="omk-point ${star?'star':''} ${x===lx&&y===ly?'last':''} ${wins.has(y*15+x)?'winning':''}"
    data-action="move" data-x="${x}" data-y="${y}" aria-label="${x+1}열 ${y+1}행 ${value?label(value)+'돌':'빈 자리'}"
-   ${!r.myTurn||r.phase!=='playing'||value?'disabled':''}>${value?`<span class="omk-stone ${value===1?'black':'white'}"></span>`:''}</button>`;
+   ${!r.myTurn||r.phase!=='playing'||value||(r.moves===0&&(x!==7||y!==7))?'disabled':''}>${value?`<span class="omk-stone ${value===1?'black':'white'}"></span>`:''}</button>`;
  }).join('')).join('');
  return `<div class="omk-board-wrap"><div class="omk-board" role="grid" aria-label="15줄 오목판">${cells}</div>
   <div class="omk-board-caption"><span>15 × 15 · 렌주룰</span><span>${r.moves}수 진행 · ${r.round}국</span></div></div>`;
 }
 function status(r){
- if(r.phase!=='complete')return r.myTurn?'🎯 내 차례! 교차점에 돌을 놓아주세요.':'⏳ 상대방이 착수 중입니다.';
+ if(r.phase!=='complete')return r.myTurn?(r.moves===0?'🎯 첫 수는 중앙(8열 8행)에 놓아주세요.':'🎯 내 차례! 교차점에 돌을 놓아주세요.'):'⏳ 상대방이 착수 중입니다.';
  if(r.winner==null)return '🤝 무승부 · 다음 대국에서 승부를 가려보세요.';
  const p=r.players.find(x=>x.id===r.winner);
  return (r.winner===r.selfId?'🏆 승리!':'상대 승리 ·')+' '+esc(p?.nickname||'')+' · '+esc(r.reason);
@@ -115,7 +115,7 @@ function match(r){
  <div class="omk-status" role="status">${status(r)}</div><div class="omk-controls">
  ${end?(r.players.length===2?btn('rematch',mine?.rematch?'상대의 재대결 신청 기다리는 중':'↻ 재대결 신청','',mine?.rematch?'disabled':''):'<small>상대방이 나갔습니다.</small>'):btn('resign','기권하기','omk-danger')}
  ${btn('leave',end?'대국방 나가기':'나가기 (기권)','omk-ghost')}</div>
- <div class="omk-guide"><strong>렌주 금수 규칙</strong><br>⚫ 흑: 정확히 5목 승리, 3-3·4-4·6목 이상 금지<br>⚪ 백: 5목 이상 승리 · 금수 없음<br>턴당 90초 · 서버에서 착수를 검증합니다.<br>새로고침해도 같은 대국에 복귀합니다.</div></div></div>`;
+ <div class="omk-guide"><strong>렌주 금수 규칙</strong><br>⚫ 흑: 정확히 5목 승리, 3-3·4-4·6목 이상 금지<br>⚪ 백: 5목 이상 승리 · 금수 없음<br>첫 수는 중앙 화점 · 턴당 90초 · 서버에서 착수를 검증합니다.<br>새로고침해도 같은 대국에 복귀합니다.</div></div></div>`;
  tick();
 }
 function render(){if(state.room){state.room.phase==='waiting'?waiting(state.room):match(state.room);}else home();}
