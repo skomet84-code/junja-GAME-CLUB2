@@ -2,7 +2,7 @@ name: JUNJA LAND v2.5 Check
 
 on:
   pull_request:
-    branches: [main]
+    branches: [main, railway-recovery]
   push:
     branches: [feature/v2.5-land-overhaul]
 
