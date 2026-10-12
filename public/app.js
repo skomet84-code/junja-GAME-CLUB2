@@ -573,6 +573,8 @@ async function resumeMyRoom(){
     const d=await api('/api/my-room');
     if(!d.room){if(currentRoomId)finishRoomExit();return;}
     const room=d.room;
+    // Omok owns a dedicated responsive board and preserves the logged-in session.
+    if(room.game==='omok'){window.location.assign('/omok/index.html');return;}
     // Treasure Raid owns its room state and settlement UI separately.
     if(room.game==='goldenbell'){
       currentRoomId=null;currentGame=null;lastRoomVersion=-1;stopRoomPolling();await go('goldenbell');
