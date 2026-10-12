@@ -2,3 +2,12 @@
 @media(max-width:850px){.omk-home-grid,.omk-room-layout{grid-template-columns:1fr}.omk-home-grid .omk-panel:first-child{grid-row:auto}.omk-room-layout{gap:12px}.omk-board-wrap{max-width:670px;margin:0 auto;width:100%}.omk-side{grid-template-columns:1fr 1fr}.omk-side .omk-guide,.omk-side .omk-controls{grid-column:1/-1}.omk-panel{padding:20px}}
 @media(max-width:480px){.omk-page{padding:12px 10px 35px}.omk-nav{padding:15px 12px}.omk-live{font-size:8px;letter-spacing:0}.omk-brand{font-size:14px;letter-spacing:0}.omk-back{font-size:11px}.omk-hero{padding:20px 0 17px}.omk-hero h1{letter-spacing:-2px}.omk-hero p{font-size:12px}.omk-tags span{font-size:9px;padding:6px 7px}.omk-panel{padding:16px;border-radius:15px}.omk-board-wrap{padding:7px;border-radius:10px}.omk-board{border-width:3px}.omk-player{padding:10px;gap:7px}.omk-player b{font-size:12px}.omk-player small{font-size:10px}.omk-clock{padding:10px}.omk-clock b{font-size:26px}.omk-footer{font-size:9px;letter-spacing:0;flex-wrap:wrap}.omk-players-ready{gap:7px}.omk-players-ready div{padding:12px}}
 @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
+/* Solo AI challenge */
+.omk-ai-challenge{background:radial-gradient(ellipse at 0% 0%,#b8874329,transparent 65%),linear-gradient(145deg,#292638,#141923);border-color:#ebc1736b;display:flex;flex-direction:column;justify-content:center}
+.omk-ai-challenge h2{color:#f8dfad;font-size:23px}
+.omk-ai-challenge .omk-btn{width:100%;margin-top:12px;min-height:55px;font-size:15px}
+.omk-ai-stats{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin:16px 0 10px;color:#bfc8d5;font-size:12px}
+.omk-ai-stats span{padding:8px 11px;background:#ffffff0a;border-radius:9px}
+.omk-ai-stats b{color:#f6d58b}
+.omk-ai-pill{display:inline-flex;align-items:center;border:1px solid #f2d08377;border-radius:999px;padding:9px 13px;color:#ffdc98;background:#a9762628;font-size:12px;font-weight:900;letter-spacing:.06em}
+@media(max-width:480px){.omk-ai-stats{font-size:11px}.omk-ai-challenge h2{font-size:19px}}
