@@ -1,5 +1,13 @@
 (()=>{'use strict';
-const fmt=n=>{n=Number(n||0);if(n>=1e12&&n%1e12===0)return (n/1e12).toLocaleString('ko-KR')+'조';if(n>=1e8&&n%1e8===0)return (n/1e8).toLocaleString('ko-KR')+'억';return new Intl.NumberFormat('ko-KR').format(n);};
+const fmt=n=>{
+ try{
+  const v=BigInt(String(n??0)),negative=v<0n,abs=negative?-v:v,sign=negative?'-':'';
+  for(const [unit,multiple] of [['경',10000000000000000n],['조',1000000000000n],['억',100000000n]]){
+   if(abs>=multiple&&abs%multiple===0n)return sign+(abs/multiple).toLocaleString('ko-KR')+unit;
+  }
+  return sign+abs.toLocaleString('ko-KR');
+ }catch{return new Intl.NumberFormat('ko-KR').format(Number(n)||0);}
+};
 let state=null;
 function toast(msg){const el=document.getElementById('toast');if(el){el.textContent=msg;el.classList.add('show');setTimeout(()=>el.classList.remove('show'),3200)}else alert(msg)}
 async function api(path,opt={}){if(typeof window.api==='function')return window.api(path,opt);const r=await fetch(path,{credentials:'same-origin',headers:{'Content-Type':'application/json'},...opt});const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error||'요청 실패');return d}
@@ -23,7 +31,7 @@ function render(d){
  decorate(u);
 }
 async function openRank(){ensure();const m=document.getElementById('rankModal');m.classList.remove('hidden');document.getElementById('rankContent').innerHTML='<div class="rank-loading">신분 정보를 불러오는 중...</div>';try{render(await api('/api/rank'))}catch(e){document.getElementById('rankContent').innerHTML='<div class="rank-loading">'+e.message+'</div>'}}
-async function promote(){const b=document.getElementById('rankPromote');if(!b)return;const name=state?.rank?.next?.name||'다음 신분';const cost=state?.rank?.next?.cost||0;if(Number(state?.user?.balance||0)<Number(cost)){toast('보유머니가 부족합니다. 필요 금액: '+fmt(cost)+' G');return;}b.disabled=true;try{const d=await api('/api/rank/promote',{method:'POST',body:'{}'});promotionFX(d.rank);const fresh=await api('/api/rank');render(fresh);toast('👑 '+d.rank.name+' 신분으로 상승!');document.getElementById('walletBalance')&&(document.getElementById('walletBalance').textContent=fmt(d.user.balance)+' G')}catch(e){toast(e.message)}finally{b.disabled=false}}
+async function promote(){const b=document.getElementById('rankPromote');if(!b)return;const name=state?.rank?.next?.name||'다음 신분';const cost=state?.rank?.next?.cost||0;if(BigInt(String(state?.user?.balance??0))<BigInt(String(cost))){toast('보유머니가 부족합니다. 필요 금액: '+fmt(cost)+' G');return;}b.disabled=true;try{const d=await api('/api/rank/promote',{method:'POST',body:'{}'});promotionFX(d.rank);const fresh=await api('/api/rank');render(fresh);toast('👑 '+d.rank.name+' 신분으로 상승!');document.getElementById('walletBalance')&&(document.getElementById('walletBalance').textContent=fmt(d.user.balance)+' G')}catch(e){toast(e.message)}finally{b.disabled=false}}
 function promotionFX(r){const fx=document.createElement('div');fx.className='rank-up-fx rank-'+r.className;fx.innerHTML='<div><span>'+rankMark(r)+'</span><small>'+(r.className==='god'?'FINAL ASCENSION':'신분 상승!')+'</small><b>'+r.name+'</b><em>'+(r.className==='god'?'OMNIPOTENT · ABSOLUTE STATUS':'JUNJA STATUS UPGRADE')+'</em></div>';document.body.appendChild(fx);setTimeout(()=>fx.remove(),r.className==='god'?4200:2800)}
 function decorate(u){if(!u?.rank)return;const nick=document.getElementById('nickName');if(nick){nick.dataset.rank=u.rank.name;nick.classList.add('rank-name');nick.setAttribute('data-rank-icon',u.rank.icon)}document.body.dataset.socialRank=u.rank.className}
 function boot(){ensure();if(typeof me!=='undefined')decorate(me)}
