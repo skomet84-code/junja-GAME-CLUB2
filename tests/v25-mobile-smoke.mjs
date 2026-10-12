@@ -61,3 +61,6 @@ for (const [name,engine] of engines) {
   await browser.close();
   console.log(`PASS ${name}`);
 }
+
+// Also run a real two-account Omok match on both mobile browser engines.
+await import('./omok-mobile-smoke.mjs');
