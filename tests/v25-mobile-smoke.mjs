@@ -1,6 +1,7 @@
 import { chromium, webkit } from 'playwright';
 
 const base = process.env.BASE_URL || 'http://127.0.0.1:18080';
+await import('./omok-mobile-smoke.mjs');
 const engines = [['chromium',chromium],['webkit',webkit]];
 const games = ['slot','holdem','sevenpoker','baccarat','yut','seotda','gostop','horse','bigwheel','sicbo','roulette'];
 
@@ -63,4 +64,4 @@ for (const [name,engine] of engines) {
 }
 
 // Also run a real two-account Omok match on both mobile browser engines.
-await import('./omok-mobile-smoke.mjs');
+
