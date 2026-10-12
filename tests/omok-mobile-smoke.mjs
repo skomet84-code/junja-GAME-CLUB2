@@ -62,5 +62,15 @@ for(const [browserName,engine] of [['chromium',chromium],['webkit',webkit]]){
   if(color!==2)throw Error('black/white rematch not swapped');
   await b.waitForSelector('.omk-board .omk-point[data-x="7"][data-y="7"]:not([disabled])',{timeout:15000});
   console.log('OMOK_MOBILE_OK '+browserName+' head-to-head moves, UI events, resign and swapped-color rematch');
+  a.once('dialog',dialog=>dialog.accept());
+  await a.click('[data-action="leave"]');
+  await a.waitForSelector('#omkCreateForm',{timeout:12000});
+  await a.click('[data-action="create-ai"]');
+  await a.waitForSelector('.omk-board .omk-point',{timeout:12000});
+  await a.click('.omk-point[data-x="7"][data-y="7"]');
+  await a.waitForSelector('.omk-board .omk-stone.white',{timeout:20000});
+  const solo=await a.evaluate(async()=>{const r=await fetch('/api/omok');return (await r.json()).room;});
+  if(!solo.aiMode||solo.moves!==2||solo.myColor!==1||solo.aiThinking)throw Error('extreme solo AI move not reflected');
+  console.log('OMOK_EXTREME_MOBILE_OK '+browserName+' solo AI challenge and server reply');
  }finally{await browser.close();}
 }
