@@ -22,7 +22,16 @@ for (const [name,engine] of engines) {
   await page.waitForSelector('#mainApp:not(.hidden)',{timeout:10000});
   await page.waitForFunction(()=>document.body.classList.contains('junja-v25'),null,{timeout:5000});
   const overflow=await page.evaluate(()=>document.documentElement.scrollWidth-window.innerWidth);
-  if(overflow>4)throw new Error(`${name} lobby horizontal overflow ${overflow}px`);
+  if(overflow>4){
+    const offenders=await page.evaluate(()=>({
+      width:window.innerWidth,client:document.documentElement.clientWidth,scroll:document.documentElement.scrollWidth,
+      nodes:[...document.querySelectorAll('body *')].filter(el=>{
+        const r=el.getBoundingClientRect();
+        return r.width>4&&(r.right>window.innerWidth+4||r.left< -4);
+      }).map(el=>{const r=el.getBoundingClientRect();return {tag:el.tagName,selector:el.id?'#'+el.id:el.className?.toString().slice(0,80)||'',x:Math.round(r.left),right:Math.round(r.right),width:Math.round(r.width)}}).slice(0,35)
+    }));
+    throw new Error(`${name} lobby horizontal overflow ${overflow}px ${JSON.stringify(offenders)}`);
+  }
   for(const game of games){
     await page.click(`[data-go="${game}"]`);
     await page.waitForSelector(`#view-${game}.active`,{timeout:5000});
