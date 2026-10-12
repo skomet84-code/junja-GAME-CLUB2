@@ -38,8 +38,11 @@ for (const [name,engine] of engines) {
   const slotValue=await page.inputValue('#slotBetInput');
   const slotMax=await page.getAttribute('#slotBetInput','max');
   if(slotValue!=='200000')throw new Error(`${name} slot wager re-clamped to ${slotValue}`);
-  // The raw HTML has a safe fallback cap; live UI removes it after initialization.
-  if(slotMax!==null)throw new Error(`${name} slot max must be removed after UI initialization: ${slotMax}`);
+  // The v25 legacy decorator asynchronously removes input max; the game logic
+  // itself is authoritative. Either DOM representation is safe for base ranks.
+  const effectiveSlotCap=await page.evaluate(()=>typeof slotBetCap==='function'?slotBetCap():null);
+  if(effectiveSlotCap!==1000000000)throw new Error(`${name} normal rank slot cap mismatch: ${effectiveSlotCap}`);
+  if(slotMax!==null&&slotMax!=='1000000000')throw new Error(`${name} invalid slot input max: ${slotMax}`);
   await page.evaluate(()=>go('yut'));
   await page.waitForSelector('#view-yut.active');
   await page.click('[data-mode-game="yut"][data-mode="solo"]');
