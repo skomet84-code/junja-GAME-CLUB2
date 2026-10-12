@@ -4,7 +4,7 @@ on:
   pull_request:
     branches: [main, railway-recovery]
   push:
-    branches: [feature/v2.5-land-overhaul]
+    branches: [feature/v2.5-land-overhaul, feature/omok-railway-production]
 
 jobs:
   runtime-smoke:
