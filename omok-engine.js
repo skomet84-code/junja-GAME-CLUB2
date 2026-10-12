@@ -62,9 +62,10 @@ function place(b,x,y,color){
   if(!inside(x,y)||![1,2].includes(color))return {ok:false,error:'착수 위치가 올바르지 않습니다.'};
   if(b[y][x]!==0)return {ok:false,error:'이미 돌이 놓인 자리입니다.'};
   b[y][x]=color;
-  if(color===1&&overline(b,x,y)){b[y][x]=0;return {ok:false,error:'흑돌 장목(6목 이상)은 금수입니다.'};}
+  // RIF Renju rule 9.2: a simultaneous exact-five claim takes precedence.
   const line=winningLine(b,x,y,color);
   if(line)return {ok:true,win:true,line};
+  if(color===1&&overline(b,x,y)){b[y][x]=0;return {ok:false,error:'흑돌 장목(6목 이상)은 금수입니다.'};}
   if(color===1){
     if(fourGroups(b,x,y)>=2){b[y][x]=0;return {ok:false,error:'흑돌 4-4 금수입니다.'};}
     if(openThreeGroups(b,x,y)>=2){b[y][x]=0;return {ok:false,error:'흑돌 3-3 금수입니다.'};}
