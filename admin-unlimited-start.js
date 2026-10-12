@@ -53,6 +53,9 @@ appSource = appSource.split('Math.min(100000,Math.floor(Number(').join('Math.min
 
 let indexSource = fs.readFileSync(indexPath, 'utf8');
 indexSource = indexSource.replace(/\smax="100000"/g, '');
+// Preserve the static slot wager markup for build-time tests, but remove the
+// browser-only 1B maximum from the served HTML. Server-side rank limits still apply.
+indexSource = indexSource.replace(/(<input\s+id="slotBetInput"[^>]*?)\smax="1000000000"/, '$1');
 indexSource = indexSource.replace(/MAX\s*100,000\s*G/g, '보유머니 한도까지').replace(/MAX\s*100,000G/g, '보유머니 한도까지');
 if (!indexSource.includes('/v25-overhaul.css')) {
   indexSource = indexSource.replace('</head>', '<link rel="stylesheet" href="/v25-overhaul.css?v=270"></head>');
