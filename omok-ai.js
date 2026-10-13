@@ -1,193 +1,264 @@
 'use strict';
-// Extreme (bounded) tactical search for 15x15 Renju, isolated in a worker.
-// This is a handcrafted engine, not a pretrained or provably unbeatable model.
+// JUNJA OMOK: bounded Renju-aware threat solver + iterative deepening negamax.
+// It is NOT a neural/AlphaGo model or a proof of unbeatable play.
 const rules=require('./omok-engine');
 const {SIZE,DIRS}=rules;
-const WIN=100000000;
-const clock=()=>Date.now();
-const near=(b)=>{
-  const seen=new Uint8Array(SIZE*SIZE),a=[];
-  let stones=0;
+const WIN=100000000, INF=WIN*2;
+const time=()=>Date.now();
+const id=m=>m.y*SIZE+m.x;
+const same=(a,b)=>a&&b&&a.x===b.x&&a.y===b.y;
+const PATTERNS={
+  openFour:/\.XXXX\./g,
+  four:/XX\.XX|X\.XXX|XXX\.X|\.XXXX|XXXX\./g,
+  three:/\.XXX\.|\.XX\.X\.|\.X\.XX\./g,
+  blocked:/\.XXX|XXX\.|\.XX\.|\.X\.X\./g,
+  two:/\.XX\.|\.X\.X\./g,
+  one:/\.X\./g
+};
+function touchesCenter(line,re){
+  re.lastIndex=0;let m;
+  while((m=re.exec(line))!==null){if(m.index<=5&&m.index+m[0].length>5)return true;}
+  return false;
+}
+function near(b,radius=2){
+  const seen=new Uint8Array(225),out=[];let stones=0;
   for(let y=0;y<SIZE;y++)for(let x=0;x<SIZE;x++)if(b[y][x]){
     stones++;
-    for(let dy=-2;dy<=2;dy++)for(let dx=-2;dx<=2;dx++){
+    for(let dy=-radius;dy<=radius;dy++)for(let dx=-radius;dx<=radius;dx++){
       const xx=x+dx,yy=y+dy;
-      if(xx<0||yy<0||xx>=SIZE||yy>=SIZE||b[yy][xx])continue;
-      const k=yy*SIZE+xx;
-      if(!seen[k]){seen[k]=1;a.push([xx,yy]);}
+      if(xx<0||xx>=SIZE||yy<0||yy>=SIZE||b[yy][xx])continue;
+      const k=yy*SIZE+xx;if(!seen[k]){seen[k]=1;out.push({x:xx,y:yy});}
     }
   }
-  return stones?a:[[7,7]];
-};
+  return stones?out:[{x:7,y:7}];
+}
 function patternScore(b,x,y,c){
   if(b[y][x])return -WIN;
-  let score=0,open4=0,four=0,three=0;
-  b[y][x]=c;
+  b[y][x]=c;let score=0,open4=0,four=0,three=0;
   for(const [dx,dy] of DIRS){
     let line='';
     for(let i=-5;i<=5;i++){
       const xx=x+dx*i,yy=y+dy*i;
-      line+=xx<0||yy<0||xx>=SIZE||yy>=SIZE?'O':b[yy][xx]===c?'X':b[yy][xx]===0?'.':'O';
+      line+=xx<0||xx>=SIZE||yy<0||yy>=SIZE?'O':b[yy][xx]===c?'X':b[yy][xx]===0?'.':'O';
     }
-    let length=1;
-    for(let k=1;k<=5&&line[5-k]==='X';k++)length++;
-    for(let k=1;k<=5&&line[5+k]==='X';k++)length++;
-    if(length>=5){score+=(c===2||length===5?WIN:0);continue;}
-    const fourOpen=line.includes('.XXXX.');
-    const fourBroken=/XX\.XX|X\.XXX|XXX\.X/.test(line);
-    const fourClosed=/\.XXXX|XXXX\./.test(line);
-    const threeOpen=/\.XXX\.|\.XX\.X\.|\.X\.XX\./.test(line);
-    const threeBlocked=/\.XXX|XXX\.|\.XX\.|\.X\.X\./.test(line);
-    if(fourOpen){score+=520000;open4++;}
-    else if(fourBroken||fourClosed){score+=85000;four++;}
-    else if(threeOpen){score+=11000;three++;}
-    else if(threeBlocked)score+=2000;
-    else if(/\.XX\.|\.X\.X\./.test(line))score+=360;
-    else if(/\.X\./.test(line))score+=60;
+    let count=1;
+    for(let k=1;k<=5&&line[5-k]==='X';k++)count++;
+    for(let k=1;k<=5&&line[5+k]==='X';k++)count++;
+    if(count>=5){score+=(c===2||count===5)?WIN:0;continue;}
+    if(touchesCenter(line,PATTERNS.openFour)){score+=580000;open4++;}
+    else if(touchesCenter(line,PATTERNS.four)){score+=100000;four++;}
+    else if(touchesCenter(line,PATTERNS.three)){score+=17500;three++;}
+    else if(touchesCenter(line,PATTERNS.blocked))score+=2300;
+    else if(touchesCenter(line,PATTERNS.two))score+=390;
+    else if(touchesCenter(line,PATTERNS.one))score+=65;
   }
   b[y][x]=0;
-  if(open4>=1)score+=600000;
-  if(open4+four>=2)score+=1000000;
-  if(three>=2)score+=100000;
-  if((open4+four)>=1&&three>=1)score+=85000;
+  if(open4)score+=800000;
+  if(open4+four>=2)score+=1300000;
+  if(three>=2)score+=200000;
+  if((open4+four)&&three)score+=130000;
   return score;
 }
-function legal(b,x,y,c){
-  const result=rules.place(b,x,y,c);
-  if(result.ok)b[y][x]=0;
-  return result;
+function possibleFive(b,x,y,c){
+  for(const [dx,dy] of DIRS){
+    let count=1;
+    for(let sign of [-1,1])for(let k=1;k<6;k++){
+      const xx=x+dx*k*sign,yy=y+dy*k*sign;
+      if(xx<0||yy<0||xx>=SIZE||yy>=SIZE||b[yy][xx]!==c)break;
+      count++;
+    }
+    if(c===1?count===5:count>=5)return true;
+  }
+  return false;
 }
-function ordered(b,color,limit,deadline,full=false){
-  const other=3-color;
-  const list=near(b).map(([x,y])=>{
-    const attack=patternScore(b,x,y,color);
-    const defense=patternScore(b,x,y,other);
-    const proximity=14-(Math.abs(x-7)+Math.abs(y-7));
-    return {x,y,attack,defense,rank:attack*1.07+defense*1.15+proximity};
-  });
-  list.sort((a,b)=>b.rank-a.rank || a.y-b.y || a.x-b.x);
+function wins(b,c,deadline,cap=5){
   const found=[];
-  // For black check real Renju legality rather than guessing forbidden patterns.
-  const scan=full?list.length:Math.min(list.length,Math.max(limit*2,15));
-  for(let i=0;i<scan;i++){
-    if(clock()>deadline)break;
-    const m=list[i];
-    if(color===1&&!legal(b,m.x,m.y,color).ok)continue;
-    found.push(m);
-    if(!full&&found.length>=limit)break;
+  for(const m of near(b,1)){
+    if(time()>deadline)break;
+    if(!possibleFive(b,m.x,m.y,c))continue;
+    const p=rules.place(b,m.x,m.y,c);
+    if(p.ok){b[m.y][m.x]=0;if(p.win){found.push(m);if(found.length>=cap)break;}}
   }
   return found;
 }
-function evaluate(b,color,deadline){
-  const raw=near(b);
-  let best=0,second=0,enemy=0,enemySecond=0;
-  for(const [x,y] of raw){
-    if(clock()>deadline)break;
-    const a=patternScore(b,x,y,color),d=patternScore(b,x,y,3-color);
-    if(a>best){second=best;best=a;}else if(a>second)second=a;
-    if(d>enemy){enemySecond=enemy;enemy=d;}else if(d>enemySecond)enemySecond=d;
+function ranked(b,c,limit,deadline,preferred,opts={}){
+  let ms=near(b,opts.radius||2);
+  if(opts.forced){const keys=new Set(opts.forced.map(id));ms=ms.filter(m=>keys.has(id(m)));}
+  const enemy=3-c;
+  ms=ms.map(m=>{
+    const attack=patternScore(b,m.x,m.y,c),defend=patternScore(b,m.x,m.y,enemy);
+    const proximity=15-(Math.abs(m.x-7)+Math.abs(m.y-7));
+    const p=(preferred&&same(preferred,m))?20000000:0;
+    return {...m,attack,defend,rank:p+attack*1.09+defend*1.15+proximity*8};
+  }).sort((a,b)=>b.rank-a.rank||a.y-b.y||a.x-b.x);
+  const out=[];
+  for(const m of ms){
+    if(time()>deadline)break;
+    // Only legal black moves may enter the search; never search hypothetical Renju fouls.
+    if(c===1){const r=rules.place(b,m.x,m.y,c);if(!r.ok)continue;b[m.y][m.x]=0;}
+    out.push(m);
+    if(out.length>=limit)break;
   }
-  return best+second*.15-enemy*1.16-enemySecond*.17;
+  return out;
 }
-
-function immediateWins(b,side,deadline,cap=4){
-  const wins=[];
-  for(const [x,y] of near(b)){
-    if(clock()>deadline)break;
-    if(patternScore(b,x,y,side)<WIN)continue;
-    const result=legal(b,x,y,side);
-    if(result.ok&&result.win){
-      wins.push({x,y});
-      if(wins.length>=cap)break;
-    }
+function heuristic(b,c,deadline){
+  let a=0,a2=0,d=0,d2=0;
+  for(const m of near(b,1)){
+    if(time()>deadline)break;
+    const s=patternScore(b,m.x,m.y,c),e=patternScore(b,m.x,m.y,3-c);
+    if(s>a){a2=a;a=s;}else if(s>a2)a2=s;
+    if(e>d){d2=d;d=e;}else if(e>d2)d2=e;
   }
-  return wins;
+  return Math.max(-WIN+1,Math.min(WIN-1,a+a2*.22-d*1.18-d2*.22));
+}
+// Proof-oriented VCF: an attacker must threaten a legal five on EVERY attacking move.
+// Defending a unique immediate five is forced; 2+ independent winning points force a win.
+// VCT-style open-three threats are handled by the regular tactical search, not misreported as proofs.
+function findVCF(b,attacker,rounds,deadline){
+  const defender=3-attacker,seen=new Set();
+  let checked=0;
+  function attack(left){
+    if(time()>=deadline||++checked>1500)return null;
+    const own=wins(b,attacker,deadline,1);
+    if(own.length)return own[0];
+    if(left===0||wins(b,defender,deadline,1).length)return null;
+    // Threat creation is evaluated after the move, rather than inferring a fork from patterns.
+    const moves=ranked(b,attacker,11,deadline,null,{radius:2}).filter(m=>m.attack>=65000);
+    for(const m of moves){
+      if(time()>=deadline)return null;
+      const p=rules.place(b,m.x,m.y,attacker);if(!p.ok)continue;
+      let successful=false;
+      try{
+        if(p.win){successful=true;}
+        else if(!wins(b,defender,deadline,1).length){
+          const goals=wins(b,attacker,deadline,3);
+          if(goals.length>=2)successful=true;
+          else if(goals.length===1){
+            const guard=goals[0],key=left+':'+b.map(r=>r.join('')).join('');
+            if(!seen.has(key)){
+              seen.add(key);
+              const defense=rules.place(b,guard.x,guard.y,defender);
+              if(!defense.ok)successful=true;
+              else{try{successful=!defense.win&&!!attack(left-1);}finally{b[guard.y][guard.x]=0;}}
+            }
+          }
+        }
+      }finally{b[m.y][m.x]=0;}
+      if(successful)return m;
+    }
+    return null;
+  }
+  return attack(rounds);
 }
 function selectMove(original,color,opts={}){
-  const b=original.map(row=>row.slice());
-  const budget=Math.max(30,Math.min(3400,Number(opts.timeMs)||2800));
-  const deadline=clock()+budget;
-  const legalMoves=ordered(b,color,16,deadline,true);
-  if(!legalMoves.length)return null;
-  const enemy=3-color;
-  // A direct five is mandatory. Defend every immediate opponent five before searching.
-  const myWins=immediateWins(b,color,deadline,3);
-  if(myWins.length)return {...myWins[0],reason:'five',depth:0};
-  const enemyWinning=immediateWins(b,enemy,deadline,4);
-  if(enemyWinning.length){
-    const blockers=new Set(enemyWinning.map(m=>m.x+SIZE*m.y));
-    const block=legalMoves.filter(m=>blockers.has(m.x+SIZE*m.y))
-      .sort((a,b)=>b.attack-a.attack)[0];
-    if(block)return {x:block.x,y:block.y,reason:'block-five',depth:0};
+  const b=original.map(r=>r.slice());
+  const budget=Math.max(40,Math.min(11000,Number(opts.timeMs)||4400));
+  const deadline=time()+budget,enemy=3-color;
+  let nodes=0,completed=0,reason='search';
+  const initial=ranked(b,color,28,deadline,null,{radius:2});
+  if(!initial.length)return null;
+  const mine=wins(b,color,deadline,2);
+  if(mine.length)return {...mine[0],reason:'five',depth:0,nodes};
+  const danger=wins(b,enemy,deadline,4);
+  if(danger.length){
+    const guarded=initial.filter(m=>danger.some(g=>same(g,m)));
+    if(guarded.length===1)return {...guarded[0],reason:'block-five',depth:0,nodes};
+    if(guarded.length>1)return {...guarded[0],reason:'multiple-threats',depth:0,nodes};
   }
-  // Screen self-inflicted one-move losses and search for an unanswerable double-ended four.
-  const candidates=legalMoves.slice(0,14);
-  const safe=[];
-  const tacticalDeadline=Math.min(deadline,clock()+Math.max(300,Math.min(800,budget*.30)));
-  for(const m of candidates){
-    if(clock()>=tacticalDeadline)break;
-    const result=rules.place(b,m.x,m.y,color);
-    if(!result.ok)continue;
-    let opponentThreats=[],fork=[];
-    try{
-      opponentThreats=immediateWins(b,enemy,tacticalDeadline,1);
-      if(!opponentThreats.length)fork=immediateWins(b,color,tacticalDeadline,2);
-    }finally{b[m.y][m.x]=0;}
-    if(!opponentThreats.length){
-      safe.push(m);
-      if(fork.length>=2)return {x:m.x,y:m.y,reason:'forced-double-threat',depth:0};
+  // Don't consume the main search time on a tactical proof.
+  if(budget>=650&&time()<deadline-220){
+    const proofDeadline=Math.min(deadline-180, time()+Math.min(1000,budget*.24));
+    const forced=findVCF(b,color,4,proofDeadline);
+    if(forced)return {...forced,reason:'vcf',depth:0,nodes};
+  }
+  const root=initial.slice(0,Math.min(13,initial.length));
+  // Root candidate screening prevents moving into an immediate loss if an alternative exists.
+  let safe=[];
+  const preDeadline=Math.min(deadline-150,time()+Math.min(420,budget*.12));
+  for(const m of root){
+    if(time()>=preDeadline)break;
+    const p=rules.place(b,m.x,m.y,color);if(!p.ok)continue;
+    let bad=false;
+    try{bad=wins(b,enemy,preDeadline,1).length>0;}
+    finally{b[m.y][m.x]=0;}
+    if(!bad)safe.push(m);
+  }
+  const candidates=safe.length?[...safe,...root.filter(m=>!safe.includes(m))].slice(0,11):root.slice(0,11);
+  let best=candidates[0];
+  let h1=0,h2=0,seed=0x95AC74F3;
+  const rnd=()=>{seed^=seed<<13;seed^=seed>>>17;seed^=seed<<5;return seed>>>0;};
+  const z1=Array.from({length:450},rnd),z2=Array.from({length:450},rnd);
+  for(let y=0;y<SIZE;y++)for(let x=0;x<SIZE;x++)if(b[y][x]){
+    const k=(y*SIZE+x)*2+b[y][x]-1;h1^=z1[k];h2^=z2[k];
+  }
+  const tt=new Map(),history=new Int32Array(450),killers=[];
+  function make(m,side){const p=rules.place(b,m.x,m.y,side);if(p.ok){const k=id(m)*2+side-1;h1^=z1[k];h2^=z2[k];}return p;}
+  function undo(m,side){b[m.y][m.x]=0;const k=id(m)*2+side-1;h1^=z1[k];h2^=z2[k];}
+  function quiesce(side,alpha,beta,ply,ext){
+    if(time()>=deadline)throw Error('time');
+    const my=wins(b,side,deadline,1);
+    if(my.length)return WIN-ply*1000;
+    const theirs=wins(b,3-side,deadline,3);
+    if(theirs.length>1)return -WIN+ply*1000;
+    if(!theirs.length||ext===0)return heuristic(b,side,deadline);
+    const m=theirs[0],play=make(m,side);
+    if(!play.ok)return -WIN+ply*1000;
+    try{return play.win?WIN-ply*1000:-quiesce(3-side,-beta,-alpha,ply+1,ext-1);}
+    finally{undo(m,side);}
+  }
+  function search(side,depth,alpha,beta,ply){
+    if(time()>=deadline)throw Error('time');nodes++;
+    if(depth<=0)return quiesce(side,alpha,beta,ply,2);
+    const key=h1+','+h2+','+side,old=tt.get(key),lo=alpha,hi=beta;
+    if(old&&old.depth>=depth){
+      if(old.flag==='exact')return old.value;
+      if(old.flag==='lower')alpha=Math.max(alpha,old.value);
+      if(old.flag==='upper')beta=Math.min(beta,old.value);
+      if(alpha>=beta)return old.value;
     }
-  }
-  const searchCandidates=safe.length?[
-    ...safe,...candidates.filter(m=>!safe.includes(m)).slice(0,Math.max(0,12-safe.length))
-  ].slice(0,12):candidates.slice(0,12);
-  const cache=new Map();let nodes=0;
-  function search(side,depth,alpha,beta,lastWin){
-    if(lastWin)return -WIN-depth*1000;
-    if(depth<=0)return evaluate(b,side,deadline);
-    if(clock()>deadline)throw Error('time');
-    const key=depth+':'+side+':'+b.map(row=>row.join('')).join('');
-    if(cache.has(key))return cache.get(key);
-    const options=ordered(b,side,depth>=3?7:6,deadline);
-    if(!options.length)return 0;
-    let value=-Infinity;
+    const my=wins(b,side,deadline,1);
+    if(my.length)return WIN-ply*1000;
+    const threatened=wins(b,3-side,deadline,3);
+    if(threatened.length>=2)return -WIN+ply*1000;
+    let options=ranked(b,side,depth>=4?9:depth>=2?8:7,deadline,old?.move||killers[ply],threatened.length?{forced:threatened}:{radius:2});
+    if(!options.length)return threatened.length?-WIN+ply*1000:0;
+    options.sort((a,b)=>(b.rank+(history[id(b)*2+side-1]||0))-(a.rank+(history[id(a)*2+side-1]||0)));
+    let val=-INF,chosen=null;
     for(const m of options){
-      if(clock()>deadline)throw Error('time');
-      const result=rules.place(b,m.x,m.y,side);
-      if(!result.ok)continue;
-      nodes++;
-      let score;
-      try{score=result.win?WIN+depth*1000:-search(3-side,depth-1,-beta,-alpha,false);}
-      finally{b[m.y][m.x]=0;}
-      value=Math.max(value,score);alpha=Math.max(alpha,score);
-      if(alpha>=beta)break;
+      if(time()>=deadline)throw Error('time');
+      const p=make(m,side);if(!p.ok)continue;
+      let v;
+      try{v=p.win?WIN-ply*1000:-search(3-side,depth-1,-beta,-alpha,ply+1);}
+      finally{undo(m,side);}
+      if(v>val){val=v;chosen=m;}
+      alpha=Math.max(alpha,val);
+      if(alpha>=beta){
+        history[id(m)*2+side-1]=Math.min(300000,history[id(m)*2+side-1]+depth*depth*120);
+        killers[ply]=m;break;
+      }
     }
-    if(value===-Infinity)value=0;
-    // Only exact scores may be cached; bounds from cutoffs are not reusable.
-    if(alpha<beta&&cache.size<3000)cache.set(key,value);
-    return value;
+    if(val===-INF)return 0;
+    if(tt.size<18000)tt.set(key,{depth,value:val,flag:val<=lo?'upper':val>=hi?'lower':'exact',move:chosen});
+    return val;
   }
-  let best=searchCandidates[0],completed=0;
-  for(const depth of [1,2,3,4,5,6]){
-    if(clock()>deadline)break;
+  for(let depth=1;depth<=8;depth++){
+    if(time()>=deadline)break;
+    let chosen=best,bestValue=-INF,alpha=-INF;
     try{
-      let alpha=-Infinity,chosen=best,bestValue=-Infinity;
-      const options=[best,...searchCandidates.filter(m=>m!==best)];
-      for(const m of options){
-        if(clock()>deadline)throw Error('time');
-        const play=rules.place(b,m.x,m.y,color);
-        if(!play.ok)continue;
-        let score;
-        try{score=play.win?WIN+depth*1000:-search(enemy,depth-1,-Infinity,-alpha,false);}
-        finally{b[m.y][m.x]=0;}
-        score+=m.rank*.00001;
-        if(score>bestValue){bestValue=score;chosen=m;}
-        alpha=Math.max(alpha,bestValue);
+      const opts2=[best,...candidates.filter(m=>!same(m,best))];
+      for(const m of opts2){
+        if(time()>=deadline)throw Error('time');
+        const p=make(m,color);if(!p.ok)continue;
+        let v;
+        try{v=p.win?WIN:-search(enemy,depth-1,-INF,-alpha,1);}
+        finally{undo(m,color);}
+        if(v>bestValue){bestValue=v;chosen=m;}
+        alpha=Math.max(alpha,v);
       }
       best=chosen;completed=depth;
-      if(bestValue>=WIN)break;
-    }catch(error){if(error.message!=='time')throw error;break;}
+      if(bestValue>=WIN-20000){reason='forced-search';break;}
+    }catch(e){if(e.message!=='time')throw e;break;}
   }
-  return {x:best.x,y:best.y,reason:'search',depth:completed,nodes};
+  return {x:best.x,y:best.y,reason,depth:completed,nodes};
 }
-module.exports={selectMove,patternScore};
+module.exports={selectMove,patternScore,findVCF};

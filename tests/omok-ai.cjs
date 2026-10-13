@@ -29,3 +29,17 @@ assert.ok(forkMove,'AI finds a forced attack');
 assert.ok([[3,7],[7,7]].some(([x,y])=>forkMove.x===x&&forkMove.y===y),'AI converts open three to double-ended four');
 assert.ok(Date.now()-forkStart<3300,'forcing tactic is time bounded');
 console.log('OMOK_EXTREME_AI_TEST_OK: center, instant win, threat block, legal Renju, time bound');
+
+// Tactical regression: force a double-ended / crossing four instead of playing randomly.
+const complex=board([[4,7,2],[5,7,2],[6,7,2],[7,4,2],[7,5,2],[7,6,2]]);
+const copy=JSON.stringify(complex);
+const tactical=selectMove(complex,2,{timeMs:800});
+assert.deepEqual([tactical.x,tactical.y],[7,7],'AI creates a double forcing threat at the crossing');
+assert.equal(JSON.stringify(complex),copy,'AI must not mutate the original board');
+assert.equal(tactical.reason,'vcf','AI proves the immediate forced tactical continuation');
+const middle=board([[7,7,1],[8,8,2],[8,7,1],[6,7,2],[5,5,1],[6,5,2],[9,9,1],[5,8,2],[9,7,1],[10,6,2],[7,6,1],[4,4,2]]);
+const middleCopy=JSON.stringify(middle),middleMove=selectMove(middle,1,{timeMs:600});
+assert.ok(middleMove,'AI completes bounded middlegame analysis');
+assert.equal(rules.place(middle,middleMove.x,middleMove.y,1).ok,true,'AI middlegame move is legal');
+assert.notEqual(JSON.stringify(middle),middleCopy,'chosen move can be played');
+console.log('OMOK_TACTICAL_SEARCH_OK: crossing-four, forced-VCF, board isolation, middlegame');
