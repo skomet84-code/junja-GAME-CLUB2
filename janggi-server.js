@@ -6,7 +6,7 @@ const {Worker}=require('node:worker_threads');
 const REWARD=1000000000000n,TURN=180000,WAIT=1800000,DONE=1200000;
 const AI={id:0,nickname:'J-BOT · GRANDMASTER'};
 function comparable(m,n){return m&&n&&m.x===n.x&&m.y===n.y&&m.tx===n.tx&&m.ty===n.ty;}
-module.exports=function createJanggi({db,crypto,readBody,requireAuth,json,rateLimit,credit,notify=()=>{},now=Date.now,isUserBusy=()=>false,setTimer=setTimeout,clearTimer=clearTimeout,aiDecide=null}){
+module.exports=function createJanggi({db,crypto,readBody,requireAuth,json,rateLimit,credit,notify=()=>{},now=Date.now,isUserBusy=()=>false,setTimer=setTimeout,clearTimer=clearTimeout,aiDecide=null,initialBoard=null}){
  const rooms=new Map(),timers=new Map();
  function write(key,value){db.prepare('INSERT INTO game_state(key,value,updated_at) VALUES(?,?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value,updated_at=excluded.updated_at').run(key,JSON.stringify(value),now());}
  function read(key,init){const row=db.prepare('SELECT value FROM game_state WHERE key=?').get(key);return row?JSON.parse(row.value):init;}
@@ -102,7 +102,7 @@ module.exports=function createJanggi({db,crypto,readBody,requireAuth,json,rateLi
   const a=r.players[0],b=r.players[1];r.round++;
   const cFirst=r.ai?(r.preferredSide||'c'):(r.round%2===1?'c':'h');
   r.colors={[a.id]:cFirst,[b.id]:R.ENEMY(cFirst)};
-  r.players.forEach(p=>p.ready=false);r.board=R.fresh(r.formations);
+  r.players.forEach(p=>p.ready=false);r.board=initialBoard?initialBoard(r):R.fresh(r.formations);
   r.turn='c';r.moves=[];r.passes=0;r.last=null;r.winner=null;r.reason='';r.phase='playing';
   r.thinking=false;r.payout=0;r.payoutError=null;r.recorded=false;
   if(r.ai&&r.colors[AI.id]==='c')aiTurn(r);
