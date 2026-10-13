@@ -1,0 +1,50 @@
+name: JUNJA LAND Liar Game Verification
+on:
+  push:
+    branches: [main]
+    paths:
+      - liar-server.js
+      - public/liar/**
+      - tests/liar.cjs
+      - .github/workflows/liar-check.yml
+  pull_request:
+    branches: [main]
+    paths:
+      - liar-server.js
+      - public/liar/**
+      - tests/liar.cjs
+      - server.js
+      - public/index.html
+      - package.json
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  liar-game:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate game modules
+        run: |
+          node --check liar-server.js
+          node --check public/liar/game.js
+          node --check server.js
+          node --check public/app.js
+      - name: Test multi-account roles, voting and clocks
+        run: node tests/liar.cjs
+      - name: Verify game route and lobby integration
+        run: |
+          node - <<'NODE'
+          const fs=require('fs'),assert=require('assert/strict');
+          const server=fs.readFileSync('server.js','utf8'),index=fs.readFileSync('public/index.html','utf8');
+          assert.match(server,/require\('\.\/liar-server'\)/);
+          assert.match(server,/startsWith\('\/api\/liar'\)/);
+          assert.match(index,/href="\/liar\/index.html"/);
+          assert.match(index,/\/liar\/lobby.css/);
+          assert.ok(fs.existsSync('public/liar/index.html'));
+          assert.ok(fs.existsSync('public/liar/style.css'));
+          NODE
