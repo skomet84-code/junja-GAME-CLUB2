@@ -1,12 +1,23 @@
 (()=>{'use strict';
 const R=window.JanggiRules;if(!R)return;
-const $=id=>document.getElementById(id),state={room:null,home:null,loading:false,busy:false,selected:null,hints:[],offset:0,inviteDone:false};
+const $=id=>document.getElementById(id),state={room:null,home:null,loading:false,busy:false,selected:null,hints:[],offset:0,inviteDone:false,prefs:{aiSide:'c',aiFormation:'inner',pvpCho:'inner',pvpHan:'inner'}};
 const TEXT={rook:'車',horse:'馬',elephant:'象',guard:'士',king:'楚',cannon:'包',soldier:'卒'};
 const HAN={...TEXT,king:'漢',cannon:'砲',soldier:'兵'};
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const btn=(action,text,cls='',attr='')=>'<button class="jg-btn '+cls+'" type="button" data-action="'+action+'" '+attr+'>'+text+'</button>';
 const winnerName=r=>r.players.find(p=>p.id===r.winner)?.nickname||'상대';
 const sideName=s=>s==='c'?'초楚':'한漢';
+const SIDE_CHOICES=[{value:'c',title:'초楚',detail:'선공'},{value:'h',title:'한漢',detail:'후공'}];
+const FORMATION_CHOICES=[
+ {value:'left',title:'왼상',detail:'象馬象馬'},
+ {value:'right',title:'오른상',detail:'馬象馬象'},
+ {value:'inner',title:'안상',detail:'馬象象馬'},
+ {value:'outer',title:'바깥상',detail:'象馬馬象'}
+];
+function choiceButtons(kind,options,selected){
+ return '<div class="jg-choice-grid '+(options.length===2?'two':'')+'" role="group" aria-label="'+(kind==='aiSide'?'내 진영':'시작 차림')+'">'+
+ options.map(o=>'<button type="button" class="jg-choice'+(o.value===selected?' active':'')+'" data-action="choose" data-kind="'+kind+'" data-value="'+o.value+'" aria-pressed="'+(o.value===selected)+'"><strong>'+o.title+'</strong><small>'+o.detail+'</small></button>').join('')+'</div>';
+}
 function notify(t=''){$('jgNotice').textContent=t;}
 async function api(path,body){
  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),15000);
@@ -41,10 +52,13 @@ function lobby(){
  $('jgHome').hidden=false;$('jgMatch').hidden=true;
  const h=state.home||{rooms:[],stats:{}},s=h.stats||{};
  $('jgHome').innerHTML='<section class="jg-panel jg-high"><div class="jg-panelcap">ROYAL GRANDMASTER CHALLENGE</div><h2>🤖 최강 AI 도전</h2><div class="jg-prize">🏆 1조 G</div><p>서버에서 직접 수읽기하는 최고 난도 J-BOT과 대국하세요. AI를 <b>정상적인 외통승</b>으로 이기면 게임머니 1조가 자동 지급됩니다.</p>'+
- '<label>내 진영<select id="jgAiSide"><option value="c">초楚 · 선공</option><option value="h">한漢 · 후공</option></select></label>'+
+ '<div class="jg-setup-heading">내 진영 <small>원하는 진영을 누르세요</small></div>'+choiceButtons('aiSide',SIDE_CHOICES,state.prefs.aiSide)+
+ '<div class="jg-setup-heading">내 기물 차림 <small>마·상 배치 4가지</small></div>'+choiceButtons('aiFormation',FORMATION_CHOICES,state.prefs.aiFormation)+
  btn('ai','⚔️ 최강 AI 도전 시작','primary')+'<p>무료 도전 · 무르기 없음 · 패배/기권/무승부는 상금 없음 · 서버 검증 후 지급</p></section>'+
  '<section class="jg-panel"><div class="jg-panelcap">LIVE 1:1 MATCHMAKING</div><h2>🌐 친구와 온라인 대결</h2><p>같은 기기가 아닌 <b>서로 다른 휴대폰</b>으로 진짜 대결합니다. 공개방을 만들거나 초대 링크를 친구에게 보내세요.</p>'+
  '<label>방 이름<input id="jgRoomInput" maxlength="28" placeholder="친구들과 장기 한 판"></label>'+
+ '<div class="jg-setup-heading">초楚 시작 차림</div>'+choiceButtons('pvpCho',FORMATION_CHOICES,state.prefs.pvpCho)+
+ '<div class="jg-setup-heading">한漢 시작 차림</div>'+choiceButtons('pvpHan',FORMATION_CHOICES,state.prefs.pvpHan)+
  btn('create','＋ 온라인 장기방 만들기','primary')+'<h2 style="margin-top:22px">참가 가능한 방</h2><div>'+
  (h.rooms?.length?h.rooms.map(r=>'<div class="jg-room-row"><span><b>'+esc(r.name)+'</b><small>'+esc(r.host)+' · '+r.players+'/2명</small></span>'+btn('join','입장','secondary','data-id="'+esc(r.id)+'"')+'</div>').join(''):'<p>아직 공개된 방이 없습니다.</p>')+'</div>'+btn('refresh','방 목록 새로고침','secondary')+'</section>'+
  '<section class="jg-panel"><h2>나의 장기 전적</h2><div class="jg-stats">'+[['games','대국'],['wins','승리'],['aiWins','AI 격파'],['earnings','상금 G']].map(([key,name])=>'<div><strong>'+Number(s[key]||0).toLocaleString('ko-KR')+'</strong><small>'+name+'</small></div>').join('')+'</div></section>'+
@@ -115,8 +129,20 @@ document.addEventListener('click',e=>{
  const b=e.target.closest('button[data-action]');if(!b||b.disabled||state.busy)return;
  const a=b.dataset.action,r=state.room;
  if(a==='refresh'){refresh(true);return;}
- if(a==='ai'){act('/create-ai',{side:$('jgAiSide').value});return;}
- if(a==='create'){act('/create',{name:$('jgRoomInput')?.value||'준자 온라인 장기'});return;}
+ if(a==='choose'){
+  const kind=b.dataset.kind,value=b.dataset.value;
+  if(!Object.hasOwn(state.prefs,kind))return;
+  const options=kind==='aiSide'?SIDE_CHOICES:FORMATION_CHOICES;
+  if(!options.some(o=>o.value===value))return;
+  state.prefs[kind]=value;render();return;
+ }
+ if(a==='ai'){
+  const p=state.prefs;
+  act('/create-ai',{side:p.aiSide,cFormation:p.aiSide==='c'?p.aiFormation:'inner',hFormation:p.aiSide==='h'?p.aiFormation:'inner'});return;
+ }
+ if(a==='create'){
+  act('/create',{name:$('jgRoomInput')?.value||'준자 온라인 장기',cFormation:state.prefs.pvpCho,hFormation:state.prefs.pvpHan});return;
+ }
  if(a==='join'){act('/'+b.dataset.id+'/join');return;}
  if(a==='invite'&&r){const link=location.origin+'/janggi/online.html?join='+encodeURIComponent(r.id);
   if(navigator.clipboard?.writeText)navigator.clipboard.writeText(link).then(()=>notify('친구 초대 링크를 복사했어요.')).catch(()=>window.prompt('링크 복사',link));
