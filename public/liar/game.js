@@ -35,7 +35,7 @@ async function refresh(force=false){
   }
  }catch(e){
   if(e.status===401){root.innerHTML='<div class="lg-panel lg-empty">준자랜드 로그인이 필요해요. <a href="/">로그인하러 가기 →</a></div>';return;}
-  if(e.status===404){state.room=null;await homeRefresh();return;}
+  if(e.status===404||e.status===403){state.room=null;await homeRefresh();return;}
   say(e.message||'연결이 끊겼어요. 다시 시도하고 있습니다.');
  }finally{state.loading=false;}
 }
@@ -45,9 +45,9 @@ async function act(path,body={}){
  try{
   const d=await api(path,body);accept(d);
   if(!d.room)await homeRefresh();
-  else if(path.endsWith('/clue'))state.drafts.clue='';
-  else if(path.endsWith('/chat'))state.drafts.chat='';
-  else if(path.endsWith('/guess'))state.drafts.guess='';
+  else if(path.endsWith('/clue')){state.drafts.clue='';render();}
+  else if(path.endsWith('/chat')){state.drafts.chat='';render();}
+  else if(path.endsWith('/guess')){state.drafts.guess='';render();}
  }catch(e){render();say(e.message||'요청에 실패했습니다.');}
  finally{state.busy=false;}
 }
