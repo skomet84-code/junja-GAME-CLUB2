@@ -6,7 +6,7 @@
 <title>준자 장기 · JUNJA LAND</title>
 <link rel="stylesheet" href="/janggi/style.css?v=1">
 <script defer src="/janggi/engine.js?v=2"></script>
-<script defer src="/janggi/game.js?v=2"></script>
+<script defer src="/janggi/game.js?v=3"></script>
 </head><body>
 <div class="jg-shell">
  <header class="jg-top">
@@ -44,7 +44,7 @@
       <button data-mode="local" type="button">⚔️ 2인 대국</button>
      </div>
      <div class="jg-config">
-      <label>난이도 <select id="difficulty"><option value="easy">초급 · 수읽기 연습</option><option value="normal" selected>고급 · 전략형</option><option value="hard">극한 · 심층 탐색</option></select></label>
+      <label>난이도 <select id="difficulty"><option value="easy">초급 · 수읽기 연습</option><option value="normal">고급 · 전략형</option><option value="hard" selected>마스터 · 심층 탐색 (강력)</option></select></label>
       <label>내 진영 <select id="mySide"><option value="c">초楚 · 선공</option><option value="h">한漢 · 후공</option></select></label>
       <label>초楚 시작 차림 <select id="choFormation" aria-label="초 시작 차림">
        <option value="left">왼상 · 象馬象馬</option>
@@ -64,7 +64,7 @@
       <button id="undo" class="jg-btn secondary" type="button">↶ 무르기</button>
       <button id="pass" class="jg-btn secondary" type="button">차례 넘기기</button>
      </div>
-     <p class="jg-note">초·한의 시작 차림을 4가지 중 각각 선택할 수 있습니다. 차림을 바꾸면 새 대국이 시작되며 진행 중인 대국은 확인을 거칩니다. 대국은 이 기기에 자동 저장됩니다.</p>
+     <p class="jg-note">마스터 AI는 수를 더 오래 탐색합니다. 완전무결한 인공지능은 아니며 기기 성능에 따라 대기 시간이 달라집니다.</p><p class="jg-note">초·한의 시작 차림을 4가지 중 각각 선택할 수 있습니다. 차림을 바꾸면 새 대국이 시작되며 진행 중인 대국은 확인을 거칩니다. 대국은 이 기기에 자동 저장됩니다.</p>
     </section>
     <section class="jg-panel jg-progress">
      <div class="jg-panelcap">BATTLE STATUS <span id="roundText">ROUND 01</span></div>

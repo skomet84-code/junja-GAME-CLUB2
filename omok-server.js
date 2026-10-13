@@ -77,9 +77,9 @@ module.exports=function createOmok({db,crypto,readBody,requireAuth,json,rateLimi
   function workerThink(board,color){
     return new Promise((resolve,reject)=>{
       const worker=new Worker(require.resolve('./omok-ai-worker.js'),{
-        workerData:{board,color,timeMs:1250},resourceLimits:{maxOldGenerationSizeMb:80}});
+        workerData:{board,color,timeMs:2850},resourceLimits:{maxOldGenerationSizeMb:80}});
       let done=false;
-      const timer=setTimeout(()=>{if(done)return;done=true;worker.terminate();reject(Error('AI search timed out'));},3500);
+      const timer=setTimeout(()=>{if(done)return;done=true;worker.terminate();reject(Error('AI search timed out'));},6200);
       if(typeof timer.unref==='function')timer.unref();
       const finish=(error,move)=>{
         if(done)return;done=true;clearTimeout(timer);worker.terminate();
@@ -96,7 +96,7 @@ module.exports=function createOmok({db,crypto,readBody,requireAuth,json,rateLimi
     const stamp=r.version;
     const board=r.board.map(row=>row.slice()),color=r.turn;
     Promise.resolve().then(()=>aiDecide?aiDecide(board,color):workerThink(board,color))
-      .catch(()=>selectMove(board,color,{timeMs:80}))
+      .catch(()=>selectMove(board,color,{timeMs:140}))
       .then(move=>{
         if(rooms.get(r.id)!==r||r.version!==stamp||r.phase!=='playing'||r.turn!==color)return;
         const options=[move,...(function*(){

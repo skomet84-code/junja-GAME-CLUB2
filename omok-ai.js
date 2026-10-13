@@ -89,29 +89,58 @@ function evaluate(b,color,deadline){
   }
   return best+second*.15-enemy*1.16-enemySecond*.17;
 }
+
+function immediateWins(b,side,deadline,cap=4){
+  const wins=[];
+  for(const [x,y] of near(b)){
+    if(clock()>deadline)break;
+    if(patternScore(b,x,y,side)<WIN)continue;
+    const result=legal(b,x,y,side);
+    if(result.ok&&result.win){
+      wins.push({x,y});
+      if(wins.length>=cap)break;
+    }
+  }
+  return wins;
+}
 function selectMove(original,color,opts={}){
   const b=original.map(row=>row.slice());
-  const budget=Math.max(30,Math.min(2400,Number(opts.timeMs)||1250));
+  const budget=Math.max(30,Math.min(3400,Number(opts.timeMs)||2800));
   const deadline=clock()+budget;
-  const legalMoves=ordered(b,color,12,deadline,true);
+  const legalMoves=ordered(b,color,16,deadline,true);
   if(!legalMoves.length)return null;
   const enemy=3-color;
-  // Unconditionally seize a legal five, and block all possible immediate opponent fives.
-  for(const m of legalMoves){
-    if(clock()>deadline)break;
-    if(legal(b,m.x,m.y,color).win)return {x:m.x,y:m.y,reason:'five',depth:0};
-  }
-  const enemyWinning=[];
-  for(const m of near(b)){
-    if(clock()>deadline)break;
-    if(legal(b,m[0],m[1],enemy).win)enemyWinning.push(m[0]+SIZE*m[1]);
-  }
+  // A direct five is mandatory. Defend every immediate opponent five before searching.
+  const myWins=immediateWins(b,color,deadline,3);
+  if(myWins.length)return {...myWins[0],reason:'five',depth:0};
+  const enemyWinning=immediateWins(b,enemy,deadline,4);
   if(enemyWinning.length){
-    const block=legalMoves.filter(m=>enemyWinning.includes(m.x+SIZE*m.y))
+    const blockers=new Set(enemyWinning.map(m=>m.x+SIZE*m.y));
+    const block=legalMoves.filter(m=>blockers.has(m.x+SIZE*m.y))
       .sort((a,b)=>b.attack-a.attack)[0];
     if(block)return {x:block.x,y:block.y,reason:'block-five',depth:0};
   }
-  const candidates=legalMoves.slice(0,10);
+  // Screen self-inflicted one-move losses and search for an unanswerable double-ended four.
+  const candidates=legalMoves.slice(0,14);
+  const safe=[];
+  const tacticalDeadline=Math.min(deadline,clock()+Math.max(300,Math.min(800,budget*.30)));
+  for(const m of candidates){
+    if(clock()>=tacticalDeadline)break;
+    const result=rules.place(b,m.x,m.y,color);
+    if(!result.ok)continue;
+    let opponentThreats=[],fork=[];
+    try{
+      opponentThreats=immediateWins(b,enemy,tacticalDeadline,1);
+      if(!opponentThreats.length)fork=immediateWins(b,color,tacticalDeadline,2);
+    }finally{b[m.y][m.x]=0;}
+    if(!opponentThreats.length){
+      safe.push(m);
+      if(fork.length>=2)return {x:m.x,y:m.y,reason:'forced-double-threat',depth:0};
+    }
+  }
+  const searchCandidates=safe.length?[
+    ...safe,...candidates.filter(m=>!safe.includes(m)).slice(0,Math.max(0,12-safe.length))
+  ].slice(0,12):candidates.slice(0,12);
   const cache=new Map();let nodes=0;
   function search(side,depth,alpha,beta,lastWin){
     if(lastWin)return -WIN-depth*1000;
@@ -138,12 +167,12 @@ function selectMove(original,color,opts={}){
     if(alpha<beta&&cache.size<3000)cache.set(key,value);
     return value;
   }
-  let best=candidates[0],completed=0;
-  for(const depth of [1,2,3,4,5]){
+  let best=searchCandidates[0],completed=0;
+  for(const depth of [1,2,3,4,5,6]){
     if(clock()>deadline)break;
     try{
       let alpha=-Infinity,chosen=best,bestValue=-Infinity;
-      const options=[best,...candidates.filter(m=>m!==best)];
+      const options=[best,...searchCandidates.filter(m=>m!==best)];
       for(const m of options){
         if(clock()>deadline)throw Error('time');
         const play=rules.place(b,m.x,m.y,color);

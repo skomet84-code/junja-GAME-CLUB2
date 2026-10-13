@@ -22,4 +22,10 @@ assert.ok([2,7].every((v,i)=>[blocked.move.x,blocked.move.y][i]===v)||
 const forbidden=board([[6,7,1],[8,7,1],[7,6,1],[7,8,1],[4,4,2]]);
 const m=checked(forbidden,1,'black double-three avoidance').move;
 assert.notDeepEqual([m.x,m.y],[7,7],'AI does not attempt forbidden 3-3');
+const forkBoard=board([[4,7,2],[5,7,2],[6,7,2]]);
+const forkStart=Date.now();
+const forkMove=selectMove(forkBoard,2,{timeMs:900});
+assert.ok(forkMove,'AI finds a forced attack');
+assert.ok([[3,7],[7,7]].some(([x,y])=>forkMove.x===x&&forkMove.y===y),'AI converts open three to double-ended four');
+assert.ok(Date.now()-forkStart<3300,'forcing tactic is time bounded');
 console.log('OMOK_EXTREME_AI_TEST_OK: center, instant win, threat block, legal Renju, time bound');

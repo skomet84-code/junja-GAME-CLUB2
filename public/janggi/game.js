@@ -6,7 +6,7 @@ const NAME={rook:'車',horse:'馬',elephant:'象',guard:'士',king:'楚',cannon:
 const HAN_NAME={...NAME,king:'漢',cannon:'砲',soldier:'兵'};
 const KN={rook:'차',horse:'마',elephant:'상',guard:'사',king:'궁',cannon:'포',soldier:'졸'};
 const STORE='junja_janggi_game_v1';
-const state={board:R.fresh(),turn:'c',mode:'ai',difficulty:'normal',side:'c',formations:{c:'inner',h:'inner'},round:1,
+const state={board:R.fresh(),turn:'c',mode:'ai',difficulty:'hard',side:'c',formations:{c:'inner',h:'inner'},round:1,
  moves:[],snapshots:[],selected:null,possibles:[],result:null,reason:'',passes:0,
  worker:null,thinking:false,token:0,sound:false};
 const step=(x,y)=>({x:70+80*x,y:70+80*y});
@@ -177,8 +177,8 @@ function queueAi(){
   if(chosen)commit(chosen);else afterAction();
  };
  try{
-  const w=new Worker('/janggi/ai-worker.js?v=1');state.worker=w;
-  const kill=setTimeout(()=>finish(null),5500);
+  const w=new Worker('/janggi/ai-worker.js?v=2');state.worker=w;
+  const kill=setTimeout(()=>finish(null),7000);
   w.onmessage=e=>{if(e.data?.type==='done'){clearTimeout(kill);finish(e.data.move);}else if(e.data?.type==='error'){clearTimeout(kill);finish(null);}};
   w.onerror=()=>{clearTimeout(kill);finish(null);};
   w.postMessage({board:state.board,side:state.turn,difficulty:state.difficulty});
