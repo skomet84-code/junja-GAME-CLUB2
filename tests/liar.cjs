@@ -3,7 +3,7 @@ const assert=require('node:assert/strict');
 const crypto=require('node:crypto');
 const createLiar=require('../liar-server');
 function harness(){
- const values=new Map(),users=Object.fromEntries(Array.from({length:6},(_,i)=>[i+1,{id:i+1,nickname:'Player'+(i+1)}]));
+ const values=new Map(),users=Object.fromEntries(Array.from({length:12},(_,i)=>[i+1,{id:i+1,nickname:'Player'+(i+1)}]));
  let clock=1000000;
  const db={prepare(sql){return{
   get:key=>sql.includes('SELECT value FROM game_state')?(values.has(key)?{value:values.get(key)}:null):{nickname:users[key]?.nickname||'회원'},
@@ -24,6 +24,32 @@ async function startRoom(h,ids=[1,2,3,4],config={}){
  r=await call(ids[0],'POST',base+'/start');
  assert.equal(r.status,200);
  return base;
+}
+async function testFlexibleReadyCount(){
+ const h=harness(),{call}=h;
+ const made=await call(1,'POST','/api/liar/create',{max:10,clueRounds:1});
+ const base='/api/liar/'+made.data.room.id;
+ for(const id of [2,3,4,5])assert.equal((await call(id,'POST',base+'/join')).status,200);
+ for(const id of [1,2])assert.equal((await call(id,'POST',base+'/ready',{ready:true})).status,200);
+ assert.equal((await call(1,'POST',base+'/start')).status,409,'two ready people cannot start');
+ assert.equal((await call(3,'POST',base+'/ready',{ready:true})).status,200);
+ const r=await call(1,'POST',base+'/start');
+ assert.equal(r.status,200,'three ready people start in a room with ten places');
+ assert.deepEqual(r.data.room.players.map(x=>x.id),[1,2,3],'only ready participants start');
+ assert.equal((await call(4,'GET',base)).status,403,'unready players cannot see secrets');
+ assert.equal((await call(5,'GET','/api/liar')).data.room,null,'excluded users are not stuck in old room');
+ assert.equal((await call(4,'POST','/api/liar/create',{max:10})).status,201,'unready player can play elsewhere');
+ h.game.close();
+ const five=harness(),fiveRoom=await startRoom(five,[1,2,3,4,5],{max:10});
+ assert.equal((await five.call(1,'GET',fiveRoom)).data.room.players.length,5,'five ready can start');
+ five.game.close();
+ const ten=harness(),tenRoom=await startRoom(ten,[1,2,3,4,5,6,7,8,9,10],{max:10});
+ assert.equal((await ten.call(1,'GET',tenRoom)).data.room.players.length,10,'full 10 player match works');
+ ten.game.close();
+ const host=harness(),made2=await host.call(1,'POST','/api/liar/create',{max:10}),base2='/api/liar/'+made2.data.room.id;
+ for(const id of [2,3,4]){await host.call(id,'POST',base2+'/join');await host.call(id,'POST',base2+'/ready',{ready:true});}
+ assert.equal((await host.call(1,'POST',base2+'/start')).status,409,'host must press ready');
+ host.game.close();
 }
 async function testRolesAndGame(){
  const h=harness(),{call}=h,base=await startRoom(h);
@@ -95,4 +121,4 @@ async function testTimeoutAndPrivacy(){
  assert.equal(r.winner,'liar','no votes => liar escapes');
  h.game.close();
 }
-(async()=>{await testRolesAndGame();await testTimeoutAndPrivacy();console.log('LIAR GAME PASS: roles, privacy, clues, voting, final guess, rematch, timers and stats');})().catch(e=>{console.error(e);process.exitCode=1;});
+(async()=>{await testRolesAndGame();await testTimeoutAndPrivacy();await testFlexibleReadyCount();console.log('LIAR GAME PASS: roles, privacy, clues, voting, final guess, rematch, timers, stats, flexible ready count');})().catch(e=>{console.error(e);process.exitCode=1;});

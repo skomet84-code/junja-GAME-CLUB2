@@ -35,7 +35,7 @@ async function refresh(force=false){
   }
  }catch(e){
   if(e.status===401){root.innerHTML='<div class="lg-panel lg-empty">준자랜드 로그인이 필요해요. <a href="/">로그인하러 가기 →</a></div>';return;}
-  if(e.status===404||e.status===403){state.room=null;await homeRefresh();return;}
+  if(e.status===404||e.status===403){state.room=null;await homeRefresh();say('게임방이 시작되었거나 대기실에서 제외되었습니다. 다시 참가할 수 있어요.');return;}
   say(e.message||'연결이 끊겼어요. 다시 시도하고 있습니다.');
  }finally{state.loading=false;}
 }
@@ -56,11 +56,11 @@ function lobby(){
  const h=state.home||{rooms:[],stats:{},leaders:[],categories:['랜덤']},s=h.stats||{};
  root.innerHTML='<div class="lg-two"><section class="lg-panel lg-feature"><div class="lg-eyebrow">NEW SOCIAL DEDUCTION · PARTY GAME</div><h2>누가 진실을<br><em>숨기고 있을까?</em></h2><p>모두가 같은 단어를 아는 건 아니에요. 단 한 명의 라이어를 찾아내세요. 아무렇지 않은 힌트 뒤에 숨어 있는 거짓말!</p>'+
   '<form id="liarCreate" class="lg-form"><label>방 이름<input name="name" placeholder="친구들과 라이어 한 판" maxlength="28"></label>'+
-  '<div class="lg-input-row"><label>최대 인원<select name="max"><option value="6">6명</option><option value="8" selected>8명</option><option value="10">10명</option><option value="4">4명</option><option value="3">3명</option></select></label>'+
+  '<div class="lg-input-row"><label>참가 인원<input value="3명 이상 준비하면 시작 · 최대 10명 입장" disabled aria-label="시작 가능한 인원"></label>'+
   '<label>제시어 분야<select name="category">'+h.categories.map(c=>'<option>'+safe(c)+'</option>').join('')+'</select></label></div>'+
   '<div class="lg-input-row"><label>힌트 라운드<select name="clueRounds"><option value="2">2회씩 (추천)</option><option value="1">1회씩 (빠르게)</option></select></label><label class="lg-check"><input type="checkbox" name="private"> 비공개 초대방</label></div>'+
   '<button type="submit" class="lg-btn lg-primary lg-wide">＋ 새로운 라이어 방 만들기</button></form>'+
-  '<div class="lg-footnote">3~10명 · 게임머니 소모 없음 · 서버에서 비밀 역할 무작위 배정</div></section>'+
+  '<div class="lg-footnote">정원 충족 필요 없음 · 준비 완료 3명 이상이면 방장 즉시 시작 · 게임머니 소모 없음</div></section>'+
   '<section class="lg-panel"><div class="lg-section-title"><h3>참가 가능한 게임방</h3>'+btn('reload','↻ 새로고침','lg-mini')+'</div><div class="lg-roomlist">'+
    (h.rooms.length?h.rooms.map(r=>'<div class="lg-listroom"><span class="lg-room-icon">♛</span><div><b>'+safe(r.name)+'</b><small>'+safe(r.host)+' · '+r.players+'/'+r.max+'명 · '+r.clueRounds+'회 힌트</small></div>'+btn('join','참가','lg-small','data-id="'+safe(r.id)+'"')+'</div>').join(''):'<div class="lg-empty">지금 공개된 방이 없어요.<br>먼저 방을 만들어 친구들을 초대해보세요!</div>')+
   '</div><div class="lg-how"><h4>HOW TO PLAY</h4><p><b>01</b> 시민은 같은 제시어를 받고 라이어는 분야만 봅니다.</p><p><b>02</b> 차례마다 한 줄 힌트를 발표합니다.</p><p><b>03</b> 토론 후 라이어로 의심되는 사람에게 투표합니다.</p><p><b>04</b> 라이어를 잡아도 제시어를 맞히면 역전!</p></div></section></div>'+
@@ -70,12 +70,14 @@ function lobby(){
 }
 function waiting(r){
  const mine=r.players.find(p=>p.id===r.selfId);
- root.innerHTML='<section class="lg-panel lg-wait"><div class="lg-eyebrow">PRIVATE PARTY ROOM · WAITING</div><h2>'+safe(r.name)+'</h2><p>최소 3명 이상 필요해요. 모두 준비하면 방장이 게임을 시작할 수 있습니다.</p>'+
- '<div class="lg-wait-count"><b>'+r.players.length+'</b><span>/ '+r.max+' PLAYERS</span></div>'+
+ const readyCount=r.players.filter(p=>p.ready).length;
+ const canStart=readyCount>=3&&!!mine?.ready;
+ root.innerHTML='<section class="lg-panel lg-wait"><div class="lg-eyebrow">PRIVATE PARTY ROOM · WAITING</div><h2>'+safe(r.name)+'</h2><p>인원을 딱 맞출 필요 없어요! <strong>3명 이상 준비</strong>하면 방장이 바로 시작할 수 있습니다.</p>'+
+ '<div class="lg-wait-count"><b>'+readyCount+'</b><span>명 준비 완료 · '+r.players.length+'명 입장 (최대 '+r.max+'명)</span></div>'+
  '<div class="lg-wait-grid">'+initials(r)+Array.from({length:Math.max(0,Math.min(3,r.max-r.players.length))},()=>'<div class="lg-player lg-player-empty"><span class="lg-avatar">＋</span><div><b>빈 자리</b><small>친구 입장 대기</small></div></div>').join('')+'</div>'+
  '<div class="lg-actions">'+btn('invite','🔗 초대 링크 복사','lg-secondary')+btn('ready',mine?.ready?'준비 취소':'✓ 게임 준비하기','lg-primary')+
- (r.hostId===r.selfId?btn('start','♛ 게임 시작','lg-primary',r.players.length>=3&&r.players.every(p=>p.ready)?'':'disabled'):'')+btn('leave','방 나가기','lg-ghost')+'</div>'+
- '<div class="lg-hintnote">2회 힌트 × '+r.players.length+'명 · 시민에게만 제시어가 보입니다. 라이어도 힌트를 제출할 수 있어요.</div></section>';
+ (r.hostId===r.selfId?btn('start',canStart?'♛ '+readyCount+'명으로 게임 시작':'♛ 준비 3명부터 시작','lg-primary',canStart?'':'disabled'):'')+btn('leave','방 나가기','lg-ghost')+'</div>'+
+ '<div class="lg-hintnote">준비 완료한 '+readyCount+'명만 이번 판에 참가합니다. 미준비 참가자는 시작 시 대기실에서 제외됩니다. 힌트는 1~2회씩 진행돼요.</div></section>';
 }
 function rolePanel(r){
  const liar=r.role==='liar',done=r.phase==='complete';
@@ -142,7 +144,7 @@ root.addEventListener('submit',e=>{
  const f=e.target;if(!['liarCreate','liarClue','liarChat','liarGuess'].includes(f.id))return;
  e.preventDefault();if(state.busy)return;
  const r=state.room;
- if(f.id==='liarCreate')act('/create',{name:f.elements.name.value,max:Number(f.elements.max.value),category:f.elements.category.value,clueRounds:Number(f.elements.clueRounds.value),private:f.elements.private.checked});
+ if(f.id==='liarCreate')act('/create',{name:f.elements.name.value,max:10,category:f.elements.category.value,clueRounds:Number(f.elements.clueRounds.value),private:f.elements.private.checked});
  else if(r)act('/'+r.id+'/'+({liarClue:'clue',liarChat:'chat',liarGuess:'guess'}[f.id]),{text:f.elements.text.value.trim()});
 });
 root.addEventListener('click',e=>{

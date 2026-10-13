@@ -92,15 +92,22 @@ module.exports=function createLiarGame({db,crypto,readBody,requireAuth,json,rate
    turnId:r.phase==='clue'?r.order[r.cursor%r.order.length]:null,clueRound:r.phase==='clue'?Math.floor(r.cursor/r.order.length)+1:null,deadline:r.deadline,serverNow:now()};
  }
  function newRound(r){
-  if(r.players.length<3||r.players.length>r.max)throw Error('3명 이상 모여야 시작할 수 있습니다.');
-  if(r.players.some(p=>!p.ready))throw Error('모든 참가자가 준비해야 합니다.');
+  // Capacity limits joins, not the number required to begin a round.
+  // Play with exactly the people who pressed Ready, between 3 and 10.
+  if(!member(r,r.hostId)?.ready)throw Error('방장도 준비를 완료해야 시작할 수 있습니다.');
+  const ready=r.players.filter(p=>p.ready);
+  if(ready.length<3)throw Error('준비 완료한 참가자가 최소 3명 필요합니다.');
+  const excluded=r.players.filter(p=>!p.ready).map(p=>p.id);
+  r.players=ready;
   r.round++;const category=r.requestedCategory==='랜덤'?NAMES[crypto.randomInt(NAMES.length)]:r.requestedCategory;
   const options=CATEGORIES[category].filter(w=>!r.recent.includes(w));const word=(options.length?options:CATEGORIES[category])[crypto.randomInt((options.length?options:CATEGORIES[category]).length)];
   r.recent.push(word);r.recent=r.recent.slice(-8);r.category=category;r.word=word;
   r.liarId=r.players[crypto.randomInt(r.players.length)].id;r.order=shuffle(r.players.map(p=>p.id));r.cursor=0;
   r.players.forEach(p=>{p.ready=false;p.left=false;});
   r.clues=[];r.messages=[];r.events=[];r.votes={};r.voteOptions=[];r.runoff=0;r.guess=null;r.suspectId=null;r.winner=null;r.reason=null;r.recorded=false;
-  log(r,'역할과 제시어가 비밀 배정되었습니다.');arm(r,'clue',DURATIONS.clue);
+  log(r,ready.length+'명 준비 완료! 역할과 제시어가 비밀 배정되었습니다.');arm(r,'clue',DURATIONS.clue);
+  // Prompt excluded waiters to refresh; they may immediately join/create a new room.
+  if(excluded.length)notify(excluded,r.id);
  }
  async function handle(req,res,url){
   if(!url.pathname.startsWith('/api/liar'))return false;
@@ -121,7 +128,7 @@ module.exports=function createLiarGame({db,crypto,readBody,requireAuth,json,rate
    if(url.pathname==='/api/liar/create'&&req.method==='POST'){
     if(mine(user.id)||isUserBusy(user.id))throw Error('참가 중인 다른 게임방에서 먼저 나와주세요.');
     if(!rateLimit('liar-create:'+user.id,6,60000))throw Error('방 생성은 잠시 후 다시 시도하세요.');
-    const category=NAMES.includes(b.category)?b.category:'랜덤',max=Math.max(3,Math.min(10,Math.trunc(Number(b.max)||8)));
+    const category=NAMES.includes(b.category)?b.category:'랜덤',max=Math.max(3,Math.min(10,Math.trunc(Number(b.max)||MAX_PLAYERS)));
     const r={id:'LI'+crypto.randomBytes(7).toString('hex'),name:clean(b.name).slice(0,28)||'준자 라이어 파티',max,private:b.private===true,requestedCategory:category,clueRounds:b.clueRounds===1?1:2,
      hostId:user.id,players:[{id:user.id,nickname:user.nickname,ready:false,left:false}],phase:'waiting',version:0,round:0,recent:[],deadline:0,updated:now(),events:[]};
     rooms.set(r.id,r);publish(r);return reply(201,{room:view(r,user.id)});
