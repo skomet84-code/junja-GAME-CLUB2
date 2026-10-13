@@ -4,7 +4,7 @@
 'use strict';
 if(typeof importScripts==='function')importScripts('/janggi/engine.js');
 const R=typeof module==='object'&&module.exports?require('./engine.js'):self.JanggiRules;
-const MATE=10000000,MAX_TT=48000;
+const MATE=10000000,MAX_TT=70000;
 const TYPES={king:0,rook:1,cannon:2,horse:3,elephant:4,guard:5,soldier:6};
 function moveId(m){return m.x+9*m.y+90*(m.tx+9*m.ty);}
 function evaluate(board,side){
@@ -41,9 +41,9 @@ function evaluate(board,side){
 }
 function choose(board,side,difficulty='hard',settings={}){
  const start=Date.now(),hard=difficulty==='hard';
- const budget=Math.max(60,Math.min(8000,Number(settings.timeMs)|| (hard?3900:difficulty==='normal'?1100:120)));
+ const budget=Math.max(60,Math.min(9000,Number(settings.timeMs)|| (hard?3900:difficulty==='normal'?1100:120)));
  const deadline=start+budget;
- const maxDepth=hard?9:difficulty==='normal'?5:2;
+ const maxDepth=hard?11:difficulty==='normal'?5:2;
  const trans=new Map(),history=new Int32Array(8100),killers=Array.from({length:40},()=>[-1,-1]);
  let nodes=0,qnodes=0;
  function timeout(){if(Date.now()>=deadline)throw Error('THINK_TIMEOUT');}
