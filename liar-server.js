@@ -60,7 +60,7 @@ module.exports=function createLiarGame({db,crypto,readBody,requireAuth,json,rate
  function advanceClue(r){
   const total=r.order.length*r.clueRounds;
   let cursor=r.cursor+1;
-  while(cursor<total&&member(r,r.order[cursor%r.order.length])?.left)cursor++;
+  while(cursor<total&&!member(r,r.order[cursor%r.order.length]))cursor++;
   r.cursor=cursor;
   if(cursor>=total){arm(r,'discussion',DURATIONS.discussion);log(r,'모든 힌트가 끝났습니다. 토론을 시작하세요.');}
   else arm(r,'clue',DURATIONS.clue);
@@ -126,7 +126,7 @@ module.exports=function createLiarGame({db,crypto,readBody,requireAuth,json,rate
      hostId:user.id,players:[{id:user.id,nickname:user.nickname,ready:false,left:false}],phase:'waiting',version:0,round:0,recent:[],deadline:0,updated:now(),events:[]};
     rooms.set(r.id,r);publish(r);return reply(201,{room:view(r,user.id)});
    }
-   const m=url.pathname.match(/^\/api\/liar\/(LI[a-f0-9]{14})(?:\/(join|ready|start|clue|chat|vote|guess|next|kick|leave))?$/);
+   const m=url.pathname.match(/^\/api\/liar\/(LI[a-f0-9]{14})(?:\/(join|ready|start|clue|discussion-end|chat|vote|guess|next|kick|leave))?$/);
    if(!m)return reply(404,{error:'지원하지 않는 라이어게임 요청입니다.'});
    const r=rooms.get(m[1]);if(!r)return reply(404,{error:'종료된 라이어게임 방입니다. 로비로 돌아가주세요.'});
    expire(r);const op=m[2];
@@ -153,6 +153,9 @@ module.exports=function createLiarGame({db,crypto,readBody,requireAuth,json,rate
     if(normalize(clue).includes(normalize(r.word)))throw Error('정답 단어를 직접 말하면 안 됩니다.');
     r.clues.push({userId:user.id,round:Math.floor(r.cursor/r.order.length)+1,text:clue});
     advanceClue(r);
+   }else if(op==='discussion-end'){
+    if(r.phase!=='discussion'||r.hostId!==user.id)throw Error('토론 조기 종료는 방장만 할 수 있습니다.');
+    startVote(r);
    }else if(op==='chat'){
     if(!['discussion','vote'].includes(r.phase)||p.left)throw Error('토론 시간에만 메시지를 보낼 수 있습니다.');
     if(!rateLimit('liar-chat:'+user.id,7,10000))throw Error('채팅은 잠시 천천히 입력해주세요.');
