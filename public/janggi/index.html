@@ -5,8 +5,8 @@
 <meta name="theme-color" content="#10151f">
 <title>준자 장기 · JUNJA LAND</title>
 <link rel="stylesheet" href="/janggi/style.css?v=1">
-<script defer src="/janggi/engine.js?v=1"></script>
-<script defer src="/janggi/game.js?v=1"></script>
+<script defer src="/janggi/engine.js?v=2"></script>
+<script defer src="/janggi/game.js?v=2"></script>
 </head><body>
 <div class="jg-shell">
  <header class="jg-top">
@@ -46,14 +46,25 @@
      <div class="jg-config">
       <label>난이도 <select id="difficulty"><option value="easy">초급 · 수읽기 연습</option><option value="normal" selected>고급 · 전략형</option><option value="hard">극한 · 심층 탐색</option></select></label>
       <label>내 진영 <select id="mySide"><option value="c">초楚 · 선공</option><option value="h">한漢 · 후공</option></select></label>
-      <label>포진 <select id="formation"><option value="standard">기본 포진</option><option value="swapped">마·상 교대 포진</option></select></label>
+      <label>초楚 시작 차림 <select id="choFormation" aria-label="초 시작 차림">
+       <option value="left">왼상 · 象馬象馬</option>
+       <option value="right">오른상 · 馬象馬象</option>
+       <option value="inner" selected>안상 · 馬象象馬</option>
+       <option value="outer">바깥상 · 象馬馬象</option>
+      </select></label>
+      <label>한漢 시작 차림 <select id="hanFormation" aria-label="한 시작 차림">
+       <option value="left">왼상 · 象馬象馬</option>
+       <option value="right">오른상 · 馬象馬象</option>
+       <option value="inner" selected>안상 · 馬象象馬</option>
+       <option value="outer">바깥상 · 象馬馬象</option>
+      </select></label>
      </div>
      <div class="jg-actions">
       <button id="newGame" class="jg-btn primary" type="button">✦ 새 대국 시작</button>
       <button id="undo" class="jg-btn secondary" type="button">↶ 무르기</button>
       <button id="pass" class="jg-btn secondary" type="button">차례 넘기기</button>
      </div>
-     <p class="jg-note">대국은 이 기기에 자동 저장됩니다. AI 대국과 같은 기기에서 번갈아 두는 2인 대국을 지원합니다.</p>
+     <p class="jg-note">초·한의 시작 차림을 4가지 중 각각 선택할 수 있습니다. 차림을 바꾸면 새 대국이 시작되며 진행 중인 대국은 확인을 거칩니다. 대국은 이 기기에 자동 저장됩니다.</p>
     </section>
     <section class="jg-panel jg-progress">
      <div class="jg-panelcap">BATTLE STATUS <span id="roundText">ROUND 01</span></div>

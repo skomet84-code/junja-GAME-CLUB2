@@ -6,7 +6,7 @@ const NAME={rook:'車',horse:'馬',elephant:'象',guard:'士',king:'楚',cannon:
 const HAN_NAME={...NAME,king:'漢',cannon:'砲',soldier:'兵'};
 const KN={rook:'차',horse:'마',elephant:'상',guard:'사',king:'궁',cannon:'포',soldier:'졸'};
 const STORE='junja_janggi_game_v1';
-const state={board:R.fresh(),turn:'c',mode:'ai',difficulty:'normal',side:'c',formation:'standard',round:1,
+const state={board:R.fresh(),turn:'c',mode:'ai',difficulty:'normal',side:'c',formations:{c:'inner',h:'inner'},round:1,
  moves:[],snapshots:[],selected:null,possibles:[],result:null,reason:'',passes:0,
  worker:null,thinking:false,token:0,sound:false};
 const step=(x,y)=>({x:70+80*x,y:70+80*y});
@@ -33,7 +33,7 @@ function snapshot(){return {board:state.board.map(r=>r.slice()),turn:state.turn,
 function cancelAi(){state.token++;if(state.worker){state.worker.terminate();state.worker=null;}state.thinking=false;}
 function save(){
  try{localStorage.setItem(STORE,JSON.stringify({board:state.board,turn:state.turn,mode:state.mode,difficulty:state.difficulty,
- side:state.side,formation:state.formation,round:state.round,moves:state.moves,
+ side:state.side,formations:state.formations,round:state.round,moves:state.moves,
  snapshots:state.snapshots.slice(-6),result:state.result,reason:state.reason,passes:state.passes,sound:state.sound}));}catch{}
 }
 function load(){
@@ -42,8 +42,14 @@ function load(){
   if(!s||!Array.isArray(s.board)||s.board.length!==10||s.board.some(r=>!Array.isArray(r)||r.length!==9))return;
   if(!['c','h'].includes(s.turn)||!['c','h'].includes(s.side)||!['ai','local'].includes(s.mode))return;
   if(!R.kingAt(s.board,'c')||!R.kingAt(s.board,'h'))return;
+  const legacyFormation=s.formation==='swapped'?'outer':'inner';
+  const formations={};
+  for(const side of ['c','h']){
+   const value=s.formations?.[side];
+   formations[side]=Object.hasOwn(R.FORMATIONS,value)?value:legacyFormation;
+  }
   Object.assign(state,{board:s.board,turn:s.turn,mode:s.mode,side:s.side,difficulty:s.difficulty||'normal',
-   formation:s.formation||'standard',round:s.round||1,moves:s.moves||[],snapshots:(s.snapshots||[]).slice(-6),
+   formations,round:s.round||1,moves:s.moves||[],snapshots:(s.snapshots||[]).slice(-6),
    result:s.result||null,reason:s.reason||'',passes:s.passes||0,sound:!!s.sound});
  }catch{}
 }
@@ -64,7 +70,8 @@ function maybeSound(freq=440){
  }catch{}
 }
 function render(){
- $('difficulty').value=state.difficulty;$('mySide').value=state.side;$('formation').value=state.formation;
+ $('difficulty').value=state.difficulty;$('mySide').value=state.side;
+ $('choFormation').value=state.formations.c;$('hanFormation').value=state.formations.h;
  $('difficulty').disabled=state.mode!=='ai';$('mySide').disabled=state.mode!=='ai';
  for(const b of document.querySelectorAll('#modeGroup button'))b.classList.toggle('active',b.dataset.mode===state.mode);
  const opts=new Set(state.possibles.map(m=>m.tx+','+m.ty));
@@ -179,7 +186,7 @@ function queueAi(){
 }
 function reset(ask){
  if(ask&&state.moves.length&&!state.result&&!window.confirm('진행 중인 대국을 종료하고 새로 시작할까요?')){render();return;}
- cancelAi();state.board=R.fresh({cSwap:state.formation==='swapped',hSwap:state.formation==='swapped'});
+ cancelAi();state.board=R.fresh({cFormation:state.formations.c,hFormation:state.formations.h});
  state.turn='c';state.moves=[];state.snapshots=[];state.selected=null;state.possibles=[];state.passes=0;
  state.result=null;state.reason='';state.round++;save();render();
  if(state.mode==='ai'&&state.side==='h')queueAi();
@@ -194,9 +201,16 @@ $('difficulty').addEventListener('change',e=>{state.difficulty=e.target.value;sa
 $('mySide').addEventListener('change',e=>{const old=state.side;state.side=e.target.value;
  if(state.moves.length&&!state.result&&!confirm('진영을 바꾸면 새 대국이 시작됩니다. 계속할까요?')){state.side=old;render();return;}reset(false);
 });
-$('formation').addEventListener('change',e=>{const old=state.formation;state.formation=e.target.value;
- if(state.moves.length&&!state.result&&!confirm('포진 변경 시 새 대국을 시작합니다. 계속할까요?')){state.formation=old;render();return;}reset(false);
-});
+for(const [side,id] of [['c','choFormation'],['h','hanFormation']]){
+ $(id).addEventListener('change',e=>{
+  const next=e.target.value,old=state.formations[side];
+  if(!Object.hasOwn(R.FORMATIONS,next)){render();return;}
+  if(next===old)return;
+  if(state.moves.length&&!state.result&&!confirm('차림을 변경하면 새 대국을 시작합니다. 계속할까요?')){render();return;}
+  state.formations={...state.formations,[side]:next};
+  reset(false);
+ });
+}
 $('newGame').addEventListener('click',()=>reset(true));
 $('pass').addEventListener('click',()=>{if(isHuman()&&!R.checked(state.board,state.turn)&&!state.result)commit(null,true);});
 $('undo').addEventListener('click',()=>{

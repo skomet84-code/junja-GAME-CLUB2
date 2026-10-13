@@ -56,9 +56,34 @@ function test(){
  assert.equal(R.isLegal(board,'c',{x:4,y:8,tx:4,ty:7}),false,'king cannot step into rook check');
  assert.equal(R.isLegal(board,'c',{x:4,y:8,tx:3,ty:8}),true,'king can evade check sideways');
 
+ const expected={
+  left:['elephant','horse','elephant','horse'],
+  right:['horse','elephant','horse','elephant'],
+  inner:['horse','elephant','elephant','horse'],
+  outer:['elephant','horse','horse','elephant']
+ };
+ assert.deepEqual(Object.keys(R.FORMATIONS),Object.keys(expected));
+ for(const [c,cho] of Object.entries(expected)){
+  for(const [h,han] of Object.entries(expected)){
+   const setup=R.fresh({cFormation:c,hFormation:h});
+   for(const [row,arr,side] of [[9,cho,'c'],[0,han,'h']]){
+    for(let i=0;i<4;i++)assert.equal(setup[row][[1,2,6,7][i]]?.t,arr[i],side+' formation '+(side==='c'?c:h)+' slot '+i);
+   }
+   assert.equal(pieceCount(setup),32,'starting formation must preserve all 32 pieces');
+   assert.equal(setup[8][4]?.s,'c');assert.equal(setup[1][4]?.s,'h');
+   assert.ok(R.legal(setup,'c').length>0,'all formations must remain playable');
+  }
+ }
  board=R.fresh({cSwap:true,hSwap:true});
  assert.equal(b[9][1].t,'horse');assert.equal(board[9][1].t,'elephant');
  assert.equal(board[0][2].t,'horse');
- console.log('JANGGI_RULES_OK: initial pieces, 9x10 board, horse/elephant blockers, cannon screens, palace diagonal, king check, soldier direction, setup switch');
+ const fs=require('node:fs'),path=require('node:path');
+ const page=fs.readFileSync(path.join(__dirname,'../public/janggi/index.html'),'utf8');
+ for(const id of ['choFormation','hanFormation']){
+  const select=page.match(new RegExp('<select id="'+id+'"[^>]*>([\\s\\S]*?)<\\/select>'));
+  assert.ok(select,'missing formation control: '+id);
+  for(const name of Object.keys(expected))assert.ok(select[1].includes('value="'+name+'"'),id+' missing '+name);
+ }
+ console.log('JANGGI_RULES_OK: rules and 16 CHO/HAN formation pairings, both starting-formation selectors, legacy swap');
 }
 test();

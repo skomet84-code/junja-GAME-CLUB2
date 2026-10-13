@@ -10,12 +10,22 @@
  const at=(b,x,y)=>INS(x,y)?b[y][x]:null;
  const own=(p,s)=>!!p&&p.s===s;
  const piece=(s,t)=>({s,t});
+ // Official Korean Janggi starting arrangements, ordered from the left rook to the right rook.
+ // Left elephant (상마상마), right elephant (마상마상), inner elephant (마상상마), outer elephant (상마마상).
+ const FORMATIONS=Object.freeze({
+  left:Object.freeze(['elephant','horse','elephant','horse']),
+  right:Object.freeze(['horse','elephant','horse','elephant']),
+  inner:Object.freeze(['horse','elephant','elephant','horse']),
+  outer:Object.freeze(['elephant','horse','horse','elephant'])
+ });
  function fresh(opts={}){
   const b=Array.from({length:H},()=>Array(W).fill(null));
   for(const s of [HAN,CHO]){
    const back=s===HAN?0:9,king=s===HAN?1:8,cannon=s===HAN?2:7,pawns=s===HAN?3:6;
-   let order=['rook','horse','elephant','guard',null,'guard','elephant','horse','rook'];
-   if(opts[s+'Swap']){for(const [a,z] of [[1,2],[6,7]])[order[a],order[z]]=[order[z],order[a]];}
+   // Keep the pre-update cSwap/hSwap options working for old callers.
+   const formation=opts[s+'Formation']||(opts[s+'Swap']?'outer':'inner');
+   const slots=FORMATIONS[formation]||FORMATIONS.inner;
+   const order=['rook',slots[0],slots[1],'guard',null,'guard',slots[2],slots[3],'rook'];
    for(let x=0;x<9;x++)if(order[x])b[back][x]=piece(s,order[x]);
    b[king][4]=piece(s,'king');b[cannon][1]=piece(s,'cannon');b[cannon][7]=piece(s,'cannon');
    for(const x of [0,2,4,6,8])b[pawns][x]=piece(s,'soldier');
@@ -138,5 +148,5 @@
   return {turn,check,moves:moves.length,winner:!moves.length&&check?ENEMY(turn):null,draw:!moves.length&&!check};
  }
  function encode(b,turn){return turn+'|'+b.map(row=>row.map(p=>p?(p.s+p.t[0]+(p.t==='cannon'?'a':'')):'.').join(',')).join('/');}
- return {W,H,CHO,HAN,VAL,fresh,pseudo,moved,legal,isLegal,checked,kingAt,facing,status,encode,ENEMY,at,diagEdge};
+ return {W,H,CHO,HAN,VAL,FORMATIONS,fresh,pseudo,moved,legal,isLegal,checked,kingAt,facing,status,encode,ENEMY,at,diagEdge};
 });
