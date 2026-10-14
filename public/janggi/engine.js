@@ -147,6 +147,10 @@
   const moves=legal(b,turn),check=checked(b,turn);
   return {turn,check,moves:moves.length,winner:!moves.length&&check?ENEMY(turn):null,draw:!moves.length&&!check};
  }
+ // Board stays canonical; rotate only the position used to render each player's screen.
+ function viewPoint(side,x,y){return side===HAN?{x:W-1-x,y:H-1-y}:{x,y};}
+ // HAN sees the opposite end; reverse left/right for the player's own formation labels.
+ function formationForView(side,name){return side===HAN&&name==='left'?'right':side===HAN&&name==='right'?'left':name;}
  function encode(b,turn){return turn+'|'+b.map(row=>row.map(p=>p?(p.s+p.t[0]+(p.t==='cannon'?'a':'')):'.').join(',')).join('/');}
- return {W,H,CHO,HAN,VAL,FORMATIONS,fresh,pseudo,moved,legal,isLegal,checked,kingAt,facing,status,encode,ENEMY,at,diagEdge};
+ return {W,H,CHO,HAN,VAL,FORMATIONS,fresh,pseudo,moved,legal,isLegal,checked,kingAt,facing,status,encode,ENEMY,at,diagEdge,viewPoint,formationForView};
 });
