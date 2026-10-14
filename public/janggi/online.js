@@ -1,6 +1,6 @@
 (()=>{'use strict';
 const R=window.JanggiRules;if(!R)return;
-const $=id=>document.getElementById(id),state={room:null,home:null,loading:false,busy:false,selected:null,hints:[],offset:0,inviteDone:false,prefs:{aiSide:'c',aiFormation:'inner',pvpCho:'inner',pvpHan:'inner'}};
+const $=id=>document.getElementById(id),state={room:null,home:null,loading:false,busy:false,selected:null,hints:[],offset:0,inviteDone:false,drama:null,prefs:{aiSide:'c',aiFormation:'inner',pvpCho:'inner',pvpHan:'inner'}};
 const TEXT={rook:'車',horse:'馬',elephant:'象',guard:'士',king:'楚',cannon:'包',soldier:'卒'};
 const HAN={...TEXT,king:'漢',cannon:'砲',soldier:'兵'};
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -25,7 +25,47 @@ async function api(path,body){
  headers:{'Content-Type':'application/json'},body:body===undefined?undefined:JSON.stringify(body),signal:controller.signal});
  const d=await res.json();if(!res.ok){const e=new Error(d.error||'요청이 실패했습니다.');e.status=res.status;throw e;}return d;}finally{clearTimeout(timer);}
 }
-function update(d){state.room=d.room||null;if(d.rooms)state.home=d;if(state.room)state.offset=state.room.serverNow-Date.now();state.selected=null;state.hints=[];render();}
+
+const CAPTURE_ORDER=['rook','cannon','horse','elephant','guard','soldier'];
+const STARTING={rook:2,cannon:2,horse:2,elephant:2,guard:2,soldier:5};
+const CAPTURE_SCORE={rook:13,cannon:7,horse:5,elephant:3,guard:3,soldier:2};
+function renderCaptured(board){
+ for(const captor of ['c','h']){
+  const victim=captor==='c'?'h':'c',remaining={};
+  for(const row of board)for(const p of row)if(p&&p.s===victim)remaining[p.t]=(remaining[p.t]||0)+1;
+  let score=0;
+  const pieces=[];
+  for(const type of CAPTURE_ORDER){
+   const count=Math.max(0,STARTING[type]-(remaining[type]||0));
+   score+=count*CAPTURE_SCORE[type];
+   for(let i=0;i<count;i++)pieces.push('<span class="jg-captured-piece '+(victim==='c'?'cho':'han')+'" aria-label="'+type+'">'+esc((victim==='c'?TEXT:HAN)[type])+'</span>');
+  }
+  $(captor==='c'?'jgCapturedCho':'jgCapturedHan').innerHTML=pieces.join('')||'<span class="jg-no-captures">아직 없음</span>';
+  $(captor==='c'?'jgCapturedChoScore':'jgCapturedHanScore').textContent=score+'점';
+ }
+}
+function announce(oldRoom,room){
+ if(!room||room.phase==='waiting'){state.drama=null;return;}
+ if(oldRoom&&oldRoom.id===room.id&&oldRoom.version===room.version)return;
+ let title='',style='';
+ if(room.phase==='complete'&&/외통|장군.*승|checkmate/i.test(room.reason||'')){title='외통수!';style='mate';}
+ else if(room.phase==='playing'&&R.checked(room.board,room.turn)){title='장군!';style='check';}
+ else if(oldRoom?.id===room.id&&oldRoom.phase==='playing'&&R.checked(oldRoom.board,oldRoom.turn)&&room.last){title='멍군!';style='defend';}
+ if(title)state.drama={title,style,until:Date.now()+(style==='mate'?3500:1300)};
+}
+function renderDrama(){
+ const r=state.room,el=$('jgDrama'),cd=$('jgCountdown');
+ if(!el||!cd)return;
+ const d=state.drama;
+ if(d&&Date.now()<d.until){el.hidden=false;el.className='jg-drama '+d.style;el.textContent=d.title;}
+ else{el.hidden=true;if(d)state.drama=null;}
+ const active=r&&r.phase==='playing'&&!r.thinking&&Number.isFinite(Number(r.deadline));
+ const remaining=active?Math.max(0,Math.ceil((Number(r.deadline)-Date.now()-state.offset)/1000)):Infinity;
+ cd.hidden=!(active&&remaining<=10);
+ if(!cd.hidden){cd.textContent=String(remaining);cd.className='jg-countdown'+(remaining<=3?' danger':'');}
+}
+
+function update(d){announce(state.room,d.room||null);state.room=d.room||null;if(d.rooms)state.home=d;if(state.room)state.offset=state.room.serverNow-Date.now();state.selected=null;state.hints=[];render();}
 async function refresh(force=false){
  if(state.loading||state.busy||document.hidden)return;state.loading=true;
  try{const old=state.room,d=await api(old?'/'+old.id:'');
@@ -91,6 +131,7 @@ function match(){
   cells.push('<button type="button" class="jg-cell '+(selected?'selected ':'')+(on?'hint ':'')+(on&&p?'capture ':'')+(from?'from ':'')+(to?'to ':'')+'" data-x="'+x+'" data-y="'+y+'" role="gridcell" aria-label="'+(x+1)+'열 '+(y+1)+'행 '+(p?esc(p.t):'빈칸')+'" style="--x:'+((70+80*x)/780*100).toFixed(5)+'%;--y:'+((70+80*y)/860*100).toFixed(5)+'%">'+(p?'<span class="jg-piece '+(p.s==='c'?'cho ':'han ')+p.t+'">'+esc((p.s==='c'?TEXT:HAN)[p.t])+'</span>':'')+'</button>');
  }
  $('jgBoard').innerHTML=grid+cells.join('');
+ renderCaptured(board);
  let message=waiting?'친구 입장 후 모두 준비를 눌러주세요.':finished?r.reason:r.thinking?'최강 AI가 깊이 수읽기 중입니다…':r.myTurn?'내 차례! 기물을 선택하세요.':'상대방이 수를 두고 있습니다.';
  if(finished&&r.winner===r.selfId)message='🏆 승리! '+r.reason+(r.payout?' · 상금 1조 G 지급 완료':r.payoutError?' · '+r.payoutError:'');
  else if(finished&&r.winner===null)message='무승부 · '+r.reason;
@@ -108,7 +149,7 @@ function match(){
 }
 function render(){if(state.room)match();else lobby();}
 function tick(){
- const r=state.room,el=$('jgClock');if(!r||!el)return;
+ const r=state.room,el=$('jgClock');renderDrama();if(!r||!el)return;
  if(r.phase==='waiting'){el.textContent='⏳ 준비 대기';return;}
  if(r.phase==='complete'){el.textContent='🏁 대국 종료 · '+(r.payout?'상금 1조 지급 완료':r.payoutError||'결과 확인');return;}
  if(r.thinking){el.textContent='🤖 AI 수읽기 중';return;}
