@@ -49,7 +49,7 @@ module.exports=function createJanggi({db,crypto,readBody,requireAuth,json,rateLi
  function mine(id){cleanup();return [...rooms.values()].find(r=>r.players.some(p=>p.id===Number(id)))||null;}
  function roomView(r,id){const my=r.players.find(p=>p.id===Number(id));return {
    id:r.id,version:r.version,name:r.name,ai:r.ai,phase:r.phase,hostId:r.hostId,selfId:Number(id),
-   players:r.players.map(p=>({id:p.id,nickname:p.nickname,ready:!!p.ready,color:r.colors[p.id]||null})),
+   players:r.players.map(p=>({id:p.id,nickname:p.nickname,ready:!!p.ready,color:r.colors[p.id]||null,formation:p.formation||null})),
    board:r.board,turn:r.turn,colors:r.colors,mySide:r.colors[Number(id)]||null,
    myTurn:r.phase==='playing'&&!r.thinking&&r.colors[Number(id)]===r.turn,
    thinking:r.thinking,moves:r.moves,round:r.round,last:r.last,passes:r.passes,
@@ -98,10 +98,16 @@ module.exports=function createJanggi({db,crypto,readBody,requireAuth,json,rateLi
  }
  function start(r,again=false){
   if(r.players.length!==2)throw Error('상대 한 명이 참가해야 대국을 시작할 수 있습니다.');
+  if(!r.ai&&!r.players.every(p=>p.formation))throw Error('두 사람 모두 각자 마·상 포진을 선택해야 합니다.');
   if(!r.ai&&!r.players.every(p=>p.ready))throw Error('두 사람 모두 준비를 눌러주세요.');
   const a=r.players[0],b=r.players[1];r.round++;
   const cFirst=r.ai?(r.preferredSide||'c'):(r.round%2===1?'c':'h');
   r.colors={[a.id]:cFirst,[b.id]:R.ENEMY(cFirst)};
+  if(!r.ai){
+   // The server assigns colors at the beginning of each round. Each player retains their own opening choice.
+   r.formations={};
+   for(const p of r.players){const side=r.colors[p.id];r.formations[side+'Formation']=R.formationForView(side,p.formation);}
+  }
   r.players.forEach(p=>p.ready=false);r.board=initialBoard?initialBoard(r):R.fresh(r.formations);
   r.turn='c';r.moves=[];r.passes=0;r.last=null;r.winner=null;r.reason='';r.phase='playing';
   r.thinking=false;r.payout=0;r.payoutError=null;r.recorded=false;
@@ -111,9 +117,10 @@ module.exports=function createJanggi({db,crypto,readBody,requireAuth,json,rateLi
  function makeRoom(id,person,ai,b){
   const formation=name=>Object.hasOwn(R.FORMATIONS,name)?name:'inner';
   const r={id:'JG'+crypto.randomBytes(7).toString('hex'),name:ai?'최강 AI · 1조 챌린지':String(b.name||'준자 온라인 장기').trim().slice(0,28)||'준자 온라인 장기',
-   hostId:id,ai,phase:'waiting',players:[{id,nickname:person.nickname,ready:ai}],colors:{},round:0,
+   hostId:id,ai,phase:'waiting',players:[{id,nickname:person.nickname,ready:ai,formation:ai?null:formation(b.formation||b.cFormation)}],colors:{},round:0,
    board:R.fresh(),turn:'c',moves:[],passes:0,deadline:0,version:0,updated:now(),recorded:false,thinking:false,
    formations:{cFormation:formation(b.cFormation),hFormation:formation(b.hFormation)},preferredSide:b.side==='h'?'h':'c'};
+  if(ai&&r.preferredSide==='h')r.formations.hFormation=R.formationForView('h',r.formations.hFormation);
   rooms.set(r.id,r);
   if(ai){r.players.push({...AI,ready:true});start(r);}else publish(r);
   return r;
@@ -137,7 +144,7 @@ module.exports=function createJanggi({db,crypto,readBody,requireAuth,json,rateLi
     if(!rateLimit('janggi-create:'+user.id,8,60000))throw Error('새 방 생성은 잠시 후 다시 시도하세요.');
     const r=makeRoom(Number(user.id),user,ai,b);return reply(201,{room:roomView(r,user.id)});
    }
-   const match=url.pathname.match(/^\/api\/janggi\/(JG[a-f0-9]{14})(?:\/(join|ready|start|move|pass|resign|leave|rematch))?$/);
+   const match=url.pathname.match(/^\/api\/janggi\/(JG[a-f0-9]{14})(?:\/(join|formation|ready|start|move|pass|resign|leave|rematch))?$/);
    if(!match)return reply(404,{error:'지원하지 않는 장기 요청입니다.'});
    const r=rooms.get(match[1]),op=match[2];if(!r)return reply(404,{error:'장기 대국방을 찾을 수 없습니다.'});
    expire(r);
@@ -146,14 +153,20 @@ module.exports=function createJanggi({db,crypto,readBody,requireAuth,json,rateLi
     if(exists)return reply(200,{room:roomView(r,user.id)});
     if(mine(user.id)||isUserBusy(user.id))throw Error('다른 게임방에서 먼저 나와주세요.');
     if(r.ai||r.phase!=='waiting'||r.players.length>=2)throw Error('참가할 수 없는 대국방입니다.');
-    r.players.push({id:Number(user.id),nickname:user.nickname,ready:false});publish(r);return reply(200,{room:roomView(r,user.id)});
+    r.players.push({id:Number(user.id),nickname:user.nickname,ready:false,formation:null});publish(r);return reply(200,{room:roomView(r,user.id)});
    }
    if(!r.players.some(p=>p.id===Number(user.id)))return reply(403,{error:'참가자만 대국을 볼 수 있습니다.'});
    if(!op&&req.method==='GET')return reply(200,{room:roomView(r,user.id)});
    if(req.method!=='POST')return reply(405,{error:'잘못된 요청입니다.'});
-   if(op==='ready'){
+   if(op==='formation'){
+    if(r.ai||r.phase!=='waiting')throw Error('대국 시작 전 대인전에서만 포진을 변경할 수 있습니다.');
+    if(!Object.hasOwn(R.FORMATIONS,b.formation))throw Error('올바른 마·상 포진을 선택해주세요.');
+    const p=r.players.find(p=>p.id===Number(user.id));p.formation=b.formation;p.ready=false;publish(r);
+   }else if(op==='ready'){
     if(r.ai||r.phase!=='waiting')throw Error('지금 준비할 수 없습니다.');
-    r.players.find(p=>p.id===Number(user.id)).ready=b.ready===true;publish(r);
+    const p=r.players.find(p=>p.id===Number(user.id));
+    if(b.ready===true&&!p.formation)throw Error('내 마·상 포진부터 선택해주세요.');
+    p.ready=b.ready===true;publish(r);
    }else if(op==='start'){
     if(r.ai||r.hostId!==Number(user.id)||r.phase!=='waiting')throw Error('방장만 시작할 수 있습니다.');
     start(r);
@@ -171,7 +184,7 @@ module.exports=function createJanggi({db,crypto,readBody,requireAuth,json,rateLi
    }else if(op==='rematch'){
     if(r.phase!=='complete')throw Error('대국 종료 후 재대결할 수 있습니다.');
     if(r.ai){start(r,true);}
-    else{r.phase='waiting';r.players.forEach(p=>p.ready=false);publish(r);}
+    else{r.phase='waiting';r.colors={};r.players.forEach(p=>p.ready=false);publish(r);}
    }else if(op==='leave'){
     if(r.phase==='playing')finish(r,r.players.find(p=>p.id!==Number(user.id))?.id||null,'상대 퇴장 · 기권',false);
     r.players=r.players.filter(p=>p.id!==Number(user.id));
