@@ -1,0 +1,26 @@
+/* Royal Janggi presentation – overlays never block the board. */
+.jg-boardframe{background:linear-gradient(145deg,#bc915b 0%,#5e371b 5%,#29190f 50%,#80532c 95%,#d7af70);border:2px solid #9e7845;border-radius:8px;box-shadow:inset 0 0 0 2px #ead29b55,0 20px 38px #0009}
+.jg-board-theatre{position:relative;isolation:isolate}
+.jg-board{background:radial-gradient(ellipse at 24% 18%,#f9e5bd,#e8c68c 53%,#c99b64);border-color:#aa7841;box-shadow:inset 0 0 42px #7c471b44,0 5px 13px #0006}
+.jg-board:before{background:repeating-linear-gradient(5deg,#fff2 0,transparent 2px,transparent 13px,#81512211 15px,transparent 32px),repeating-linear-gradient(93deg,#54331209 0,transparent 1px,transparent 28px);opacity:.8}
+.jg-piece{background:radial-gradient(circle at 32% 22%,#fffbdf 0%,#f5dcae 37%,#d8b784 73%,#a87642 100%);border-color:#7d552c;box-shadow:inset 0 2px 3px #fff9,inset 0 -4px 5px #6d482a88,0 4px 6px #321b0d7a;text-shadow:0 1px 1px #fff8;transition:filter .13s}
+.jg-piece.han{color:#a51f1e}.jg-piece.cho{color:#195563}.jg-piece.king{border-color:#a57b3c;box-shadow:inset 0 2px 6px #fff9,inset 0 -5px 8px #76501a80,0 4px 8px #321b0d99}
+.jg-cell.selected:after{border-color:#fff0a4;box-shadow:0 0 0 2px #815523,0 0 18px #e9b94f}
+.jg-cell.hint.capture:before{border-color:#ba2d29;box-shadow:0 0 0 2px #fff3d2,inset 0 0 8px #a92d2d}
+.jg-drama,.jg-countdown{position:absolute;z-index:10;left:50%;top:50%;transform:translate(-50%,-50%);pointer-events:none;text-align:center;font-weight:1000;white-space:nowrap;font-family:'Noto Serif CJK KR','Batang',serif}
+.jg-drama[hidden],.jg-countdown[hidden]{display:none!important}
+.jg-drama{padding:12px 25px;border:2px solid #ffe5a3;border-radius:14px;background:linear-gradient(140deg,#25110eed,#60291bec);font-size:clamp(32px,8vw,76px);color:#ffdf88;text-shadow:0 3px 9px #000;box-shadow:0 9px 32px #000a,0 0 35px #e7a95366;animation:jg-impact .34s ease-out both}
+.jg-drama.defend{background:linear-gradient(140deg,#0e2339ed,#224b6bed);border-color:#a0daff;color:#d1eeff;box-shadow:0 9px 32px #000a,0 0 35px #529dff55}
+.jg-drama.mate{background:linear-gradient(140deg,#3e1d12f2,#76501df2);border-color:#ffebaa;color:#fff3b6;box-shadow:0 9px 32px #000a,0 0 50px #f3be63aa}
+.jg-countdown{top:26%;min-width:100px;padding:6px 16px;font-family:system-ui,sans-serif;font-variant-numeric:tabular-nums;font-size:clamp(38px,10vw,80px);color:#ffedb1;text-shadow:0 2px 8px #2b1308,0 0 20px #d8a451;background:#24170bb8;border:2px solid #e9c178;border-radius:14px}
+.jg-countdown.danger{color:#ffcdc8;border-color:#f9554d;background:#550f12d9;animation:jg-pulse 1s infinite}
+.jg-captures{margin-top:12px;background:linear-gradient(130deg,#2c241c,#171d27);border:1px solid #b99a6355;border-radius:12px;padding:10px 14px;display:grid;gap:10px}
+.jg-capture-row{display:grid;grid-template-columns:105px minmax(0,1fr) 42px;gap:10px;align-items:center;font-size:11px;color:#ead8b6}
+.jg-capture-row>b{white-space:nowrap}.jg-capture-row>small{text-align:right;font-weight:800;color:#f6d699;font-variant-numeric:tabular-nums}
+.jg-captured-pieces{display:flex;align-items:center;gap:5px;flex-wrap:wrap;min-height:29px}
+.jg-captured-piece{display:grid;place-items:center;width:28px;height:28px;border-radius:50%;background:radial-gradient(circle at 30% 20%,#fff9df,#e6c89a 70%,#a57a47);border:2px solid #99713e;box-shadow:inset 0 1px 2px #fff9,0 2px 3px #0007;font-family:'Batang',serif;font-size:17px;font-weight:900}
+.jg-captured-piece.han{color:#a7231d}.jg-captured-piece.cho{color:#175b67}.jg-no-captures{color:#9ba5b2;font-size:11px}
+@keyframes jg-impact{from{opacity:0;transform:translate(-50%,-50%) scale(.6)}to{opacity:1;transform:translate(-50%,-50%) scale(1)}}
+@keyframes jg-pulse{50%{box-shadow:0 0 25px #ff483f88}}
+@media(max-width:610px){.jg-captures{padding:9px 8px}.jg-capture-row{grid-template-columns:76px minmax(0,1fr) 31px;gap:5px;font-size:9px}.jg-captured-piece{width:22px;height:22px;font-size:14px}.jg-captured-pieces{gap:3px}.jg-drama{padding:8px 12px}}
+@media(prefers-reduced-motion:reduce){.jg-drama,.jg-countdown{animation:none!important}}
