@@ -9,5 +9,6 @@ if(!app.includes("async function runRankFreeWheelAuto()"))throw new Error('Big W
 if(!app.includes("spinBigWheel(true,true)"))throw new Error('Rank-free auto runner must use fast forced-free spins');
 if(!app.includes("게임머니 차감 없음"))throw new Error('Rank-free auto confirmation must explain no wallet charge');
 if(!server.includes("consumeRankFreePlay(userId,'wheel',!!useRankFree)"))throw new Error('Server Big Wheel rank-free consumption missing');
-if(!server.includes("if(!freePlay.free)walletChange(userId,-bet,'bigwheel_bet'"))throw new Error('Server wallet-free guard missing');
+if(!server.includes('const before=exactWallet.read(row),stake=freePlay.free?0n:BigInt(bet)'))throw new Error('Big Wheel free ticket must not deduct the wager');
+if(!server.includes("db.exec('BEGIN IMMEDIATE')")||!server.includes("db.exec('ROLLBACK')"))throw new Error('Big Wheel free ticket and settlement must be atomic');
 console.log('BIGWHEEL_RANK_FREE_TESTS_OK');
