@@ -1,0 +1,32 @@
+name: Big Wheel JUNJA payout regression
+
+on:
+  pull_request:
+    branches: [railway-recovery]
+    paths:
+      - 'server.js'
+      - 'public/app.js'
+      - 'exact-wallet.js'
+      - 'tests/bigwheel-junja-payout.cjs'
+      - 'package.json'
+      - '.github/workflows/bigwheel-junja-payout.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify JavaScript syntax
+        run: |
+          node --check server.js
+          node --check public/app.js
+          node --check tests/bigwheel-junja-payout.cjs
+      - name: Verify both JUNJA slots, prize and atomic rollback
+        run: node tests/bigwheel-junja-payout.cjs
