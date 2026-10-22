@@ -1602,10 +1602,10 @@ function bigWheelSpin(userId,bet,key,useRankFree=false){
   const u=userPublic(userId);if(!u)throw new Error('사용자를 찾을 수 없습니다.');
   const target=BIG_WHEEL_BETS.find(x=>x.key===key);if(!target)throw new Error('배당 선택을 확인해주세요.');
   const freePlay=consumeRankFreePlay(userId,'wheel',!!useRankFree);if(freePlay.free)bet=Number(socialRankPerksForUser(userId).freeSlotBet||10000000);if(!freePlay.free&&u.balance<bet)throw new Error('게임머니가 부족합니다.');if(!freePlay.free)walletChange(userId,-bet,'bigwheel_bet',`빅휠 ${target.label} 베팅 ${formatMoney(bet)}G`);
-  const index=crypto.randomInt(BIG_WHEEL_SEGMENTS.length),landed=BIG_WHEEL_SEGMENTS[index],won=landed.key===target.key,payout=won?bet*target.mult:0;
-  if(payout)walletChange(userId,payout,'bigwheel_win',`빅휠 ${target.label} 적중 x${target.mult}`);
+  const index=crypto.randomInt(BIG_WHEEL_SEGMENTS.length),landed=BIG_WHEEL_SEGMENTS[index],jackpot=landed.key==='junja',won=jackpot||landed.key===target.key,payout=won?bet*landed.mult:0;
+  if(payout)walletChange(userId,payout,'bigwheel_win',`빅휠 ${landed.label} ${jackpot?'잭팟':'적중'} x${landed.mult}`);
   db.prepare('UPDATE stats SET bigwheel_plays=bigwheel_plays+1, bigwheel_wins=bigwheel_wins+?, bigwheel_profit=bigwheel_profit+? WHERE user_id=?').run(won?1:0,payout-(freePlay.free?0:bet),userId);
-  return {index,landed,target,won,payout,profit:payout-(freePlay.free?0:bet),segments:BIG_WHEEL_SEGMENTS.length,rankFreePlay:freePlay};
+  return {index,landed,target,jackpot,won,payout,profit:payout-(freePlay.free?0:bet),segments:BIG_WHEEL_SEGMENTS.length,rankFreePlay:freePlay};
 }
 const SICBO_TOTAL_GROSS={4:51,5:19,6:15,7:13,8:9,9:7,10:6,11:6,12:7,13:9,14:13,15:15,16:19,17:51};
 function sicboBetMeta(key){
