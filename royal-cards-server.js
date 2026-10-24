@@ -182,7 +182,7 @@ module.exports=function createRoyalCards({db,crypto,requireAuth,readBody,json,ra
   clear(r);r.phase='thank';r.thankWindow={eligible:possible.map(x=>x.id),until:now()+6200,discardedBy:p.id};
   log(r,'땡큐! 마지막 버림패로 등록할 수 있는 참가자에게 6초 기회');publish(r);
   const stamp=r.version;
-  const bot=possible.find(x=>x.bot),human=possible.some(x=>!x.bot),delay=bot&&!human?1100:6200;
+  const bot=possible.find(x=>x.bot),human=possible.some(x=>!x.bot),delay=bot?(human?5900:1100):6200;
   const timer=setTimer(()=>{
    if(rooms.get(r.id)!==r||r.phase!=='thank'||r.version!==stamp)return;
    if(bot){try{thank(r,bot);}catch(e){console.warn('[CARDS] bot thank:',e.message);resumeThank(r);}}
