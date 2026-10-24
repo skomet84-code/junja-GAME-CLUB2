@@ -206,21 +206,21 @@ function recordSlot777Jackpot(user,{jackpotAward,regularPayout,bet}){
 
 
 const goldenbell=require('./goldenbell-server')({db,crypto,readBody,requireAuth,json,rateLimit,
-  isUserBusy:id=>!!findUserRoom(id)||!!baccaratFindUser(id)||treasureRaid.hasUser(id)||sichuanBattle.hasUser(id)||omok.hasUser(id)||liar.hasUser(id)||janggi.hasUser(id),
+  isUserBusy:id=>!!findUserRoom(id)||!!baccaratFindUser(id)||treasureRaid.hasUser(id)||sichuanBattle.hasUser(id)||omok.hasUser(id)||liar.hasUser(id)||janggi.hasUser(id)||royalCards.hasUser(id),
   notify:(ids,roomId)=>{for(const [,client] of sseClients)if(ids.includes(Number(client.userId))){try{client.res.write(`event: refresh\ndata: ${JSON.stringify({goldenbell:true,roomId})}\n\n`);}catch{}}}
 });
 const omok=require('./omok-server')({db,crypto,readBody,requireAuth,json,rateLimit,
   isUserBusy:id=>!!findUserRoom(id)||!!baccaratFindUser(id)||treasureRaid.hasUser(id)||goldenbell.hasUser(id)||sichuanBattle.hasUser(id),
   notify:(ids,roomId)=>{for(const [,client] of sseClients)if(ids.includes(Number(client.userId))){try{client.res.write(`event: refresh\ndata: ${JSON.stringify({omok:true,roomId})}\n\n`);}catch{}}}
 });
-const sichuanBattle=require('./sichuan-battle-server')({db,crypto,readBody,requireAuth,json,rateLimit,isUserBusy:id=>goldenbell.hasUser(id)||omok.hasUser(id)||liar.hasUser(id)||janggi.hasUser(id)});
+const sichuanBattle=require('./sichuan-battle-server')({db,crypto,readBody,requireAuth,json,rateLimit,isUserBusy:id=>goldenbell.hasUser(id)||omok.hasUser(id)||liar.hasUser(id)||janggi.hasUser(id)||royalCards.hasUser(id)});
 const liar=require('./liar-server')({db,crypto,readBody,requireAuth,json,rateLimit,
   isUserBusy:id=>!!findUserRoom(id)||!!baccaratFindUser(id)||treasureRaid.hasUser(id)||goldenbell.hasUser(id)||omok.hasUser(id)||sichuanBattle.hasUser(id),
   notify:(ids,roomId)=>{for(const [,client] of sseClients)if(ids.includes(Number(client.userId))){try{client.res.write(`event: refresh\ndata: ${JSON.stringify({liar:true,roomId})}\n\n`);}catch{}}}
 });
 const janggi=require('./janggi-server')({db,crypto,readBody,requireAuth,json,rateLimit,
   credit:(userId,amount,key)=>exactWallet.change(db,userId,amount,'janggi_ai_win','준자 장기 최강 AI 격파 · 1조 G',now,{requestKey:key}),
-  isUserBusy:id=>!!findUserRoom(id)||!!baccaratFindUser(id)||treasureRaid.hasUser(id)||goldenbell.hasUser(id)||omok.hasUser(id)||liar.hasUser(id)||janggi.hasUser(id)||sichuanBattle.hasUser(id),
+  isUserBusy:id=>!!findUserRoom(id)||!!baccaratFindUser(id)||treasureRaid.hasUser(id)||goldenbell.hasUser(id)||omok.hasUser(id)||liar.hasUser(id)||janggi.hasUser(id)||royalCards.hasUser(id)||sichuanBattle.hasUser(id),
   notify:(ids,roomId)=>{for(const [,client] of sseClients)if(ids.includes(Number(client.userId))){try{client.res.write(`event: refresh\ndata: ${JSON.stringify({janggi:true,roomId})}\n\n`);}catch{}}}
 });
 // If the server restarted while rooms were active, return virtual chips safely.
@@ -2057,7 +2057,13 @@ function personalizedRoom(r,userId){
 
 const treasureRaid=createTreasureRaid({
   crypto,now,readBody,requireAuth,json,walletChange,userPublic,escrowSet,escrowDelete,pushRefresh,formatMoney,rateLimit,
-  isUserBusy:userId=>!!findUserRoom(userId)||!!baccaratFindUser(userId)||goldenbell.hasUser(userId)||omok.hasUser(userId)||liar.hasUser(userId)||janggi.hasUser(userId)
+  isUserBusy:userId=>!!findUserRoom(userId)||!!baccaratFindUser(userId)||goldenbell.hasUser(userId)||omok.hasUser(userId)||liar.hasUser(userId)||janggi.hasUser(userId)||royalCards.hasUser(id)
+});
+
+
+const royalCards=require('./royal-cards-server')({db,crypto,readBody,requireAuth,json,rateLimit,
+  otherBusy:id=>!!findUserRoom(id)||!!baccaratFindUser(id)||treasureRaid.hasUser(id)||goldenbell.hasUser(id)||omok.hasUser(id)||liar.hasUser(id)||janggi.hasUser(id)||sichuanBattle.hasUser(id),
+  notify:(ids,roomId)=>{for(const [,client] of sseClients)if(ids.includes(Number(client.userId))){try{client.res.write('event: refresh\n'+'data: '+JSON.stringify({royalcards:true,roomId})+'\n\n');}catch{}}}
 });
 
 function serveStatic(req,res,url){
@@ -2073,13 +2079,14 @@ const server=http.createServer(async(req,res)=>{
   try{
     const url=new URL(req.url,`http://${req.headers.host||'localhost'}`);
     if(!sameOriginPost(req)){return json(res,403,{error:'잘못된 요청 출처입니다.'});}
+    if(url.pathname.startsWith('/api/royalcards')){if(await royalCards.handle(req,res,url))return;}
     if(url.pathname.startsWith('/api/janggi')){if(await janggi.handle(req,res,url))return;}
     if(url.pathname.startsWith('/api/liar')){if(await liar.handle(req,res,url))return;}
     if(url.pathname.startsWith('/api/omok')){if(await omok.handle(req,res,url))return;}
     if(url.pathname.startsWith('/api/goldenbell')){if(await goldenbell.handle(req,res,url))return;}
     if(url.pathname.startsWith('/api/treasure-raid')){if(await treasureRaid.handle(req,res,url))return;}
     if(url.pathname.startsWith('/api/sichuan/battle')){if(await sichuanBattle.handle(req,res,url))return;}
-    if(url.pathname==='/healthz')return json(res,200,{ok:true,rooms:rooms.size+baccaratRooms.size+sichuanBattle.roomCount()+treasureRaid.roomCount()+goldenbell.roomCount()+omok.roomCount()+liar.roomCount()+janggi.roomCount(),online:onlineCount()});
+    if(url.pathname==='/healthz')return json(res,200,{ok:true,rooms:rooms.size+baccaratRooms.size+sichuanBattle.roomCount()+treasureRaid.roomCount()+goldenbell.roomCount()+omok.roomCount()+liar.roomCount()+janggi.roomCount()+royalCards.roomCount(),online:onlineCount()});
     if(url.pathname==='/api/admin/claim'&&req.method==='POST'){
       const caller=String(req.headers['x-forwarded-for']||req.socket.remoteAddress||'').split(',')[0].trim();
       if(!rateLimit('admin-claim:'+caller,5,3600000))return json(res,429,{error:'관리자 개설 시도 횟수를 초과했습니다.'});
@@ -2469,13 +2476,13 @@ const server=http.createServer(async(req,res)=>{
       return json(res,200,{order:order.map((h,i)=>({id:h.id,name:h.name,color:h.color,coat:h.coat,finish:i+1})),result,user:userPublic(u.id)});
     }
     if(url.pathname==='/api/my-room'&&req.method==='GET'){
-      const u=requireAuth(req,res);if(!u)return;const jr=janggi.findUserRoom(u.id);if(jr)return json(res,200,{room:{id:jr.id,game:'janggi',name:jr.name}});const lr=liar.findUserRoom(u.id);if(lr)return json(res,200,{room:{id:lr.id,game:'liar',name:lr.name}});const om=omok.findUserRoom(u.id);if(om)return json(res,200,{room:{id:om.id,game:'omok',name:om.name}});const gb=goldenbell.findUserRoom(u.id);if(gb)return json(res,200,{room:{id:gb.id,game:'goldenbell',name:'준자 골든벨'}});const r=findUserRoom(u.id);if(r)return json(res,200,{room:personalizedRoom(r,u.id)});const br=baccaratFindUser(u.id);if(br)return json(res,200,{room:baccaratPublic(br,u.id)});const tr=treasureRaid.findUserRoom(u.id);return json(res,200,{room:tr?{id:tr.id,game:'treasure',name:tr.name}:null});
+      const u=requireAuth(req,res);if(!u)return;const royal=royalCards.findUserRoom(u.id);if(royal)return json(res,200,{room:royal});const jr=janggi.findUserRoom(u.id);if(jr)return json(res,200,{room:{id:jr.id,game:'janggi',name:jr.name}});const lr=liar.findUserRoom(u.id);if(lr)return json(res,200,{room:{id:lr.id,game:'liar',name:lr.name}});const om=omok.findUserRoom(u.id);if(om)return json(res,200,{room:{id:om.id,game:'omok',name:om.name}});const gb=goldenbell.findUserRoom(u.id);if(gb)return json(res,200,{room:{id:gb.id,game:'goldenbell',name:'준자 골든벨'}});const r=findUserRoom(u.id);if(r)return json(res,200,{room:personalizedRoom(r,u.id)});const br=baccaratFindUser(u.id);if(br)return json(res,200,{room:baccaratPublic(br,u.id)});const tr=treasureRaid.findUserRoom(u.id);return json(res,200,{room:tr?{id:tr.id,game:'treasure',name:tr.name}:null});
     }
     if(url.pathname==='/api/rooms'&&req.method==='GET'){
       const u=requireAuth(req,res);if(!u)return;const game=url.searchParams.get('game');const list=[...rooms.values()].filter(r=>!game||r.game===game).map(roomSummary).sort((a,b)=>a.status.localeCompare(b.status));return json(res,200,{rooms:list});
     }
     if(url.pathname==='/api/rooms'&&req.method==='POST'){
-      const u=requireAuth(req,res);if(!u)return;if(findUserRoom(u.id)||baccaratFindUser(u.id)||treasureRaid.hasUser(u.id)||goldenbell.hasUser(u.id)||omok.hasUser(u.id)||liar.hasUser(u.id)||janggi.hasUser(u.id))return json(res,409,{error:'이미 다른 게임방에 참가 중입니다. 먼저 그 방에서 나와주세요.'});const b=await readBody(req),requested=String(b.game||'holdem'),game=['holdem','yut','seotda','sevenpoker','gostop'].includes(requested)?requested:'holdem';
+      const u=requireAuth(req,res);if(!u)return;if(findUserRoom(u.id)||baccaratFindUser(u.id)||treasureRaid.hasUser(u.id)||goldenbell.hasUser(u.id)||omok.hasUser(u.id)||liar.hasUser(u.id)||janggi.hasUser(u.id)||royalCards.hasUser(u.id))return json(res,409,{error:'이미 다른 게임방에 참가 중입니다. 먼저 그 방에서 나와주세요.'});const b=await readBody(req),requested=String(b.game||'holdem'),game=['holdem','yut','seotda','sevenpoker','gostop'].includes(requested)?requested:'holdem';
       const yutMode=game==='yut'&&['individual','2v2','3v3'].includes(b.yutMode)?b.yutMode:'individual';const maxPlayers=(game==='holdem'||game==='sevenpoker')?clampInt(b.maxPlayers,2,6):game==='yut'?(yutMode==='2v2'?4:yutMode==='3v3'?6:clampInt(b.maxPlayers,2,6)):2;const chipGame=game==='holdem'||game==='sevenpoker';let buyIn;try{buyIn=chipGame?Math.floor(Number(u.balance||0)):game==='seotda'?walletWager(b.buyIn,u.balance,5000,1000):game==='gostop'?gameWager(b.buyIn,5000,Number.MAX_SAFE_INTEGER,1000):gameWager(b.buyIn,5000,100000,1000)}catch(e){return json(res,400,{error:e.message})};
       if(!Number.isSafeInteger(buyIn)||buyIn<1000)return json(res,400,{error:'포커 테이블 입장에는 최소 1,000G가 필요합니다.'});if(u.balance<buyIn)return json(res,400,{error:'방 참가금보다 보유 게임머니가 적습니다.'});
       const id=makeRoomId();const name=game==='holdem'?`홀덤 테이블 ${id}`:game==='yut'?`윷놀이 방 ${id}`:game==='seotda'?`3장 섯다 듀얼 ${id}`:game==='gostop'?`맞고 대전방 ${id}`:`세븐포커 테이블 ${id}`;walletChange(u.id,-buyIn,`${game}_buyin`,chipGame?`${name} 전액 스택 입장`:`${name} 참가금`);
