@@ -30,6 +30,8 @@ async function multiplayer(){
  const {call,game,credited}=harness();
  const cr=await call(1,'POST','/api/janggi/create',{name:'두 사람 개별 포진',formation:'outer'});
  assert.equal(cr.status,201);const base='/api/janggi/'+cr.data.room.id;
+ assert.equal(cr.data.room.players[0].formation,null,'host must choose formation inside the room too');
+ assert.equal((await call(1,'POST',base+'/ready',{ready:true})).status,409,'host cannot ready before choosing');
  assert.equal((await call(1,'POST',base+'/start')).status,409,'opponent required');
  const joined=await call(2,'POST',base+'/join');
  assert.equal(joined.status,200);
@@ -39,6 +41,7 @@ async function multiplayer(){
  assert.equal((await call(3,'GET',base)).status,403,'stranger blocked');
  assert.equal((await call(2,'POST',base+'/formation',{formation:'oops'})).status,409,'bad opening rejected');
  assert.equal((await call(2,'POST',base+'/formation',{formation:'left'})).status,200);
+ assert.equal((await call(1,'POST',base+'/formation',{formation:'outer'})).status,200);
  await call(1,'POST',base+'/ready',{ready:true});
  await call(2,'POST',base+'/ready',{ready:true});
  const changed=await call(2,'POST',base+'/formation',{formation:'right'});
@@ -119,12 +122,13 @@ async function onlineSetup(){
  assert.equal(R.formationForView('c','left'),'left','CHO left unchanged');
  const fs=require('node:fs'),path=require('node:path');
  const src=fs.readFileSync(path.join(__dirname,'../public/janggi/online.js'),'utf8');
- for(const k of ['aiSide','aiFormation','pvpFormation','roomFormation'])assert.ok(src.includes("choiceButtons('"+k+"'"),'touch control missing: '+k);
- assert.ok(src.includes("R.viewPoint(me,x,y)"),'client viewing coordinates must be side-specific');
- assert.ok(src.includes("formation:state.prefs.pvpFormation"),'host own formation sent');
+ for(const k of ['aiSide','aiFormation','roomFormation'])assert.ok(src.includes("choiceButtons('"+k+"'"),'touch control missing: '+k);
+ assert.ok(src.includes("bottomSide==='h'?{x:R.W-1-x,y:R.H-1-y}:{x,y}"),'HAN screen rotates both axes while moves remain canonical');
+ assert.ok(src.includes("dataset.perspective=bottomSide"),'client perspective must be explicit');
+ assert.ok(src.includes("act('/create',{name:"),'host creates without imposing a formation');
  assert.ok(src.includes("'/formation',{formation:value}"),'each guest may choose via server');
  const html=fs.readFileSync(path.join(__dirname,'../public/janggi/online.html'),'utf8');
- assert.ok(html.includes('online.js?v=20261014-2'),'new iOS asset version');
+ assert.ok(html.includes('online.js?v=20261025-perspective-formation'),'new iOS asset version');
  for(const id of ['jgTopName','jgBottomName','jgFormationSetup'])assert.ok(html.includes('id="'+id+'"'),'missing UI element: '+id);
 }
 (async()=>{await multiplayer();await aiAward();await onlineSetup();console.log('JANGGI_ONLINE_OK: independent openings, both perspectives, rematch and AI payout');})().catch(e=>{console.error(e);process.exitCode=1;});
