@@ -2,7 +2,7 @@
 const game=new URLSearchParams(location.search).get('game')==='hula'?'hula':'onecard';
 const $=sel=>document.querySelector(sel);
 const $$=sel=>[...document.querySelectorAll(sel)];
-let room=null,selected=new Set(),changedVersion=-1,busy=false,stopping=false,callOne=false,score={games:0,wins:0,bestStreak:0,streak:0};
+let room=null,selected=new Set(),changedVersion=-1,busy=false,stopping=false,callOne=false,localDeadline=0,score={games:0,wins:0,bestStreak:0,streak:0};
 const SUIT={S:'♠',H:'♥',D:'♦',C:'♣'};
 const NAME={onecard:'ROYAL ONE CARD',hula:'ROYAL HULA'};
 const ESC={'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'};
@@ -47,7 +47,7 @@ function showRoom(r){
  if(!r)return;
  const next=room?.id!==r.id||room?.version!==r.version||room?.phase!==r.phase;
  if(room?.id!==r.id||room?.round!==r.round){selected.clear();callOne=false;}
- room=r;$('#landing').classList.add('hidden');$('#match').classList.remove('hidden');
+ room=r;localDeadline=Date.now()+Math.max(0,(r.deadline||0)-(r.serverNow||Date.now()));$('#landing').classList.add('hidden');$('#match').classList.remove('hidden');
  if(!next)return;
  const mine=r.players.find(p=>p.id===r.selfId);
  $('#roomName').textContent=r.name;$('#matchSub').textContent=(r.mode==='ai'?'J-BOT 대전':'실시간 멀티플레이')+' · '+(r.game==='onecard'?'원카드':'훌라')+' · '+r.round+'판';
@@ -138,4 +138,5 @@ $('#heroTitle').textContent=NAME[game];$('#heroSub').textContent=game==='onecard
 $('#ruleHeadline').textContent=game==='onecard'?'공격과 역전의 심리전 · 원카드':'정통 한국 카드 게임 · 훌라';
 $('#ruleSummary').textContent=game==='onecard'?'2·A·조커 공격 누적, 7 무늬 전환, J 건너뛰기, Q 역방향, K 추가 턴. 단 한 장을 남기는 순간 원카드 선언을 잊지 마.':'7장으로 시작해 땡·연속·7 단독 등록. 서로의 조합에 붙이고 땡큐로 뒤집어 봐. 스톱은 10점 이하, 같은 점수면 실패!';
 refresh();const polling=setInterval(()=>{if(document.visibilityState==='visible')refresh();},1400);
+setInterval(()=>{if(room?.phase==='playing')$('#countdown').textContent=Math.max(0,Math.ceil((localDeadline-Date.now())/1000))+'s';},400);
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')refresh();});
