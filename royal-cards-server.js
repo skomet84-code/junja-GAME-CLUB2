@@ -164,6 +164,7 @@ module.exports=function createRoyalCards({db,crypto,requireAuth,readBody,json,ra
  function hulaDraw(r,p,source){
   if(r.drew)throw Error('이미 카드를 받았어.');
   if(source==='discard'){
+   throw Error('땡큐는 버림패가 공개된 직후 반응 버튼으로 선언해줘.');
    const c=r.discard.at(-1),cards=findThank(p.hand,c);
    if(!cards)throw Error('버림패로 즉시 등록할 조합이 없어. 더미에서 받아줘.');
    r.discard.pop();p.hand.push(c);r.drew=true;
@@ -181,7 +182,7 @@ module.exports=function createRoyalCards({db,crypto,requireAuth,readBody,json,ra
   clear(r);r.phase='thank';r.thankWindow={eligible:possible.map(x=>x.id),until:now()+6200,discardedBy:p.id};
   log(r,'땡큐! 마지막 버림패로 등록할 수 있는 참가자에게 6초 기회');publish(r);
   const stamp=r.version;
-  const bot=possible.find(x=>x.bot),delay=bot?1100:6200;
+  const bot=possible.find(x=>x.bot),human=possible.some(x=>!x.bot),delay=bot&&!human?1100:6200;
   const timer=setTimer(()=>{
    if(rooms.get(r.id)!==r||r.phase!=='thank'||r.version!==stamp)return;
    if(bot){try{thank(r,bot);}catch(e){console.warn('[CARDS] bot thank:',e.message);resumeThank(r);}}
