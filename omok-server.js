@@ -77,7 +77,7 @@ module.exports=function createOmok({db,crypto,readBody,requireAuth,json,rateLimi
   function workerThink(board,color){
     return new Promise((resolve,reject)=>{
       const worker=new Worker(require.resolve('./omok-ai-worker.js'),{
-        workerData:{board,color,timeMs:5400},resourceLimits:{maxOldGenerationSizeMb:80}});
+        workerData:{board,color,timeMs:7000},resourceLimits:{maxOldGenerationSizeMb:80}});
       let done=false;
       const timer=setTimeout(()=>{if(done)return;done=true;worker.terminate();reject(Error('AI search timed out'));},8600);
       if(typeof timer.unref==='function')timer.unref();
