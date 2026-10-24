@@ -153,6 +153,7 @@ ensureColumn('stats','roulette_wins','INTEGER NOT NULL DEFAULT 0');
 ensureColumn('stats','roulette_profit','INTEGER NOT NULL DEFAULT 0');
 ensureColumn('users','is_admin','INTEGER NOT NULL DEFAULT 0');
 ensureColumn('users','is_disabled','INTEGER NOT NULL DEFAULT 0');
+ensureColumn('users','is_archived','INTEGER NOT NULL DEFAULT 0');
 ensureColumn('users','rank_level','INTEGER NOT NULL DEFAULT 0');
 ensureColumn('user_loadout','character','TEXT');
 
@@ -2243,12 +2244,13 @@ const server=http.createServer(async(req,res)=>{
       const admin=requireAdmin(req,res);if(!admin)return;
       const q=escText(url.searchParams.get('q')||'',30);
       const like=`%${q}%`;
-      const rows=db.prepare(`SELECT u.id,u.username,u.nickname,u.balance,u.created_at,u.is_admin,u.is_disabled,u.avatar,
+      const showArchived=url.searchParams.get('archived')==='1';
+      const rows=db.prepare(`SELECT u.id,u.username,u.nickname,u.balance,u.created_at,u.is_admin,u.is_disabled,u.is_archived,u.avatar,
         s.slot_spins,s.slot_profit,s.poker_hands,s.poker_wins,s.yut_games,s.yut_wins,s.seotda_games,s.seotda_wins,s.gostop_games,s.gostop_wins,s.horse_races,s.horse_wins,s.horse_profit,s.bigwheel_plays,s.bigwheel_wins,s.bigwheel_profit,s.sicbo_plays,s.sicbo_wins,s.sicbo_profit,
     s.seven_games,s.seven_wins,s.baccarat_games,s.baccarat_wins,s.baccarat_profit,s.roulette_plays,s.roulette_wins,s.roulette_profit
         FROM users u JOIN stats s ON s.user_id=u.id
-        WHERE (?='' OR u.username LIKE ? OR u.nickname LIKE ?)
-        ORDER BY u.is_admin DESC,u.id DESC LIMIT 100`).all(q,like,like).map(x=>({...x,avatarEmoji:AVATARS[x.avatar%AVATARS.length]}));
+        WHERE (?='' OR u.username LIKE ? OR u.nickname LIKE ?) AND (?=1 OR u.is_archived=0)
+        ORDER BY u.is_admin DESC,u.id DESC LIMIT 100`).all(q,like,like,showArchived?1:0).map(x=>({...x,avatarEmoji:AVATARS[x.avatar%AVATARS.length]}));
       return json(res,200,{rows});
     }
     if(url.pathname==='/api/admin/audit'&&req.method==='GET'){
@@ -2275,12 +2277,44 @@ const server=http.createServer(async(req,res)=>{
     if(url.pathname==='/api/admin/status'&&req.method==='POST'){
       const admin=requireAdmin(req,res);if(!admin)return;
       const b=await readBody(req);const targetId=Number(b.userId),disabled=b.disabled?1:0;
-      const target=db.prepare('SELECT id,is_admin FROM users WHERE id=?').get(targetId);if(!target)return json(res,404,{error:'대상 회원을 찾을 수 없습니다.'});
+      const target=db.prepare('SELECT id,is_admin,is_archived FROM users WHERE id=?').get(targetId);if(!target)return json(res,404,{error:'대상 회원을 찾을 수 없습니다.'});
+      if(target.is_archived)return json(res,409,{error:'삭제 보관된 계정은 먼저 복구해야 상태를 변경할 수 있습니다.'});
       if(target.is_admin)return json(res,400,{error:'관리자 계정은 중지할 수 없습니다.'});
       db.prepare('UPDATE users SET is_disabled=? WHERE id=?').run(disabled,targetId);
       if(disabled)db.prepare('DELETE FROM sessions WHERE user_id=?').run(targetId);
       db.prepare('INSERT INTO admin_audit(admin_user_id,target_user_id,action,amount,memo,created_at) VALUES(?,?,?,?,?,?)').run(admin.id,targetId,disabled?'disable':'enable',0,disabled?'계정 이용중지':'계정 이용재개',now());
       pushRefresh();return json(res,200,{ok:true,user:userPublic(targetId)});
+    }
+
+    // Reversible account removal: never erase existing balances, ledgers or member IDs.
+    // The admin must type the exact username. Archived accounts cannot authenticate.
+    if(url.pathname==='/api/admin/archive'&&req.method==='POST'){
+      const admin=requireAdmin(req,res);if(!admin)return;
+      if(!rateLimit('admin-archive:'+admin.id,12,3600000))return json(res,429,{error:'계정 삭제·복구 횟수 제한입니다.'});
+      const b=await readBody(req),id=Number(b.userId),action=String(b.action||'');
+      if(!Number.isSafeInteger(id)||id<1||!['archive','restore'].includes(action))return json(res,400,{error:'올바른 대상과 작업을 선택해주세요.'});
+      const target=db.prepare('SELECT id,username,nickname,is_admin,is_archived FROM users WHERE id=?').get(id);
+      if(!target)return json(res,404,{error:'대상 회원을 찾을 수 없습니다.'});
+      if(target.is_admin||target.id===admin.id)return json(res,403,{error:'운영자 계정은 삭제할 수 없습니다.'});
+      if(String(b.confirmUsername||'')!==target.username)return json(res,400,{error:'확인한 계정 아이디가 일치하지 않습니다.'});
+      if(action==='archive'&&target.is_archived||action==='restore'&&!target.is_archived)return json(res,409,{error:'이미 처리된 계정입니다. 목록을 새로고침해주세요.'});
+      if(action==='archive'){
+        if(db.prepare('SELECT 1 FROM room_escrow WHERE user_id=? LIMIT 1').get(id)||findUserRoom(id)||baccaratFindUser(id)||janggi.hasUser(id)||omok.hasUser(id)||liar.hasUser(id)||royalCards.hasUser(id)||goldenbell.hasUser(id)||treasureRaid.hasUser(id)||sichuanBattle.hasUser(id)){
+          return json(res,409,{error:'진행 중인 게임이나 예치금이 있습니다. 게임 종료 및 정산 후 삭제해주세요.'});
+        }
+      }
+      db.exec('BEGIN IMMEDIATE');
+      try{
+        db.prepare('UPDATE users SET is_archived=?,is_disabled=? WHERE id=?').run(action==='archive'?1:0,action==='archive'?1:0,id);
+        db.prepare('DELETE FROM sessions WHERE user_id=?').run(id);
+        const reason=escText(b.reason,80)||'운영자 회원 정리';
+        db.prepare('INSERT INTO admin_audit(admin_user_id,target_user_id,action,amount,memo,created_at) VALUES(?,?,?,?,?,?)')
+          .run(admin.id,id,action,0,(action==='archive'?'계정 안전삭제':'계정 복구')+' · '+reason,now());
+        db.exec('COMMIT');
+      }catch(e){db.exec('ROLLBACK');throw e;}
+      await db.flush();
+      pushRefresh();
+      return json(res,200,{ok:true,archived:action==='archive',userId:id});
     }
 
     if(url.pathname==='/api/admin/rooms'&&req.method==='GET'){
