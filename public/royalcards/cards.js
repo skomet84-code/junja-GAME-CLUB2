@@ -47,15 +47,15 @@ function showRoom(r){
  if(!r)return;
  const next=room?.id!==r.id||room?.version!==r.version||room?.phase!==r.phase;
  if(room?.id!==r.id||room?.round!==r.round){selected.clear();callOne=false;}
- room=r;localDeadline=Date.now()+Math.max(0,(r.deadline||0)-(r.serverNow||Date.now()));$('#landing').classList.add('hidden');$('#match').classList.remove('hidden');
+ room=r;localDeadline=Date.now()+Math.max(0,((r.phase==='thank'?r.thankDeadline:r.deadline)||0)-(r.serverNow||Date.now()));$('#landing').classList.add('hidden');$('#match').classList.remove('hidden');
  if(!next)return;
  const mine=r.players.find(p=>p.id===r.selfId);
  $('#roomName').textContent=r.name;$('#matchSub').textContent=(r.mode==='ai'?'J-BOT 대전':'실시간 멀티플레이')+' · '+(r.game==='onecard'?'원카드':'훌라')+' · '+r.round+'판';
  $('#waiting').classList.toggle('hidden',r.phase!=='waiting');
- $('#table').classList.toggle('hidden',r.phase!=='playing');
+ $('#table').classList.toggle('hidden',r.phase!=='playing'&&r.phase!=='thank');
  $('#finalPanel').classList.toggle('hidden',r.phase!=='done');
  if(r.phase==='waiting')renderWaiting(r,mine);
- if(r.phase==='playing')renderPlaying(r,mine);
+ if(r.phase==='playing'||r.phase==='thank')renderPlaying(r,mine);
  if(r.phase==='done')renderDone(r);
  changedVersion=r.version;
 }
@@ -71,7 +71,7 @@ function renderWaiting(r,mine){
 function renderPlaying(r,mine){
  const myTurn=r.turnId===r.selfId;
  const actor=r.players.find(p=>p.id===r.turnId);
- $('#turnBadge').textContent=myTurn?'✦ 지금 네 차례':'⏳ '+(actor?.name||'친구')+' 차례';
+ $('#turnBadge').textContent=r.phase==='thank'?'💝 땡큐 찬스!':myTurn?'✦ 지금 네 차례':'⏳ '+(actor?.name||'친구')+' 차례';
  $('#yourName').textContent=mine?.name||'PLAYER';
  $('#handCount').textContent=r.hand.length+'장';
  $('#countdown').textContent=Math.max(0,Math.ceil((r.deadline-(r.serverNow||Date.now()))/1000))+'s';
@@ -81,7 +81,7 @@ function renderPlaying(r,mine){
  selected=new Set([...selected].filter(id=>r.hand.includes(id)));
  $('#hand').innerHTML=r.hand.map(c=>cardHtml(c,{hand:true,active:myTurn&&(r.game==='hula'||r.legal.includes(c)),select:selected.has(c)})).join('');
  $$('[data-card]').forEach(btn=>btn.onclick=()=>{const id=btn.dataset.card;if(!myTurn)return;if(r.game==='onecard'&&!r.legal.includes(id))return message('지금 낼 수 없는 카드야.');if(selected.has(id))selected.delete(id);else {if(r.game==='onecard')selected.clear();selected.add(id);}renderPlaying(r,mine);});
- $('#drawPile').disabled=!myTurn||(r.game==='hula'&&r.drew);
+ $('#drawPile').disabled=r.phase!=='playing'||!myTurn||(r.game==='hula'&&r.drew);
  $('#drawPile').onclick=()=>myTurn&&command('/'+r.id+(r.game==='onecard'?'/draw':'/take'),r.game==='onecard'?{}:{source:'stock'});
  $('#melds').innerHTML=r.game==='hula'?r.melds.map((m,i)=>'<div class="meld-row"><b>'+(m.kind==='set'?'땡':m.kind==='run'?'연속':'세븐')+'</b>'+m.cards.map(c=>'<span>'+glyph(c)+esc(n(c))+'</span>').join('')+'<button data-attach="'+i+'" '+(!myTurn||!r.drew||selected.size!==1?'disabled':'')+'>+ 붙이기</button></div>').join(''):'';
  $$('[data-attach]').forEach(btn=>btn.onclick=()=>command('/'+r.id+'/attach',{card:[...selected][0],index:Number(btn.dataset.attach)}).then(()=>selected.clear()));
@@ -91,6 +91,11 @@ function renderPlaying(r,mine){
 }
 function renderActions(r,myTurn){
  const el=$('#actions'),one=r.game==='onecard',sel=[...selected];
+ if(r.phase==='thank'){
+  el.innerHTML=r.canThank?'<button id="thankNow">💝 땡큐! 버림패 등록</button>':'<span class="muted">다른 플레이어의 땡큐 반응을 기다리는 중…</span>';
+  if($('#thankNow'))$('#thankNow').onclick=()=>command('/'+r.id+'/thank');
+  return;
+ }
  if(one){
   $('#suitPicker').classList.add('hidden');
   const playable=sel.length===1&&r.legal.includes(sel[0]);
@@ -100,10 +105,9 @@ function renderActions(r,myTurn){
   $('#playBtn').onclick=()=>{const c=sel[0];if(c.startsWith('JOK')||Number(c.slice(1))===7){const picker=$('#suitPicker');picker.classList.remove('hidden');$$('[data-suit]').forEach(b=>b.onclick=()=>{picker.classList.add('hidden');selected.clear();command('/'+r.id+'/play',{card:c,suit:b.dataset.suit,call:callOne});});}else{selected.clear();command('/'+r.id+'/play',{card:c,call:callOne});}};
  }else{
   $('#suitPicker').classList.add('hidden');
-  el.innerHTML=!r.drew?'<button id="takeStock" '+(!myTurn?'disabled':'')+'>🂠 더미에서 받기</button><button id="thankBtn" class="secondary" '+(!myTurn||!r.discard?'disabled':'')+'>💝 땡큐!</button><button id="stopBtn" class="secondary" '+(!myTurn?'disabled':'')+'>✋ 스톱 선언</button>':
+  el.innerHTML=!r.drew?'<button id="takeStock" '+(!myTurn?'disabled':'')+'>🂠 더미에서 받기</button><button id="stopBtn" class="secondary" '+(!myTurn?'disabled':'')+'>✋ 스톱 선언</button>':
    '<button id="meldBtn" '+(!myTurn||!sel.length?'disabled':'')+'>♛ 등록하기</button><button class="secondary" id="discardBtn" '+(!myTurn||sel.length!==1?'disabled':'')+'>↗ 선택 카드 버리기</button><span class="muted">붙이려면 한 장 선택 후 바닥 조합의 +버튼</span>';
   if($('#takeStock'))$('#takeStock').onclick=()=>command('/'+r.id+'/take',{source:'stock'});
-  if($('#thankBtn'))$('#thankBtn').onclick=()=>command('/'+r.id+'/take',{source:'discard'});
   if($('#stopBtn'))$('#stopBtn').onclick=()=>command('/'+r.id+'/stop');
   if($('#meldBtn'))$('#meldBtn').onclick=()=>command('/'+r.id+'/meld',{cards:sel}).then(()=>selected.clear());
   if($('#discardBtn'))$('#discardBtn').onclick=()=>command('/'+r.id+'/discard',{card:sel[0]}).then(()=>selected.clear());
@@ -119,7 +123,7 @@ function renderDone(r){
 }
 const RULES={
  onecard:['<b>기본</b> · 조커 2장을 포함한 54장. 각자 7장으로 시작하고 손패를 먼저 비우면 승리야.','<b>내기</b> · 위 카드와 같은 무늬 또는 같은 숫자를 내. 맞는 패가 없다면 더미에서 1장 받고 턴 종료.','<b>공격</b> · 2 = +2장, A = +3장(♠A는 +5장), 검정 조커 = +5장, 빨강 조커 = +7장. 공격 중에는 같은 등급 이상 공격만 쌓을 수 있고 아니면 누적 장수만큼 받아.','<b>특수</b> · 7은 무늬 변경, J는 다음 사람 건너뛰기, Q는 진행 방향 반전, K는 내 추가 턴. 1:1의 J는 곧바로 내 턴이야.','<b>원카드 선언</b> · 카드를 내고 한 장이 남게 되면 「원카드 선언」을 함께 눌러줘. 선언하지 않으면 벌칙 2장을 받아.','<b>승부</b> · 50초 턴 제한, 타임아웃 시 자동 한 장 받기. 서버가 비밀 덱·판정·턴 순서를 관리해.'],
- hula:['<b>기본</b> · 52장, 조커 없음. 2~4명이 각자 7장씩 받고 손패를 먼저 다 비우는 사람이 이겨.','<b>받기</b> · 내 차례 시작에 더미에서 1장을 받거나, 앞 사람이 버린 카드로 즉시 등록이 가능하면 「땡큐」로 가져올 수 있어.','<b>등록</b> · 같은 숫자 3~4장(땡), 같은 무늬로 이어지는 3장 이상(연속), 또는 7 카드 한 장도 등록 가능. A는 1로만 계산해 (Q-K-A 불가).','<b>붙이기</b> · 내 등록이 하나 이상 있으면 누구의 등록 조합에든 카드 한 장씩 붙일 수 있어. 7 단독 등록에는 같은 무늬의 6 또는 8을 붙일 수 있어.','<b>버리기</b> · 받기 → 등록·붙이기 → 버리기. 손패를 모두 털면 즉시 승리, 미등록 상태에서 한 번에 털면 「훌라!」','<b>스톱</b> · 카드를 받기 전 손패가 10점 이하면 스톱 선언 가능. 다른 사람의 점수가 같거나 낮으면 스톱 실패야. 점수는 A=1, J=11, Q=12, K=13.','<b>안전한 친선 대전</b> · 이번 모드는 카드 전적만 기록하며 기존 회원·게임머니 잔액을 직접 건드리지 않아.']
+ hula:['<b>기본</b> · 52장, 조커 없음. 2~4명이 각자 7장씩 받고 손패를 먼저 다 비우는 사람이 이겨.','<b>받기</b> · 내 차례 시작에는 더미에서 1장 받기. 누군가 카드를 버렸을 때 즉시 등록이 가능하면 모든 참가자에게 6초간 「땡큐」 기회가 열려.','<b>등록</b> · 같은 숫자 3~4장(땡), 같은 무늬로 이어지는 3장 이상(연속), 또는 7 카드 한 장도 등록 가능. A는 1로만 계산해 (Q-K-A 불가).','<b>붙이기</b> · 내 등록이 하나 이상 있으면 누구의 등록 조합에든 카드 한 장씩 붙일 수 있어. 7 단독 등록에는 같은 무늬의 6 또는 8을 붙일 수 있어.','<b>버리기</b> · 받기 → 등록·붙이기 → 버리기. 손패를 모두 털면 즉시 승리, 미등록 상태에서 한 번에 털면 「훌라!」','<b>스톱</b> · 카드를 받기 전 손패가 10점 이하면 스톱 선언 가능. 다른 사람의 점수가 같거나 낮으면 스톱 실패야. 점수는 A=1, J=11, Q=12, K=13.','<b>안전한 친선 대전</b> · 이번 모드는 카드 전적만 기록하며 기존 회원·게임머니 잔액을 직접 건드리지 않아.']
 };
 function showRules(){
  $('#rulesHeading').textContent=(game==='onecard'?'원카드':'훌라')+' · HOUSE RULES';
@@ -138,6 +142,6 @@ document.querySelector('#nav-'+game).classList.add('active');
 $('#heroTitle').textContent=NAME[game];$('#heroSub').textContent=game==='onecard'?'한 장의 반전. 단 한 사람의 왕좌.':'땡·연속·세븐. 한국 카드 승부의 진짜 재미.';
 $('#ruleHeadline').textContent=game==='onecard'?'공격과 역전의 심리전 · 원카드':'정통 한국 카드 게임 · 훌라';
 $('#ruleSummary').textContent=game==='onecard'?'2·A·조커 공격 누적, 7 무늬 전환, J 건너뛰기, Q 역방향, K 추가 턴. 단 한 장을 남기는 순간 원카드 선언을 잊지 마.':'7장으로 시작해 땡·연속·7 단독 등록. 서로의 조합에 붙이고 땡큐로 뒤집어 봐. 스톱은 10점 이하, 같은 점수면 실패!';
-refresh();const polling=setInterval(()=>{if(document.visibilityState==='visible')refresh();},1400);
-setInterval(()=>{if(room?.phase==='playing')$('#countdown').textContent=Math.max(0,Math.ceil((localDeadline-Date.now())/1000))+'s';},400);
+refresh();const polling=setInterval(()=>{if(document.visibilityState==='visible')refresh();},2600);
+setInterval(()=>{if(room&&(room.phase==='playing'||room.phase==='thank'))$('#countdown').textContent=Math.max(0,Math.ceil((localDeadline-Date.now())/1000))+'s';},400);
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')refresh();});
