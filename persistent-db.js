@@ -76,9 +76,16 @@ function isRenderPrivateUrl(url){
     return /^dpg-[a-z0-9-]+$/.test(h);
   }catch{return false;}
 }
+function isRailwayPrivateUrl(url){
+  try{
+    const parsed=new URL(url);
+    return /^postgres(?:ql)?:$/.test(parsed.protocol)
+      && /^[a-z0-9-]+\.railway\.internal$/i.test(parsed.hostname);
+  }catch{return false;}
+}
 function hasRemote(){
   const url=persistenceUrl();
-  return !!url && isRenderPrivateUrl(url);
+  return !!url && (isRenderPrivateUrl(url) || isRailwayPrivateUrl(url));
 }
 
 function sslOptions(){
@@ -175,6 +182,17 @@ class DatabaseSync {
     if(!/CREATE TABLE IF NOT EXISTS room_escrow/i.test(sql)) return;
     this._ensureExtraColumns();
     const snap=this._restore;
+    // Never replace or save established Railway data when its remote snapshot is
+    // missing or contains only an accidental new administrator. Fail closed.
+    if(isRailwayPrivateUrl(persistenceUrl()) && snap && 
+       (!Array.isArray(snap.tables?.users) || snap.tables.users.length<2)){
+      console.error('[PERSIST] SAFETY STOP: Railway snapshot has fewer than 2 users; refusing restore or remote writes.');
+      this._restore=null;
+      restoreHealthy=false;
+      this._restored=true;
+      this._enabled=true;
+      return;
+    }
     if(snap && snap.tables){
       try{
         this._native.exec('PRAGMA foreign_keys=OFF; BEGIN IMMEDIATE;');
@@ -235,7 +253,7 @@ class DatabaseSync {
         console.error('[PERSIST] Snapshot restore failed; remote writes DISABLED for safety:',e);
       }
     }else{
-      const freshRemoteInit=hasRemote() && String(process.env.ALLOW_EMPTY_REMOTE_INIT||'').trim()==='1';
+      const freshRemoteInit=hasRemote() && !isRailwayPrivateUrl(persistenceUrl()) && String(process.env.ALLOW_EMPTY_REMOTE_INIT||'').trim()==='1';
       restoreHealthy=!hasRemote() || freshRemoteInit;
       if(freshRemoteInit){
         console.log('[PERSIST] Render Postgres connected with no previous snapshot; fresh-start initialization enabled.');
@@ -245,7 +263,7 @@ class DatabaseSync {
     }
     this._restored=true;
     this._enabled=true;
-    const freshRemoteInit=hasRemote() && String(process.env.ALLOW_EMPTY_REMOTE_INIT||'').trim()==='1' && !this._restore;
+    const freshRemoteInit=hasRemote() && !isRailwayPrivateUrl(persistenceUrl()) && String(process.env.ALLOW_EMPTY_REMOTE_INIT||'').trim()==='1' && !this._restore;
     if(this._restoredFromLegacy && restoreHealthy){
       console.log('[PERSIST] Legacy snapshot recovered; copying it once into private Render Postgres.');
       this._queueSave();
