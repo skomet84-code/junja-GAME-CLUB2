@@ -125,9 +125,10 @@ module.exports=function createRoyalCards({db,crypto,requireAuth,readBody,json,ra
  function onePlay(r,p,card,chosen,call){
   if(!p.hand.includes(card))throw Error('보유하지 않은 카드야.');
   if(!canPlay(r,card))throw Error('색·숫자 또는 공격 규칙이 맞지 않아.');
+  if((rank(card)===7||suit(card)==='J')&&!SUITS.includes(chosen))throw Error('바꿀 무늬를 선택해줘.');
   p.hand.splice(p.hand.indexOf(card),1);r.discard.push(card);
   if(suit(card)!=='J')r.suit=suit(card);
-  if(rank(card)===7||suit(card)==='J'){if(!SUITS.includes(chosen))throw Error('바꿀 무늬를 선택해줘.');r.suit=chosen;}
+  if(rank(card)===7||suit(card)==='J')r.suit=chosen;
   const attack=attackValue(card);
   if(attack){r.pending+=attack;r.attackRank=attackLevel(card);}
   log(r,p.name+' · '+(suit(card)==='J'?'JOKER':LABEL[suit(card)]+(rank(card)===1?'A':rank(card)===11?'J':rank(card)===12?'Q':rank(card)===13?'K':rank(card)))+(attack?' 공격 +'+attack:''));
@@ -145,10 +146,11 @@ module.exports=function createRoyalCards({db,crypto,requireAuth,readBody,json,ra
   if(!Array.isArray(cards)||!cards.length||!sameCards(cards)||cards.some(c=>!p.hand.includes(c)))throw Error('내 손패에서 등록할 카드를 선택해줘.');
   const kind=meldKind(cards);
   if(!kind)throw Error('등록은 동일 숫자 3장, 같은 무늬 연속 3장, 또는 7 한 장만 가능해.');
+  const priorRegistration=p.registered;
   cards.forEach(c=>p.hand.splice(p.hand.indexOf(c),1));
   r.melds.push({owner:p.id,cards:cards.slice(),kind});p.registered=true;
   if(logIt)log(r,p.name+' · '+(kind==='seven'?'세븐 등록':kind==='set'?'땡 등록':'연속 등록'));
-  if(!p.hand.length)finish(r,p,p.meldBefore?'전부 털기':'훌라!');
+  if(!p.hand.length)finish(r,p,priorRegistration?'모두 등록하고 완주':'훌라!');
  }
  function hulaAttach(r,p,card,index){
   const m=r.melds[index];if(!m||!p.hand.includes(card)||!p.registered)throw Error('등록 후 바닥 조합에 붙일 수 있어.');
