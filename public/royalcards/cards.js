@@ -1,5 +1,6 @@
 'use strict';
 const game=new URLSearchParams(location.search).get('game')==='hula'?'hula':'onecard';
+document.body.dataset.game=game;
 const $=sel=>document.querySelector(sel);
 const $$=sel=>[...document.querySelectorAll(sel)];
 let room=null,selected=new Set(),changedVersion=-1,busy=false,stopping=false,callOne=false,inviteAttempted=false,localDeadline=0,score={games:0,wins:0,bestStreak:0,streak:0};
