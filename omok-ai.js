@@ -1,5 +1,5 @@
 'use strict';
-// JUNJA OMOK: bounded Renju-aware threat solver + iterative deepening negamax.
+// JUNJA OMOK GOD MODE: Renju-aware proof search, poison-move defense and deep negamax.
 // It is NOT a neural/AlphaGo model or a proof of unbeatable play.
 const rules=require('./omok-engine');
 const {SIZE,DIRS}=rules;
@@ -118,7 +118,7 @@ function findVCF(b,attacker,rounds,deadline){
   const defender=3-attacker,seen=new Set();
   let checked=0;
   function attack(left){
-    if(time()>=deadline||++checked>1500)return null;
+    if(time()>=deadline||++checked>2400)return null;
     const own=wins(b,attacker,deadline,1);
     if(own.length)return own[0];
     if(left===0||wins(b,defender,deadline,1).length)return null;
@@ -155,7 +155,7 @@ function selectMove(original,color,opts={}){
   const budget=Math.max(40,Math.min(11000,Number(opts.timeMs)||4400));
   const deadline=time()+budget,enemy=3-color;
   let nodes=0,completed=0,reason='search';
-  const initial=ranked(b,color,28,deadline,null,{radius:2});
+  const initial=ranked(b,color,36,deadline,null,{radius:2});
   if(!initial.length)return null;
   const mine=wins(b,color,deadline,2);
   if(mine.length)return {...mine[0],reason:'five',depth:0,nodes};
@@ -167,11 +167,11 @@ function selectMove(original,color,opts={}){
   }
   // Don't consume the main search time on a tactical proof.
   if(budget>=650&&time()<deadline-220){
-    const proofDeadline=Math.min(deadline-180, time()+Math.min(1000,budget*.24));
-    const forced=findVCF(b,color,4,proofDeadline);
+    const proofDeadline=Math.min(deadline-250, time()+Math.min(1400,budget*.23));
+    const forced=findVCF(b,color,5,proofDeadline);
     if(forced)return {...forced,reason:'vcf',depth:0,nodes};
   }
-  const root=initial.slice(0,Math.min(13,initial.length));
+  const root=initial.slice(0,Math.min(18,initial.length));
   // Root candidate screening prevents moving into an immediate loss if an alternative exists.
   let safe=[];
   const preDeadline=Math.min(deadline-150,time()+Math.min(420,budget*.12));
@@ -183,7 +183,28 @@ function selectMove(original,color,opts={}){
     finally{b[m.y][m.x]=0;}
     if(!bad)safe.push(m);
   }
-  const candidates=safe.length?[...safe,...root.filter(m=>!safe.includes(m))].slice(0,11):root.slice(0,11);
+  let candidates=safe.length?[...safe,...root.filter(m=>!safe.includes(m))].slice(0,16):root.slice(0,16);
+  // GOD MODE: reject candidate moves that allow a PROVEN opponent four-chain.
+  // Each proof includes legal Renju replies and is bounded independently.
+  if(budget>=1800&&time()<deadline-900){
+    const guardDeadline=Math.min(deadline-850,time()+Math.min(1400,budget*.18));
+    const poison=new Set();
+    for(const m of candidates.slice(0,14)){
+      if(time()>=guardDeadline)break;
+      const played=rules.place(b,m.x,m.y,color);
+      if(!played.ok)continue;
+      try{
+        if(!played.win&&!played.draw){
+          const shortDeadline=Math.min(guardDeadline,time()+160);
+          if(findVCF(b,enemy,3,shortDeadline))poison.add(id(m));
+        }
+      }finally{b[m.y][m.x]=0;}
+    }
+    if(poison.size&&poison.size<candidates.length){
+      const survivors=candidates.filter(m=>!poison.has(id(m)));
+      if(survivors.length)candidates=survivors;
+    }
+  }
   let best=candidates[0];
   let h1=0,h2=0,seed=0x95AC74F3;
   const rnd=()=>{seed^=seed<<13;seed^=seed>>>17;seed^=seed<<5;return seed>>>0;};
@@ -220,7 +241,7 @@ function selectMove(original,color,opts={}){
     if(my.length)return WIN-ply*1000;
     const threatened=wins(b,3-side,deadline,3);
     if(threatened.length>=2)return -WIN+ply*1000;
-    let options=ranked(b,side,depth>=4?9:depth>=2?8:7,deadline,old?.move||killers[ply],threatened.length?{forced:threatened}:{radius:2});
+    let options=ranked(b,side,depth>=6?11:depth>=4?10:depth>=2?8:7,deadline,old?.move||killers[ply],threatened.length?{forced:threatened}:{radius:2});
     if(!options.length)return threatened.length?-WIN+ply*1000:0;
     options.sort((a,b)=>(b.rank+(history[id(b)*2+side-1]||0))-(a.rank+(history[id(a)*2+side-1]||0)));
     let val=-INF,chosen=null;
@@ -241,7 +262,7 @@ function selectMove(original,color,opts={}){
     if(tt.size<18000)tt.set(key,{depth,value:val,flag:val<=lo?'upper':val>=hi?'lower':'exact',move:chosen});
     return val;
   }
-  for(let depth=1;depth<=8;depth++){
+  for(let depth=1;depth<=10;depth++){
     if(time()>=deadline)break;
     let chosen=best,bestValue=-INF,alpha=-INF;
     try{
