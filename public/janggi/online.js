@@ -97,7 +97,7 @@ function lobby(){
  btn('ai','⚔️ 최강 AI 도전 시작','primary')+'<p>무료 도전 · 무르기 없음 · 패배/기권/무승부는 상금 없음 · 서버 검증 후 지급</p></section>'+
  '<section class="jg-panel"><div class="jg-panelcap">LIVE 1:1 MATCHMAKING</div><h2>🌐 친구와 온라인 대결</h2><p>같은 기기가 아닌 <b>서로 다른 휴대폰</b>으로 진짜 대결합니다. 공개방을 만들거나 초대 링크를 친구에게 보내세요.</p>'+
  '<label>방 이름<input id="jgRoomInput" maxlength="28" placeholder="친구들과 장기 한 판"></label>'+
- '<div class="jg-setup-heading">내 마·상 포진 <small>상대방은 입장 후 직접 선택합니다</small></div>'+choiceButtons('pvpFormation',FORMATION_CHOICES,state.prefs.pvpFormation)+
+ '<p class="jg-formation-note">방 입장 후 초·한 각자 마·상 포진 4가지 중 하나를 직접 선택하고 준비합니다.</p>'+
  btn('create','＋ 온라인 장기방 만들기','primary')+'<h2 style="margin-top:22px">참가 가능한 방</h2><div>'+
  (h.rooms?.length?h.rooms.map(r=>'<div class="jg-room-row"><span><b>'+esc(r.name)+'</b><small>'+esc(r.host)+' · '+r.players+'/2명</small></span>'+btn('join','입장','secondary','data-id="'+esc(r.id)+'"')+'</div>').join(''):'<p>아직 공개된 방이 없습니다.</p>')+'</div>'+btn('refresh','방 목록 새로고침','secondary')+'</section>'+
  '<section class="jg-panel"><h2>나의 장기 전적</h2><div class="jg-stats">'+[['games','대국'],['wins','승리'],['aiWins','AI 격파'],['earnings','상금 G']].map(([key,name])=>'<div><strong>'+Number(s[key]||0).toLocaleString('ko-KR')+'</strong><small>'+name+'</small></div>').join('')+'</div></section>'+
@@ -117,6 +117,7 @@ function match(){
  const turnSide=r.turn,me=r.mySide,myPlayer=r.players.find(p=>p.id===r.selfId);
  // Each player sees their own army along the bottom; server coordinates remain untouched.
  const bottomSide=me==='h'?'h':'c',topSide=R.ENEMY(bottomSide);
+ $('jgBoard').dataset.perspective=bottomSide;
  $('jgRoomName').textContent=r.name;$('jgRound').textContent='ROUND '+r.round;
  for(const [seat,side] of [['Top',topSide],['Bottom',bottomSide]]){
   const player=r.players.find(p=>p.color===side),own=side===me,avatar=$('jg'+seat+'Avatar'),turn=$('jg'+seat+'Turn');
@@ -136,7 +137,8 @@ function match(){
  const cells=[];
  for(let y=0;y<10;y++)for(let x=0;x<9;x++){
   const p=board[y][x],pt=x+','+y,on=options.has(pt),selected=state.selected?.x===x&&state.selected?.y===y;
-  const pos=R.viewPoint(me,x,y);
+  // Mirror both axes for the HAN player's own perspective; server move coordinates never change.
+  const pos=bottomSide==='h'?{x:R.W-1-x,y:R.H-1-y}:{x,y};
   const from=last&&last.x===x&&last.y===y,to=last&&last.tx===x&&last.ty===y;
   cells.push('<button type="button" class="jg-cell '+(selected?'selected ':'')+(on?'hint ':'')+(on&&p?'capture ':'')+(from?'from ':'')+(to?'to ':'')+'" data-x="'+x+'" data-y="'+y+'" role="gridcell" aria-label="'+(x+1)+'열 '+(y+1)+'행 '+(p?esc(p.t):'빈칸')+'" style="--x:'+((70+80*pos.x)/780*100).toFixed(5)+'%;--y:'+((70+80*pos.y)/860*100).toFixed(5)+'%">'+(p?'<span class="jg-piece '+(p.s==='c'?'cho ':'han ')+p.t+'">'+esc((p.s==='c'?TEXT:HAN)[p.t])+'</span>':'')+'</button>');
  }
@@ -196,7 +198,7 @@ document.addEventListener('click',e=>{
   act('/create-ai',{side:p.aiSide,cFormation:p.aiSide==='c'?p.aiFormation:'inner',hFormation:p.aiSide==='h'?p.aiFormation:'inner'});return;
  }
  if(a==='create'){
-  act('/create',{name:$('jgRoomInput')?.value||'준자 온라인 장기',formation:state.prefs.pvpFormation});return;
+  act('/create',{name:$('jgRoomInput')?.value||'준자 온라인 장기'});return;
  }
  if(a==='join'){act('/'+b.dataset.id+'/join');return;}
  if(a==='invite'&&r){const link=location.origin+'/janggi/online.html?join='+encodeURIComponent(r.id);
