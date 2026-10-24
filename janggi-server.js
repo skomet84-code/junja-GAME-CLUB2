@@ -117,7 +117,7 @@ module.exports=function createJanggi({db,crypto,readBody,requireAuth,json,rateLi
  function makeRoom(id,person,ai,b){
   const formation=name=>Object.hasOwn(R.FORMATIONS,name)?name:'inner';
   const r={id:'JG'+crypto.randomBytes(7).toString('hex'),name:ai?'최강 AI · 1조 챌린지':String(b.name||'준자 온라인 장기').trim().slice(0,28)||'준자 온라인 장기',
-   hostId:id,ai,phase:'waiting',players:[{id,nickname:person.nickname,ready:ai,formation:ai?null:formation(b.formation||b.cFormation)}],colors:{},round:0,
+   hostId:id,ai,phase:'waiting',players:[{id,nickname:person.nickname,ready:ai,formation:null}],colors:{},round:0,
    board:R.fresh(),turn:'c',moves:[],passes:0,deadline:0,version:0,updated:now(),recorded:false,thinking:false,
    formations:{cFormation:formation(b.cFormation),hFormation:formation(b.hFormation)},preferredSide:b.side==='h'?'h':'c'};
   if(ai&&r.preferredSide==='h')r.formations.hFormation=R.formationForView('h',r.formations.hFormation);
