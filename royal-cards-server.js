@@ -91,11 +91,11 @@ module.exports=function createRoyalCards({db,crypto,requireAuth,readBody,json,ra
  }
  function fresh(r){
   clear(r);r.phase='playing';r.round++;r.direction=1;r.turn=0;r.deck=shuffle(cardDeck(r.game==='onecard'));
-  r.discard=[];r.melds=[];r.pending=0;r.attackRank=0;r.suit=null;r.drew=false;r.winner=null;r.reason=null;r.recorded=false;
+  r.discard=[];r.melds=[];r.pending=0;r.attackRank=0;r.suit=null;r.drew=false;r.thankWindow=null;r.winner=null;r.reason=null;r.recorded=false;
   r.players.forEach(p=>{p.ready=false;p.hand=[];for(let i=0;i<7;i++)p.hand.push(r.deck.pop());});
   if(r.game==='onecard'){
-   while(r.deck.length){const c=r.deck.pop();if(attackValue(c)||[7,11,12,13].includes(rank(c))){r.deck.unshift(c);continue;}r.discard.push(c);break;}
-   if(!r.discard.length)r.discard.push(r.deck.pop());
+   const first=r.deck.findIndex(c=>!attackValue(c)&&![7,11,12,13].includes(rank(c)));
+   r.discard.push(first<0?r.deck.pop():r.deck.splice(first,1)[0]);
    r.suit=suit(r.discard.at(-1));
   }else r.discard.push(r.deck.pop());
   log(r,'새 라운드 시작! '+r.players.length+'명 입장');arm(r);
@@ -108,7 +108,7 @@ module.exports=function createRoyalCards({db,crypto,requireAuth,readBody,json,ra
    players:r.players.map(x=>({id:x.id,name:x.name,bot:x.bot||false,ready:x.ready,cardCount:x.hand.length,score:r.game==='hula'?null:undefined})),
    max:r.max,turnId:active?.id,direction:r.direction,deadline:r.deadline,serverNow:now(),
    hand:p.hand.slice(),deckCount:r.deck.length,discard:last,suit:r.suit,pending:r.pending,attackRank:r.attackRank,
-   drew:r.drew,legal,allowedMelds,melds:r.melds.map(m=>({owner:m.owner,cards:m.cards.slice(),kind:m.kind})),
+   drew:r.drew,legal,allowedMelds,canThank:r.phase==='thank'&&r.thankWindow?.eligible.includes(p.id),thankDeadline:r.thankWindow?.until||0,melds:r.melds.map(m=>({owner:m.owner,cards:m.cards.slice(),kind:m.kind})),
    events:r.events.slice(-10),winner:r.winner,reason:r.reason,
    finalScores:r.phase==='done'&&r.game==='hula'?r.players.map(x=>({id:x.id,score:sum(x.hand),cards:x.hand.slice()})):null};
  }
@@ -118,7 +118,7 @@ module.exports=function createRoyalCards({db,crypto,requireAuth,readBody,json,ra
  function draw(r,p,n){for(let i=0;i<n;i++){replenish(r);if(!r.deck.length)break;p.hand.push(r.deck.pop());}}
  function canPlay(r,c){
   const top=r.discard.at(-1);
-  if(r.pending){return attackValue(c)>0&&attackLevel(c)>=r.attackRank;}
+  if(r.pending){return attackValue(c)>0&&attackLevel(c)>=r.attackRank || r.attackRank===2 && rank(c)===3 && suit(c)===suit(r.discard.at(-1));}
   if(c.startsWith('JOK'))return true;
   return rank(c)===rank(top)||suit(c)===r.suit||rank(c)===7&&suit(c)===r.suit;
  }
@@ -131,6 +131,7 @@ module.exports=function createRoyalCards({db,crypto,requireAuth,readBody,json,ra
   if(rank(card)===7||suit(card)==='J')r.suit=chosen;
   const attack=attackValue(card);
   if(attack){r.pending+=attack;r.attackRank=attackLevel(card);}
+  else if(r.pending&&rank(card)===3){r.pending=0;r.attackRank=0;log(r,p.name+' · 3 방어 성공');}
   log(r,p.name+' · '+(suit(card)==='J'?'JOKER':LABEL[suit(card)]+(rank(card)===1?'A':rank(card)===11?'J':rank(card)===12?'Q':rank(card)===13?'K':rank(card)))+(attack?' 공격 +'+attack:''));
   if(p.hand.length===1&&!call){draw(r,p,2);log(r,p.name+' 원카드 선언 누락 · 벌칙 2장');}
   if(!p.hand.length){finish(r,p,'ONE CARD 완주');return;}
@@ -174,13 +175,37 @@ module.exports=function createRoyalCards({db,crypto,requireAuth,readBody,json,ra
   }
   if(r.phase==='playing')arm(r);
  }
+ function startThank(r,p){
+  const possible=r.players.filter(x=>x!==p&&findThank(x.hand,r.discard.at(-1)));
+  if(!possible.length){advance(r);return;}
+  clear(r);r.phase='thank';r.thankWindow={eligible:possible.map(x=>x.id),until:now()+6200,discardedBy:p.id};
+  log(r,'땡큐! 마지막 버림패로 등록할 수 있는 참가자에게 6초 기회');publish(r);
+  const stamp=r.version;
+  const bot=possible.find(x=>x.bot),delay=bot?1100:6200;
+  const timer=setTimer(()=>{
+   if(rooms.get(r.id)!==r||r.phase!=='thank'||r.version!==stamp)return;
+   if(bot){try{thank(r,bot);}catch(e){console.warn('[CARDS] bot thank:',e.message);resumeThank(r);}}
+   else resumeThank(r);
+  },delay);
+  if(timer?.unref)timer.unref();timers.set(r.id,timer);
+ }
+ function resumeThank(r){clear(r);r.thankWindow=null;r.phase='playing';advance(r);}
+ function thank(r,p){
+  if(r.phase!=='thank'||!r.thankWindow||!r.thankWindow.eligible.includes(p.id))throw Error('지금 땡큐로 받을 수 있는 카드가 없어.');
+  if(now()>r.thankWindow.until)throw Error('땡큐 시간이 끝났어.');
+  const top=r.discard.at(-1),cards=findThank(p.hand,top);
+  if(!cards)throw Error('등록 가능한 땡큐 조합이 없어.');
+  clear(r);r.phase='playing';r.thankWindow=null;r.turn=r.players.indexOf(p);r.drew=true;
+  r.discard.pop();p.hand.push(top);hulaMeld(r,p,cards);log(r,p.name+' · 땡큐! 차례 가져오기');
+  if(r.phase==='playing')arm(r);
+ }
  function hulaDiscard(r,p,card){
   if(!r.drew)throw Error('먼저 카드를 받아줘.');
   if(!p.hand.includes(card))throw Error('내 패 중에서 버릴 카드를 골라줘.');
   p.hand.splice(p.hand.indexOf(card),1);r.discard.push(card);
   log(r,p.name+' · 버리기 '+LABEL[suit(card)]+(rank(card)===1?'A':rank(card)));
   if(!p.hand.length){finish(r,p,p.registered?'완주':'훌라!');return;}
-  advance(r);
+  startThank(r,p);
  }
  function hulaStop(r,p){
   if(r.drew||r.round===0)throw Error('스톱은 내 차례의 첫 행동에서만 가능해.');
@@ -258,7 +283,7 @@ module.exports=function createRoyalCards({db,crypto,requireAuth,readBody,json,ra
     const game=b.game==='hula'?'hula':'onecard',mode=b.mode==='ai'?'ai':'multi';
     const r=create(game,u,mode,Math.max(2,Math.min(4,Math.trunc(Number(b.max)||4))),b.name);return reply(201,{room:view(r,u.id)});
    }
-   const m=url.pathname.match(/^\/api\/royalcards\/(RC[a-f0-9]{14})(?:\/(join|ready|start|play|draw|take|meld|attach|discard|stop|rematch|leave))?$/);
+   const m=url.pathname.match(/^\/api\/royalcards\/(RC[a-f0-9]{14})(?:\/(join|ready|start|play|draw|take|meld|attach|discard|thank|stop|rematch|leave))?$/);
    if(!m)return reply(404,{error:'존재하지 않는 카드 게임 요청이야.'});
    const r=rooms.get(m[1]);if(!r)return reply(404,{error:'종료된 방이야. 로비에서 다시 시작해줘.'});
    const op=m[2];const exists=player(r,u.id);
@@ -270,6 +295,9 @@ module.exports=function createRoyalCards({db,crypto,requireAuth,readBody,json,ra
    }
    if(!exists)return reply(403,{error:'이 방의 참가자가 아니야.'});
    if(!op&&req.method==='GET')return reply(200,{room:view(r,u.id)});
+   if(op==='thank'&&req.method==='POST'){
+    thank(r,exists);return reply(200,{room:view(r,u.id)});
+   }
    if(req.method!=='POST')return reply(405,{error:'허용되지 않은 요청이야.'});
    if(op==='leave'){
     const idx=r.players.indexOf(exists);
@@ -277,6 +305,7 @@ module.exports=function createRoyalCards({db,crypto,requireAuth,readBody,json,ra
      const remaining=r.players.filter(p=>p!==exists);
      if(remaining.length){finish(r,remaining[0],exists.name+' 퇴장');}
     }
+    if(r.phase==='thank'&&r.thankWindow){r.thankWindow.eligible=r.thankWindow.eligible.filter(id=>id!==exists.id);if(!r.thankWindow.eligible.length)resumeThank(r);}
     r.players.splice(idx,1);
     if(!r.players.length||r.mode==='ai'){clear(r);rooms.delete(r.id);}
     else {if(r.hostId===u.id)r.hostId=r.players[0].id;publish(r);}
