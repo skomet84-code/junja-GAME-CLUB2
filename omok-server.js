@@ -1,5 +1,6 @@
 'use strict';
 const rules=require('./omok-engine');
+const ai=require('./omok-ai');
 module.exports=function createOmok({db,crypto,readBody,requireAuth,json,rateLimit,now=Date.now,isUserBusy=()=>false,notify=()=>{},setTimer=setTimeout,clearTimer=clearTimeout}){
   const rooms=new Map(),timers=new Map();
   const TURN_MS=90000,WAIT_MS=30*60000,DONE_MS=15*60000;
@@ -15,6 +16,7 @@ module.exports=function createOmok({db,crypto,readBody,requireAuth,json,rateLimi
     if(r.recorded||r.players.length!==2)return;
     r.recorded=true;
     for(const p of r.players){
+      if(p.id<=0)continue; // The computer is not a registered member.
       const s=getStats(p.id);s.games++;
       if(winner==null){s.draws++;s.streak=0;}
       else if(p.id===winner){s.wins++;s.streak++;s.bestStreak=Math.max(s.bestStreak,s.streak);}
@@ -55,10 +57,22 @@ module.exports=function createOmok({db,crypto,readBody,requireAuth,json,rateLimi
   }
   function mine(id){cleanup();return [...rooms.values()].find(r=>r.players.some(p=>p.id===Number(id)))||null;}
   function pub(r,id){
-    return {id:r.id,version:r.version,phase:r.phase,round:r.round,board:r.board,last:r.last,line:r.line,
+    return {id:r.id,version:r.version,phase:r.phase,round:r.round,board:r.board,last:r.last,line:r.line,ai:!!r.ai,
       name:r.name,hostId:r.hostId,players:r.players.map(p=>({id:p.id,nickname:p.nickname,ready:p.ready,rematch:p.rematch,color:r.colors[p.id]||0})),
       selfId:Number(id),myColor:r.colors[id]||0,myTurn:r.phase==='playing'&&r.colors[id]===r.turn,
       turn:r.turn,deadline:r.deadline,serverNow:now(),winner:r.winner,reason:r.reason,moves:r.moves};
+  }
+  function botTurn(r){
+    if(!r.ai||r.phase!=='playing'||r.colors[-1]!==r.turn)return false;
+    const pick=ai.choose(r.board,r.turn);
+    if(!pick){finish(r,null,'무승부');return true;}
+    const result=rules.place(r.board,pick.x,pick.y,r.turn);
+    if(!result.ok)throw Error('AI 착수 검증 실패: '+result.error);
+    r.last=[pick.x,pick.y];r.moves++;
+    if(result.win)finish(r,-1,'초극강 AI 오목 완성',result.line);
+    else if(result.draw)finish(r,null,'무승부');
+    else {r.turn=r.turn===1?2:1;arm(r);publish(r);}
+    return true;
   }
   function start(r,again=false){
     if(r.players.length!==2)throw Error('두 명이 모두 입장해야 합니다.');
@@ -69,7 +83,8 @@ module.exports=function createOmok({db,crypto,readBody,requireAuth,json,rateLimi
     r.colors[p1.id]=r.round%2===1?2:1;
     r.players.forEach(p=>{p.ready=false;p.rematch=false;});
     r.board=rules.fresh();r.last=null;r.line=[];r.moves=0;r.turn=1;r.winner=null;r.reason='';
-    r.phase='playing';r.recorded=false;arm(r);publish(r);
+    r.phase='playing';r.recorded=false;
+    if(!botTurn(r)){arm(r);publish(r);}
   }
   function list(){
     return [...rooms.values()].filter(r=>r.phase==='waiting'&&r.players.length<2).map(r=>({
@@ -95,12 +110,16 @@ module.exports=function createOmok({db,crypto,readBody,requireAuth,json,rateLimi
       if(url.pathname==='/api/omok/create'&&req.method==='POST'){
         if(mine(user.id)||isUserBusy(user.id))throw Error('진행 중인 게임방에서 먼저 나와주세요.');
         if(!rateLimit('omok-create:'+user.id,8,60000))throw Error('방 생성은 잠시 뒤 다시 해주세요.');
+        const solo=b.vsAi===true;
         const id='OM'+crypto.randomBytes(7).toString('hex');
-        const room={id,name:String(b.name||'준자 오목 대결').trim().slice(0,28)||'준자 오목 대결',
-          hostId:user.id,players:[{id:user.id,nickname:user.nickname,ready:false,rematch:false}],colors:{},
+        const room={id,name:solo?'♛ 초극강 AI 도전':String(b.name||'준자 오목 대결').trim().slice(0,28)||'준자 오목 대결',
+          hostId:user.id,players:[{id:user.id,nickname:user.nickname,ready:false,rematch:false},
+            ...(solo?[{id:-1,nickname:'♛ 초극강 준자 AI',ready:true,rematch:false}]:[])],colors:{},ai:solo,
           phase:'waiting',round:0,board:rules.fresh(),last:null,line:[],moves:0,turn:1,
           winner:null,reason:'',version:0,updated:now(),deadline:0,recorded:false};
-        rooms.set(id,room);publish(room);return reply(201,{room:pub(room,user.id)});
+        rooms.set(id,room);
+        if(solo)start(room);else publish(room);
+        return reply(201,{room:pub(room,user.id)});
       }
       const match=url.pathname.match(/^\/api\/omok\/(OM[a-f0-9]{14})(?:\/(join|ready|start|move|resign|rematch|leave))?$/);
       if(!match)return reply(404,{error:'존재하지 않는 오목 요청입니다.'});
@@ -135,18 +154,18 @@ module.exports=function createOmok({db,crypto,readBody,requireAuth,json,rateLimi
         r.last=[x,y];r.moves++;
         if(result.win)finish(r,user.id,'오목 완성',result.line);
         else if(result.draw)finish(r,null,'무승부');
-        else {r.turn=r.turn===1?2:1;arm(r);publish(r);}
+        else {r.turn=r.turn===1?2:1;if(!botTurn(r)){arm(r);publish(r);}}
       }else if(op==='resign'){
         if(r.phase!=='playing')throw Error('대국 중에만 기권할 수 있습니다.');
         finish(r,r.players.find(x=>x.id!==user.id).id,'기권');
       }else if(op==='rematch'){
         if(r.phase!=='complete'||r.players.length!==2)throw Error('재대결을 진행할 수 없습니다.');
         p.rematch=true;
-        if(r.players.every(x=>x.rematch))start(r,true);else publish(r);
+        if(r.ai||r.players.every(x=>x.rematch))start(r,true);else publish(r);
       }else if(op==='leave'){
         if(r.phase==='playing')finish(r,r.players.find(x=>x.id!==user.id).id,'상대 퇴장');
         r.players=r.players.filter(x=>x.id!==user.id);
-        if(!r.players.length){disarm(r);rooms.delete(r.id);}
+        if(!r.players.length||r.ai){disarm(r);rooms.delete(r.id);}
         else {if(r.hostId===user.id)r.hostId=r.players[0].id;publish(r);}
         return reply(200,{room:null});
       }else throw Error('지원하지 않는 요청입니다.');
