@@ -2,7 +2,7 @@
 const game=new URLSearchParams(location.search).get('game')==='hula'?'hula':'onecard';
 const $=sel=>document.querySelector(sel);
 const $$=sel=>[...document.querySelectorAll(sel)];
-let room=null,selected=new Set(),changedVersion=-1,busy=false,stopping=false,callOne=false,localDeadline=0,score={games:0,wins:0,bestStreak:0,streak:0};
+let room=null,selected=new Set(),changedVersion=-1,busy=false,stopping=false,callOne=false,inviteAttempted=false,localDeadline=0,score={games:0,wins:0,bestStreak:0,streak:0};
 const SUIT={S:'♠',H:'♥',D:'♦',C:'♣'};
 const NAME={onecard:'ROYAL ONE CARD',hula:'ROYAL HULA'};
 const ESC={'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'};
@@ -33,7 +33,7 @@ async function command(path,body){
 async function refresh(){
  if(busy||stopping)return;
  try{const data=await api('?game='+game);if(data.stats)showStats(data.stats);
- if(data.room)showRoom(data.room);else {room=null;showLanding(data.rooms||[]);}
+ if(data.room)showRoom(data.room);else {room=null;showLanding(data.rooms||[]);const target=new URLSearchParams(location.search).get('room');if(target&&!inviteAttempted&&/^RC[a-f0-9]{14}$/.test(target)){inviteAttempted=true;command('/'+target+'/join');}}
  $('#account').textContent='● CONNECTED';
  }catch(e){if(e.message.includes('로그인')){$('#account').textContent='로그인 필요';message('준자랜드에서 먼저 로그인해줘.');}else message(e.message);}
 }
@@ -65,7 +65,8 @@ function renderWaiting(r,mine){
  $('#startBtn').classList.toggle('hidden',r.hostId!==r.selfId);
  $('#startBtn').disabled=r.players.length<2||r.players.some(p=>!p.ready);
  $('#startBtn').onclick=()=>command('/'+r.id+'/start');
- $('#roomCode').textContent='친구는 같은 게임의 LIVE TABLES에서 이 방을 찾아 입장하면 돼. · '+r.id;
+ $('#roomCode').innerHTML='<span>친구에게 초대 링크를 공유해. · '+esc(r.id)+'</span> <button id="shareRoom" class="outline-btn">초대 링크 복사 ↗</button>';
+ $('#shareRoom').onclick=async()=>{const link=location.origin+'/royalcards/index.html?game='+r.game+'&room='+r.id;try{await navigator.clipboard.writeText(link);message('친구 초대 링크를 복사했어!');}catch{prompt('이 링크를 친구에게 보내줘',link);}};
 }
 function renderPlaying(r,mine){
  const myTurn=r.turnId===r.selfId;
