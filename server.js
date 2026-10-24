@@ -2057,7 +2057,7 @@ function personalizedRoom(r,userId){
 
 const treasureRaid=createTreasureRaid({
   crypto,now,readBody,requireAuth,json,walletChange,userPublic,escrowSet,escrowDelete,pushRefresh,formatMoney,rateLimit,
-  isUserBusy:userId=>!!findUserRoom(userId)||!!baccaratFindUser(userId)||goldenbell.hasUser(userId)||omok.hasUser(userId)||liar.hasUser(userId)||janggi.hasUser(userId)||royalCards.hasUser(id)
+  isUserBusy:userId=>!!findUserRoom(userId)||!!baccaratFindUser(userId)||goldenbell.hasUser(userId)||omok.hasUser(userId)||liar.hasUser(userId)||janggi.hasUser(userId)||royalCards.hasUser(userId)
 });
 
 
