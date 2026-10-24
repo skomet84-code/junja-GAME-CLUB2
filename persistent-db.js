@@ -42,6 +42,8 @@ const EXTRA_COLUMNS = {
     ['balance_text','TEXT'],
     ['is_admin','INTEGER NOT NULL DEFAULT 0'],
     ['is_disabled','INTEGER NOT NULL DEFAULT 0'],
+    // Must exist before inserting the remote users snapshot, not after server startup.
+    ['is_archived','INTEGER NOT NULL DEFAULT 0'],
     ['rank_level','INTEGER NOT NULL DEFAULT 0'],
     ['last_rank_salary','TEXT'],
     ['rank_free_slot_date','TEXT'],
