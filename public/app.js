@@ -395,28 +395,31 @@ async function loadLedger(){try{const d=await api('/api/ledger');$('#ledgerList'
 
 
 // ADMIN CONTROL CENTER
+let adminShowArchived=false;
 async function loadAdmin(query='',notify=true){
   if(!me?.is_admin)return;
   try{
-    const [u,a,rr]=await Promise.all([api('/api/admin/users?q='+encodeURIComponent(query)),api('/api/admin/audit'),api('/api/admin/rooms')]);
+    const [u,a,rr]=await Promise.all([api('/api/admin/users?q='+encodeURIComponent(query)+'&archived='+(adminShowArchived?'1':'0')),api('/api/admin/audit'),api('/api/admin/rooms')]);
     const rows=u.rows||[];
     $('#adminUserCount').textContent=rows.length;
     $('#adminTotalMoney').textContent=money(rows.reduce((s,x)=>s+Number(x.balance||0),0));
     $('#adminDisabledCount').textContent=rows.filter(x=>x.is_disabled).length;
     $('#adminUsers').innerHTML=rows.map(adminUserHtml).join('')||'<div class="empty">검색 결과가 없습니다.</div>';
-    $('#adminAudit').innerHTML=(a.rows||[]).map(x=>`<div class="admin-audit-row"><div><b>${x.action==='credit'?'💰 지급':x.action==='debit'?'💸 차감':x.action==='disable'?'⛔ 이용중지':'✅ 이용재개'}</b><span>${html(x.target_nickname)} <small>@${html(x.target_username)}</small></span></div><strong class="${x.amount>0?'plus':x.amount<0?'minus':''}">${x.amount?((x.amount>0?'+':'')+money(x.amount)):'-'}</strong><p>${html(x.memo)} · ${timeText(x.created_at)}</p></div>`).join('')||'<div class="empty">관리자 작업 기록이 없습니다.</div>';
+    const archiveToggle=$('#adminArchiveToggle');if(archiveToggle){archiveToggle.textContent=adminShowArchived?'삭제 계정 숨기기':'삭제한 계정 보기';archiveToggle.setAttribute('aria-pressed',String(adminShowArchived));archiveToggle.onclick=()=>{adminShowArchived=!adminShowArchived;loadAdmin($('#adminSearch')?.value.trim()||'');};}
+    $('#adminAudit').innerHTML=(a.rows||[]).map(x=>`<div class="admin-audit-row"><div><b>${x.action==='credit'?'💰 지급':x.action==='debit'?'💸 차감':x.action==='disable'?'⛔ 이용중지':x.action==='archive'?'🗃️ 안전 삭제':x.action==='restore'?'♻️ 계정 복구':'✅ 이용재개'}</b><span>${html(x.target_nickname)} <small>@${html(x.target_username)}</small></span></div><strong class="${x.amount>0?'plus':x.amount<0?'minus':''}">${x.amount?((x.amount>0?'+':'')+money(x.amount)):'-'}</strong><p>${html(x.memo)} · ${timeText(x.created_at)}</p></div>`).join('')||'<div class="empty">관리자 작업 기록이 없습니다.</div>';
     if($('#adminRooms'))$('#adminRooms').innerHTML=(rr.rows||[]).map(r=>`<div class="admin-room-row"><div><b>${html(r.name)}</b><small>${r.game==='holdem'?'홀덤':r.game==='baccarat'?'바카라':'윷놀이'} · ${r.status} · ${r.players}/${r.maxPlayers}명 · ${money(r.game==='baccarat'?r.stake:r.buyIn)}</small><div class="room-mini-users">${(r.participants||[]).map(p=>`<span class="${p.ready?'ready':''}">${AVATAR_SAFE(p.avatar)} ${html(p.nickname)}</span>`).join('')}</div></div><button class="danger" data-admin-close-room="${r.id}" type="button">강제 종료</button></div>`).join('')||'<div class="empty">현재 열린 게임방이 없습니다.</div>';
     bindAdminRows();bindAdminRoomRows();
   }catch(e){if(notify)toast(e.message)}
 }
 function adminUserHtml(u){
+  if(u.is_archived)return '<div class="admin-user-card disabled-user" data-admin-user="'+u.id+'"><div class="admin-user-main"><div class="admin-avatar">🗃️</div><div class="admin-identity"><b>'+html(u.nickname)+'</b> <span class="disabled-mini-badge">삭제 보관</span><small>@'+html(u.username)+' · 기존 잔액·거래내역 보존</small></div><button type="button" class="admin-restore-btn">♻ 계정 복구</button></div></div>';
   const totalGames=(u.poker_hands||0)+(u.yut_games||0)+(u.seotda_games||0)+(u.gostop_games||0)+(u.slot_spins||0)+(u.horse_races||0)+(u.bigwheel_plays||0)+(u.sicbo_plays||0);
   return `<div class="admin-user-card ${u.is_disabled?'disabled-user':''}" data-admin-user="${u.id}">
     <div class="admin-user-main"><div class="admin-avatar">${u.avatarEmoji}</div><div class="admin-identity"><div><b>${html(u.nickname)}</b>${u.is_admin?'<span class="admin-mini-badge">ADMIN</span>':''}${u.is_disabled?'<span class="disabled-mini-badge">STOP</span>':''}</div><small>@${html(u.username)} · 가입 ${new Date(u.created_at).toLocaleDateString('ko-KR')}</small></div><div class="admin-balance"><span>보유머니</span><b>${money(u.balance)}</b></div></div>
     <div class="admin-user-stats"><span>플레이 <b>${totalGames}</b></span><span>홀덤승 <b>${u.poker_wins||0}</b></span><span>윷승 <b>${u.yut_wins||0}</b></span><span>슬롯손익 <b>${signedMoney(u.slot_profit||0)}</b></span></div>
     <div class="admin-quick-money credit"><span>빠른 지급</span><button type="button" data-admin-add="10000000">+1,000만</button><button type="button" data-admin-add="1000000000">+10억</button><button type="button" data-admin-add="100000000000">+1,000억</button></div>
     <div class="admin-quick-money debit"><span>빠른 차감</span><button type="button" data-admin-debit="100000">-10만</button><button type="button" data-admin-debit="1000000">-100만</button><button type="button" data-admin-debit="all">잔액 전액</button></div>
-    <div class="admin-custom-control"><input class="admin-amount" inputmode="numeric" type="number" min="1" max="1000000000" step="1000" placeholder="직접 금액 입력"><input class="admin-memo" maxlength="60" placeholder="사유 예: 이벤트 보너스"><button class="admin-credit-btn" type="button">+ 지급</button><button class="admin-debit-btn danger" type="button">− 차감</button>${u.is_admin?'':`<button class="${u.is_disabled?'admin-enable-btn':'admin-disable-btn'}" type="button">${u.is_disabled?'이용재개':'이용중지'}</button>`}</div>
+    <div class="admin-custom-control"><input class="admin-amount" inputmode="numeric" type="number" min="1" max="1000000000" step="1000" placeholder="직접 금액 입력"><input class="admin-memo" maxlength="60" placeholder="사유 예: 이벤트 보너스"><button class="admin-credit-btn" type="button">+ 지급</button><button class="admin-debit-btn danger" type="button">− 차감</button>${u.is_admin?'':`<button class="${u.is_disabled?'admin-enable-btn':'admin-disable-btn'}" type="button">${u.is_disabled?'이용재개':'이용중지'}</button><button class="admin-archive-btn danger" type="button">🗃 계정 삭제</button>`}</div>
   </div>`;
 }
 function bindAdminRows(){
@@ -428,6 +431,8 @@ function bindAdminRows(){
     $('.admin-debit-btn',card)?.addEventListener('click',()=>{const n=Math.trunc(Number(amountInput.value));if(n>0)adminAdjustMoney(userId,n,'debit',memoInput.value||'관리자 차감');else toast('차감 금액을 입력해줘.')});
     $('.admin-disable-btn',card)?.addEventListener('click',()=>adminSetStatus(userId,true));
     $('.admin-enable-btn',card)?.addEventListener('click',()=>adminSetStatus(userId,false));
+    $('.admin-archive-btn',card)?.addEventListener('click',()=>adminArchiveAccount(userId,card,false));
+    $('.admin-restore-btn',card)?.addEventListener('click',()=>adminArchiveAccount(userId,card,true));
   });
 }
 async function refreshAdminSlot777(){
@@ -447,6 +452,21 @@ async function adminAdjustMoney(userId,amount,direction='credit',memo='관리자
   if(direction==='credit'&&amount>=10000000&&!confirm(`${money(amount)}을 지급할까?`))return;
   try{const d=await api('/api/admin/wallet',{method:'POST',body:JSON.stringify({userId,amount,direction,memo})});toast(`✅ ${action} 완료 · 잔액 ${money(d.balance)}`);await loadAdmin($('#adminSearch')?.value.trim()||'');await refreshMe()}catch(e){toast(`❌ ${action} 실패 · ${e.message}`)}
 }
+async function adminArchiveAccount(userId,card,restore=false){
+ const username=card.querySelector('.admin-identity small')?.textContent.match(/@([^\s·]+)/)?.[1]||'';
+ if(!username){toast('대상 아이디를 확인할 수 없어.');return;}
+ const detail=restore?'삭제 보관한 계정을 다시 로그인 가능 상태로 복구할까?':'이 계정을 안전 삭제하면 즉시 로그인이 차단되고 일반 회원 목록에서 숨겨져. 기존 잔액과 거래내역은 복구 가능하도록 보관해.';
+ if(!confirm(detail+'\n대상: '+username))return;
+ const typed=prompt('오작동 방지를 위해 삭제·복구할 계정의 아이디를 정확히 입력해줘.\n'+username);
+ if(typed!==username){if(typed!==null)toast('아이디가 일치하지 않아 작업을 취소했어.');return;}
+ const action=restore?'restore':'archive';
+ try{
+  await api('/api/admin/archive',{method:'POST',body:JSON.stringify({userId,action,confirmUsername:typed,reason:restore?'관리자 복구':'미이용·허위 계정 정리'})});
+  toast(restore?'계정 복구 완료 · 다시 로그인 가능':'계정 안전 삭제 완료 · 거래내역 보존');
+  await loadAdmin($('#adminSearch')?.value.trim()||'');
+ }catch(e){toast('계정 작업 실패: '+e.message);}
+}
+
 async function adminSetStatus(userId,disabled){
   if(!confirm(disabled?'이 회원의 로그인을 즉시 중지할까?':'이 회원의 이용을 다시 허용할까?'))return;
   try{await api('/api/admin/status',{method:'POST',body:JSON.stringify({userId,disabled})});toast(disabled?'계정 이용중지 완료':'계정 이용재개 완료');await loadAdmin($('#adminSearch')?.value.trim()||'')}catch(e){toast(e.message)}
