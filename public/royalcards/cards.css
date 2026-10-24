@@ -14,10 +14,10 @@ body[data-game="hula"] .waiting,body[data-game="hula"] .finish {
   background:linear-gradient(90deg,rgba(21,8,18,.89),rgba(35,8,22,.47)),url('/royalcards/hula-royal-bg.svg') center/cover no-repeat;
 }
 body[data-game="onecard"] .table-frame {
-  background:radial-gradient(ellipse,rgba(12,72,54,.83),rgba(4,27,28,.89) 85%),url('/royalcards/onecard-royal-bg.svg') center/cover no-repeat;
+  background:radial-gradient(ellipse,rgba(12,72,54,.62),rgba(4,27,28,.76) 85%),url('/royalcards/onecard-royal-bg.svg') center/cover no-repeat;
 }
 body[data-game="hula"] .table-frame {
-  background:radial-gradient(ellipse,rgba(35,80,52,.79),rgba(21,32,26,.88) 85%),url('/royalcards/hula-royal-bg.svg') center/cover no-repeat;
+  background:radial-gradient(ellipse,rgba(35,80,52,.60),rgba(21,32,26,.74) 85%),url('/royalcards/hula-royal-bg.svg') center/cover no-repeat;
 }
 @media(max-width:650px){
   body[data-game] .hero {background-position:center,60% center;}
