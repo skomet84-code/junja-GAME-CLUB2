@@ -82,7 +82,7 @@ async function req(who,path,body){
  assert.ok(['playing','done'].includes(next.data.room.phase));
  if(next.data.room.phase==='playing')assert.equal(next.data.room.turnId,p1.id);
  assert.equal((await req(p2,'/'+hid,undefined)).status,403);
- const gameMode=await req(p1,'/',undefined);
+ const gameMode=await req(p1,'',undefined);
  assert.equal(gameMode.status,200);
  assert.ok(gameMode.data.room);
  console.log('ROYAL_CARDS_OK: auth/privacy, ready, turn order, multiplayer, AI Hula, timed bot, 52/54 decks, meld/attach/thank/attack rules');
