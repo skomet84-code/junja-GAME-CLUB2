@@ -236,6 +236,8 @@ module.exports=function createRoyalCards({db,crypto,requireAuth,readBody,json,ra
    onePlay(r,p,c,suitCounts[0][0],true);return;
   }
   if(!r.drew){
+   const points=sum(p.hand);
+   if(points<=6&&r.players.every(x=>x===p||sum(x.hand)>points)){hulaStop(r,p);return;}
    const top=r.discard.at(-1);
    hulaDraw(r,p,findThank(p.hand,top)?'discard':'stock');
    if(r.phase!=='playing'||current(r)!==p)return;
