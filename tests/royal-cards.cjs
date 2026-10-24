@@ -89,5 +89,45 @@ async function req(who,path,body){
  const gameMode=await req(p1,'',undefined);
  assert.equal(gameMode.status,200);
  assert.ok(gameMode.data.room);
- console.log('ROYAL_CARDS_OK: auth/privacy, ready, turn order, multiplayer, AI Hula, timed bot, 52/54 decks, meld/attach/thank/attack rules');
+
+ // Real out-of-turn Hula reaction: another player claims a discard without being the active player.
+ let seeded=1,clock=100000,turnUser=p1,issued=0;
+ const reactionTimers=[];
+ const seededCrypto={randomBytes:()=>({toString:()=>String(++issued).padStart(14,'0')}),randomInt(n){seeded=(Math.imul(seeded,1664525)+1013904223)>>>0;return seeded%n}};
+ const reaction=factory({db,crypto:seededCrypto,requireAuth:()=>turnUser,readBody:async r=>r.body||{},json:(r,status,data)=>{r.status=status;r.data=data},
+   rateLimit:()=>true,otherBusy:()=>false,notify:()=>{},now:()=>clock,
+   setTimer:fn=>{const t={fn,active:true,unref(){}};reactionTimers.push(t);return t;},clearTimer:t=>t.active=false});
+ async function reactAs(who,path,body){
+  turnUser=who;const res={};
+  await reaction.handle({method:body===undefined?'GET':'POST',body},res,{pathname:'/api/royalcards'+path,searchParams:{get:()=>null}});
+  return res;
+ }
+ const hulaRoom=(await reactAs(p1,'/create',{game:'hula',mode:'multi',max:2})).data.room;
+ await reactAs(p2,'/'+hulaRoom.id+'/join',{});
+ await reactAs(p1,'/'+hulaRoom.id+'/ready',{ready:true});
+ await reactAs(p2,'/'+hulaRoom.id+'/ready',{ready:true});
+ const hulaStart=(await reactAs(p1,'/'+hulaRoom.id+'/start',{})).data.room;
+ const other=(await reactAs(p2,'/'+hulaRoom.id)).data.room;
+ const thankCard=hulaStart.hand.find(c=>findThank(other.hand,c));
+ assert.ok(thankCard,'deterministic seed must offer a legitimate Hula THANK YOU opportunity');
+ assert.equal((await reactAs(p1,'/'+hulaRoom.id+'/take',{source:'stock'})).status,200);
+ const discarded=await reactAs(p1,'/'+hulaRoom.id+'/discard',{card:thankCard});
+ assert.equal(discarded.status,200);
+ assert.equal(discarded.data.room.phase,'thank');
+ const offer=(await reactAs(p2,'/'+hulaRoom.id)).data.room;
+ assert.equal(offer.canThank,true);
+ assert.equal((await reactAs(p1,'/'+hulaRoom.id+'/thank',{})).status,400,'discarder cannot steal own discard');
+ const claim=await reactAs(p2,'/'+hulaRoom.id+'/thank',{});
+ assert.equal(claim.status,200);
+ assert.equal(claim.data.room.turnId,p2.id);
+ assert.equal(claim.data.room.drew,true);
+ assert.equal(claim.data.room.phase,'playing');
+ assert.equal((await reactAs(p2,'/'+hulaRoom.id+'/take',{source:'discard'})).status,400,'discard must be claimed only during reaction window');
+ assert.equal((await reactAs(p2,'/'+hulaRoom.id+'/discard',{card:claim.data.room.hand[0]})).status,200);
+ // The game NEVER needs to update users, sessions, wallet or historical ledger.
+ const forbiddenUpdates=['UPDATE users','INSERT INTO users','UPDATE room_escrow','DELETE FROM users','walletChange'];
+ const src=require('node:fs').readFileSync(require('node:path').join(__dirname,'../royal-cards-server.js'),'utf8');
+ for(const word of forbiddenUpdates)assert.ok(!src.includes(word),'Royal cards must be independent from real user wallets: '+word);
+
+ console.log('ROYAL_CARDS_OK: auth/privacy, 2-player multi, AI Hula, 54/52 decks, off-turn THANK YOU, stats without wallet changes');
 })().catch(e=>{console.error(e);process.exitCode=1});
