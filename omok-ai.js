@@ -187,7 +187,7 @@ function selectMove(original,color,opts={}){
   // GOD MODE: reject candidate moves that allow a PROVEN opponent four-chain.
   // Each proof includes legal Renju replies and is bounded independently.
   if(budget>=1800&&time()<deadline-900){
-    const guardDeadline=Math.min(deadline-850,time()+Math.min(1400,budget*.18));
+    const guardDeadline=Math.min(deadline-850,time()+Math.min(650,budget*.1));
     const poison=new Set();
     for(const m of candidates.slice(0,14)){
       if(time()>=guardDeadline)break;
@@ -195,7 +195,7 @@ function selectMove(original,color,opts={}){
       if(!played.ok)continue;
       try{
         if(!played.win&&!played.draw){
-          const shortDeadline=Math.min(guardDeadline,time()+160);
+          const shortDeadline=Math.min(guardDeadline,time()+90);
           if(findVCF(b,enemy,3,shortDeadline))poison.add(id(m));
         }
       }finally{b[m.y][m.x]=0;}
