@@ -72,13 +72,17 @@ async function req(who,path,body){
  assert.equal((await req(p1,'/'+hid+'/take',{source:'stock'})).status,400);
  const afterDiscard=await req(p1,'/'+hid+'/discard',{card:afterTake.data.room.hand[0]});
  assert.equal(afterDiscard.status,200);assert.equal(afterDiscard.data.room.players[1].bot,true);
- assert.equal(afterDiscard.data.room.turnId,afterDiscard.data.room.players[1].id);
- // Server-controlled AI action. No client can submit another player's hand.
- const botTimer=activeTimers.find(t=>t.active);
- assert.ok(botTimer);
- botTimer.fn();
- const next=await req(p1,'/'+hid,undefined);
- assert.equal(next.status,200);
+ assert.ok(['playing','thank'].includes(afterDiscard.data.room.phase));
+ // Server-controlled bot may call THANK YOU before its normal turn.
+ let next;
+ for(let i=0;i<6;i++){
+  next=await req(p1,'/'+hid,undefined);
+  assert.equal(next.status,200);
+  if(next.data.room.phase==='done'||next.data.room.phase==='playing'&&next.data.room.turnId===p1.id)break;
+  const timer=activeTimers.find(t=>t.active);
+  assert.ok(timer, 'bot must always be scheduled');
+  timer.active=false;timer.fn();
+ }
  assert.ok(['playing','done'].includes(next.data.room.phase));
  if(next.data.room.phase==='playing')assert.equal(next.data.room.turnId,p1.id);
  assert.equal((await req(p2,'/'+hid,undefined)).status,403);
