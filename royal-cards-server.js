@@ -163,17 +163,10 @@ module.exports=function createRoyalCards({db,crypto,requireAuth,readBody,json,ra
  }
  function hulaDraw(r,p,source){
   if(r.drew)throw Error('이미 카드를 받았어.');
-  if(source==='discard'){
-   throw Error('땡큐는 버림패가 공개된 직후 반응 버튼으로 선언해줘.');
-   const c=r.discard.at(-1),cards=findThank(p.hand,c);
-   if(!cards)throw Error('버림패로 즉시 등록할 조합이 없어. 더미에서 받아줘.');
-   r.discard.pop();p.hand.push(c);r.drew=true;
-   hulaMeld(r,p,cards);log(r,p.name+' · 땡큐!');
-  }else{
-   replenish(r);
-   if(!r.deck.length){const a=r.players.slice().sort((x,y)=>sum(x.hand)-sum(y.hand))[0];finish(r,a,'카드 소진 · 최저 점수');return;}
-   p.hand.push(r.deck.pop());r.drew=true;log(r,p.name+' · 더미에서 한 장 받기');
-  }
+  if(source!=='stock')throw Error('버림패 땡큐는 공개 직후 반응 버튼으로 선언해줘.');
+  replenish(r);
+  if(!r.deck.length){const winner=r.players.slice().sort((x,y)=>sum(x.hand)-sum(y.hand))[0];finish(r,winner,'카드 소진 · 최저 점수');return;}
+  p.hand.push(r.deck.pop());r.drew=true;log(r,p.name+' · 더미에서 한 장 받기');
   if(r.phase==='playing')arm(r);
  }
  function startThank(r,p){
