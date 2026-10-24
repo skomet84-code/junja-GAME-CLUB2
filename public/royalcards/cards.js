@@ -45,6 +45,7 @@ function showLanding(rooms){
 }
 function showRoom(r){
  if(!r)return;
+ if(room&&room.id===r.id&&Number(r.version)<Number(room.version))return; // A late GET cannot undo a newer turn.
  const next=room?.id!==r.id||room?.version!==r.version||room?.phase!==r.phase;
  if(room?.id!==r.id||room?.round!==r.round){selected.clear();callOne=false;}
  room=r;localDeadline=Date.now()+Math.max(0,((r.phase==='thank'?r.thankDeadline:r.deadline)||0)-(r.serverNow||Date.now()));$('#landing').classList.add('hidden');$('#match').classList.remove('hidden');
