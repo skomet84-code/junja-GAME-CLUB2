@@ -63,6 +63,8 @@ function home(){
   <section class="omk-panel omk-create"><span class="omk-badge">ROYAL MATCHMAKING</span><h2>친구를 초대하고<br>첫 수를 놓아보세요.</h2>
   <p>1:1 공식 대국! 게임머니 소모 없이 승리와 패배가 전적에 남아요. 흑은 3-3·4-4·장목 금수가 적용됩니다.</p>
   <form id="omkCreateForm" class="omk-form"><input name="name" maxlength="28" placeholder="대국방 이름 (선택)" aria-label="대국방 이름"><button type="submit" class="omk-btn">＋ 대국방 만들기</button></form>
+  <div class="omk-ai-challenge"><strong>♛ 초극강 준자 AI</strong><p>혼자서 도전! 즉시 승리·방어 수읽기, 연속 4·3 공격, 렌주 금수 대응까지 하는 강력한 컴퓨터 상대입니다.</p>
+  ${btn('create-ai','♛ 초극강 AI 대국 시작','omk-secondary')}</div>
   <div class="omk-rules"><strong>진행 순서</strong> · 방 생성 → 친구 입장 → 2명 모두 준비 → 방장 시작. 재대결할 때는 선후공이 바뀝니다.</div></section>
   <section class="omk-panel"><h2>⚔️ 참가 가능한 방</h2><div class="omk-room-list">
    ${d.rooms?.length?d.rooms.map(r=>`<div class="omk-room-card"><div><b>${esc(r.name)}</b><small>${esc(r.host)} · ${r.players}/2명</small></div>${btn('join','입장','omk-secondary',`data-id="${esc(r.id)}"`)}</div>`).join(''):'<div class="omk-empty">대기 중인 방이 없습니다.<br>첫 대국을 열어보세요!</div>'}</div>
@@ -113,7 +115,7 @@ function match(r){
  <div class="omk-side"><div class="omk-panel">${playerRow(r,1)}<div style="height:10px"></div>${playerRow(r,2)}</div>
  <div class="omk-clock" id="omkClockBox"><small>${end?'MATCH COMPLETE':'TURN CLOCK'}</small><b id="omkClock">${end?'종료':'90초'}</b></div>
  <div class="omk-status" role="status">${status(r)}</div><div class="omk-controls">
- ${end?(r.players.length===2?btn('rematch',mine?.rematch?'상대의 재대결 신청 기다리는 중':'↻ 재대결 신청','',mine?.rematch?'disabled':''):'<small>상대방이 나갔습니다.</small>'):btn('resign','기권하기','omk-danger')}
+ ${end?(r.players.length===2?btn('rematch',r.ai?'↻ AI와 재대결':mine?.rematch?'상대의 재대결 신청 기다리는 중':'↻ 재대결 신청','',mine?.rematch?'disabled':''):'<small>상대방이 나갔습니다.</small>'):btn('resign','기권하기','omk-danger')}
  ${btn('leave',end?'대국방 나가기':'나가기 (기권)','omk-ghost')}</div>
  <div class="omk-guide"><strong>렌주 금수 규칙</strong><br>⚫ 흑: 정확히 5목 승리, 3-3·4-4·6목 이상 금지<br>⚪ 백: 5목 이상 승리 · 금수 없음<br>첫 수는 중앙 화점 · 턴당 90초 · 서버에서 착수를 검증합니다.<br>새로고침해도 같은 대국에 복귀합니다.</div></div></div>`;
  tick();
@@ -135,6 +137,7 @@ root.addEventListener('click',e=>{
  if(!b||b.disabled||state.busy)return;
  const action=b.dataset.action,r=state.room;
  if(action==='refresh'){refresh(true);return;}
+ if(action==='create-ai'){act('/create',{vsAi:true});return;}
  if(action==='join'){act('/'+b.dataset.id+'/join');return;}
  if(action==='invite'){
   const link=location.origin+'/omok/index.html?join='+encodeURIComponent(r.id);
