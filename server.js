@@ -2065,7 +2065,7 @@ const server=http.createServer(async(req,res)=>{
     if(url.pathname.startsWith('/api/goldenbell')){if(await goldenbell.handle(req,res,url))return;}
     if(url.pathname.startsWith('/api/treasure-raid')){if(await treasureRaid.handle(req,res,url))return;}
     if(url.pathname.startsWith('/api/sichuan/battle')){if(await sichuanBattle.handle(req,res,url))return;}
-    if(url.pathname==='/healthz')return json(res,200,{ok:true,rooms:rooms.size+baccaratRooms.size+sichuanBattle.roomCount()+treasureRaid.roomCount()+goldenbell.roomCount()+omok.roomCount()+liar.roomCount(),online:onlineCount(),registeredUsers:db.prepare('SELECT COUNT(*) AS n FROM users').get().n,recoveryProbe:'2026-10-24a'});
+    if(url.pathname==='/healthz')return json(res,200,{ok:true,rooms:rooms.size+baccaratRooms.size+sichuanBattle.roomCount()+treasureRaid.roomCount()+goldenbell.roomCount()+omok.roomCount()+liar.roomCount(),online:onlineCount()});
     if(url.pathname==='/api/register'&&req.method==='POST'){
       const ip=req.socket.remoteAddress||'ip';if(!rateLimit('reg:'+ip,6,60000))return json(res,429,{error:'잠시 후 다시 시도하세요.'});
       const b=await readBody(req);const username=escText(b.username,20).toLowerCase(),nickname=escText(b.nickname,14),password=String(b.password||'');
