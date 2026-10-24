@@ -171,7 +171,7 @@ function selectMove(original,color,opts={}){
     const forced=findVCF(b,color,5,proofDeadline);
     if(forced)return {...forced,reason:'vcf',depth:0,nodes};
   }
-  const root=initial.slice(0,Math.min(18,initial.length));
+  const root=initial.slice(0,Math.min(13,initial.length));
   // Root candidate screening prevents moving into an immediate loss if an alternative exists.
   let safe=[];
   const preDeadline=Math.min(deadline-150,time()+Math.min(420,budget*.12));
@@ -183,13 +183,13 @@ function selectMove(original,color,opts={}){
     finally{b[m.y][m.x]=0;}
     if(!bad)safe.push(m);
   }
-  let candidates=safe.length?[...safe,...root.filter(m=>!safe.includes(m))].slice(0,16):root.slice(0,16);
+  let candidates=safe.length?[...safe,...root.filter(m=>!safe.includes(m))].slice(0,11):root.slice(0,11);
   // GOD MODE: reject candidate moves that allow a PROVEN opponent four-chain.
   // Each proof includes legal Renju replies and is bounded independently.
   if(budget>=1800&&time()<deadline-900){
     const guardDeadline=Math.min(deadline-850,time()+Math.min(650,budget*.1));
     const poison=new Set();
-    for(const m of candidates.slice(0,14)){
+    for(const m of candidates){
       if(time()>=guardDeadline)break;
       const played=rules.place(b,m.x,m.y,color);
       if(!played.ok)continue;
@@ -241,7 +241,7 @@ function selectMove(original,color,opts={}){
     if(my.length)return WIN-ply*1000;
     const threatened=wins(b,3-side,deadline,3);
     if(threatened.length>=2)return -WIN+ply*1000;
-    let options=ranked(b,side,depth>=6?11:depth>=4?10:depth>=2?8:7,deadline,old?.move||killers[ply],threatened.length?{forced:threatened}:{radius:2});
+    let options=ranked(b,side,depth>=6?10:depth>=4?9:depth>=2?8:7,deadline,old?.move||killers[ply],threatened.length?{forced:threatened}:{radius:2});
     if(!options.length)return threatened.length?-WIN+ply*1000:0;
     options.sort((a,b)=>(b.rank+(history[id(b)*2+side-1]||0))-(a.rank+(history[id(a)*2+side-1]||0)));
     let val=-INF,chosen=null;
