@@ -151,7 +151,7 @@
   let res;
   if(name==='clue'){const c=lookup(active),e=c.clues.find(x=>x.id===arg);
    if(!e)return showToast('해당 물증을 확인할 수 없어.');
-   if(c.id===2&&arg==='e5'&&!prog().cases[active]?.clues.includes(arg)&&window.BlackRoomImmersive){
+   if(c.id===2&&arg==='e5'&&window.BlackRoomImmersive){
     openModal(window.BlackRoomImmersive.challenge(c,e));return;
    }
    res=S.inspect(prog(),active,arg);
