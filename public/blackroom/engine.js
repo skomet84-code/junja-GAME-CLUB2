@@ -28,6 +28,41 @@ const LINKS = {
  disguise:{ids:['invitation','footage'],name:'영상 속 가짜 나',icon:'◈',result:'영상의 은빛 초승달은 초대장에 기록된 유일한 표식이다. 카메라 속 사람은 당신이 아니라 변장한 누군가다.'},
  suspect:{ids:['lock','ledger'],name:'정비 권한의 주인',icon:'♟',result:'강도윤이 잠금 권한과 영상 속 브로치를 모두 가지고 있었다.'}
 };
+// Additional valid evidence routes only when the same conclusion follows from both clues.
+const ALTERNATE_LINKS = {
+ timeline:[
+  {ids:['clock','mirror'],result:'복도 시계는 23:24에 멈췄고 거울은 영상이 7분 늦는다고 경고한다. 화면의 23:17과 실제 사건 시각 사이에 7분 차이가 있음을 확인했다.'},
+  {ids:['mirror','sync'],result:'거울의 경고와 CCTV 장비 메모가 독립적으로 같은 7분 지연을 가리킨다. 화면의 타임스탬프를 그대로 믿어서는 안 된다.'}],
+ path:[{ids:['latch','footprint'],result:'외부 정비용 잠금쇠에서 조작 흔적이 발견되고 객실 발자국은 그 문에서 옷장으로 향한다. 밀실 안에 누군가 들어왔다.'}],
+ disguise:[{ids:['ledger','footage'],result:'영상 속 인물의 초승달 브로치가 기술자의 대여 장부에도 남아 있다. 카메라 속 사람이 당신이라고 단정할 수 없다.'}],
+ suspect:[{ids:['invitation','ledger'],result:'초대장이 유일하다고 강조한 초승달 장식은 강도윤이 반납하지 않은 소품이다. 정비용 MAINT-09 권한도 그가 가지고 있다.'}]
+};
+const pairKey=(a,b)=>[a,b].sort().join('|');
+function pairOptions(key){
+ const link=LINKS[key];if(!link)return [];
+ return [{ids:link.ids,result:link.result},...(ALTERNATE_LINKS[key]||[])];
+}
+function matchingLink(a,b){
+ const needle=pairKey(a,b);
+ for(const key of Object.keys(LINKS))for(const pair of pairOptions(key))
+  if(pairKey(...pair.ids)===needle)return {key,pair};
+ return null;
+}
+function proofFor(s,key){
+ const proof=s.proofs?.[key];
+ return pairOptions(key).find(x=>pairKey(...x.ids)===proof)?.result||LINKS[key]?.result||'';
+}
+// A plausible relationship is not the same thing as proof. Preserve the hypothesis
+// instead of telling investigators their reasoning is simply wrong.
+const HYPOTHESES = {
+ 'clock|guest':{name:'기록 사이의 7분',result:'장부와 시계는 7분 차이가 나지만 서로 다른 시계일 수도 있다. CCTV 동기화 기록처럼 어느 시각이 정확한지 확인할 독립 자료가 필요하다.'},
+ 'guest|sync':{name:'출입 시각 재검토',result:'영상 시간차는 확인했지만 실제 문이 어떤 권한으로 열렸는지는 아직 모른다. 객실 문 기록을 함께 확인해야 한다.'},
+ 'guest|latch':{name:'출입 경로 의심',result:'장부의 방문 기록과 잠금쇠 흔적은 관련 있어 보인다. 다만 실제로 잠금을 조작한 권한을 확인해야 한다.'},
+ 'latch|thread':{name:'문틀의 흔적',result:'문틀에 섬유와 정비 흔적이 함께 남았지만 같은 사람이 남겼다고 단정할 수는 없다. 객실 안 이동 흔적이 필요하다.'},
+ 'cup|footprint':{name:'추가 방문자 가설',result:'두 번째 찻잔과 발자국은 추가 방문자를 암시하지만 방문자가 누구인지는 설명할 수 없다.'},
+ 'clock|footage':{name:'영상 시각의 충돌',result:'복도 시계와 영상의 시각이 다르다. 녹화장비의 실제 시각 보정 자료를 확인하기 전에는 조작을 단정할 수 없다.'},
+ 'footage|sync':{name:'CCTV 보정 확인',result:'영상과 보정 메모를 함께 보면 촬영 시각을 고칠 수 있다. 복도에 멈춰 있는 시계나 사건 시각을 따로 확인해야 한다.'}
+};
 const PEOPLE = {
  yoon:{name:'윤서린',role:'호텔 총지배인',statement:'그날 밤 나는 로비에 있었어요. 객실 장부에 내 코드가 왜 있는지 모르겠군요.',needs:['guest','lock'],reveal:'YS-04는 제 코드지만 23:24에 문을 연 건 MAINT-09예요. 정비 권한은 제게 없어요.',
   behavior:'윤서린은 질문할 때마다 출입 장부를 내려다본다. 손끝에 금빛 잉크가 묻어 있다.',
@@ -40,7 +75,7 @@ const PEOPLE = {
   rapportLine:'나까지 의심받을까 두려웠어요. 그 사람의 걸음소리를 다시 떠올리고 싶지는 않아요.'}
 };
 const REQUIRED = ['timeline','entry','disguise'];
-function initial(){return {v:VERSION,scene:'hall',clues:[],links:[],door:false,archive:false,interviews:{},observations:{},rapport:{},defensive:{},started:false,solved:false,ending:'pending',score:0,hints:0,misses:0,log:[]};}
+function initial(){return {v:VERSION,scene:'hall',clues:[],links:[],door:false,archive:false,interviews:{},observations:{},rapport:{},defensive:{},proofs:{},hypotheses:[],started:false,solved:false,ending:'pending',score:0,hints:0,misses:0,log:[]};}
 function hydrate(data){
  if(!data||typeof data!=='object'||data.v!==VERSION)return initial();
  const s=initial();
@@ -50,6 +85,12 @@ function hydrate(data){
  s.clues=Array.isArray(data.clues)?[...new Set(data.clues.filter(k=>CLUES[k]))]:[];
  if(!s.archive)s.clues=s.clues.filter(k=>k!=='footage');
  s.links=Array.isArray(data.links)?[...new Set(data.links.filter(k=>LINKS[k]))]:[];
+ s.proofs={};
+ for(const key of s.links){
+  const proof=data.proofs&&data.proofs[key];
+  if(typeof proof==='string'&&pairOptions(key).some(x=>pairKey(...x.ids)===proof))s.proofs[key]=proof;
+ }
+ s.hypotheses=Array.isArray(data.hypotheses)?[...new Set(data.hypotheses.filter(k=>HYPOTHESES[k]))]:[];
  s.interviews={};
  for(const k of Object.keys(PEOPLE)){
   if(data.interviews&&data.interviews[k])s.interviews[k]=true;
@@ -93,11 +134,20 @@ function puzzle(s,id,answer){
 function connect(s,a,b){
  if(a===b||!CLUES[a]||!CLUES[b])return {ok:false,message:'서로 다른 단서 두 개를 선택해.'};
  if(!s.clues.includes(a)||!s.clues.includes(b))return {ok:false,message:'수집되지 않은 단서가 있어.'};
- const found=Object.entries(LINKS).find(([,v])=>v.ids.includes(a)&&v.ids.includes(b));
- if(!found)return {ok:false,message:'이 단서 두 개만으로는 입증할 수 없어. 다른 모순을 찾아봐.'};
- const [key,item]=found;
+ const found=matchingLink(a,b);
+ if(!found){
+  const guess=HYPOTHESES[pairKey(a,b)];
+  if(guess){
+   const key=pairKey(a,b);
+   if(!s.hypotheses.includes(key)){s.hypotheses.push(key);record(s,'미확인 가설 · '+guess.name);}
+   return {ok:true,provisional:true,key,message:guess.result,name:guess.name};
+  }
+  return {ok:false,message:'두 단서에서 직접 입증 가능한 관계가 아직 없어. 공통된 시간·인물·이동 경로를 보여주는 추가 물증을 찾아봐.'};
+ }
+ const {key,pair}=found,item=LINKS[found.key];
  if(s.links.includes(key))return {ok:true,already:true,key,message:'이미 입증한 결론이야.'};
- s.links.push(key);record(s,'추론 입증 · '+item.name);return {ok:true,key,message:item.result};
+ s.links.push(key);s.proofs[key]=pairKey(...pair.ids);
+ record(s,'추론 입증 · '+item.name);return {ok:true,key,message:pair.result};
 }
 function interrogate(s,id,approach='evidence'){
  const p=PEOPLE[id];if(!p)return {ok:false,message:'존재하지 않는 인물이야.'};
@@ -170,7 +220,7 @@ function progress(s){
  const fraction=s.clues.length/12*.43+s.links.length/5*.36+(s.door?.08:0)+(s.archive?.08:0)+(s.solved?.05:0);
  return {clues:s.clues.length,total:12,links:s.links.length,required:REQUIRED.filter(k=>s.links.includes(k)).length,percent:Math.min(100,Math.round(fraction*100))};
 }
-return Object.freeze({VERSION,SCENES,CLUES,LINKS,PEOPLE,REQUIRED,initial,hydrate,collect,travel,puzzle,connect,interrogate,ready,fullTruth,revealTruth,verdict,hint,progress});
+return Object.freeze({VERSION,SCENES,CLUES,LINKS,ALTERNATE_LINKS,HYPOTHESES,PEOPLE,REQUIRED,pairOptions,pairKey,matchingLink,proofFor,initial,hydrate,collect,travel,puzzle,connect,interrogate,ready,fullTruth,revealTruth,verdict,hint,progress});
 })();
 if(typeof module!=='undefined'&&module.exports)module.exports=BlackRoomEngine;
 if(typeof window!=='undefined')window.BlackRoomEngine=BlackRoomEngine;

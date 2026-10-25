@@ -22,6 +22,8 @@
    clues:[...new Set([...r.clues,...l.clues])],
    links:[...new Set([...r.links,...l.links])],
    interviews:{...r.interviews,...l.interviews},
+   proofs:{...l.proofs,...r.proofs},
+   hypotheses:[...new Set([...(r.hypotheses||[]),...(l.hypotheses||[])])],
    observations:{...r.observations,...l.observations},rapport:{...r.rapport,...l.rapport},defensive:{...r.defensive,...l.defensive},
    hints:Math.max(r.hints,l.hints),misses:Math.max(r.misses,l.misses),
    score:Math.max(r.score,l.score),ending:r.ending==='true'||l.ending==='true'?'true':r.solved||l.solved?'partial':'pending',
@@ -153,15 +155,18 @@
   '<div class="panel-card" style="margin-top:16px"><span class="eyebrow">NOTE</span><p>증거는 사실이고, 추리는 해석이야. 증거 두 개가 서로 어떤 모순을 일으키는지 생각해 봐.</p><button class="secondary-action" data-tab="board" type="button">수사 보드로 이동</button></div>';
  const board=()=>{
   const list=state.clues.map(id=>evidenceCard(id,true)).join('');
-  const chips=state.links.map(id=>E.LINKS[id]).map(item=>
-   '<article class="theory"><span class="theory-symbol">'+esc(item.icon)+'</span><b>'+esc(item.name)+'</b><p>'+esc(item.result)+'</p></article>').join('');
+  const chips=state.links.map(id=>({id,...E.LINKS[id]})).map(item=>
+   '<article class="theory"><span class="theory-symbol">'+esc(item.icon)+'</span><b>'+esc(item.name)+'</b><p>'+esc(E.proofFor(state,item.id))+'</p></article>').join('');
+  const provisional=(state.hypotheses||[]).map(key=>E.HYPOTHESES[key]).filter(Boolean).map(h=>
+   '<article class="theory tentative"><span class="eyebrow">검토 중 · 입증되지 않음</span><b>'+esc(h.name)+'</b><p>'+esc(h.result)+'</p></article>').join('');
   const picks=selected.map(id=>E.CLUES[id].name).join(' + ')||'단서를 두 개 선택해';
   return heading('수사 보드','증거 두 개를 직접 선택하고 연결해 논리적인 결론을 만들어','DEDUCTION / EVIDENCE LINKS')+
-   '<div class="board-summary"><strong>'+state.links.length+' / 5 추론 입증</strong><p>틀린 연결도 시도할 수 있어. 우연한 조합은 정답 처리되지 않아.</p></div>'+
+   '<div class="board-summary"><strong>'+state.links.length+' / 5 추론 입증</strong><p>증거를 두 개 누른 뒤 바로 위의 증거 연결 버튼을 눌러. 논리적으로 가능하지만 근거가 부족한 관계는 가설로 남길 수 있어.</p></div>'+
+   (state.clues.length?'<div class="combine-dock" role="region" aria-label="단서 조합"><div class="chosen"><span class="chosen-count">'+selected.length+' / 2 선택됨</span><span>'+esc(picks)+'</span></div><button class="outline-action" data-action="clear" type="button">선택 해제</button><button class="primary-action" data-action="connect" type="button" '+(selected.length!==2?'disabled':'')+'>선택한 증거 연결 ⟷</button></div>':'')+
    (state.clues.length?'<div class="evidence-grid">'+list+'</div>':empty('연결할 증거가 없어','현장에서 최소 두 개를 확보한 뒤 돌아와.'))+
-   (state.clues.length?'<div class="combine-dock"><div class="chosen">'+esc(picks)+'</div><button class="outline-action" data-action="clear" type="button">초기화</button><button class="primary-action" data-action="connect" type="button" '+(selected.length!==2?'disabled':'')+'>증거 연결 ⟷</button></div>':'')+
    '<div class="section-head" style="margin-top:25px"><div><span class="eyebrow">VERIFIED THEORY</span><h1 style="font-size:23px">입증된 추론</h1></div></div>'+
-   (chips?'<div class="theory-grid">'+chips+'</div>':empty('아직 성립한 추론 없음','장부와 잠금 로그처럼 서로 관련 있는 증거를 연결해 봐.'));
+   (chips?'<div class="theory-grid">'+chips+'</div>':empty('아직 성립한 추론 없음','장부와 잠금 로그처럼 서로 관련 있는 증거를 연결해 봐.'))+
+   (provisional?'<div class="section-head" style="margin-top:24px"><div><span class="eyebrow">UNVERIFIED</span><h1 style="font-size:21px">검토 중인 가설</h1></div></div><div class="theory-grid">'+provisional+'</div>':'');
  };
  const people=()=>heading('용의자 심문','진술의 모순을 뒷받침할 증거가 있다면 대답이 달라진다','INTERROGATION / SUSPECTS')+
   '<div class="suspects">'+Object.entries(E.PEOPLE).map(([id,p],i)=>{
@@ -320,7 +325,7 @@
    if(selected.length!==2){notify('두 개의 증거를 선택해.');return;}
    const res=E.connect(state,selected[0],selected[1]);
    if(res.ok){selected=[];preserve();render();}
-   feedbackDialog(res.ok?'추론 입증 완료':'증거 연결 실패',res.message,res.ok);return;
+   feedbackDialog(res.provisional?'새 수사 가설 기록':res.already?'이미 입증한 추론':res.ok?'추론 입증 완료':'증거 재검토',res.message,res.ok);return;
   }
   if(act==='ending'){endingDialog();return;}
   if(act==='reveal-truth'){

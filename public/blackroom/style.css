@@ -60,3 +60,24 @@
 .interview-actions{display:grid;gap:10px;margin-top:18px}
 .interview-actions>button{display:flex;flex-direction:column;align-items:flex-start;justify-content:center;text-align:left;gap:3px;width:100%;min-height:59px}
 .interview-actions small{font-size:11px;font-weight:500;color:inherit;opacity:.8;white-space:normal}
+
+/* Evidence-linker: keep the submit action in view while selecting evidence cards.
+   Unverified hypotheses never masquerade as proved conclusions. */
+.combine-dock{position:sticky;top:91px;bottom:auto;z-index:35;
+ margin:0 0 15px;background:linear-gradient(118deg,#1b302fef,#101e2bf5);
+ border:2px solid #e4c485c4;box-shadow:0 10px 35px #000b,0 0 21px #d6b57f26;
+ backdrop-filter:blur(12px)}
+.combine-dock .chosen{display:flex;flex-direction:column;gap:4px;line-height:1.45;overflow-wrap:anywhere;
+ color:#f7e7ba;font-weight:750}
+.chosen-count{font-size:10px;letter-spacing:.09em;color:#a6e9c3}
+.combine-dock .primary-action{border-color:#ffefb4;min-height:47px}
+.combine-dock .primary-action:disabled{opacity:.65;filter:grayscale(.4)}
+.evidence-card.selected{border:2px solid #caffae;box-shadow:0 0 0 2px #b6f4b53b,0 0 17px #c1ee7f31}
+.theory.tentative{border:1px dashed #caad73;background:linear-gradient(145deg,#292c2c,#19282f)}
+.theory.tentative .eyebrow{color:#ffd999}
+@media(max-width:700px){
+ .combine-dock{top:70px;padding:9px 10px;margin:0 0 13px;gap:7px}
+ .combine-dock .chosen{flex:1 0 100%;font-size:11px;min-width:0}
+ .combine-dock .outline-action{flex:0 0 auto;padding:9px 11px;min-height:43px}
+ .combine-dock .primary-action{flex:1;min-width:155px;min-height:43px;padding:10px 8px;font-size:12px}
+}
