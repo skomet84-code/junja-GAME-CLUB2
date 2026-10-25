@@ -104,11 +104,12 @@ module.exports=function createRoyalCards({db,crypto,requireAuth,readBody,json,ra
   const p=player(r,id),active=current(r),last=r.discard.at(-1);
   const legal=r.game==='onecard'&&r.phase==='playing'&&p.id===active.id?p.hand.filter(c=>canPlay(r,c)): [];
   const allowedMelds=r.game==='hula'&&r.phase==='playing'&&p.id===active.id&&r.drew?combinations(p.hand):[];
+  const allowedAttachments=r.game==='hula'&&r.phase==='playing'&&p.id===active.id&&r.drew&&p.registered?p.hand.flatMap(card=>r.melds.flatMap((m,index)=>attachable(m.cards,card,m.kind)?[{card,index}]:[])):[];
   return {id:r.id,name:r.name,game:r.game,mode:r.mode,round:r.round,phase:r.phase,version:r.version,selfId:id,hostId:r.hostId,
    players:r.players.map(x=>({id:x.id,name:x.name,bot:x.bot||false,ready:x.ready,cardCount:x.hand.length,score:r.game==='hula'?null:undefined})),
    max:r.max,turnId:active?.id,direction:r.direction,deadline:r.deadline,serverNow:now(),
    hand:p.hand.slice(),deckCount:r.deck.length,discard:last,suit:r.suit,pending:r.pending,attackRank:r.attackRank,
-   drew:r.drew,legal,allowedMelds,canThank:r.phase==='thank'&&r.thankWindow?.eligible.includes(p.id),thankDeadline:r.thankWindow?.until||0,melds:r.melds.map(m=>({owner:m.owner,cards:m.cards.slice(),kind:m.kind})),
+   drew:r.drew,legal,allowedMelds,allowedAttachments,canThank:r.phase==='thank'&&r.thankWindow?.eligible.includes(p.id),thankDeadline:r.thankWindow?.until||0,melds:r.melds.map(m=>({owner:m.owner,cards:m.cards.slice(),kind:m.kind})),
    events:r.events.slice(-10),winner:r.winner,reason:r.reason,
    finalScores:r.phase==='done'&&r.game==='hula'?r.players.map(x=>({id:x.id,score:sum(x.hand),cards:x.hand.slice()})):null};
  }

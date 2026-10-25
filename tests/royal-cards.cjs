@@ -69,6 +69,8 @@ async function req(who,path,body){
  assert.equal(afterTake.status,200);
  assert.equal(afterTake.data.room.hand.length,8);
  assert.equal(afterTake.data.room.drew,true);
+ assert.ok(Array.isArray(afterTake.data.room.allowedMelds),'검증된 등록 조합');
+ assert.ok(Array.isArray(afterTake.data.room.allowedAttachments),'검증된 붙이기 카드');
  assert.equal((await req(p1,'/'+hid+'/take',{source:'stock'})).status,400);
  const afterDiscard=await req(p1,'/'+hid+'/discard',{card:afterTake.data.room.hand[0]});
  assert.equal(afterDiscard.status,200);assert.equal(afterDiscard.data.room.players[1].bot,true);

@@ -11,13 +11,14 @@ const esc=s=>String(s??'').replace(/[&<>"']/g,c=>ESC[c]);
 function message(s){$('#notice').textContent=s||'';if(s){clearTimeout(message.timer);message.timer=setTimeout(()=>$('#notice').textContent='',6500);}}
 function n(c){if(c.startsWith('JOK'))return 'JOKER';let x=Number(c.slice(1));return ({1:'A',11:'J',12:'Q',13:'K'})[x]||String(x);}
 function glyph(c){return c?.startsWith('JOK')?'♛':SUIT[c?.[0]]||'♠';}
-function cardHtml(c,{hand=false,active=false,select=false}={}){
+function cardHtml(c,{hand=false,active=false,select=false,hint=''}={}){
  if(!c)return '<div class="card face">–</div>';
  const red=c.startsWith('JOKR')||'HD'.includes(c[0]);
  const name=n(c),g=glyph(c),plain=c.startsWith('JOK');
- let klass='card face'+(red?' red':'')+(plain?' joker':'')+(select?' selected':'')+(active?' playable':'');
+ let klass='card face'+(red?' red':'')+(plain?' joker':'')+(select?' selected':'')+(active?' playable':'')+(hint?' hint-'+hint:'');
+ const hintName=hint==='meld'?'등록 가능':hint==='play'?'낼 수 있음':hint==='attach'?'붙이기 가능':'';
  const body='<span class="corner">'+esc(name)+'<small>'+g+'</small></span><span class="middle">'+g+'</span><span class="corner bottom">'+esc(name)+'</span>';
- return hand?'<button class="'+klass+'" data-card="'+esc(c)+'" aria-pressed="'+(select?'true':'false')+'" aria-label="'+esc(g+name)+'">'+body+'</button>':'<div class="'+klass+'">'+body+'</div>';
+ return hand?'<button class="'+klass+'" data-card="'+esc(c)+'" aria-pressed="'+(select?'true':'false')+'" aria-label="'+esc(g+name+(hintName?' · '+hintName:''))+'">'+body+(hintName?'<span class="card-hint-label">'+hintName+'</span>':'')+'</button>':'<div class="'+klass+'">'+body+'</div>';
 }
 async function api(path,body){
  const opts={credentials:'same-origin',cache:'no-store'};
@@ -81,11 +82,33 @@ function renderPlaying(r,mine){
  $('#topDiscard').outerHTML=cardHtml(r.discard).replace('class="card','id="topDiscard" class="card');
  $('#playInfo').textContent=r.game==='onecard'?'현재 무늬 '+(SUIT[r.suit]||'')+(r.pending?' · 공격 누적 +'+r.pending:'')+' · 방향 '+(r.direction===1?'↻':'↺'):'등록 '+r.melds.length+'개 · 더미 '+r.deckCount+'장'+(r.drew?' · 내려놓거나 버려줘':' · 먼저 카드를 받아줘');
  selected=new Set([...selected].filter(id=>r.hand.includes(id)));
- $('#hand').innerHTML=r.hand.map(c=>cardHtml(c,{hand:true,active:myTurn&&(r.game==='hula'||r.legal.includes(c)),select:selected.has(c)})).join('');
+ 
+ const groups=Array.isArray(r.allowedMelds)?r.allowedMelds:[];
+ const attachments=Array.isArray(r.allowedAttachments)?r.allowedAttachments:[];
+ const meldCards=new Set(groups.flat()),attachCards=new Set(attachments.map(x=>x.card));
+ const action=myTurn&&r.phase==='playing';
+ $('#hand').innerHTML=r.hand.map(c=>{
+  const hint=!action?'':r.game==='onecard'?(r.legal.includes(c)?'play':''):
+    r.drew?(meldCards.has(c)?'meld':attachCards.has(c)?'attach':''):'';
+  return cardHtml(c,{hand:true,active:!!hint,select:selected.has(c),hint});
+ }).join('');
+ const guide=$('#handHints');
+ if(guide){
+  const labelCards=cards=>cards.map(c=>glyph(c)+n(c)).join(' ');
+  if(r.phase==='thank')guide.innerHTML=r.canThank?'<strong>💝 땡큐 가능</strong><span>땡큐 버튼으로 버림패를 등록해!</span>':'<span>땡큐 반응을 기다리는 중이야.</span>';
+  else if(!myTurn)guide.innerHTML='<span>⏳ 상대 차례야. 내 차례에 가능한 카드가 표시돼.</span>';
+  else if(r.game==='onecard')guide.innerHTML=r.legal.length?'<strong>🟢 낼 수 있는 카드 '+r.legal.length+'장</strong><span>초록색 테두리 카드를 눌러서 내면 돼.</span>':'<strong>낼 수 있는 카드 없음</strong><span>한 장을 받거나 누적 공격을 받아줘.</span>';
+  else if(!r.drew)guide.innerHTML='<strong>🂠 먼저 카드 받기</strong><span>받은 뒤 등록 가능한 카드를 찾아줄게.</span>';
+  else guide.innerHTML='<span class="hand-legend">🟢 등록 가능 · 🔵 붙이기 가능 · 🟡 선택됨</span>'+
+   (groups.length?'<strong>♛ 등록 가능한 조합 '+groups.length+'개</strong><div class="suggestion-list">'+
+     groups.slice(0,8).map((cs,i)=>'<button class="suggestion-btn" type="button" data-suggest="'+i+'">♛ '+labelCards(cs)+'</button>').join('')+'</div><span>조합을 누르면 한번에 선택돼.</span>':
+     '<strong>지금은 등록할 새 조합이 없어.</strong><span>카드 한 장을 버리거나 파란색 카드라면 붙여줘.</span>');
+  $('[data-suggest]').forEach(b=>b.onclick=()=>{if(!action||!r.drew)return;const combo=groups[Number(b.dataset.suggest)];if(!combo)return;selected=new Set(combo);renderPlaying(r,mine);});
+ }
  $$('[data-card]').forEach(btn=>btn.onclick=()=>{const id=btn.dataset.card;if(!myTurn)return;if(r.game==='onecard'&&!r.legal.includes(id))return message('지금 낼 수 없는 카드야.');if(selected.has(id))selected.delete(id);else {if(r.game==='onecard')selected.clear();selected.add(id);}renderPlaying(r,mine);});
  $('#drawPile').disabled=r.phase!=='playing'||!myTurn||(r.game==='hula'&&r.drew);
  $('#drawPile').onclick=()=>myTurn&&command('/'+r.id+(r.game==='onecard'?'/draw':'/take'),r.game==='onecard'?{}:{source:'stock'});
- $('#melds').innerHTML=r.game==='hula'?r.melds.map((m,i)=>'<div class="meld-row"><b>'+(m.kind==='set'?'땡':m.kind==='run'?'연속':'세븐')+'</b>'+m.cards.map(c=>'<span>'+glyph(c)+esc(n(c))+'</span>').join('')+'<button data-attach="'+i+'" '+(!myTurn||!r.drew||selected.size!==1?'disabled':'')+'>+ 붙이기</button></div>').join(''):'';
+ $('#melds').innerHTML=r.game==='hula'?r.melds.map((m,i)=>'<div class="meld-row"><b>'+(m.kind==='set'?'땡':m.kind==='run'?'연속':'세븐')+'</b>'+m.cards.map(c=>'<span>'+glyph(c)+esc(n(c))+'</span>').join('')+'<button data-attach="'+i+'" '+(!myTurn||!r.drew||selected.size!==1||!attachments.some(a=>a.card===[...selected][0]&&a.index===i)?'disabled':'')+'>+ 붙이기</button></div>').join(''):'';
  $$('[data-attach]').forEach(btn=>btn.onclick=()=>command('/'+r.id+'/attach',{card:[...selected][0],index:Number(btn.dataset.attach)}).then(()=>selected.clear()));
  renderActions(r,myTurn);
  const recent=r.events.slice(-3).reverse().map(e=>esc(e.text)).join(' · ');
@@ -107,8 +130,9 @@ function renderActions(r,myTurn){
   $('#playBtn').onclick=()=>{const c=sel[0];if(c.startsWith('JOK')||Number(c.slice(1))===7){const picker=$('#suitPicker');picker.classList.remove('hidden');$$('[data-suit]').forEach(b=>b.onclick=()=>{picker.classList.add('hidden');selected.clear();command('/'+r.id+'/play',{card:c,suit:b.dataset.suit,call:callOne});});}else{selected.clear();command('/'+r.id+'/play',{card:c,call:callOne});}};
  }else{
   $('#suitPicker').classList.add('hidden');
+  const canMeld=sel.length>0&&(r.allowedMelds||[]).some(cs=>cs.length===sel.length&&cs.every(c=>sel.includes(c)));
   el.innerHTML=!r.drew?'<button id="takeStock" '+(!myTurn?'disabled':'')+'>🂠 더미에서 받기</button><button id="stopBtn" class="secondary" '+(!myTurn?'disabled':'')+'>✋ 스톱 선언</button>':
-   '<button id="meldBtn" '+(!myTurn||!sel.length?'disabled':'')+'>♛ 등록하기</button><button class="secondary" id="discardBtn" '+(!myTurn||sel.length!==1?'disabled':'')+'>↗ 선택 카드 버리기</button><span class="muted">붙이려면 한 장 선택 후 바닥 조합의 +버튼</span>';
+   '<button id="meldBtn" '+(!myTurn||!canMeld?'disabled':'')+'>♛ '+(canMeld?'선택 조합 등록하기':'등록할 조합을 선택해')+'</button><button class="secondary" id="discardBtn" '+(!myTurn||sel.length!==1?'disabled':'')+'>↗ 선택 카드 버리기</button><span class="muted">붙이려면 한 장 선택 후 바닥 조합의 +버튼</span>';
   if($('#takeStock'))$('#takeStock').onclick=()=>command('/'+r.id+'/take',{source:'stock'});
   if($('#stopBtn'))$('#stopBtn').onclick=()=>command('/'+r.id+'/stop');
   if($('#meldBtn'))$('#meldBtn').onclick=()=>command('/'+r.id+'/meld',{cards:sel}).then(()=>selected.clear());
