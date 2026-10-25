@@ -158,7 +158,8 @@ function renderPlaying(r,mine){
 }
 
 function renderHulaLedger(r,myTurn,attachments){
- if(r.game!=='hula')return;
+ // The game UI also runs in a small no-DOM test harness.
+ if(r.game!=='hula'||typeof document.createElement!=='function')return;
  let panel=$('#hulaLedger');
  if(!panel){
   // Keep the registration panel optional for limited DOM/legacy renderers.
