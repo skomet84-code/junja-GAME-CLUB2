@@ -6,12 +6,12 @@ const LIMITS=Object.freeze([
  '1000000000000','10000000000000','5000000000000000',
  '100000000000000000','300000000000000000'
 ]); // THE ABSOLUTE = 10경 G; GOD JUNJA = 30경 G.
-const RATE_BP=10n,MIN_LOAN=1000000n; // 0.1% simple interest per KST day.
+const RATE_BP=10n,MIN_LOAN=1000000n,SELL_RATE_BP=7000n; // 70% of the rank purchase price // 0.1% simple interest per KST day.
 function dayNumber(s){const n=Date.parse(String(s)+'T00:00:00Z');if(!Number.isFinite(n))throw Error('이자 계산 날짜 오류');return Math.floor(n/86400000);}
 function positive(raw){if(typeof raw!=='string'||!/^[1-9][0-9]{0,79}$/.test(raw))throw Error('금액은 1G 이상의 정수여야 합니다.');return BigInt(raw);}
 function createJBank({db,exactWallet,levels,now,kstDate}){
  const accountKey=id=>'jbank:account:'+Number(id);
- function empty(day){return {principal:'0',interest:'0',asOf:day,openedAt:0,closedAt:0,number:0,totalBorrowed:'0',totalRepaid:'0'};}
+ function empty(day){return {principal:'0',interest:'0',asOf:day,openedAt:0,closedAt:0,number:0,totalBorrowed:'0',totalRepaid:'0',lastRankSale:null,saleCount:0};}
  function read(id,day=kstDate()){const r=db.prepare('SELECT value FROM game_state WHERE key=?').get(accountKey(id));return r?{...empty(day),...JSON.parse(r.value)}:empty(day);}
  function project(record,day=kstDate()){
   const r={...record},elapsed=Math.max(0,dayNumber(day)-dayNumber(r.asOf)),principal=BigInt(r.principal);
@@ -26,11 +26,15 @@ function createJBank({db,exactWallet,levels,now,kstDate}){
   if(!u)throw Error('은행 회원을 찾을 수 없습니다.');
   const level=Math.max(0,Math.min(levels.length-1,Number(u.rank_level||0))),r=project(read(id,day),day);
   const debt=BigInt(r.principal)+BigInt(r.interest),limit=LIMITS[level];
+  const price=level>0?BigInt(String(levels[level].cost))*SELL_RATE_BP/10000n:0n;
+  const pay=price<debt?price:debt;
+  const rankSale=debt>0n&&level>0?{fromLevel:level,fromName:levels[level].name,toLevel:level-1,toName:levels[level-1].name,
+   salePrice:String(price),repayAmount:String(pay),remainingDebt:String(debt-pay),cashBack:String(price-pay),saleRatePct:70}:null;
   return {name:'J-BANK',rank:{level,name:levels[level].name},loanLimit:limit,minLoan:String(MIN_LOAN),
    dailyInterestPct:'0.1',interestMethod:'simple',principal:r.principal,interest:r.interest,
    outstanding:String(debt),canBorrow:debt===0n,canPromote:debt===0n,available:debt===0n?limit:'0',
    wallet:exactWallet.output(exactWallet.read(u)),openedAt:r.openedAt,closedAt:r.closedAt,
-   totalBorrowed:r.totalBorrowed,totalRepaid:r.totalRepaid};
+   totalBorrowed:r.totalBorrowed,totalRepaid:r.totalRepaid,canSellRank:!!rankSale,rankSale,lastRankSale:r.lastRankSale,saleCount:r.saleCount||0};
  }
  function change(id,kind,raw,requestId){
   id=Number(id);
@@ -78,6 +82,57 @@ function createJBank({db,exactWallet,levels,now,kstDate}){
    db.exec('COMMIT');return {ok:true,duplicate:false,status:status(id)};
   }catch(e){try{db.exec('ROLLBACK');}catch{}throw e;}
  }
- return {status,owed,limits:LIMITS,borrow:(id,amount,key)=>change(id,'borrow',amount,key),repay:(id,amount,key)=>change(id,'repay',amount,key)};
+
+ // Voluntary one-tier downgrade. A failed repayment never triggers an involuntary sale.
+ function sellRank(userId,confirmation,requestId){
+  const id=Number(userId);
+  if(!Number.isSafeInteger(id)||id<1)throw Error('잘못된 계정입니다.');
+  if(typeof requestId!=='string'||!/^[a-zA-Z0-9_-]{12,80}$/.test(requestId))throw Error('은행 요청 번호 오류');
+  if(!confirmation||typeof confirmation!=='object')throw Error('신분 매각 확인 정보가 필요합니다.');
+  const expectedLevel=Number(confirmation.level),expectedDebt=String(confirmation.debt??''),expectedPrice=String(confirmation.price??'');
+  if(!Number.isSafeInteger(expectedLevel)||!/^[1-9][0-9]*$/.test(expectedDebt)||!/^[1-9][0-9]*$/.test(expectedPrice))
+   throw Error('신분 매각 확인 정보가 올바르지 않습니다.');
+  db.exec('BEGIN IMMEDIATE');
+  try{
+   const receiptKey='jbank:receipt:'+id+':sellRank:'+requestId;
+   const previousRow=db.prepare('SELECT value FROM game_state WHERE key=?').get(receiptKey);
+   if(previousRow){
+    const prev=JSON.parse(previousRow.value);
+    if(prev.level!==expectedLevel||prev.debt!==expectedDebt||prev.price!==expectedPrice)throw Error('이미 다른 조건으로 처리된 매각 요청입니다.');
+    db.exec('COMMIT');return {ok:true,duplicate:true,sale:prev.sale,status:status(id)};
+   }
+   const u=db.prepare('SELECT id,is_disabled,rank_level,balance,balance_exact,balance_base FROM users WHERE id=?').get(id);
+   if(!u||u.is_disabled)throw Error('현재 계정은 은행 매각을 이용할 수 없습니다.');
+   const level=Number(u.rank_level||0);
+   if(level<=0||level>=levels.length)throw Error('매각 가능한 신분이 없습니다.');
+   const a=project(read(id,kstDate()),kstDate()),debt=BigInt(a.principal)+BigInt(a.interest);
+   if(debt<=0n)throw Error('신분 매각은 상환할 대출이 있을 때만 가능합니다.');
+   const proceeds=BigInt(String(levels[level].cost))*SELL_RATE_BP/10000n;
+   if(proceeds<=0n)throw Error('매각할 신분 가치가 없습니다.');
+   if(expectedLevel!==level||expectedDebt!==String(debt)||expectedPrice!==String(proceeds))
+    throw Error('신분 매각 조건이 변경됐습니다. 은행을 새로 열고 다시 확인하세요.');
+   const applied=proceeds<debt?proceeds:debt;
+   const paidInterest=applied<BigInt(a.interest)?applied:BigInt(a.interest);
+   a.interest=String(BigInt(a.interest)-paidInterest);
+   a.principal=String(BigInt(a.principal)-(applied-paidInterest));
+   a.totalRepaid=String(BigInt(a.totalRepaid)+applied);
+   if(debt===applied)a.closedAt=now();
+   const before=exactWallet.read(u),creditBalance=before+proceeds,finalBalance=creditBalance-applied,mirror=exactWallet.mirror(finalBalance),at=now();
+   const sale={fromLevel:level,toLevel:level-1,fromName:levels[level].name,toName:levels[level-1].name,
+     salePrice:String(proceeds),repaid:String(applied),remainingDebt:String(debt-applied),cashBack:String(proceeds-applied),at};
+   a.lastRankSale=sale;a.saleCount=Number(a.saleCount||0)+1;
+   db.prepare('UPDATE users SET rank_level=?,balance=?,balance_exact=?,balance_base=? WHERE id=?').run(level-1,mirror,String(finalBalance),String(mirror),id);
+   store(id,a);
+   const ledger=db.prepare('INSERT INTO ledger(user_id,amount,balance_after,amount_exact,balance_after_exact,type,memo,created_at) VALUES(?,?,?,?,?,?,?,?)');
+   ledger.run(id,exactWallet.mirror(proceeds),exactWallet.mirror(creditBalance),String(proceeds),String(creditBalance),'jbank_rank_sale',
+     'J-BANK 신분 매각 '+sale.fromName+' → '+sale.toName+' · 승급비의 70%',at);
+   ledger.run(id,exactWallet.mirror(-applied),mirror,String(-applied),String(finalBalance),'jbank_rank_sale_repay',
+     'J-BANK 신분 매각대금 자동 상환 · 이자 '+paidInterest+' G',at);
+   db.prepare('INSERT INTO game_state(key,value,updated_at) VALUES(?,?,?)').run(receiptKey,JSON.stringify({level:expectedLevel,debt:expectedDebt,price:expectedPrice,sale}),at);
+   db.exec('COMMIT');return {ok:true,duplicate:false,sale,status:status(id)};
+  }catch(e){try{db.exec('ROLLBACK');}catch{}throw e;}
+ }
+
+ return {status,owed,limits:LIMITS,borrow:(id,amount,key)=>change(id,'borrow',amount,key),repay:(id,amount,key)=>change(id,'repay',amount,key),sellRank};
 }
-module.exports={createJBank,LIMITS,RATE_BP};
+module.exports={createJBank,LIMITS,RATE_BP,SELL_RATE_BP};

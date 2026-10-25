@@ -72,4 +72,69 @@ for(const id of ['jBankBtn','jBankHeroBtn'])assert.ok(html.includes('id="'+id+'"
 assert.ok(html.includes('/j-bank.js?v='));
 assert.ok(ui.includes('/api/jbank/borrow')||ui.includes("'/api/jbank/'+"));
 assert.ok(rankUi.includes('rank-bank-lock'),'rank screen shows debt lock');
+
+// Rank-sale debt relief, persistent audit and re-lending checks.
+add(4,12);
+assert.equal(bank.status(4).rankSale,null,'no debt means no rank-sale button');
+bank.borrow(4,'100000000000000000',req('rank_sale_large_loan'));
+const beforeSale=bank.status(4),quote=beforeSale.rankSale;
+assert.equal(quote.fromName,'THE ABSOLUTE');
+assert.equal(quote.toName,'JUNJA ROYAL');
+assert.equal(quote.salePrice,'7000000000000000','70% of 1경 promotion cost is 7000조');
+assert.equal(quote.repayAmount,'7000000000000000');
+assert.equal(quote.remainingDebt,'93000000000000000');
+assert.equal(quote.cashBack,'0','sale proceeds cannot bypass outstanding debt');
+assert.throws(()=>bank.sellRank(4,{level:12,debt:'1',price:quote.salePrice},req('sale_stale')),/조건이 변경/);
+assert.equal(bank.status(4).rank.level,12,'stale confirmation never downgrades');
+const sellPayload={level:quote.fromLevel,debt:beforeSale.outstanding,price:quote.salePrice};
+const saleResult=bank.sellRank(4,sellPayload,req('sale_valid'));
+assert.equal(saleResult.sale.fromLevel,12);
+assert.equal(saleResult.sale.toLevel,11);
+assert.equal(saleResult.sale.repaid,'7000000000000000');
+assert.equal(saleResult.status.outstanding,'93000000000000000');
+assert.equal(saleResult.status.principal,'93000000000000000');
+assert.equal(saleResult.status.rank.name,'JUNJA ROYAL');
+assert.equal(bank.status(4).loanLimit,'5000000000000000','downgraded rank has the correct 5000조 loan cap');
+assert.equal(wallet(4),100000000000000000n,'sale used for debt first, not a free cash credit');
+assert.throws(()=>bank.borrow(4,'1000000',req('sale_early_reloan')),/전액 상환/);
+assert.throws(()=>ctx.promote(4),/J-BANK 원금과 이자를 완납/,'promotion remains locked after partial rank sale');
+assert.equal(bank.sellRank(4,sellPayload,req('sale_valid')).duplicate,true,'rank sale is exactly-once on replay');
+assert.equal(db.prepare("SELECT COUNT(*) AS n FROM ledger WHERE user_id=4 AND type='jbank_rank_sale'").get().n,1n);
+assert.equal(db.prepare("SELECT COUNT(*) AS n FROM ledger WHERE user_id=4 AND type='jbank_rank_sale_repay'").get().n,1n);
+assert.equal(bank.status(4).saleCount,1);
+assert.equal(bank.status(4).lastRankSale.toName,'JUNJA ROYAL');
+const afterSaleRestart=createJBank({db,exactWallet,levels:ranks,now:()=>tm++,kstDate:()=>day});
+assert.equal(afterSaleRestart.status(4).rank.level,11,'rank sale survives bank restart');
+assert.equal(afterSaleRestart.status(4).outstanding,'93000000000000000','partial debt survives restart');
+
+// When the sale value exceeds the debt, only the surplus is paid to the wallet.
+add(5,13);
+bank.borrow(5,'300000000000000000',req('god_large_loan'));
+const godBefore=bank.status(5),godQuote=godBefore.rankSale;
+assert.equal(godQuote.salePrice,'700000000000000000','selling 100경 rank returns 70경');
+assert.equal(godQuote.repayAmount,'300000000000000000','30경 debt is paid in full');
+assert.equal(godQuote.cashBack,'400000000000000000','40경 surplus to wallet');
+const godSale=bank.sellRank(5,{level:13,debt:godBefore.outstanding,price:godQuote.salePrice},req('god_sell'));
+assert.equal(godSale.status.outstanding,'0','god sale completely pays debt');
+assert.equal(godSale.status.rank.name,'THE ABSOLUTE');
+assert.equal(godSale.status.canPromote,true,'rank promotion unlocks after forced debt payoff');
+assert.equal(wallet(5),700000000000000000n,'original 30경 loan plus 40경 refund stays in wallet');
+assert.equal(godSale.status.canBorrow,true,'re-borrow is now enabled at the lowered rank');
+assert.equal(bank.borrow(5,'100000000000000000',req('after_sale_reloan')).status.outstanding,'100000000000000000');
+assert.equal(bank.status(5).loanLimit,'100000000000000000','re-loan respects downgraded ABSOLUTE 10경 limit');
+assert.throws(()=>bank.borrow(5,'1',req('double_reloan')),/전액 상환/);
+const wrongQuote={level:13,debt:'300000000000000000',price:'700000000000000000'};
+assert.throws(()=>bank.sellRank(5,wrongQuote,req('stale_again')),/조건이 변경/,'cannot sell old rank using old quote');
+assert.throws(()=>bank.sellRank(5,{level:0,debt:'1',price:'1'},req('rank_false')),/조건이 변경/);
+add(6,0);
+bank.borrow(6,'1000000',req('commoner_borrow'));
+assert.equal(bank.status(6).rankSale,null);
+assert.throws(()=>bank.sellRank(6,{level:0,debt:'1000000',price:'1'},req('commoner_sell')),/매각 가능한 신분/,'commoner cannot downgrade');
+assert.ok(server.includes("'/api/jbank/sell-rank'"),'server exposes authenticated rank-sale endpoint');
+assert.ok(ui.includes('/api/jbank/sell-rank'),'UI calls sale endpoint');
+assert.ok(ui.includes('quote.remainingDebt'),'show remaining debt before confirmation');
+assert.ok(ui.includes('confirm(details)'),'explicit confirmation before irreversible sale');
+
+console.log('JBANK_RANK_SALE_OK: 70% sale proceeds, interest-first debt, exact refunds, one-tier downgrade, idempotency, re-borrow only after full repayment, no implicit forfeiture');
+
 console.log('JBANK_OK: exact 10경, rank limits, daily simple interest, partial/full repayment, no-double-credit, account isolation, 100경 promotion guard, persistence');

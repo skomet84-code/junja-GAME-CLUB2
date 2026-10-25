@@ -13,3 +13,14 @@
 #jbankNotice{min-height:15px;margin-top:12px;font-size:12px;font-weight:700;line-height:1.5}.jbank-error{color:#ff9a97}.jbank-success{color:#9bedad}
 .rank-bank-lock{margin:12px 0 6px;border:1px solid #e0b36c88;border-radius:12px;background:#9a632b21;color:#ffe7ac;font-size:12px;padding:12px;line-height:1.5}.rank-bank-lock button{border:0;border-radius:8px;padding:8px 10px;background:#f0d69e;color:#26190c;font-weight:850;cursor:pointer;margin-left:6px}
 @media(max-width:600px){.jbank-pill{padding:8px;font-size:10px}.jbank-panel{padding:15px}.jbank-forms{grid-template-columns:1fr}.jbank-grid>div{padding:10px}.jbank-panel h2{font-size:30px}}
+/* Voluntary bank debt recovery through one-tier rank sale. */
+.jbank-rank-sale{margin-top:18px;padding:15px;border:1px solid #eac88993;border-radius:14px;background:radial-gradient(circle at 90% 0%,#b88c4640,transparent 40%),linear-gradient(125deg,#261c25,#181422)}
+.jbank-sale-heading{display:flex;flex-direction:column;color:#ffe7b1;font-size:16px;gap:5px}
+.jbank-sale-heading small{font-weight:500;color:#c9bcaf;font-size:11px}
+.jbank-sale-summary{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.jbank-sale-summary span{min-width:0;padding:10px;background:#0004;border:1px solid #d9bd8455;border-radius:10px;font-size:11px;color:#d7d2c5}
+.jbank-sale-summary b{display:block;overflow-wrap:anywhere;font-size:clamp(12px,3vw,16px);color:#ffe1a4;margin-top:5px}
+.jbank-sale-caution{font-size:11px!important;color:#ffc5af!important;line-height:1.7!important}
+.jbank-sell-btn{background:linear-gradient(125deg,#f1c083,#fbe3ac)!important;color:#301d0d!important}
+.jbank-sale-muted{margin:14px 0 0;color:#a9abb8;font-size:11px}
+@media(max-width:430px){.jbank-sale-summary{grid-template-columns:1fr}}

@@ -2154,12 +2154,12 @@ const server=http.createServer(async(req,res)=>{
       const u=requireAuth(req,res);if(!u)return;
       try{return json(res,200,{ok:true,...jBank.status(u.id)});}catch(e){return json(res,400,{error:e.message});}
     }
-    if((url.pathname==='/api/jbank/borrow'||url.pathname==='/api/jbank/repay')&&req.method==='POST'){
+    if((url.pathname==='/api/jbank/borrow'||url.pathname==='/api/jbank/repay'||url.pathname==='/api/jbank/sell-rank')&&req.method==='POST'){
       const u=requireAuth(req,res);if(!u)return;
       if(!rateLimit('jbank:'+u.id,12,60000))return json(res,429,{error:'은행 거래 요청이 너무 빠릅니다. 잠시 후 다시 시도하세요.'});
       try{
-        const b=await readBody(req),action=url.pathname.endsWith('/borrow')?'borrow':'repay';
-        const result=jBank[action](u.id,b.amount,b.requestId);
+        const b=await readBody(req),action=url.pathname.endsWith('/borrow')?'borrow':url.pathname.endsWith('/sell-rank')?'sellRank':'repay';
+        const result=action==='sellRank'?jBank.sellRank(u.id,b.confirmation,b.requestId):jBank[action](u.id,b.amount,b.requestId);
         await db.flush();pushRefresh();
         return json(res,200,{...result,user:userPublic(u.id)});
       }catch(e){return json(res,400,{error:e.message});}
