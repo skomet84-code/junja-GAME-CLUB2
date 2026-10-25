@@ -55,3 +55,45 @@
  #view-lobby .game-card.premium-art-card h3,#view-lobby .game-card.lobby-art-card h3{font-size:16px!important}
  #view-lobby .game-card.premium-art-card small,#view-lobby .game-card.lobby-art-card small{font-size:8px!important;letter-spacing:.06em!important}
 }
+/* Screenshot-based original mockup artwork: onecard, hula, omok.
+   Exact 320 × 300 crop, no legacy SVG art or duplicate DOM badges/captions. */
+#view-lobby .game-card.art-baked-card{
+ display:block!important;align-items:unset!important;justify-content:unset!important;
+ position:relative!important;overflow:hidden!important;padding:0!important;
+ min-height:0!important;height:auto!important;aspect-ratio:320/300!important;
+ border-radius:20px!important;background:#0b1021!important;
+}
+#view-lobby .game-card.art-baked-card::before,
+#view-lobby .game-card.art-baked-card::after{
+ content:none!important;display:none!important;background:none!important;
+}
+#view-lobby .game-card.art-baked-card .game-art{
+ position:absolute!important;display:block!important;inset:0!important;
+ width:100%!important;height:100%!important;max-width:none!important;max-height:none!important;
+ padding:0!important;margin:0!important;object-fit:fill!important;
+ opacity:1!important;filter:none!important;mix-blend-mode:normal!important;
+ mask-image:none!important;-webkit-mask-image:none!important;
+ transform:none!important;z-index:2!important;
+}
+#view-lobby .game-card.art-baked-card>.game-icon,
+#view-lobby .game-card.art-baked-card>.dual-badge,
+#view-lobby .game-card.art-baked-card>.gb-card-content,
+#view-lobby .game-card.art-baked-card>div:last-child{
+ display:none!important;
+}
+/* Preserve the same original 320:300 mockup ratio across the six featured tiles. */
+#view-lobby .game-card.premium-art-card{
+ height:auto!important;min-height:0!important;aspect-ratio:320/300!important;
+}
+@media(max-width:760px){
+ #view-lobby .game-card.art-baked-card,
+ #view-lobby .game-card.premium-art-card{
+   height:auto!important;min-height:0!important;aspect-ratio:320/300!important;
+ }
+}
+@media(max-width:420px){
+ #view-lobby .game-card.art-baked-card,
+ #view-lobby .game-card.premium-art-card{
+   height:auto!important;min-height:0!important;aspect-ratio:320/300!important;
+ }
+}
