@@ -39,11 +39,23 @@ function findThank(hand,discard){
  return null;
 }
 function combinations(arr){
- const out=[];
- for(let i=0;i<arr.length;i++)if(rank(arr[i])===7)out.push([arr[i]]);
- for(let i=0;i<arr.length;i++)for(let j=i+1;j<arr.length;j++)for(let k=j+1;k<arr.length;k++){
-  const cs=[arr[i],arr[j],arr[k]];
-  if(meldKind(cs))out.push(cs);
+ const out=[],seen=new Set();
+ const add=cs=>{if(!meldKind(cs))return;const key=cs.slice().sort().join('|');if(seen.has(key))return;seen.add(key);out.push(cs);};
+ for(let i=0;i<arr.length;i++)if(rank(arr[i])===7)add([arr[i]]);
+ for(let i=0;i<arr.length;i++)for(let j=i+1;j<arr.length;j++)for(let k=j+1;k<arr.length;k++)
+  add([arr[i],arr[j],arr[k]]);
+ // Four-of-a-kind is valid, and a run can contain more than three cards.
+ for(let i=0;i<arr.length;i++)for(let j=i+1;j<arr.length;j++)for(let k=j+1;k<arr.length;k++)
+  for(let l=k+1;l<arr.length;l++){
+   const cs=[arr[i],arr[j],arr[k],arr[l]];
+   if(meldKind(cs)==='set')add(cs);
+  }
+ for(const s of SUITS){
+  const cards=arr.filter(c=>suit(c)===s).sort((a,b)=>rank(a)-rank(b));
+  for(let i=0;i<cards.length;i++)for(let j=i+3;j<cards.length;j++){
+   const cs=cards.slice(i,j+1);
+   if(meldKind(cs)==='run')add(cs);
+  }
  }
  return out.sort((a,b)=>sum(b)-sum(a));
 }
@@ -341,6 +353,6 @@ module.exports=function createRoyalCards({db,crypto,requireAuth,readBody,json,ra
    return reply(200,{room:view(r,u.id)});
   }catch(e){return reply(400,{error:e.message});}
  }
- return {handle,hasUser:id=>!!mine(id),findUserRoom:id=>{const r=mine(id);return r?{id:r.id,game:r.game,name:r.name}:null;},roomCount:()=>rooms.size,helpers:{meldKind,attachable,findThank,cardDeck}};
+ return {handle,hasUser:id=>!!mine(id),findUserRoom:id=>{const r=mine(id);return r?{id:r.id,game:r.game,name:r.name}:null;},roomCount:()=>rooms.size,helpers:{meldKind,attachable,findThank,cardDeck,combinations}};
 };
-module.exports._test={meldKind,attachable,findThank,cardDeck,attackValue,attackLevel};
+module.exports._test={meldKind,attachable,findThank,cardDeck,attackValue,attackLevel,combinations};

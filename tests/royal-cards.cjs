@@ -1,7 +1,7 @@
 'use strict';
 const assert=require('node:assert/strict');
 const factory=require('../royal-cards-server');
-const {meldKind,attachable,findThank,cardDeck,attackValue}=factory._test;
+const {meldKind,attachable,findThank,cardDeck,attackValue,combinations}=factory._test;
 assert.equal(cardDeck(true).length,54);
 assert.equal(cardDeck(false).length,52);
 assert.equal(new Set(cardDeck(true)).size,54);
@@ -18,6 +18,8 @@ assert.deepEqual(findThank(['S3','S4','H6'],'S2'),['S2','S3','S4']);
 assert.equal(attackValue('JOKR'),7);
 assert.equal(attackValue('S1'),5);
 assert.equal(attackValue('H2'),2);
+assert.ok(combinations(['S4','H4','C4','D4']).some(cs=>cs.length===4&&meldKind(cs)==='set'),'4-card meld highlighted');
+assert.ok(combinations(['H3','H4','H5','H6','H7']).some(cs=>cs.length===5&&meldKind(cs)==='run'),'5-card run highlighted');
 const p1={id:11,nickname:'원카드 참가자'},p2={id:12,nickname:'훌라 참가자'};
 let user=p1,index=0,activeTimers=[];
 const rows=new Map();
