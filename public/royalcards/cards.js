@@ -45,6 +45,21 @@ function showLanding(rooms){
  $('#rooms').innerHTML=rooms.length?rooms.map(r=>'<div class="room"><div><strong>'+esc(r.name)+'</strong><p>'+esc(r.host)+' · '+r.players+'/'+r.max+'명</p></div><button data-join="'+esc(r.id)+'">입장 →</button></div>').join(''):'<div class="empty">지금 대기 중인 테이블이 없어. 네가 첫 방장이 되어줘!</div>';
  $$('[data-join]').forEach(btn=>btn.onclick=()=>command('/'+btn.dataset.join+'/join'));
 }
+function showThankCelebration(r){
+ const banner=$('#thankBanner'),ev=r.game==='hula'?r.lastThank:null;
+ if(!ev||!Number.isFinite(Number(ev.at))||Math.max(0,(r.serverNow||Date.now())-Number(ev.at))>6500){
+  banner.classList.add('hidden');return;
+ }
+ const key=r.id+':'+r.round+':'+ev.id;
+ if(banner.dataset.eventKey===key)return;
+ banner.dataset.eventKey=key;
+ banner.innerHTML='<span class="thank-spark">✨ 💝 ✨</span><strong>'+esc(ev.playerName)+'님 땡큐!</strong>'+
+  '<span>버림패 '+glyph(ev.card)+esc(n(ev.card))+' · 즉시 등록 완료</span>';
+ banner.classList.remove('hidden');
+ banner.classList.remove('thank-show');
+ void banner.offsetWidth;
+ banner.classList.add('thank-show');
+}
 function showRoom(r){
  if(!r)return;
  if(room&&room.id===r.id&&Number(r.version)<Number(room.version))return; // A late GET cannot undo a newer turn.
@@ -60,6 +75,7 @@ function showRoom(r){
  if(r.phase==='waiting')renderWaiting(r,mine);
  if(r.phase==='playing'||r.phase==='thank')renderPlaying(r,mine);
  if(r.phase==='done')renderDone(r);
+ showThankCelebration(r);
  changedVersion=r.version;
 }
 function renderWaiting(r,mine){
@@ -80,6 +96,8 @@ function renderPlaying(r,mine){
  $('#countdown').textContent=Math.max(0,Math.ceil((r.deadline-(r.serverNow||Date.now()))/1000))+'s';
  $('#opponents').innerHTML=r.players.filter(p=>p.id!==r.selfId).map(p=>'<div class="opponent '+(r.turnId===p.id?'on':'')+'"><span class="avatar">'+(p.bot?'🤖':'♛')+'</span><strong>'+esc(p.name)+'</strong><small>'+p.cardCount+'장 '+(r.turnId===p.id?'· PLAYING':'')+'</small></div>').join('');
  $('#topDiscard').outerHTML=cardHtml(r.discard).replace('class="card','id="topDiscard" class="card');
+ const justThank=r.lastThank&&Number(r.serverNow||Date.now())-Number(r.lastThank.at)<6000;
+ $('#discardCaption').textContent=justThank?'땡큐 카드 등록됨 · 이전 버림패':'DISCARD PILE';
  $('#playInfo').textContent=r.game==='onecard'?'현재 무늬 '+(SUIT[r.suit]||'')+(r.pending?' · 공격 누적 +'+r.pending:'')+' · 방향 '+(r.direction===1?'↻':'↺'):'등록 '+r.melds.length+'개 · 더미 '+r.deckCount+'장'+(r.drew?' · 내려놓거나 버려줘':' · 먼저 카드를 받아줘');
  selected=new Set([...selected].filter(id=>r.hand.includes(id)));
  
@@ -122,7 +140,16 @@ function renderPlaying(r,mine){
   const stage=r.phase==='thank'?'reaction':!myTurn?'wait':r.drew?'register':'receive';
   $('#turnSteps').innerHTML='<span class="'+(stage==='receive'?'current':'')+'">① 받기</span><span class="'+(stage==='register'?'current':'')+'">② 등록·붙이기</span><span>③ 버리기</span>';
  }
- $('#melds').innerHTML=r.game==='hula'?r.melds.map((m,i)=>'<div class="meld-row"><b>'+(m.kind==='set'?'땡':m.kind==='run'?'연속':'세븐')+'</b>'+m.cards.map(c=>'<span>'+glyph(c)+esc(n(c))+'</span>').join('')+'<button data-attach="'+i+'" '+(!myTurn||!r.drew||selected.size!==1||!attachments.some(a=>a.card===[...selected][0]&&a.index===i)?'disabled':'')+'>+ 붙이기</button></div>').join(''):'';
+ $('#melds').innerHTML=r.game==='hula'?r.melds.map((m,i)=>{
+  const owner=r.players.find(p=>String(p.id)===String(m.owner));
+  const thanked=!!r.lastThank&&String(r.lastThank.playerId)===String(m.owner)&&
+    m.cards.some(c=>r.lastThank.cards.includes(c))&&
+    Number(r.serverNow||Date.now())-Number(r.lastThank.at)<9000;
+  const title=thanked?'💝 땡큐 등록':m.kind==='set'?'땡':m.kind==='run'?'연속':'세븐';
+  return '<div class="meld-row '+(thanked?'thank-meld':'')+'"><b>'+esc(owner?.name||'플레이어')+' · '+title+'</b>'+
+    m.cards.map(c=>'<span>'+glyph(c)+esc(n(c))+'</span>').join('')+
+    '<button data-attach="'+i+'" '+(!myTurn||!r.drew||selected.size!==1||!attachments.some(a=>a.card===[...selected][0]&&a.index===i)?'disabled':'')+'>+ 붙이기</button></div>';
+ }).join(''):'';
  $$('[data-attach]').forEach(btn=>btn.onclick=()=>command('/'+r.id+'/attach',{card:[...selected][0],index:Number(btn.dataset.attach)}).then(()=>selected.clear()));
  renderActions(r,myTurn);
  const recent=r.events.slice(-3).reverse().map(e=>esc(e.text)).join(' · ');
@@ -131,7 +158,7 @@ function renderPlaying(r,mine){
 function renderActions(r,myTurn){
  const el=$('#actions'),one=r.game==='onecard',sel=[...selected];
  if(r.phase==='thank'){
-  el.innerHTML=r.canThank?'<button id="thankNow">💝 땡큐! 버림패 등록</button>':'<span class="muted">다른 플레이어의 땡큐 반응을 기다리는 중…</span>';
+  el.innerHTML=r.canThank?'<button id="thankNow" class="thank-action">💝 땡큐! 즉시 등록</button>':'<span class="muted">다른 플레이어의 땡큐 반응을 기다리는 중…</span>';
   if($('#thankNow'))$('#thankNow').onclick=()=>command('/'+r.id+'/thank');
   return;
  }

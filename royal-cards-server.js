@@ -103,7 +103,7 @@ module.exports=function createRoyalCards({db,crypto,requireAuth,readBody,json,ra
  }
  function fresh(r){
   clear(r);r.phase='playing';r.round++;r.direction=1;r.turn=0;r.deck=shuffle(cardDeck(r.game==='onecard'));
-  r.discard=[];r.melds=[];r.pending=0;r.attackRank=0;r.suit=null;r.drew=false;r.thankWindow=null;r.winner=null;r.reason=null;r.recorded=false;
+  r.discard=[];r.melds=[];r.pending=0;r.attackRank=0;r.suit=null;r.drew=false;r.thankWindow=null;r.lastThank=null;r.winner=null;r.reason=null;r.recorded=false;
   r.players.forEach(p=>{p.ready=false;p.hand=[];for(let i=0;i<7;i++)p.hand.push(r.deck.pop());});
   if(r.game==='onecard'){
    const first=r.deck.findIndex(c=>!attackValue(c)&&![7,11,12,13].includes(rank(c)));
@@ -121,7 +121,7 @@ module.exports=function createRoyalCards({db,crypto,requireAuth,readBody,json,ra
    players:r.players.map(x=>({id:x.id,name:x.name,bot:x.bot||false,ready:x.ready,cardCount:x.hand.length,score:r.game==='hula'?null:undefined})),
    max:r.max,turnId:active?.id,direction:r.direction,deadline:r.deadline,serverNow:now(),
    hand:p.hand.slice(),deckCount:r.deck.length,discard:last,suit:r.suit,pending:r.pending,attackRank:r.attackRank,
-   drew:r.drew,legal,allowedMelds,allowedAttachments,canThank:r.phase==='thank'&&r.thankWindow?.eligible.includes(p.id),thankDeadline:r.thankWindow?.until||0,melds:r.melds.map(m=>({owner:m.owner,cards:m.cards.slice(),kind:m.kind})),
+   drew:r.drew,legal,allowedMelds,allowedAttachments,canThank:r.phase==='thank'&&r.thankWindow?.eligible.includes(p.id),thankDeadline:r.thankWindow?.until||0,lastThank:r.lastThank||null,melds:r.melds.map(m=>({owner:m.owner,cards:m.cards.slice(),kind:m.kind})),
    events:r.events.slice(-10),winner:r.winner,reason:r.reason,
    finalScores:r.phase==='done'&&r.game==='hula'?r.players.map(x=>({id:x.id,score:sum(x.hand),cards:x.hand.slice()})):null};
  }
@@ -203,7 +203,10 @@ module.exports=function createRoyalCards({db,crypto,requireAuth,readBody,json,ra
   const top=r.discard.at(-1),cards=findThank(p.hand,top);
   if(!cards)throw Error('등록 가능한 땡큐 조합이 없어.');
   clear(r);r.phase='playing';r.thankWindow=null;r.turn=r.players.indexOf(p);r.drew=true;
-  r.discard.pop();p.hand.push(top);hulaMeld(r,p,cards);log(r,p.name+' · 땡큐! 차례 가져오기');
+  r.discard.pop();p.hand.push(top);
+  r.lastThank={id:r.version+1,playerId:p.id,playerName:p.name,card:top,cards:cards.slice(),at:now()};
+  hulaMeld(r,p,cards);
+  log(r,p.name+' · 땡큐! 카드 즉시 등록 완료');
   if(r.phase==='playing')arm(r);
  }
  function hulaDiscard(r,p,card){

@@ -126,6 +126,11 @@ async function req(who,path,body){
  assert.equal(claim.data.room.turnId,p2.id);
  assert.equal(claim.data.room.drew,true);
  assert.equal(claim.data.room.phase,'playing');
+ assert.equal(claim.data.room.lastThank.playerId,p2.id,'show claiming player');
+ assert.equal(claim.data.room.lastThank.playerName,p2.nickname,'show player name');
+ assert.equal(claim.data.room.lastThank.card,thankCard,'claimed card identified correctly');
+ assert.ok(claim.data.room.melds.some(m=>m.owner===p2.id&&m.cards.includes(thankCard)),'claim must register immediately');
+ assert.notEqual(claim.data.room.discard,thankCard,'claimed card removed from discard');
  assert.equal((await reactAs(p2,'/'+hulaRoom.id+'/take',{source:'discard'})).status,400,'discard must be claimed only during reaction window');
  assert.equal((await reactAs(p2,'/'+hulaRoom.id+'/discard',{card:claim.data.room.hand[0]})).status,200);
  // The game NEVER needs to update users, sessions, wallet or historical ledger.

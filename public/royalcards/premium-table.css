@@ -43,3 +43,28 @@ body[data-game="hula"] .hero{background:linear-gradient(125deg,#2f152bd9,#140d21
 }
 @media(max-width:390px){.table-frame{min-height:267px!important}.table-center{min-height:171px!important}.hand .card{width:49px;min-width:49px}}
 @media(prefers-reduced-motion:reduce){.quick-take,.card-back.deck{transition:none!important}}
+
+/* Hula: committed THANK YOU animation and visibly registered owner cards. */
+#match{position:relative}
+.thank-banner{position:sticky;top:8px;margin:0 auto 10px;width:min(480px,96%);
+ display:flex;align-items:center;justify-content:center;gap:4px;flex-direction:column;
+ padding:13px 15px;text-align:center;border:2px solid #fff0ad;border-radius:17px;
+ background:linear-gradient(125deg,#612a50,#2c2257 55%,#17394a);color:#fff2bd;
+ box-shadow:0 12px 38px #0009,0 0 21px #ff73bb55;z-index:45;pointer-events:none}
+.thank-banner strong{font-size:clamp(19px,5vw,31px);font-weight:900;color:#fff7c8;text-shadow:0 2px 10px #000a}
+.thank-banner>span:last-child{font-size:12px;color:#f7d5ee;font-weight:900}
+.thank-spark{font-size:20px}
+.thank-show{animation:royalThankEnter 3.4s ease-out both}
+@keyframes royalThankEnter{0%{opacity:0;transform:translateY(-15px) scale(.86)}
+ 9%,72%{opacity:1;transform:translateY(0) scale(1)}
+ 100%{opacity:0;transform:translateY(-4px) scale(1)}}
+.meld-row{gap:6px;background:linear-gradient(110deg,#14362c,#10262e);border-color:#d4be8e9c;
+ box-shadow:0 5px 13px #0007;min-height:40px}
+.meld-row b{color:#f2deae;min-width:65px}
+.meld-row.thank-meld{border:2px solid #e8ff97;background:linear-gradient(100deg,#3b2846,#204d3e);
+ box-shadow:0 0 17px #ddff7777,0 5px 15px #0009}
+.game-actions .thank-action{border:2px solid #fff7bb;background:linear-gradient(120deg,#ffd76c,#fc9dc8);
+ box-shadow:0 0 20px #fd85bf90;min-width:180px}
+@media(max-width:650px){.thank-banner{padding:10px;top:4px}.thank-banner strong{font-size:22px}
+ .meld-row{flex-wrap:wrap;max-width:100%}.meld-row b{width:100%;font-size:11px}}
+@media(prefers-reduced-motion:reduce){.thank-show{animation:none;opacity:1}}
