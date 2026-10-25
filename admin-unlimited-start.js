@@ -196,7 +196,7 @@ source = replaceOne(
   source,
   "const balance=u.balance+refund;\n        if(!Number.isSafeInteger(balance))throw new Error('게임머니 한도를 초과합니다.');",
   "const balance=Number(u.balance)+refund;\n        if(!Number.isInteger(balance)||balance>9000000000000000000)throw new Error('보유 게임머니 저장 한도를 초과합니다.');",
-  'holdem departure large wallet'
+  'holdem departure large wallet', false // now handled by exactWallet.change in settleHoldemDepartures
 );
 source = replaceOne(
   source,
