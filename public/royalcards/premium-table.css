@@ -1,0 +1,45 @@
+/* Royal Hula luxury table V2: tighter mobile play with obvious stock button */
+body[data-game]{background:radial-gradient(ellipse at 50% 0%,#28384c 0%,#080d15 70%)}
+.masthead{border-bottom:1px solid #dbc49336}
+.hero{min-height:215px!important;box-shadow:inset 0 1px #fff4c525,0 14px 40px #000b}
+body[data-game="hula"] .hero{background:linear-gradient(125deg,#2f152bd9,#140d21e6),radial-gradient(circle at 80% 20%,#c6598380,transparent 65%)!important}
+.table-frame{min-height:335px!important;border:9px solid #473424!important;border-radius:75px!important;
+ background:radial-gradient(ellipse 75% 85% at 50% 42%,#1f7054,#10463b 62%,#082823)!important;
+ box-shadow:inset 0 0 0 3px #d9b776,inset 0 0 80px #051715,0 16px 40px #000a!important}
+.table-sheen{border-color:#ffe8b634!important}
+.table-center{min-height:230px;gap:10px}
+.table-badge{color:#ffe1a4;background:#0b2b29ed;border:1px solid #e7c28e8f;box-shadow:0 3px 13px #0006}
+.turn-steps{display:flex;flex-wrap:wrap;gap:5px;justify-content:center;max-width:95%}
+.turn-steps span{font-size:10px;font-weight:900;padding:5px 9px;border-radius:99px;background:#071d1bb8;border:1px solid #e6ca854d;color:#c4cfbf}
+.turn-steps span.current{background:#c2ffad;color:#13301e;border-color:#efffbb;box-shadow:0 0 14px #afff8a7d}
+.table-decks{align-items:flex-start;gap:22px}
+.stock-stack{display:flex;flex-direction:column;align-items:center;gap:8px;max-width:112px}
+.stock-caption{color:#ead8b4;font-size:10px;line-height:1.25;text-align:center;max-width:112px;font-weight:900}
+.stock-caption.emphasis{color:#d4ffaf;text-shadow:0 0 10px #8fff6ac7}
+.card-back.deck{border-color:#eed29a;box-shadow:4px 5px #0d231d,0 0 16px #0009;transition:transform .14s}
+.card-back.deck.take-ready{border:3px solid #b4ff90;box-shadow:0 0 0 2px #adff754d,0 0 22px #adfa8b9f,4px 5px #0b2420}
+.card-back.deck.take-ready:active{transform:translateY(4px)}
+.opponent{border-color:#dcc49060;background:linear-gradient(140deg,#0e322eda,#061923db)}
+.opponent.on{border-color:#f6d79a;box-shadow:0 0 16px #ffeb9575}
+.bottom-board{background:linear-gradient(150deg,#24303a,#0e1825);border-color:#d9ba7c79;box-shadow:inset 0 1px #ffffff14,0 15px 35px #0009}
+.hand .card.face{background:linear-gradient(130deg,#fffdf5,#f2ebdb 67%,#e8dbc3);border-color:#e4cc9d;box-shadow:0 8px 16px #0009}
+.hand .card.face.selected{box-shadow:0 0 0 2px #ffe79b,0 0 19px #f8d377ad,0 13px 19px #0009!important}
+.quick-take{display:block;width:min(450px,100%);min-height:53px;margin:0 auto 11px;border-radius:13px;border:2px solid #d6ffac;
+ color:#13341e;background:linear-gradient(115deg,#e0ffac,#90edb1);font-size:15px;font-weight:900;box-shadow:0 0 19px #8fff7f5c,0 8px 19px #0008}
+.game-actions .take-card-button{background:linear-gradient(130deg,#c8ffa3,#7fdfb0);color:#16321f;border-color:#baffae}
+.game-actions button{min-height:48px;border-radius:12px}
+.hand-hints{background:linear-gradient(130deg,#183731,#142437);border-color:#d7bf8271}
+.suggestion-btn{background:linear-gradient(125deg,#227353,#123b2e);box-shadow:0 4px 11px #0007}
+@media(max-width:650px){.table-frame{min-height:285px!important;border-width:5px!important;border-radius:48px!important}
+ .table-center{min-height:188px!important;gap:8px!important}
+ .opponents{padding:12px 9px 4px}.opponent{min-width:76px;padding:6px}
+ .table-decks{gap:15px}.card-back.deck{width:60px;height:88px}.stock-caption{font-size:9px}
+ .turn-steps{gap:3px}.turn-steps span{font-size:9px;padding:5px 7px}
+ .bottom-board{padding:10px 8px 17px}.self-header{padding:4px 5px 9px}
+ .quick-take{min-height:50px;margin-bottom:8px;font-size:14px}
+ .hand{gap:5px;min-height:127px!important;padding:17px 3px 26px!important}
+ .hand .card{width:52px;min-width:52px;height:86px}
+ .game-actions button{flex:1 1 120px;min-width:105px}
+}
+@media(max-width:390px){.table-frame{min-height:267px!important}.table-center{min-height:171px!important}.hand .card{width:49px;min-width:49px}}
+@media(prefers-reduced-motion:reduce){.quick-take,.card-back.deck{transition:none!important}}

@@ -106,8 +106,22 @@ function renderPlaying(r,mine){
   $('[data-suggest]').forEach(b=>b.onclick=()=>{if(!action||!r.drew)return;const combo=groups[Number(b.dataset.suggest)];if(!combo)return;selected=new Set(combo);renderPlaying(r,mine);});
  }
  $$('[data-card]').forEach(btn=>btn.onclick=()=>{const id=btn.dataset.card;if(!myTurn)return;if(r.game==='onecard'&&!r.legal.includes(id))return message('지금 낼 수 없는 카드야.');if(selected.has(id))selected.delete(id);else {if(r.game==='onecard')selected.clear();selected.add(id);}renderPlaying(r,mine);});
- $('#drawPile').disabled=r.phase!=='playing'||!myTurn||(r.game==='hula'&&r.drew);
- $('#drawPile').onclick=()=>myTurn&&command('/'+r.id+(r.game==='onecard'?'/draw':'/take'),r.game==='onecard'?{}:{source:'stock'});
+ const canDraw=r.phase==='playing'&&myTurn&&(r.game==='onecard'||!r.drew);
+ const readyHula=r.game==='hula'&&canDraw;
+ const doDraw=()=>{if(canDraw&&!busy)command('/'+r.id+(r.game==='onecard'?'/draw':'/take'),r.game==='onecard'?{}:{source:'stock'});};
+ $('#drawPile').disabled=!canDraw;
+ $('#drawPile').classList.toggle('take-ready',readyHula);
+ $('#drawPile').onclick=doDraw;
+ $('#quickTake').classList.toggle('hidden',!readyHula);
+ $('#quickTake').disabled=!readyHula;
+ $('#quickTake').onclick=doDraw;
+ $('#stockCaption').textContent=r.game==='onecard'?'더미에서 받기':readyHula?'여기를 눌러 카드 받기':r.drew?'이번 턴 받기 완료':'상대 차례';
+ $('#stockCaption').classList.toggle('emphasis',readyHula);
+ $('#turnSteps').classList.toggle('hidden',r.game!=='hula');
+ if(r.game==='hula'){
+  const stage=r.phase==='thank'?'reaction':!myTurn?'wait':r.drew?'register':'receive';
+  $('#turnSteps').innerHTML='<span class="'+(stage==='receive'?'current':'')+'">① 받기</span><span class="'+(stage==='register'?'current':'')+'">② 등록·붙이기</span><span>③ 버리기</span>';
+ }
  $('#melds').innerHTML=r.game==='hula'?r.melds.map((m,i)=>'<div class="meld-row"><b>'+(m.kind==='set'?'땡':m.kind==='run'?'연속':'세븐')+'</b>'+m.cards.map(c=>'<span>'+glyph(c)+esc(n(c))+'</span>').join('')+'<button data-attach="'+i+'" '+(!myTurn||!r.drew||selected.size!==1||!attachments.some(a=>a.card===[...selected][0]&&a.index===i)?'disabled':'')+'>+ 붙이기</button></div>').join(''):'';
  $$('[data-attach]').forEach(btn=>btn.onclick=()=>command('/'+r.id+'/attach',{card:[...selected][0],index:Number(btn.dataset.attach)}).then(()=>selected.clear()));
  renderActions(r,myTurn);
@@ -131,7 +145,7 @@ function renderActions(r,myTurn){
  }else{
   $('#suitPicker').classList.add('hidden');
   const canMeld=sel.length>0&&(r.allowedMelds||[]).some(cs=>cs.length===sel.length&&cs.every(c=>sel.includes(c)));
-  el.innerHTML=!r.drew?'<button id="takeStock" '+(!myTurn?'disabled':'')+'>🂠 더미에서 받기</button><button id="stopBtn" class="secondary" '+(!myTurn?'disabled':'')+'>✋ 스톱 선언</button>':
+  el.innerHTML=!r.drew?'<button id="takeStock" class="take-card-button" '+(!myTurn?'disabled':'')+'>🂠 카드 한 장 받기</button><button id="stopBtn" class="secondary" '+(!myTurn?'disabled':'')+'>✋ 스톱 선언</button>':
    '<button id="meldBtn" '+(!myTurn||!canMeld?'disabled':'')+'>♛ '+(canMeld?'선택 조합 등록하기':'등록할 조합을 선택해')+'</button><button class="secondary" id="discardBtn" '+(!myTurn||sel.length!==1?'disabled':'')+'>↗ 선택 카드 버리기</button><span class="muted">붙이려면 한 장 선택 후 바닥 조합의 +버튼</span>';
   if($('#takeStock'))$('#takeStock').onclick=()=>command('/'+r.id+'/take',{source:'stock'});
   if($('#stopBtn'))$('#stopBtn').onclick=()=>command('/'+r.id+'/stop');

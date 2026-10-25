@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#090e19"><title>ROYAL CARDS · 준자랜드</title><link rel="stylesheet" href="/royalcards/cards.css?v=2"><link rel="stylesheet" href="/royalcards/hand-guide.css?v=20261025-3"></head>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#090e19"><title>ROYAL CARDS · 준자랜드</title><link rel="stylesheet" href="/royalcards/cards.css?v=2"><link rel="stylesheet" href="/royalcards/hand-guide.css?v=20261025-3"><link rel="stylesheet" href="/royalcards/premium-table.css?v=20261025-2"></head>
 <body><div class="ambient" aria-hidden="true"><i>♠</i><i>♥</i><i>♣</i><i>♦</i></div>
 <main id="app" class="shell">
 <header class="masthead"><a class="backlink" href="/" aria-label="준자랜드 로비로">← 로비</a><div class="brand"><div class="crown">♛</div><span>JUNJA LAND · PREMIUM SERIES</span><strong>ROYAL <em>CARDS</em></strong></div><div id="account" class="account">● SYNC</div></header>
@@ -20,10 +20,10 @@
  <div id="waiting" class="waiting hidden"><div class="wait-orbit">♜</div><h2>ROYAL LOUNGE</h2><p>최소 2명 · 참가자 모두 준비하면 방장이 시작해.</p><div id="readyList" class="ready-list"></div><div class="wait-actions"><button class="gold-btn" id="readyBtn">준비하기</button><button class="gold-btn" id="startBtn">대결 시작하기</button></div><div class="share-tip" id="roomCode"></div></div>
  <div id="table" class="table-area hidden">
    <div class="table-frame"><div class="table-sheen"></div><div id="opponents" class="opponents"></div>
-   <div class="table-center"><div class="table-badge" id="turnBadge">READY</div><div class="table-decks"><button id="drawPile" class="card-back deck" aria-label="더미에서 카드 한 장 받기"><span class="back-pattern">♛<small>JUNJA</small></span></button><div class="discard-wrap"><div id="topDiscard" class="card face">♠ A</div><small>DISCARD PILE</small></div></div><div id="playInfo" class="play-info"></div><div id="melds" class="melds"></div></div>
+   <div class="table-center"><div class="table-badge" id="turnBadge">READY</div><div id="turnSteps" class="turn-steps hidden"></div><div class="table-decks"><div class="stock-stack"><button id="drawPile" class="card-back deck" type="button" aria-label="더미에서 카드 한 장 받기"><span class="back-pattern">♛<small>JUNJA</small></span></button><small id="stockCaption" class="stock-caption">더미에서 받기</small></div><div class="discard-wrap"><div id="topDiscard" class="card face">♠ A</div><small>DISCARD PILE</small></div></div><div id="playInfo" class="play-info"></div><div id="melds" class="melds"></div></div>
    </div>
    <div class="bottom-board"><div class="self-header"><div><span class="micro">YOUR HAND</span><strong id="yourName">PLAYER</strong></div><div class="hand-meta"><span id="handCount">7장</span><span id="countdown">--s</span></div></div>
-   <div id="hand" class="hand" aria-label="내 카드"></div><div id="handHints" class="hand-hints" aria-live="polite"></div>
+   <button id="quickTake" type="button" class="quick-take hidden">🂠 카드 한 장 받기 · 내 차례</button><div id="hand" class="hand" aria-label="내 카드"></div><div id="handHints" class="hand-hints" aria-live="polite"></div>
    <div id="suitPicker" class="suit-picker hidden"><div>바꿀 무늬 선택</div><button data-suit="S">♠</button><button data-suit="H">♥</button><button data-suit="D">♦</button><button data-suit="C">♣</button></div>
    <div id="actions" class="game-actions"></div>
    <div id="feedback" class="feedback"></div>
@@ -33,4 +33,4 @@
 </section>
 <footer>ROYAL CARDS COLLECTION <span>·</span> FAIR PLAY · 카드 게임은 현금 가치 없는 친선 대전입니다</footer>
 <div id="rulesModal" class="modal hidden"><div class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="rulesHeading"><button id="closeRules" class="modal-close">✕</button><span class="micro">OFFICIAL HOUSE RULES</span><h2 id="rulesHeading">게임 규칙</h2><div id="rulesBody"></div><button id="closeRulesBottom" class="gold-btn">확인했어</button></div></div>
-</main><script src="/royalcards/cards.js?v=20261025-4" defer></script></body></html>
+</main><script src="/royalcards/cards.js?v=20261025-5" defer></script></body></html>
