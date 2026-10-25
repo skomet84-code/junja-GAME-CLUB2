@@ -94,23 +94,20 @@
  const outcome=(c,p)=>p.solved?'<div class="sr-result"><span class="sr-overline">CASE '+String(c.id).padStart(3,'0')+' / RESOLVED</span><strong>TRUE ENDING</strong><p>'+safe(c.ending)+'</p><p>사건 점수 '+p.score+'점 · 확보 증거 '+p.clues.length+'개</p>'+
   (c.id<13?'<button type="button" class="sr-btn" data-next="'+(c.id+1)+'">다음 사건 '+String(c.id+1).padStart(3,'0')+' 시작 →</button>':'<button type="button" class="sr-btn" data-tab="journal">13개 사건의 수사 결과 보기</button>')+'</div>':'';
  function scene(c,p){
-  const index=p.scene,items=c.clues.filter(x=>x.scene===index),puzzle=c.puzzles[index];
+  const index=p.scene,puzzle=c.puzzles[index];
   const places='<div class="sr-locations">'+c.locations.map((name,i)=>'<button type="button" data-place="'+i+'" class="'+(index===i?'active':'')+'" '+(i>p.gates.length?'disabled':'')+'>'+String(i+1).padStart(2,'0')+' · '+safe(name)+'</button>').join('')+'</div>';
-  const art='<div class="sr-scene"><div><small>SCENE '+String(index+1).padStart(2,'0')+' · INTERACTIVE INVESTIGATION</small><b>'+safe(c.locations[index])+'</b></div></div>';
-  const cards='<div class="sr-cards">'+items.map(e=>'<button type="button" class="sr-clue '+(p.clues.includes(e.id)?'found':'')+'" data-clue="'+e.id+'"><small>증거 / '+safe(e.id.toUpperCase())+'</small><strong>'+safe(e.name)+'</strong><em>'+(p.clues.includes(e.id)?'✓ 수사 수첩 기록됨':'⌕ 터치하여 조사')+'</em></button>').join('')+'</div>';
-  const box=puzzle?'<div class="sr-card"><span class="sr-overline">SECURED AREA</span><h3>'+safe(puzzle.name)+'</h3><p>'+safe(puzzle.intro)+'</p><div class="sr-actions"><button class="sr-btn" type="button" data-lock="'+puzzle.id+'">▣ 단서 조합하여 잠금 해제</button></div></div>':'';
-  return intro(c,p)+places+art+'<div class="sr-card"><span class="sr-overline">EVIDENCE / TAP TO INVESTIGATE</span><h3>현장에 남겨진 물증</h3>'+cards+'</div>'+
-   (puzzle&&!p.gates.includes(puzzle.id)?box:'')+(!puzzle&&p.scene===2?'<div class="sr-info">최종 증거를 찾았다면 수사 보드에서 기록을 교차 검증해.</div>':'')+outcome(c,p);
+  const room=window.BlackRoomImmersive?window.BlackRoomImmersive.room(c,p):'<p>현장을 불러오지 못했습니다. 새로고침해주세요.</p>';
+  const box=puzzle&&!p.gates.includes(puzzle.id)?'<div class="sr-card"><span class="sr-overline">SECURITY CLEARANCE</span><h3>▣ '+safe(puzzle.name)+'</h3><p>'+safe(puzzle.intro)+'</p><button class="sr-btn" type="button" data-lock="'+puzzle.id+'">확보한 단서로 잠금 해제 →</button></div>':'';
+  const next=!puzzle&&p.scene===2?'<div class="sr-info">현장의 증거를 모두 찾았다면 「수사 보드」에서 붉은 실로 연결해 봐.</div>':'';
+  return intro(c,p)+places+room+box+next+outcome(c,p);
  }
  function evidence(c,p){
   return '<div class="sr-card"><span class="sr-overline">PERSONAL EVIDENCE LOG</span><h2>증거 수첩 · '+p.clues.length+' / 8</h2><p>현장 조사에서 확보한 기록만 열람할 수 있어. 사라진 퍼즐의 조각을 연결해.</p>'+
    (p.clues.length?'<div class="sr-cards">'+p.clues.map(id=>{const e=c.clues.find(x=>x.id===id);return '<button class="sr-clue found" data-clue="'+id+'"><small>'+safe(c.locations[e.scene])+'</small><strong>'+safe(e.name)+'</strong><em>자세히 보기 →</em></button>';}).join('')+'</div>':'<p>확보한 물증이 없어. 먼저 현장을 조사해.</p>')+'</div>'+outcome(c,p);
  }
  function board(c,p){
-  return '<div class="sr-card"><span class="sr-overline">FORENSIC DEDUCTION</span><h2>증거를 선택하고 연결해</h2><p>서로 다른 물증 두 개를 선택하면 논리적인 관계가 있는지 검증할 수 있어. 잘못 추론해도 증거는 사라지지 않아.</p>'+
-   '<div class="sr-cards">'+p.clues.map(id=>{const e=c.clues.find(x=>x.id===id);return '<button data-evidence="'+id+'" class="sr-clue '+(selection.includes(id)?'selected':'')+'"><small>'+safe(e.id.toUpperCase())+'</small><strong>'+safe(e.name)+'</strong><em>'+ (selection.includes(id)?'✓ 선택됨':'선택하기')+'</em></button>';}).join('')+'</div>'+
-   '<div class="sr-actions"><button class="sr-btn" data-action="connect">증거 '+selection.length+' / 2 · 인과관계 입증</button><button class="sr-btn ghost" data-action="clear">선택 초기화</button></div></div>'+
-   '<div class="sr-card"><h3>입증한 논증 · '+p.theories.length+' / 3</h3><div class="sr-logic">'+p.theories.map(id=>proofCard(c.theories.find(t=>t.id===id))).join('')+(p.theories.length?'':'<p>증거를 교차 검증하면 이곳에 결과가 기록돼.</p>')+'</div></div>'+outcome(c,p);
+  if(window.BlackRoomImmersive)return window.BlackRoomImmersive.board(c,p,selection)+outcome(c,p);
+  return '<p>증거 보드를 불러오지 못했습니다. 새로고침해주세요.</p>';
  }
  function people(c,p){
   return '<div class="sr-card"><span class="sr-overline">INTERROGATION ROOM</span><h2>모순된 증언</h2><p>기록과 진술을 대조해야 자백이 아닌 입증을 얻을 수 있어.</p></div>'+
@@ -153,9 +150,18 @@
   if(!state.series)return;
   let res;
   if(name==='clue'){const c=lookup(active),e=c.clues.find(x=>x.id===arg);
-   res=S.inspect(prog(),active,arg);if(res.ok){save();render();openModal('<span class="sr-overline">EVIDENCE '+safe(arg.toUpperCase())+'</span><h2 id="srModalTitle">'+safe(e.name)+'</h2><p>'+safe(e.description)+'</p><button data-global="close" class="sr-btn">수첩에 기록 확인</button>');}else errMessage(res);return;}
+   if(!e)return showToast('해당 물증을 확인할 수 없어.');
+   if(c.id===2&&arg==='e5'&&!prog().cases[active]?.clues.includes(arg)&&window.BlackRoomImmersive){
+    openModal(window.BlackRoomImmersive.challenge(c,e));return;
+   }
+   res=S.inspect(prog(),active,arg);
+   if(res.ok){save();render();openModal(window.BlackRoomImmersive?window.BlackRoomImmersive.artifact(c,e):
+    '<h2 id="srModalTitle">'+safe(e.name)+'</h2><p>'+safe(e.description)+'</p><button data-global="close" class="sr-btn">계속하기</button>');}
+   else errMessage(res);return;}
   if(name==='witness'){const c=lookup(active),w=c.witnesses.find(x=>x.id===arg);
-   res=S.question(prog(),active,arg);save();render();openModal('<span class="sr-overline">INTERROGATION / '+(res.reveal?'EVIDENCE CONFIRMED':'TESTIMONY')+'</span><h2 id="srModalTitle">'+safe(w.name)+'</h2><p>'+safe(res.message)+'</p><button data-global="close" class="sr-btn">수사 계속하기</button>');return;}
+   res=S.question(prog(),active,arg);save();render();openModal(window.BlackRoomImmersive?
+    window.BlackRoomImmersive.interview(w,res):
+    '<h2 id="srModalTitle">'+safe(w.name)+'</h2><p>'+safe(res.message)+'</p><button data-global="close" class="sr-btn">수사 계속하기</button>');return;}
   if(name==='hint'){res=S.hint(prog(),active);if(res.ok){save();openModal('<span class="sr-overline">INVESTIGATOR HINT</span><h2 id="srModalTitle">수사 힌트</h2><p>'+safe(res.message)+'</p><p>힌트 1회 사용 · 최종 점수 -5</p><button class="sr-btn" data-global="close">계속 조사</button>');}return;}
   if(name==='connect'){
    if(selection.length!==2)return showToast('단서 두 개를 선택해야 해.');
@@ -164,6 +170,18 @@
   if(name==='clear'){selection=[];render();return;}
  }
  document.addEventListener('click',event=>{
+  const imm=event.target.closest('[data-imm-answer]');
+  if(imm){
+   const c=lookup(active),e=c.clues.find(x=>x.id===imm.dataset.immClue);
+   if(!e||!window.BlackRoomImmersive||!window.BlackRoomImmersive.checkChallenge(active,imm.dataset.immClue,imm.dataset.immAnswer)){
+    const fail=inside.querySelector('.br-failure');
+    if(fail)fail.textContent='✕ 기록이 일치하지 않아. 카메라 시각에 7분을 더해 봐.';
+    return;
+   }
+   const result=S.inspect(prog(),active,e.id);
+   if(!result.ok){errMessage(result);return;}
+   save();render();openModal(window.BlackRoomImmersive.recovered(c,e));return;
+  }
   const t=event.target.closest('[data-case],[data-next],[data-tab],[data-place],[data-clue],[data-evidence],[data-lock],[data-witness],[data-action],[data-global]');
   if(!t)return;
   if(t.dataset.case){goCase(Number(t.dataset.case));return;}
