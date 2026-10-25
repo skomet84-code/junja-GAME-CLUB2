@@ -5,9 +5,9 @@ const rankJs=fs.readFileSync(path.join(__dirname,'..','public','rank-system.js')
 const rankCss=fs.readFileSync(path.join(__dirname,'..','public','rank-system.css'),'utf8');
 if(!server.includes("{level:12,name:'GOD JUNJA',icon:'G',cost:10000000000000000,className:'god'}"))throw new Error('GOD JUNJA rank definition missing');
 if(!server.includes("Math.min(SOCIAL_RANKS.length-1"))throw new Error('Dynamic social rank clamp missing');
-if(!server.includes("level>=12?6:level>=11?4"))throw new Error('GOD daily draw perk missing');
-if(!server.includes("10000000000][level]||0"))throw new Error('GOD daily salary missing');
-if(!server.includes("level>=12?6:level>=11?5"))throw new Error('GOD shop/appearance tier missing');
+if(!server.includes("level>=13?9:level>=12?6:level>=11?4"))throw new Error('GOD daily draw perk missing');
+if(!server.includes("10000000000,100000000000][level]||0"))throw new Error('GOD daily salary missing');
+if(!server.includes("level>=13?7:level>=12?6:level>=11?5"))throw new Error('GOD shop/appearance tier missing');
 if(!server.includes("이미 THE ABSOLUTE · 절대초월자 최고 신분입니다."))throw new Error('Absolute max-rank message missing');
 if(!rankJs.includes("OMNIPOTENT STATUS"))throw new Error('GOD power panel missing');
 if(!rankJs.includes("GOD JUNJA 권능"))throw new Error('GOD perk UI missing');
