@@ -735,9 +735,9 @@ const SOCIAL_RANKS = [
   {level:9,name:'왕',icon:'♔',cost:30000000000000,className:'king'},
   {level:10,name:'황제',icon:'🏰',cost:100000000000000,className:'emperor'},
   {level:11,name:'JUNJA ROYAL',icon:'J',cost:300000000000000,className:'royal'},
-  {level:12,name:'GOD JUNJA',icon:'G',cost:10000000000000000,className:'god'},
-  // 100경 G · decimal string is exact beyond Number.MAX_SAFE_INTEGER.
-  {level:13,name:'THE ABSOLUTE',icon:'∞',cost:'1000000000000000000',className:'absolute'}
+  {level:12,name:'THE ABSOLUTE',icon:'∞',cost:10000000000000000,className:'god'},
+  // GOD JUNJA final tier, 100경 G · decimal string is exact beyond Number.MAX_SAFE_INTEGER.
+  {level:13,name:'GOD JUNJA',icon:'G',cost:'1000000000000000000',className:'absolute'}
 ];
 function socialRankPerks(level){
   level=Math.max(0,Math.min(SOCIAL_RANKS.length-1,Number(level)||0));
@@ -788,7 +788,7 @@ function promoteSocialRank(userId){
     if(!u)throw new Error('사용자를 찾을 수 없습니다.');
     const level=Math.max(0,Math.min(SOCIAL_RANKS.length-1,Number(u.rank_level||0)));
     const next=SOCIAL_RANKS[level+1];
-    if(!next)throw new Error('이미 THE ABSOLUTE · 절대초월자 최고 신분입니다.');
+    if(!next)throw new Error('이미 GOD JUNJA · 갓준자 최고 신분입니다.');
     // Keep rank purchases on the same exact-integer wallet path as the rest of JUNJA LAND.
     const current=exactWallet.read(u),cost=BigInt(next.cost);
     if(current<cost)throw new Error(`신분 상승에 ${formatMoney(next.cost)} G가 필요합니다.`);
