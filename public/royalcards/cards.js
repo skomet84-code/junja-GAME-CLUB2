@@ -121,7 +121,7 @@ function renderPlaying(r,mine){
    (groups.length?'<strong>♛ 등록 가능한 조합 '+groups.length+'개</strong><div class="suggestion-list">'+
      groups.slice(0,8).map((cs,i)=>'<button class="suggestion-btn" type="button" data-suggest="'+i+'">♛ '+labelCards(cs)+' · 즉시 등록</button>').join('')+'</div><span>조합을 누르면 즉시 등록되고 아래 등록 현황에 표시돼.</span>':
      '<strong>지금은 등록할 새 조합이 없어.</strong><span>카드 한 장을 버리거나 파란색 카드라면 붙여줘.</span>');
-  $('[data-suggest]').forEach(b=>b.onclick=()=>{if(!action||!r.drew||busy)return;const combo=groups[Number(b.dataset.suggest)];if(!combo)return;selected.clear();command('/'+r.id+'/meld',{cards:combo.slice()});});
+  $$('[data-suggest]').forEach(b=>b.onclick=()=>{if(!action||!r.drew||busy)return;const combo=groups[Number(b.dataset.suggest)];if(!combo)return;selected.clear();command('/'+r.id+'/meld',{cards:combo.slice()});});
  }
  $$('[data-card]').forEach(btn=>btn.onclick=()=>{const id=btn.dataset.card;if(!myTurn)return;if(r.game==='onecard'&&!r.legal.includes(id))return message('지금 낼 수 없는 카드야.');if(selected.has(id))selected.delete(id);else {if(r.game==='onecard')selected.clear();selected.add(id);}renderPlaying(r,mine);});
  const canDraw=r.phase==='playing'&&myTurn&&(r.game==='onecard'||!r.drew);
@@ -150,7 +150,7 @@ function renderPlaying(r,mine){
     m.cards.map(c=>'<span>'+glyph(c)+esc(n(c))+'</span>').join('')+
     '<button data-attach="'+i+'" '+(!myTurn||!r.drew||selected.size!==1||!attachments.some(a=>a.card===[...selected][0]&&a.index===i)?'disabled':'')+'>+ 붙이기</button></div>';
  }).join(''):'';
- $('[data-attach]').forEach(btn=>btn.onclick=()=>{const card=[...selected][0];if(!card||busy)return;selected.clear();command('/'+r.id+'/attach',{card,index:Number(btn.dataset.attach)});});
+ $$('[data-attach]').forEach(btn=>btn.onclick=()=>{const card=[...selected][0];if(!card||busy)return;selected.clear();command('/'+r.id+'/attach',{card,index:Number(btn.dataset.attach)});});
  renderHulaLedger(r,myTurn,attachments);
  renderActions(r,myTurn);
  const recent=r.events.slice(-3).reverse().map(e=>esc(e.text)).join(' · ');
