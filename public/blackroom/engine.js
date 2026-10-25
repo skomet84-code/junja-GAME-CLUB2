@@ -34,11 +34,12 @@ const PEOPLE = {
  lee:{name:'이현',role:'옆방 투숙객',statement:'그 시각 복도에는 아무도 없었어요. 정말이에요.',needs:['thread','footprint'],reveal:'사실 누군가 지나갔어요. 오른쪽 발을 끌면서 걸었죠. 무서워서 거짓말했어요.'}
 };
 const REQUIRED = ['timeline','entry','disguise'];
-function initial(){return {v:VERSION,scene:'hall',clues:[],links:[],door:false,archive:false,interviews:{},started:false,solved:false,score:0,hints:0,misses:0,log:[]};}
+function initial(){return {v:VERSION,scene:'hall',clues:[],links:[],door:false,archive:false,interviews:{},started:false,solved:false,ending:'pending',score:0,hints:0,misses:0,log:[]};}
 function hydrate(data){
  if(!data||typeof data!=='object'||data.v!==VERSION)return initial();
  const s=initial();
  s.door=!!data.door;s.archive=!!data.archive;s.started=!!data.started;s.solved=!!data.solved;
+ s.ending=s.solved?(data.ending==='true'?'true':'partial'):'pending';
  s.scene=SCENES[data.scene]?data.scene:'hall';if(!s.door)s.scene='hall';
  s.clues=Array.isArray(data.clues)?[...new Set(data.clues.filter(k=>CLUES[k]))]:[];
  if(!s.archive)s.clues=s.clues.filter(k=>k!=='footage');
@@ -93,14 +94,32 @@ function interrogate(s,id){
  return {ok:true,reveal:false,message:p.statement};
 }
 function ready(s){return REQUIRED.every(k=>s.links.includes(k));}
+function fullTruth(s){
+ return s.solved&&Object.keys(LINKS).every(k=>s.links.includes(k))&&
+  Object.keys(PEOPLE).every(k=>s.interviews[k]);
+}
+function revealTruth(s){
+ if(!s.solved)return {ok:false,message:'주요 사건을 먼저 해결해야 해.'};
+ if(!fullTruth(s))return {ok:false,message:'다섯 가지 추론과 세 명의 핵심 진술을 모두 입증해야 해.'};
+ if(s.ending==='true')return {ok:true,already:true,score:s.score,rank:s.score>=90?'S':'A'};
+ s.ending='true';s.score=Math.max(1,100-s.hints*8-s.misses*12);
+ record(s,'숨겨진 진상까지 규명 · 진엔딩 ('+s.score+'점)');
+ return {ok:true,score:s.score,rank:s.score>=90?'S':'A',message:'밀실뿐 아니라 은폐된 이동 경로와 세 명의 모순된 증언을 모두 밝혀냈다. 사건 뒤에는 또 다른 지시자가 존재한다.'};
+}
 function verdict(s,answers){
  if(!ready(s))return {ok:false,locked:true,message:'시각 · 출입 · 변장에 관한 세 추론이 필요해.'};
  if(!answers||answers.culprit!=='kang'||answers.time!=='offset'||answers.method!=='maintenance'){
   s.misses++;record(s,'섣부른 지목 · 재검토 필요');return {ok:false,message:'증거 한 개가 결론과 모순된다. 단서는 보존되니 다시 추리해.'};
  }
- s.solved=true;s.score=Math.max(1,100-s.hints*8-s.misses*12);record(s,'진상 규명 완료 · '+s.score+'점');
- const rank=s.score>=90?'S':s.score>=75?'A':s.score>=55?'B':'C';
- return {ok:true,score:s.score,rank,message:'강도윤은 CCTV 시간차, 정비 권한, 초승달 브로치를 이용해 당신으로 위장했다. 밀실은 외부 정비구로 조작된 것이었다.'};
+ s.solved=true;s.ending='partial';
+ s.score=Math.min(79,Math.max(1,100-s.hints*8-s.misses*12));
+ record(s,'주요 사건 해결 · 남은 진실 조사 가능 ('+s.score+'점)');
+ if(fullTruth(s)){
+  const revealed=revealTruth(s);
+  return {...revealed,ending:'true'};
+ }
+ const rank=s.score>=75?'A':s.score>=55?'B':'C';
+ return {ok:true,score:s.score,rank,ending:'partial',message:'강도윤의 밀실 조작은 입증됐다. 하지만 사건 배후와 이동 경로에 미해결 의문이 남았다. 다른 증거와 세 용의자의 진술을 끝까지 조사해.'};
 }
 function hint(s){
  s.hints++;
@@ -117,7 +136,7 @@ function progress(s){
  const fraction=s.clues.length/12*.43+s.links.length/5*.36+(s.door?.08:0)+(s.archive?.08:0)+(s.solved?.05:0);
  return {clues:s.clues.length,total:12,links:s.links.length,required:REQUIRED.filter(k=>s.links.includes(k)).length,percent:Math.min(100,Math.round(fraction*100))};
 }
-return Object.freeze({VERSION,SCENES,CLUES,LINKS,PEOPLE,REQUIRED,initial,hydrate,collect,travel,puzzle,connect,interrogate,ready,verdict,hint,progress});
+return Object.freeze({VERSION,SCENES,CLUES,LINKS,PEOPLE,REQUIRED,initial,hydrate,collect,travel,puzzle,connect,interrogate,ready,fullTruth,revealTruth,verdict,hint,progress});
 })();
 if(typeof module!=='undefined'&&module.exports)module.exports=BlackRoomEngine;
 if(typeof window!=='undefined')window.BlackRoomEngine=BlackRoomEngine;

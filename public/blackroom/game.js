@@ -11,10 +11,88 @@
  try{state=E.hydrate(JSON.parse(localStorage.getItem(STORAGE)||'null'));}
  catch{state=E.initial();}
  let tab='scene',selected=[],toastTimer=0;
+ let legacyGuestState=null;
+ const cloud={enabled:false,userId:null,revision:0,pending:false,saving:false};
+ const currentStorage=()=>cloud.userId?STORAGE+'_user_'+cloud.userId:STORAGE;
+ const status=text=>{$('#saveStatus').textContent=text;};
+ function mergeProgress(remote,local){
+  const r=E.hydrate(remote),l=E.hydrate(local);
+  const merged={...r,door:r.door||l.door,archive:r.archive||l.archive,
+   started:r.started||l.started,solved:r.solved||l.solved,
+   clues:[...new Set([...r.clues,...l.clues])],
+   links:[...new Set([...r.links,...l.links])],
+   interviews:{...r.interviews,...l.interviews},
+   hints:Math.max(r.hints,l.hints),misses:Math.max(r.misses,l.misses),
+   score:Math.max(r.score,l.score),ending:r.ending==='true'||l.ending==='true'?'true':r.solved||l.solved?'partial':'pending',
+   scene:l.scene,log:[...new Set([...l.log,...r.log])].slice(0,30)};
+  return E.hydrate(merged);
+ }
+ async function flushCloud(){
+  if(!cloud.enabled||cloud.saving)return;
+  cloud.saving=true;
+  try{
+   while(cloud.pending&&cloud.enabled){
+    cloud.pending=false;
+    const sentRevision=cloud.revision;
+    const snapshot=JSON.parse(JSON.stringify(state));
+    status('☁ 계정 수사 기록 동기화 중');
+    const response=await fetch('/api/blackroom/state',{method:'PUT',credentials:'same-origin',
+     headers:{'Content-Type':'application/json'},body:JSON.stringify({revision:sentRevision,state:snapshot})});
+    const data=await response.json();
+    if(response.status===409){
+     cloud.revision=data.revision;
+     state=mergeProgress(data.state,state);
+     try{localStorage.setItem(currentStorage(),JSON.stringify(state));}catch{}
+     cloud.pending=true;render();continue;
+    }
+    if(!response.ok){
+     status('⚠ 서버 저장 실패 · 이 기기 기록 유지');
+     cloud.enabled=false;break;
+    }
+    cloud.revision=data.revision;
+    status('☁ 준자랜드 계정에 저장됨');
+   }
+  }catch{status('⚠ 연결 오류 · 기기 기록 유지');cloud.enabled=false;}
+  finally{cloud.saving=false;}
+ }
+ async function bootstrapCloud(){
+  let guest;
+  try{guest=E.hydrate(JSON.parse(localStorage.getItem(STORAGE)||'null'));}catch{guest=E.initial();}
+  try{
+   const response=await fetch('/api/blackroom/state',{credentials:'same-origin',cache:'no-store'});
+   if(!response.ok)throw Error('not-authenticated');
+   const data=await response.json();
+   if(!data.account||!Number.isInteger(data.account.id))throw Error('bad-account');
+   cloud.userId=data.account.id;cloud.revision=data.revision;cloud.enabled=true;
+   const userKey=currentStorage();
+   let own;
+   try{own=E.hydrate(JSON.parse(localStorage.getItem(userKey)||'null'));}catch{own=E.initial();}
+   if(data.state){
+    state=E.hydrate(data.state);
+    // An interrupted upload is retained locally; merge progress rather than erase it.
+    if(own.started){state=mergeProgress(state,own);cloud.pending=true;}
+    try{localStorage.setItem(userKey,JSON.stringify(state));}catch{}
+    render();
+    if(cloud.pending)flushCloud();else status('☁ 준자랜드 계정에 저장됨');
+    return;
+   }
+   state=own.started?own:E.initial();
+   legacyGuestState=!own.started&&guest.started?guest:null;
+   render();
+   if(legacyGuestState){
+    openModal('<span class="eyebrow">SAVE TRANSFER</span><h2 class="modal-headline" id="modalTitle">기존 수사 기록 발견</h2>'+
+     '<p class="modal-copy">이 기기에 로그인 없이 진행한 블랙룸 기록이 있어. 현재 준자랜드 계정으로 가져올까? 다른 사람의 기록이면 새 사건을 선택해.</p>'+
+     '<div class="modal-actions"><button class="primary-action" data-action="import-guest">이 기기 기록 가져오기</button>'+
+     '<button class="secondary-action" data-action="new-cloud">새 사건 시작</button></div>');
+   }else{cloud.pending=true;flushCloud();}
+  }catch{cloud.enabled=false;cloud.userId=null;state=guest;render();status('이 기기에 저장 · 계정 저장은 로비 로그인 필요');}
+ }
  const panel=$('#panelRoot'),modal=$('#modal'),modalBody=$('#modalBody');
  const preserve=()=>{
-  try{localStorage.setItem(STORAGE,JSON.stringify(state));$('#saveStatus').innerHTML='<span class="save-dot"></span>이 기기에 자동 저장';}
-  catch{$('#saveStatus').textContent='이 기기 저장 불가 · 설정을 확인해';}
+  try{localStorage.setItem(currentStorage(),JSON.stringify(state));}
+  catch{status('⚠ 이 기기 저장 불가 · 설정을 확인해');}
+  if(cloud.enabled){cloud.pending=true;flushCloud();}
+  else status('이 기기에 저장됨 · 계정 저장은 로비 로그인 필요');
  };
  const notify=(message)=>{
   const node=$('#toast');node.textContent=message;node.classList.add('show');
@@ -28,7 +106,8 @@
  const closeModal=()=>{modal.hidden=true;modalBody.innerHTML='';};
  const mark=x=>'<span class="small-caps">'+esc(x)+'</span>';
  const objective=()=>{
-  if(state.solved)return '사건 종결 · 진엔딩 해금';
+  if(state.solved)return state.ending==='true'?'진엔딩 완료 · 사건 배후의 단서 발견':
+  '주요 범인은 입증했어. 남은 두 추론과 세 용의자의 진술을 밝혀 진엔딩에 도전해.';
   if(!state.door)return '13층 복도의 출입 장부를 조사하고 13호실 문을 열어.';
   if(!state.archive)return '객실 안 단서를 모으고, 보안실의 영상 보관함 암호를 해제해.';
   if(!state.clues.includes('footage'))return '보안실에서 CCTV 원본 영상을 확보해.';
@@ -97,8 +176,14 @@
   return heading('최종 추리','누가, 언제, 어떻게 밀실을 만들었는지 증거로 입증해야 한다','VERDICT / THE TRUTH')+
    '<section class="panel-card"><span class="eyebrow">REQUIRED EVIDENCE</span><h3>진실을 말할 준비가 되었는가?</h3>'+
    '<div class="verdict-gates">'+satisfied.map(([id,it])=>'<span class="'+(state.links.includes(id)?'passed':'')+'">'+(state.links.includes(id)?'✓ ':'⌑ ')+esc(it.name)+'</span>').join('')+'</div>'+
-   (state.solved?'<div class="outcome"><strong>CASE CLOSED</strong><p>사건 해결 완료 · 최종 평점 '+state.score+'점</p></div>'+
-    '<button type="button" class="secondary-action" data-action="ending">해결 결말 다시 보기</button>':
+   (state.solved?'<div class="outcome"><strong>'+(state.ending==='true'?'TRUE ENDING':'CASE SOLVED')+'</strong>'+
+     '<p>'+ (state.ending==='true'?'숨겨진 진실까지 입증':'1차 용의자 입증 · 미해결 단서 남음')+' · '+state.score+'점</p></div>'+
+    '<button type="button" class="secondary-action" data-action="ending">현재 결말 다시 보기</button>'+
+    (state.ending==='true'?'':E.fullTruth(state)?
+     '<button style="margin-left:8px" type="button" class="primary-action" data-action="reveal-truth">모든 증거로 진엔딩 입증 →</button>':
+     '<p class="modal-copy" style="margin-top:13px">진엔딩 조건: 증거 연결 5개 전부 + 용의자 3명 증언의 모순 입증. '+state.links.length+'/5 추론 · '+Object.values(state.interviews).filter(Boolean).length+'/3 심문</p>'+
+     '<button type="button" class="secondary-action" data-tab="board">추가 증거 연결하기</button>'+
+     '<button type="button" class="outline-action" data-tab="people" style="margin-left:7px">용의자 심문하기</button>'):
     E.ready(state)?'<p>검증 가능한 논리 세 가지가 완성됐어. 이제 최종 판단을 내려.</p>'+
     '<form id="verdictForm" class="verdict-form">'+
     '<label>① 진짜 범인은 누구인가?<select name="culprit" required>'+options([['yoon','윤서린 · 총지배인'],['kang','강도윤 · 기술자'],['lee','이현 · 투숙객']])+'</select></label>'+
@@ -158,11 +243,15 @@
    '<div class="modal-actions"><button type="button" class="primary-action" data-action="close-modal">심문 마치기</button></div>');
  };
  const endingDialog=()=>{
-  openModal('<span class="eyebrow">TRUE ENDING / CASE CLOSED</span><h2 class="modal-headline" id="modalTitle">검은 문 뒤의 진실</h2>'+
-   '<div class="outcome"><strong>RANK '+(state.score>=90?'S':state.score>=75?'A':state.score>=55?'B':'C')+'</strong><p>최종 '+state.score+'점 · 단서 '+state.clues.length+'개 · 힌트 '+state.hints+'회 · 오판 '+state.misses+'회</p></div>'+
-   '<p class="modal-copy">강도윤은 실제보다 7분 느린 CCTV를 이용해 시간 기록을 조작하고, 정비 권한으로 객실을 열었다. 영상 속 초승달 브로치는 당신이 아니라 위장한 그를 가리켰다.</p>'+
-   '<p class="modal-copy">하지만 초대장 뒷면에는 누군가 다른 필체로 적은 한 문장이 더 남아 있다. “그는 혼자가 아니었다.”</p>'+
-   '<div class="modal-actions"><button type="button" data-action="close-modal" class="primary-action">수사 파일 확인</button></div>');
+  const full=state.ending==='true';
+  const rank=full?(state.score>=90?'S':'A'):(state.score>=75?'A':state.score>=55?'B':'C');
+  openModal('<span class="eyebrow">'+(full?'TRUE ENDING / THE HIDDEN HAND':'CASE SOLVED / UNRESOLVED FILE')+'</span>'+
+   '<h2 class="modal-headline" id="modalTitle">'+(full?'밀실 뒤에 남은 명령':'13호실의 첫 번째 진실')+'</h2>'+
+   '<div class="outcome"><strong>RANK '+rank+'</strong><p>'+state.score+'점 · 단서 '+state.clues.length+'개 · 힌트 '+state.hints+'회 · 오판 '+state.misses+'회</p></div>'+
+   '<p class="modal-copy">강도윤은 CCTV 시간차, 정비 권한, 은빛 브로치를 이용해 당신으로 위장하고 객실 문을 조작했다. 그가 밀실을 만들었다는 사실은 입증됐다.</p>'+
+   (full?'<p class="modal-copy">하지만 모든 출입 경로와 용의자들의 바뀐 진술을 연결하자 숨겨진 지시 관계가 드러난다. 초대장에는 한 줄이 더 남았다. “13호실은 시험에 불과하다. 다음은 네 차례다.”</p>':
+    '<p class="modal-copy">아직 정체가 확인되지 않은 지시자가 있다. 모든 추론 5개와 용의자 3명의 모순을 입증하면 숨겨진 진실을 찾을 수 있다.</p>')+
+   '<div class="modal-actions"><button type="button" data-action="close-modal" class="primary-action">수사 파일로 돌아가기</button></div>');
  };
  const feedbackDialog=(title,message,positive=false)=>{
   openModal('<span class="eyebrow">'+(positive?'DEDUCTION CONFIRMED':'FIELD ANALYSIS')+'</span><h2 class="modal-headline" id="modalTitle">'+esc(title)+'</h2><p class="modal-copy">'+esc(message)+'</p>'+
@@ -212,8 +301,34 @@
    feedbackDialog(res.ok?'추론 입증 완료':'증거 연결 실패',res.message,res.ok);return;
   }
   if(act==='ending'){endingDialog();return;}
+  if(act==='reveal-truth'){
+   const result=E.revealTruth(state);
+   if(result.ok){preserve();render();endingDialog();}
+   else notify(result.message);
+   return;
+  }
+  if(act==='import-guest'){
+   if(!legacyGuestState)return;
+   state=E.hydrate(legacyGuestState);legacyGuestState=null;closeModal();preserve();render();return;
+  }
+  if(act==='new-cloud'){
+   legacyGuestState=null;state=E.initial();closeModal();preserve();render();return;
+  }
   if(act==='restart'){
    if(!window.confirm('제13호실의 이 기기 저장 기록만 초기화할까? 준자랜드 계정·게임머니에는 영향 없어.'))return;
+   if(cloud.enabled){
+    const rev=cloud.revision;
+    // Do not delete the cloud record if another device has newer progress.
+    fetch('/api/blackroom/state',{method:'DELETE',credentials:'same-origin',
+     headers:{'Content-Type':'application/json'},body:JSON.stringify({revision:rev})})
+     .then(async response=>{
+      const result=await response.json();
+      if(!response.ok){notify(result.error||'서버 기록 확인 실패');return;}
+      cloud.revision=result.revision;cloud.pending=false;
+      state=E.initial();tab='scene';selected=[];closeModal();preserve();render();
+     }).catch(()=>notify('연결 오류 · 사건 기록은 유지됐어.'));
+    return;
+   }
    state=E.initial();tab='scene';selected=[];closeModal();preserve();render();return;
   }
  });
@@ -234,5 +349,6 @@
  });
  modal.addEventListener('click',e=>{if(e.target===modal)closeModal();});
  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!modal.hidden)closeModal();});
- render();
+ panel.innerHTML='<section class="panel-card"><h3>수사 기록을 안전하게 불러오는 중</h3><p>준자랜드 계정과 기기 저장 상태를 확인하고 있어.</p></section>';
+ bootstrapCloud();
 })();

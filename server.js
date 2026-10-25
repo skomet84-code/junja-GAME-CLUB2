@@ -8,6 +8,7 @@ const staticResponse = require('./static-response');
 const exactWallet = require('./exact-wallet');
 const { DatabaseSync } = require('./persistent-db');
 const createTreasureRaid = require('./treasure-raid-server');
+const createBlackroomCloud = require('./blackroom-cloud');
 
 const PORT = Number(process.env.PORT || 10000);
 const HOST = '0.0.0.0';
@@ -2068,10 +2069,12 @@ function serveStatic(req,res,url){
   const st=fs.statSync(file);staticResponse(req,res,file,st,ct,securityHeaders());
 }
 
+const blackroomCloud=createBlackroomCloud({requireAuth,readBody,json,gameStateGet,gameStateSet});
 const server=http.createServer(async(req,res)=>{
   try{
     const url=new URL(req.url,`http://${req.headers.host||'localhost'}`);
     if(!sameOriginPost(req)){return json(res,403,{error:'잘못된 요청 출처입니다.'});}
+    if(url.pathname.startsWith('/api/blackroom/')){if(await blackroomCloud.handle(req,res,url))return;}
     if(url.pathname.startsWith('/api/royalcards')){if(await royalCards.handle(req,res,url))return;}
     if(url.pathname.startsWith('/api/janggi')){if(await janggi.handle(req,res,url))return;}
     if(url.pathname.startsWith('/api/liar')){if(await liar.handle(req,res,url))return;}
