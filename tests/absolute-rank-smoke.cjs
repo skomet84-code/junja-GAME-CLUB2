@@ -9,7 +9,7 @@ const start=server.indexOf('const SOCIAL_RANKS = [');
 const end=server.indexOf('function socialRankPerksForUser(',start);
 assert.ok(start>=0&&end>start,'rank definitions found');
 const context={};
-vm.runInNewContext(server.slice(start,end)+';globalThis.ranks=SOCIAL_RANKS;globalThis.perks=socialRankPerks;',context);
+vm.runInNewContext(server.slice(start,end).replace(/const jBank=createJBank\([^;]+;\s*/, '')+';globalThis.ranks=SOCIAL_RANKS;globalThis.perks=socialRankPerks;',context);
 const ranks=context.ranks,perks=context.perks;
 assert.equal(ranks.length,14);
 assert.equal(ranks[12].name,'THE ABSOLUTE');
