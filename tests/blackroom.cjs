@@ -16,7 +16,10 @@ assert.equal(E.hydrate(JSON.parse(JSON.stringify(s))).scene,'security','navigati
 assert.equal(E.collect(s,'footage').ok,false);
 assert.equal(E.puzzle(s,'archive','0713').ok,true);
 assert.equal(E.collect(s,'footage').ok,true);
-assert.equal(E.connect(s,'guest','clock').ok,false,'unrelated evidence must not form theory');
+const hypothesis=E.connect(s,'guest','clock');
+assert.equal(hypothesis.ok,true,'related evidence should generate an investigable hypothesis');
+assert.equal(hypothesis.provisional,true,'guest log and clock alone cannot prove a theory');
+assert.equal(s.links.length,0,'unverified hypothesis must not count as a verified deduction');
 [['clock','sync'],['guest','lock'],['invitation','footage']].forEach(([a,b])=>assert.equal(E.connect(s,a,b).ok,true));
 assert.equal(E.ready(s),true);
 assert.equal(E.interrogate(s,'kang').reveal,true);
