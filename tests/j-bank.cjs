@@ -8,6 +8,7 @@ assert.ok(start>=0&&end>start,'live rank table');
 const ranks=vm.runInNewContext(server.slice(start,end)+'\nSOCIAL_RANKS;');
 assert.equal(ranks[12].name,'THE ABSOLUTE');assert.equal(ranks[13].name,'GOD JUNJA');
 assert.equal(LIMITS.length,ranks.length);assert.equal(LIMITS[12],'100000000000000000','10경 G for THE ABSOLUTE');
+assert.equal(LIMITS[11],'5000000000000000','JUNJA ROYAL 5000조 G loan limit');
 assert.equal(LIMITS[13],'300000000000000000','30경 G for GOD JUNJA');
 assert.equal(RATE_BP,10n,'simple interest 0.1% daily');
 const sqlite=new DatabaseSync(':memory:');
@@ -21,6 +22,7 @@ const bank=createJBank({db,exactWallet,levels:ranks,now:()=>tm++,kstDate:()=>day
 const req=n=>'idempotent_request_'+n;
 const x=100000000000000000n;
 add(1,12);add(2,0);
+add(3,11);assert.equal(bank.status(3).loanLimit,'5000000000000000','ROYAL tier applied in real bank status');
 assert.equal(bank.status(1).loanLimit,String(x));
 assert.equal(bank.status(2).loanLimit,'5000000');
 assert.throws(()=>bank.borrow(2,'100000000000000000',req('low')),/한도/);
