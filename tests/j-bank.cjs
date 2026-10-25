@@ -138,6 +138,49 @@ assert.ok(ui.includes('quote.remainingDebt'),'show remaining debt before confirm
 assert.ok(ui.includes('confirm(details)'),'explicit confirmation before irreversible sale');
 assert.ok(ui.includes('승급비용의 <b>99%</b>'),'sale UI rate is accurate');
 
+// Real transfer handler regression: forbid outgoing P2P money while J-BANK debt
+// exists, including interest; fail before any wallet or ledger write.
+{
+ const transferStart=server.indexOf('function transferGameMoney(senderId,targetId,amount){');
+ const transferEnd=server.indexOf('\nfunction ensureLoadout(userId){',transferStart);
+ assert.ok(transferStart>=0&&transferEnd>transferStart,'actual transfer function must be tested');
+ const bankDbFile=new DatabaseSync(':memory:');
+ bankDbFile.exec(`CREATE TABLE users(id INTEGER PRIMARY KEY,nickname TEXT,rank_level INTEGER,is_disabled INTEGER DEFAULT 0,balance INTEGER,balance_exact TEXT,balance_base TEXT);
+ CREATE TABLE game_state(key TEXT PRIMARY KEY,value TEXT,updated_at INTEGER);
+ CREATE TABLE ledger(id INTEGER PRIMARY KEY AUTOINCREMENT,user_id INTEGER,amount INTEGER,balance_after INTEGER,amount_exact TEXT,balance_after_exact TEXT,type TEXT,memo TEXT,created_at INTEGER);`);
+ const transferDb={exec:sql=>bankDbFile.exec(sql),prepare:sql=>bankDbFile.prepare(sql)};
+ bankDbFile.prepare("INSERT INTO users(id,nickname,rank_level,is_disabled,balance,balance_exact,balance_base) VALUES(1,'보내는회원',0,0,2000000,'2000000','2000000')").run();
+ bankDbFile.prepare("INSERT INTO users(id,nickname,rank_level,is_disabled,balance,balance_exact,balance_base) VALUES(2,'받는회원',0,0,100,'100','100')").run();
+ let transferDay='2026-10-25';
+ const transferBank=createJBank({db:transferDb,exactWallet,levels:ranks,now:()=>tm++,kstDate:()=>transferDay});
+ const transferContext={db:transferDb,jBank:transferBank,now:()=>tm++,socialRankPerksForUser:()=>({transferFeePct:2}),formatMoney:n=>String(n)};
+ vm.createContext(transferContext);
+ vm.runInContext(server.slice(transferStart,transferEnd)+'\nthis.transfer=transferGameMoney;',transferContext);
+ const localBalance=id=>Number(transferDb.prepare('SELECT balance FROM users WHERE id=?').get(id).balance);
+ const localLedger=()=>Number(transferDb.prepare('SELECT COUNT(*) AS n FROM ledger').get().n);
+ const before=transferBank.borrow(1,'1000000',req('peer_loan'));
+ assert.equal(before.status.outstanding,'1000000');
+ let senderBefore=localBalance(1),receiverBefore=localBalance(2),ledgerBefore=localLedger();
+ assert.throws(()=>transferContext.transfer(1,2,10000),/J-BANK.*원금과 이자.*완납/,'borrower cannot send even 10K');
+ assert.equal(localBalance(1),senderBefore,'debt block preserves sender funds');
+ assert.equal(localBalance(2),receiverBefore,'debt block preserves recipient funds');
+ assert.equal(localLedger(),ledgerBefore,'debt block records no transfer');
+ transferDay='2026-10-26';
+ assert.equal(transferBank.owed(1),1001000n,'accrued interest included in debt check');
+ assert.throws(()=>transferContext.transfer(1,2,1),/J-BANK.*완납/,'interest-bearing debt still blocks 1G transfer');
+ assert.equal(localLedger(),ledgerBefore);
+ assert.equal(transferBank.repay(1,'all',req('peer_repay')).status.outstanding,'0');
+ assert.equal(transferBank.owed(1),0n,'full repayment instantly clears transfer restriction');
+ senderBefore=localBalance(1);receiverBefore=localBalance(2);ledgerBefore=localLedger();
+ const transfer=transferContext.transfer(1,2,10000);
+ assert.equal(transfer.amount,10000);assert.equal(transfer.fee,200);
+ assert.equal(localBalance(1),senderBefore-10200);
+ assert.equal(localBalance(2),receiverBefore+10000);
+ assert.equal(localLedger(),ledgerBefore+2,'normal transfer ledger after full repayment');
+ assert.equal(transferBank.owed(2),0n,'recipient debt is not required to receive funds');
+}
+console.log('JBANK_TRANSFER_LOCK_OK: indebted sender blocked, accrued interest blocked, funds unchanged, immediate unlock after full repayment');
+
 console.log('JBANK_RANK_SALE_OK: 99% sale proceeds, interest-first debt, exact refunds, one-tier downgrade, idempotency, re-borrow only after full repayment, no implicit forfeiture');
 
 console.log('JBANK_OK: exact 10경, rank limits, daily simple interest, partial/full repayment, no-double-credit, account isolation, 100경 promotion guard, persistence');
