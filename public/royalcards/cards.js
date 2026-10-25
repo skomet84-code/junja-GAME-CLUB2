@@ -103,7 +103,7 @@ function renderPlaying(r,mine){
    (groups.length?'<strong>♛ 등록 가능한 조합 '+groups.length+'개</strong><div class="suggestion-list">'+
      groups.slice(0,8).map((cs,i)=>'<button class="suggestion-btn" type="button" data-suggest="'+i+'">♛ '+labelCards(cs)+'</button>').join('')+'</div><span>조합을 누르면 한번에 선택돼.</span>':
      '<strong>지금은 등록할 새 조합이 없어.</strong><span>카드 한 장을 버리거나 파란색 카드라면 붙여줘.</span>');
-  $('[data-suggest]').forEach(b=>b.onclick=()=>{if(!action||!r.drew)return;const combo=groups[Number(b.dataset.suggest)];if(!combo)return;selected=new Set(combo);renderPlaying(r,mine);});
+  $$('[data-suggest]').forEach(b=>b.onclick=()=>{if(!action||!r.drew)return;const combo=groups[Number(b.dataset.suggest)];if(!combo)return;selected=new Set(combo);renderPlaying(r,mine);});
  }
  $$('[data-card]').forEach(btn=>btn.onclick=()=>{const id=btn.dataset.card;if(!myTurn)return;if(r.game==='onecard'&&!r.legal.includes(id))return message('지금 낼 수 없는 카드야.');if(selected.has(id))selected.delete(id);else {if(r.game==='onecard')selected.clear();selected.add(id);}renderPlaying(r,mine);});
  const canDraw=r.phase==='playing'&&myTurn&&(r.game==='onecard'||!r.drew);
