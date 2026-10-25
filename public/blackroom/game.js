@@ -132,7 +132,7 @@
   (id==='hall'?'⌖ ':id==='room'?'⌑ ':'◫ ')+esc(item.name)+'</button>').join('')+'</div>';
  const sceneChapterNav=()=>state.solved?
   '<section class="panel-card" style="margin-bottom:15px"><span class="eyebrow">CASE 001 / 013 · CLEARED</span><h3>1화 해결! 다음 사건이 열렸어</h3><p>'+(state.ending==='true'?'숨겨진 진상까지 입증 완료.':'2화를 먼저 진행해도 돼. 남은 추론과 심문은 1화의 선택형 진엔딩 도전이야.')+'</p><a class="primary-action" style="width:100%" href="/blackroom/series.html">사건 002 · 사라진 기록 시작 →</a></section>':
-  '<section class="panel-card" style="margin-bottom:15px"><span class="eyebrow">CASE 001 / 013 · INVESTIGATION</span><h3>현재 1화 수사 중</h3><p>시각·출입·변장 관련 핵심 추론 3개를 입증하고 ‘결론’에서 사건을 해결하면 2화가 열려. 장소 이동은 1화 안의 이동이야.</p><a class="secondary-action" style="display:inline-flex" href="/blackroom/series.html">13개 사건 목록 확인 →</a></section>';
+  '<section class="panel-card" style="margin-bottom:15px"><span class="eyebrow">CASE 001 / 013 · INVESTIGATION</span><h3>현재 1화 수사 중</h3><p>검증한 추론 3개가 모이면 ‘결론’에서 기본 사건 종결 후 2화로 진행할 수 있어. 장소 이동은 1화 안의 이동이야.</p><a class="secondary-action" style="display:inline-flex" href="/blackroom/series.html">13개 사건 목록 확인 →</a></section>';
  const scene=()=>{
   const loc=E.SCENES[state.scene];
   const markers=Object.entries(E.CLUES).filter(([,c])=>c.scene===state.scene).map(([id,c])=>{
@@ -173,10 +173,11 @@
    '<article class="theory tentative"><span class="eyebrow">검토 중 · 입증되지 않음</span><b>'+esc(h.name)+'</b><p>'+esc(h.result)+'</p></article>').join('');
   const picks=selected.map(id=>E.CLUES[id].name).join(' + ')||'단서를 두 개 선택해';
   return heading('수사 보드','증거 두 개를 직접 선택하고 연결해 논리적인 결론을 만들어','DEDUCTION / EVIDENCE LINKS')+
-   '<div class="board-summary"><strong>'+state.links.length+' / 5 추론 입증</strong><p>단서 카드 두 개를 선택하고 ‘선택한 증거 연결’을 눌러. 기본 판결에는 핵심 3개 추론만 필요하고, 나머지 2개는 진엔딩용이야.</p></div>'+
+   '<div class="board-summary"><strong>'+state.links.length+' / 5 추론 입증</strong><p>단서 카드 두 개를 선택하고 ‘선택한 증거 연결’을 눌러. 기본 판결은 핵심 추론을 검증해 풀거나, 검증한 추론이 3개 이상이면 빠른 종결로 2화에 진입할 수 있어. 모든 추론과 심문은 진엔딩 도전용이야.</p></div>'+
    (!state.archive||!state.clues.includes('footage')?'<section class="panel-card" style="margin:12px 0"><h3>아직 보안실 단서가 남아 있어</h3><p>객실의 5/5는 그 장소 단서 수야. 보안실로 이동해 CCTV 보관함과 영상을 조사해 봐.</p><button type="button" class="secondary-action" data-action="go-security">보안실로 이동 →</button></section>':
     !state.solved&&E.ready(state)?'<section class="panel-card" style="margin:12px 0"><h3>이제 기본 판결이 가능해!</h3><p>5/5를 모두 채우지 않아도 1화를 해결하고 2화로 넘어갈 수 있어.</p><button type="button" class="primary-action" data-tab="verdict">결론 · 최종 지목으로 →</button></section>':
     !state.solved?'<section class="panel-card" style="margin:12px 0"><h3>핵심 추론 '+E.REQUIRED.filter(id=>state.links.includes(id)).length+' / 3 완료</h3><p>남은 추론: '+esc(E.REQUIRED.filter(id=>!state.links.includes(id)).map(id=>E.LINKS[id].name).join(' · '))+'. 수집한 증거 두 개를 연결해 입증해 봐.</p></section>':'')+
+   (!state.solved&&E.canAdvance(state)?'<section class="panel-card" style="margin:12px 0"><h3>다음 사건으로 진행할 수 있어!</h3><p>검증한 추론 '+state.links.length+'개로 기본 수사를 종결할 수 있어. 남은 증거는 나중에 돌아와 진엔딩에 도전할 수 있어.</p><button class="primary-action" type="button" data-tab="verdict">결론으로 이동 · 2화 해금 →</button></section>':'')+
    (state.clues.length?'<div class="combine-dock" role="region" aria-label="단서 조합"><div class="chosen"><span class="chosen-count">'+selected.length+' / 2 선택됨</span><span>'+esc(picks)+'</span></div><button class="outline-action" data-action="clear" type="button">선택 해제</button><button class="primary-action" data-action="connect" type="button" '+(selected.length!==2?'disabled':'')+'>선택한 증거 연결 ⟷</button></div>':'')+
    (state.clues.length?'<div class="evidence-grid">'+list+'</div>':empty('연결할 증거가 없어','현장에서 최소 두 개를 확보한 뒤 돌아와.'))+
    '<div class="section-head" style="margin-top:25px"><div><span class="eyebrow">VERIFIED THEORY</span><h1 style="font-size:23px">입증된 추론</h1></div></div>'+
@@ -201,6 +202,7 @@
   return heading('최종 추리','누가, 언제, 어떻게 밀실을 만들었는지 증거로 입증해야 한다','VERDICT / THE TRUTH')+
    '<section class="panel-card"><span class="eyebrow">REQUIRED EVIDENCE</span><h3>진실을 말할 준비가 되었는가?</h3>'+
    '<div class="verdict-gates">'+satisfied.map(([id,it])=>'<span class="'+(state.links.includes(id)?'passed':'')+'">'+(state.links.includes(id)?'✓ ':'⌑ ')+esc(it.name)+'</span>').join('')+'</div>'+
+   (!state.solved&&E.canAdvance(state)?'<div class="panel-card" style="margin:15px 0;border-color:#c4a36d"><h3>수사 종결 · 다음 사건으로</h3><p>이미 '+state.links.length+'개의 유효한 증거 추론을 입증했어. 남은 필수 추론을 다시 조합하지 않아도 <strong>2화로 넘어갈 수 있어.</strong> 모든 진실을 밝히는 진엔딩은 나중에 도전 가능해.</p><button type="button" class="primary-action" style="width:100%" data-action="advance-case">1화 종결하고 2화 열기 →</button></div>':'')+
    (state.solved?'<div class="outcome"><strong>'+(state.ending==='true'?'TRUE ENDING':'CASE SOLVED')+'</strong>'+
      '<p>'+ (state.ending==='true'?'숨겨진 진실까지 입증':'1차 용의자 입증 · 미해결 단서 남음')+' · '+state.score+'점</p></div>'+
     '<button type="button" class="secondary-action" data-action="ending">현재 결말 다시 보기</button>'+
@@ -303,7 +305,7 @@
   openModal('<span class="eyebrow">FIELD MANUAL / HOW TO PLAY</span><h2 class="modal-headline" id="modalTitle">수사 방법</h2>'+
    '<div class="forensic-quote">① 현장의 빛나는 지점 클릭 → ② 단서 확보 → ③ 수사 보드에서 두 증거 연결 → ④ 용의자 심문 → ⑤ 최종 지목</div>'+
    '<p class="modal-copy">첫 번째 퍼즐은 복도의 장부, 두 번째 퍼즐은 보안실의 장비 안내문이 핵심이야. 틀려도 단서는 유지되고 마지막 지목에서 증거가 충분하지 않으면 진행할 수 없어.</p>'+
-   '<p class="modal-copy"><strong>EP.01 얼리 액세스</strong> · '+(cloud.enabled?'준자랜드 계정으로 수사 기록을 서버에 저장해. 기기에 복구 사본도 남겨.':'비로그인 상태에서는 현재 기기에만 저장돼. 준자랜드 로비에서 로그인하면 계정 저장을 사용할 수 있어.')+' 후속 12개 사건은 1화 기본 판결에 성공하면 차례대로 열려. 진엔딩은 선택 도전이야. 1~4인 친구 협동은 아직 개발 중이야.</p>'+
+   '<p class="modal-copy"><strong>EP.01 얼리 액세스</strong> · '+(cloud.enabled?'준자랜드 계정으로 수사 기록을 서버에 저장해. 기기에 복구 사본도 남겨.':'비로그인 상태에서는 현재 기기에만 저장돼. 준자랜드 로비에서 로그인하면 계정 저장을 사용할 수 있어.')+' 후속 12개 사건은 유효한 추론 3개 이상으로 1화 기본 수사를 종결하면 차례대로 열려. 진엔딩은 선택 도전이야. 1~4인 친구 협동은 아직 개발 중이야.</p>'+
    '<button type="button" class="secondary-action" data-action="close-modal">수사 계속하기</button>');
  };
  document.addEventListener('click',ev=>{
@@ -348,6 +350,11 @@
    const res=E.connect(state,selected[0],selected[1]);
    if(res.ok){selected=[];preserve();render();}
    feedbackDialog(res.provisional?'새 수사 가설 기록':res.already?'이미 입증한 추론':res.ok?'추론 입증 완료':'증거 재검토',res.message,res.ok);return;
+  }
+  if(act==='advance-case'){
+   const result=E.advance(state);
+   if(!result.ok){notify(result.message);return;}
+   selected=[];tab='verdict';preserve();render();endingDialog();return;
   }
   if(act==='ending'){endingDialog();return;}
   if(act==='reveal-truth'){

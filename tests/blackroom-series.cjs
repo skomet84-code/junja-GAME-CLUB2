@@ -8,6 +8,20 @@ const original=require('../public/blackroom/engine.js');
 const S=require('../public/blackroom/series-engine.js');
 assert.equal(S.CASES.length,12,'12 linked case definitions following episode 001');
 assert.deepEqual(S.CASES.map(c=>c.id),Array.from({length:12},(_,i)=>i+2));
+// 3 verified deductions should never leave players stuck at 001/013.
+const shortcut=original.initial();
+shortcut.started=true;shortcut.door=true;
+shortcut.clues=['guest','lock','thread','footprint','ledger'];
+shortcut.links=['entry','path','suspect'];
+assert.equal(original.ready(shortcut),false,'not all core proof paths are complete');
+assert.equal(original.canAdvance(shortcut),true,'three valid theories permit progression');
+assert.equal(original.advance(shortcut).ok,true,'expedited case close works');
+assert.equal(shortcut.ending,'partial','not falsely labelled TRUE ENDING');
+const shortcutRestored=original.hydrate(JSON.parse(JSON.stringify(shortcut)));
+assert.equal(shortcutRestored.solved,true,'fast close persists');
+assert.equal(S.unlocked(shortcutRestored.series,2,shortcutRestored.solved),true,'case 002 unlocked after fast close');
+const missing=original.initial();missing.door=true;missing.links=['entry','path'];
+assert.equal(original.canAdvance(missing),false,'two links cannot skip to 002');
 // EP01 core verdict unlocks EP02 without requiring optional TRUE ENDING.
 const partial=original.initial();
 partial.started=true;partial.door=true;partial.archive=true;

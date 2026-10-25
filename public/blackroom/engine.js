@@ -180,6 +180,17 @@ function interrogate(s,id,approach='evidence'){
   detail:'현재 물증으로는 알리바이를 반박할 수 없어. 먼저 해당 인물과 관련된 두 가지 증거를 확보해.'};
 }
 function ready(s){return REQUIRED.every(k=>s.links.includes(k));}
+// Three independently verified deductions suffice for the main story route.
+// Completion of all five theories and three interviews remains optional TRUE ENDING.
+function canAdvance(s){return !!s.door&&s.links.length>=3;}
+function advance(s){
+ if(s.solved)return {ok:true,already:true,score:s.score,message:'이미 해결한 사건이야. 2화를 계속 진행할 수 있어.'};
+ if(!canAdvance(s))return {ok:false,message:'서로 다른 증거를 연결해 검증한 추론 3개가 필요해.'};
+ s.solved=true;s.ending='partial';
+ s.score=Math.min(79,Math.max(1,100-s.hints*8-s.misses*12));
+ record(s,'본편 사건 종결 · 입증한 추론 '+s.links.length+'개 · 후속 002 해금');
+ return {ok:true,ending:'partial',score:s.score,message:'세 가지 이상 독립적인 증거 추론을 근거로 제13호실의 기본 수사를 종결했어. 아직 검증되지 않은 연결과 숨겨진 배후는 추가 조사로 남았고, 다음 사건 002가 열렸어.'};
+}
 function fullTruth(s){
  return s.solved&&Object.keys(LINKS).every(k=>s.links.includes(k))&&
   Object.keys(PEOPLE).every(k=>s.interviews[k]);
@@ -222,7 +233,7 @@ function progress(s){
  const fraction=s.clues.length/12*.43+s.links.length/5*.36+(s.door?.08:0)+(s.archive?.08:0)+(s.solved?.05:0);
  return {clues:s.clues.length,total:12,links:s.links.length,required:REQUIRED.filter(k=>s.links.includes(k)).length,percent:Math.min(100,Math.round(fraction*100))};
 }
-return Object.freeze({VERSION,SCENES,CLUES,LINKS,ALTERNATE_LINKS,HYPOTHESES,PEOPLE,REQUIRED,pairOptions,pairKey,matchingLink,proofFor,initial,hydrate,collect,travel,puzzle,connect,interrogate,ready,fullTruth,revealTruth,verdict,hint,progress});
+return Object.freeze({VERSION,SCENES,CLUES,LINKS,ALTERNATE_LINKS,HYPOTHESES,PEOPLE,REQUIRED,pairOptions,pairKey,matchingLink,proofFor,initial,hydrate,collect,travel,puzzle,connect,interrogate,ready,canAdvance,advance,fullTruth,revealTruth,verdict,hint,progress});
 })();
 if(typeof module!=='undefined'&&module.exports)module.exports=BlackRoomEngine;
 if(typeof window!=='undefined')window.BlackRoomEngine=BlackRoomEngine;

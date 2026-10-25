@@ -138,7 +138,7 @@
   const cleared=state.solved;
   renderList();
   if(!cleared){
-   app.innerHTML='<div class="sr-opening"><div><span class="sr-overline">ARCHIVE LOCKED / CASE 001</span><h2>제13호실의 기본 판결을 마쳐야 해</h2><p>시각·출입·변장에 관한 핵심 추론 3개를 입증하고 결론 탭에서 사건을 해결하면 002화가 열려. 진엔딩은 필수가 아니야. 기존 기록은 유지돼.</p><a href="/blackroom/" class="sr-btn">제13호실 수사 계속하기 →</a></div></div>';return;
+   app.innerHTML='<div class="sr-opening"><div><span class="sr-overline">ARCHIVE LOCKED / CASE 001</span><h2>제13호실의 기본 판결을 마쳐야 해</h2><p>1화에서 서로 다른 증거를 연결한 추론 3개를 입증했다면 결론 탭에서 ‘1화 종결하고 2화 열기’를 눌러. 진엔딩은 필수가 아니야. 기존 기록은 유지돼.</p><a href="/blackroom/" class="sr-btn">제13호실 수사 계속하기 →</a></div></div>';return;
   }
   if(tab==='journal'){app.innerHTML=journal();return;}
   if(!S.unlocked(prog(),active,true)){active=S.highestUnlocked(prog(),true);}

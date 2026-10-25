@@ -23,7 +23,7 @@ function createBlackroomCloud({requireAuth,readBody,json,gameStateGet,gameStateS
   for(const key of s.hypotheses){
    if(!key.split('|').every(c=>s.clues.includes(c)))throw Error('증거 없이 생성된 수사 가설입니다.');
   }
-  if(s.solved&&!E.ready(s))throw Error('필수 추론이 없는 결말입니다.');
+  if(s.solved&&!E.ready(s)&&!E.canAdvance(s))throw Error('검증한 추론이 부족한 결말입니다.');
   return s;
  };
  function current(key){
