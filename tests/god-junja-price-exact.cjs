@@ -15,7 +15,7 @@ assert.ok(rankStart>=0&&rankEnd>rankStart&&promoStart>rankEnd&&promoEnd>promoSta
 const sqlite=new DatabaseSync(':memory:');
 sqlite.exec('CREATE TABLE users(id INTEGER PRIMARY KEY,balance INTEGER,balance_exact TEXT,balance_base TEXT,rank_level INTEGER); CREATE TABLE ledger(user_id INTEGER,amount INTEGER,balance_after INTEGER,amount_exact TEXT,balance_after_exact TEXT,type TEXT,memo TEXT,created_at INTEGER)');
 const db={exec:(s)=>sqlite.exec(s),prepare:(s)=>{const stmt=sqlite.prepare(s);stmt.setReadBigInts(true);return stmt;}};
-const ctx={db,exactWallet,now:()=>1234567890,formatMoney:n=>BigInt(n).toLocaleString('ko-KR'),socialRankPublic:id=>({level:Number(db.prepare('SELECT rank_level FROM users WHERE id=?').get(id).rank_level)})};
+const ctx={db,exactWallet,jBank:{owed:()=>0n},now:()=>1234567890,formatMoney:n=>BigInt(n).toLocaleString('ko-KR'),socialRankPublic:id=>({level:Number(db.prepare('SELECT rank_level FROM users WHERE id=?').get(id).rank_level)})};
 vm.createContext(ctx);
 vm.runInContext(source.slice(rankStart,rankEnd)+'\n'+source.slice(promoStart,promoEnd)+'\nthis.promoteSocialRank=promoteSocialRank;this.ranks=SOCIAL_RANKS;',ctx);
 const cost=10000000000000000n;

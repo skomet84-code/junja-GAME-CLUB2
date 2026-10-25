@@ -6,6 +6,7 @@ const path = require('node:path');
 const crypto = require('node:crypto');
 const staticResponse = require('./static-response');
 const exactWallet = require('./exact-wallet');
+const {createJBank}=require('./j-bank-core');
 const { DatabaseSync } = require('./persistent-db');
 const createTreasureRaid = require('./treasure-raid-server');
 const createBlackroomCloud = require('./blackroom-cloud');
@@ -739,6 +740,7 @@ const SOCIAL_RANKS = [
   // GOD JUNJA final tier, 100경 G · decimal string is exact beyond Number.MAX_SAFE_INTEGER.
   {level:13,name:'GOD JUNJA',icon:'G',cost:'1000000000000000000',className:'absolute'}
 ];
+const jBank=createJBank({db,exactWallet,levels:SOCIAL_RANKS,now,kstDate});
 function socialRankPerks(level){
   level=Math.max(0,Math.min(SOCIAL_RANKS.length-1,Number(level)||0));
   const extraDraws=level>=13?9:level>=12?6:level>=11?4:level>=9?3:level>=6?2:level>=3?1:0;
@@ -779,7 +781,8 @@ function socialRankPublic(userId){
   const row=db.prepare('SELECT rank_level FROM users WHERE id=?').get(Number(userId));
   const level=Math.max(0,Math.min(SOCIAL_RANKS.length-1,Number(row?.rank_level||0)));
   const current=SOCIAL_RANKS[level],next=SOCIAL_RANKS[level+1]||null;
-  return {level,name:current.name,icon:current.icon,className:current.className,perks:socialRankPerks(level),freePlay:{slot:rankFreePlayState(userId,'slot'),wheel:rankFreePlayState(userId,'wheel')},maxLevel:!next,next:next?{level:next.level,name:next.name,icon:next.icon,cost:next.cost,className:next.className,perks:socialRankPerks(next.level)}:null};
+  const bankDebt=jBank.owed(userId);
+  return {level,name:current.name,icon:current.icon,className:current.className,bankDebt:String(bankDebt),promotionLocked:bankDebt>0n,perks:socialRankPerks(level),freePlay:{slot:rankFreePlayState(userId,'slot'),wheel:rankFreePlayState(userId,'wheel')},maxLevel:!next,next:next?{level:next.level,name:next.name,icon:next.icon,cost:next.cost,className:next.className,perks:socialRankPerks(next.level)}:null};
 }
 function promoteSocialRank(userId){
   db.exec('BEGIN IMMEDIATE');
@@ -789,6 +792,7 @@ function promoteSocialRank(userId){
     const level=Math.max(0,Math.min(SOCIAL_RANKS.length-1,Number(u.rank_level||0)));
     const next=SOCIAL_RANKS[level+1];
     if(!next)throw new Error('이미 GOD JUNJA · 갓준자 최고 신분입니다.');
+    if(jBank.owed(userId)>0n)throw new Error('J-BANK 원금과 이자를 완납해야 신분 상승이 가능합니다.');
     // Keep rank purchases on the same exact-integer wallet path as the rest of JUNJA LAND.
     const current=exactWallet.read(u),cost=BigInt(next.cost);
     if(current<cost)throw new Error(`신분 상승에 ${formatMoney(next.cost)} G가 필요합니다.`);
@@ -2146,6 +2150,20 @@ const server=http.createServer(async(req,res)=>{
       const token=parseCookies(req).sid;if(token)db.prepare('DELETE FROM sessions WHERE token=?').run(token);return json(res,200,{ok:true},{'Set-Cookie':'sid=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0'});
     }
     if(url.pathname==='/api/me'&&req.method==='GET'){const u=requireAuth(req,res);if(!u)return;const includePresence=url.searchParams.get('presence')==='1';return json(res,200,{user:u,online:onlineCount(),presence:includePresence?presenceSnapshot():[]});}
+    if(url.pathname==='/api/jbank'&&req.method==='GET'){
+      const u=requireAuth(req,res);if(!u)return;
+      try{return json(res,200,{ok:true,...jBank.status(u.id)});}catch(e){return json(res,400,{error:e.message});}
+    }
+    if((url.pathname==='/api/jbank/borrow'||url.pathname==='/api/jbank/repay')&&req.method==='POST'){
+      const u=requireAuth(req,res);if(!u)return;
+      if(!rateLimit('jbank:'+u.id,12,60000))return json(res,429,{error:'은행 거래 요청이 너무 빠릅니다. 잠시 후 다시 시도하세요.'});
+      try{
+        const b=await readBody(req),action=url.pathname.endsWith('/borrow')?'borrow':'repay';
+        const result=jBank[action](u.id,b.amount,b.requestId);
+        await db.flush();pushRefresh();
+        return json(res,200,{...result,user:userPublic(u.id)});
+      }catch(e){return json(res,400,{error:e.message});}
+    }
     if(url.pathname==='/api/rank'&&req.method==='GET'){const u=requireAuth(req,res);if(!u)return;return json(res,200,{rank:socialRankPublic(u.id),user:userPublic(u.id),ranks:SOCIAL_RANKS});}
     if(url.pathname==='/api/rank/promote'&&req.method==='POST'){
       const u=requireAuth(req,res);if(!u)return;
