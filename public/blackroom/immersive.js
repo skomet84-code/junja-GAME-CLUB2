@@ -12,7 +12,7 @@ function shelf(x,y,w,h){
 function servers(x,y){
  let s='<g>';for(let i=0;i<3;i++){let sx=x+i*112;s+='<rect x="'+sx+'" y="'+(y+i*8)+'" width="99" height="'+(310-i*10)+'" rx="4" fill="#0a1219" stroke="#5d8187" stroke-width="3"/>';
  for(let j=0;j<7;j++){let yy=y+i*8+16+j*39;s+='<rect x="'+(sx+8)+'" y="'+yy+'" width="82" height="29" rx="2" fill="#182d37" stroke="#374f57"/><rect x="'+(sx+14)+'" y="'+(yy+6)+'" width="42" height="2" fill="#6c8e97" opacity=".6"/><circle cx="'+(sx+77)+'" cy="'+(yy+15)+'" r="3.5" fill="'+(j%3===0?'#efac75':'#81d9bf')+'" class="br-led"/>';}
- s+='</g>';}return s+'</g>';
+ }return s+'</g>';
 }
 function archive(){
  return shelf(36,125,175,294)+shelf(229,135,166,284)+
