@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="ko"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#080f17"><meta name="description" content="블랙룸 제13호실 — 단서를 연결해 밀실의 진실을 밝히는 JUNJA LAND 오리지널 추리 게임">
+<title>BLACK ROOM : 제13호실 | JUNJA LAND</title>
+<link rel="stylesheet" href="/blackroom/style.css?v=7">
+<script defer src="/blackroom/series-data.js?v=1"></script>
+<script defer src="/blackroom/series-engine.js?v=1"></script>
+<script defer src="/blackroom/engine.js?v=7"></script>
+<script defer src="/blackroom/game.js?v=7"></script>
+</head><body>
+<div id="gameApp" class="case-shell">
+ <header class="mast">
+  <a href="/" class="home-link" aria-label="준자랜드 로비로 돌아가기"><span class="brand-seal">J</span><span>JUNJA LAND <small>ORIGINAL SERIES</small></span></a>
+  <div class="mast-center"><span class="signal-dot"></span><span>CASE FILE / 001</span><span class="mast-line"></span><span>13호실 실종 사건</span></div>
+  <div class="mast-actions"><button class="ghost-btn" type="button" data-action="help" aria-label="플레이 방법">? 도움말</button><button class="ghost-btn hint-btn" type="button" data-action="hint">✦ 힌트</button></div>
+ </header>
+ <div class="case-columns">
+  <aside class="side-rail" id="sideRail">
+   <div class="rail-title"><span class="small-caps">INVESTIGATION</span><strong>수사 구역</strong></div>
+   <nav class="side-nav" aria-label="게임 메뉴">
+    <button type="button" data-tab="scene" class="nav-button active"><span class="nav-symbol">⌖</span><span>현장 조사<small>SCENE</small></span></button>
+    <button type="button" data-tab="evidence" class="nav-button"><span class="nav-symbol">▤</span><span>증거 수첩<small>EVIDENCE</small></span></button>
+    <button type="button" data-tab="board" class="nav-button"><span class="nav-symbol">⟷</span><span>수사 보드<small>DEDUCTION</small></span></button>
+    <button type="button" data-tab="people" class="nav-button"><span class="nav-symbol">♙</span><span>용의자 심문<small>INTERROGATION</small></span></button>
+    <button type="button" data-tab="verdict" class="nav-button"><span class="nav-symbol">⚖</span><span>최종 추리<small>VERDICT</small></span></button>
+    <button type="button" data-tab="journal" class="nav-button"><span class="nav-symbol">≡</span><span>수사 기록<small>JOURNAL</small></span></button>
+   </nav>
+   <div class="rail-note"><span class="small-caps">HOTEL MEMORANDUM</span><p>“13번째 방은 존재하지 않는다. 그렇게 믿도록 설계되었을 뿐.”</p><span class="rail-signature">— 기록자 미상</span></div>
+  </aside>
+  <main class="main-content" id="mainContent" tabindex="-1">
+   <div id="panelRoot" aria-live="polite"></div>
+  </main>
+  <aside class="case-right" aria-label="사건 진행 상황">
+   <section class="dossier">
+    <div class="dossier-head"><span class="small-caps">CASE STATUS</span><span class="case-id">BR—001</span></div>
+    <h2>사라진<br>제13호실</h2>
+    <div class="case-stat"><span>조사 진행도</span><b id="percentNum">0%</b></div><div class="progress-track"><div id="progressBar" class="progress-fill"></div></div>
+    <div class="case-metrics"><div><strong id="evidenceNum">00</strong><small>확보한 단서 / 12</small></div><div><strong id="deductionNum">00</strong><small>성립한 추론 / 5</small></div></div>
+    <div class="dossier-rule"></div>
+    <h3>현재 목표</h3><p id="objectiveText" class="objective">복도의 기록을 살펴봐.</p>
+    <span class="save-status" id="saveStatus"><span class="save-dot"></span>이 기기에 자동 저장</span>
+   </section>
+   <section class="field-guide"><span class="small-caps">INVESTIGATOR'S NOTE</span><p>무언가를 찾는 것보다, 서로 모순되는 두 가지를 발견하는 일이 중요하다.</p><button type="button" data-tab="board" class="text-link">수사 보드 열기 <span aria-hidden="true">↗</span></button></section>
+  </aside>
+ </div>
+ <nav class="mobile-nav" aria-label="모바일 게임 메뉴">
+  <button type="button" data-tab="scene" class="active"><span>⌖</span>현장</button><button type="button" data-tab="evidence"><span>▤</span>단서</button><button type="button" data-tab="board"><span>⟷</span>추리</button><button type="button" data-tab="people"><span>♙</span>심문</button><button type="button" data-tab="verdict"><span>⚖</span>결론</button>
+ </nav>
+ <div id="toast" class="toast" role="status" aria-live="polite"></div>
+ <div id="modal" class="modal-backdrop" hidden><div class="modal-frame" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+  <button class="modal-close" type="button" data-action="close-modal" aria-label="창 닫기">✕</button><div id="modalBody"></div>
+ </div></div>
+ <div id="opening" class="opening" hidden>
+  <div class="opening-particles" aria-hidden="true"></div>
+  <div class="opening-inner"><div class="opening-mark">13</div><div class="small-caps gold">JUNJA LAND · ORIGINAL INVESTIGATION</div>
+   <div class="opening-rule"></div><h1>BLACK<span>ROOM</span></h1><p class="opening-sub">제13호실</p>
+   <p class="opening-quote">“모든 증거가 당신을 범인이라고 가리킨다.”</p>
+   <p class="opening-story">폭우가 내리던 밤, 존재하지 않던 13번째 객실이 열렸다. 복도의 시계는 멈췄고, 카메라엔 당신이 찍혔다. 남겨진 증거로 진실을 입증하라.</p>
+   <button type="button" class="primary-action opening-start" data-action="start">사건 파일 열기 <span>→</span></button>
+   <p class="opening-disclaimer">EP.01 얼리 액세스 · 계정 로그인 시 수사 기록 서버 저장 · 정식판 제작 중</p>
+  </div>
+ </div>
+</div>
+</body></html>
