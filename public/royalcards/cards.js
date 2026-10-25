@@ -161,10 +161,13 @@ function renderHulaLedger(r,myTurn,attachments){
  if(r.game!=='hula')return;
  let panel=$('#hulaLedger');
  if(!panel){
+  // Keep the registration panel optional for limited DOM/legacy renderers.
+  const board=$('.bottom-board');
+  if(typeof document.createElement!=='function'||typeof board?.insertBefore!=='function')return;
   panel=document.createElement('section');
   panel.id='hulaLedger';panel.className='hula-ledger';
   panel.setAttribute('aria-label','훌라 등록 패 현황');
-  $('.bottom-board').insertBefore(panel,$('#quickTake'));
+  board.insertBefore(panel,$('#quickTake'));
   const style=document.createElement('style');style.id='hula-ledger-style';
   style.textContent=[
    'body[data-game="hula"] .hula-ledger{margin:2px 0 14px;padding:12px;border:1px solid #d9b973b0;border-radius:15px;background:linear-gradient(140deg,#102f2d,#111e30);color:#f6e8c7;box-shadow:inset 0 1px #ffffff19,0 6px 15px #0005}',
