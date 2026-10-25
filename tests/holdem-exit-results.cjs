@@ -12,7 +12,7 @@ db.exec(`CREATE TABLE users(id INTEGER PRIMARY KEY,balance INTEGER,balance_exact
 CREATE TABLE room_escrow(room_id TEXT,user_id INTEGER,amount INTEGER);
 CREATE TABLE ledger(user_id INTEGER,amount INTEGER,balance_after INTEGER,amount_exact TEXT,balance_after_exact TEXT,type TEXT,memo TEXT,created_at INTEGER);
 CREATE TABLE stats(user_id INTEGER,poker_hands INTEGER,poker_wins INTEGER);
-INSERT INTO users VALUES(1,100),(2,100);INSERT INTO stats VALUES(1,0,0),(2,0,0);
+INSERT INTO users(id,balance) VALUES(1,100),(2,100);INSERT INTO stats VALUES(1,0,0),(2,0,0);
 INSERT INTO room_escrow VALUES('A',1,500),('A',2,500);`);
 let clock=100000;
 const r={id:'A',game:'holdem',name:'test',hostId:1,players:[
@@ -68,7 +68,7 @@ assert.equal(exactWallet.read(db.prepare('SELECT balance,balance_exact,balance_b
  'even a small cashout at very large wallet must not be lost');
 assert.equal(db.prepare("SELECT amount_exact FROM ledger WHERE user_id=4").get().amount_exact,'900');
 // Pending entrants have a seat and escrow, but no contribution to the live hand.
-db.exec("INSERT INTO users VALUES(3,0); INSERT INTO room_escrow VALUES('Q',3,1000)");
+db.exec("INSERT INTO users(id,balance) VALUES(3,0); INSERT INTO room_escrow VALUES('Q',3,1000)");
 const q={id:'Q',game:'holdem',name:'queue',hostId:1,hand:{phase:'flop',p:{1:{totalBet:100},2:{totalBet:100}}},players:[{userId:1},{userId:2},{userId:3,stack:1000,joinNextHand:true,leaveAfterHand:true}]};
 ctx.rooms.set('Q',q);ctx.settleHoldemDepartures(q);
 assert.equal(q.players.length,2);assert.equal(db.prepare('SELECT balance FROM users WHERE id=3').get().balance,1000);
