@@ -18,7 +18,7 @@ function el(id){
 }
 const dyn=['takeStock','stopBtn','meldBtn','discardBtn','drawBtn','playBtn','callBtn','thankNow','shareRoom'];
 const document={
- body:{dataset:{}},visibilityState:'visible',
+ body:{dataset:{}},visibilityState:'visible',addEventListener(){},
  querySelector(q){
   if(dyn.includes(q.slice(1))){
    const a=el('#actions').innerHTML+el('#roomCode').innerHTML;
