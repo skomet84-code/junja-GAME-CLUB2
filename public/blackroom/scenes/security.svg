@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 760" aria-hidden="true"><defs>
+<linearGradient id="sky" x2="0" y2="1"><stop stop-color="#060b17"/><stop offset=".55" stop-color="#17243b"/><stop offset="1" stop-color="#050c18"/></linearGradient>
+<linearGradient id="wall" x2=".9" y2="1"><stop stop-color="#26323d"/><stop offset=".43" stop-color="#111f29"/><stop offset="1" stop-color="#080d17"/></linearGradient>
+<linearGradient id="floor" x2="0" y2="1"><stop stop-color="#142630"/><stop offset="1" stop-color="#030913"/></linearGradient>
+<linearGradient id="gold" x2="0" y2="1"><stop stop-color="#f5e5ac"/><stop offset=".26" stop-color="#c1a879"/><stop offset=".5" stop-color="#8f6336"/><stop offset=".78" stop-color="#eccb83"/><stop offset="1" stop-color="#6b4f2c"/></linearGradient>
+<radialGradient id="vign"><stop stop-color="#000" stop-opacity="0" offset=".40"/><stop stop-color="#000" stop-opacity=".78" offset="1"/></radialGradient>
+<radialGradient id="warm"><stop stop-color="#f6bd77" stop-opacity=".53"/><stop offset="1" stop-color="#f6bd77" stop-opacity="0"/></radialGradient>
+<radialGradient id="cold"><stop stop-color="#4ec1ee" stop-opacity=".34"/><stop offset="1" stop-color="#5ae2ff" stop-opacity="0"/></radialGradient>
+<filter id="blur"><feGaussianBlur stdDeviation="20"/></filter>
+<filter id="soft"><feGaussianBlur stdDeviation="3"/></filter>
+<pattern id="grain" width="57" height="57" patternUnits="userSpaceOnUse">
+<circle cx="4" cy="10" r=".9" fill="#fff" opacity=".08"/><circle cx="28" cy="44" r=".6" fill="#fbe4be" opacity=".1"/>
+<circle cx="48" cy="27" r=".8" fill="#fff" opacity=".06"/></pattern></defs>
+<rect width="1280" height="760" fill="#08111d"/>
+<path d="M0 0H1280V560H0Z" fill="url(#wall)"/><path d="M0 544H1280V760H0Z" fill="url(#floor)"/>
+<path d="M0 86H1280M0 157H1280M0 488H1280" stroke="#766856" stroke-width="6" opacity=".65"/>
+<rect x="259" y="132" width="767" height="287" rx="17" fill="#0a121b" stroke="url(#gold)" stroke-width="13"/>
+<g><rect x="323" y="191" width="159" height="153" rx="7" fill="#040d16" stroke="#a18d67" stroke-width="8"/>
+<rect x="333" y="203" width="139" height="122" fill="#163a3d" stroke="#4a8a84" stroke-width="2"/>
+<path d="M335 304l36 -54 44 39 54 -70M336 224h128" fill="none" stroke="#6fb7c6" opacity=".55" stroke-width="3"/>
+<path d="M337 246H467M337 276H467" stroke="#9de7ce" opacity=".18" stroke-width="2"/>
+<text x="403" y="320" text-anchor="middle" font-family="monospace" font-size="17" fill="#9ee0b9">CAM 10</text></g><g><rect x="494" y="191" width="159" height="153" rx="7" fill="#040d16" stroke="#a18d67" stroke-width="8"/>
+<rect x="504" y="203" width="139" height="122" fill="#163a3d" stroke="#4a8a84" stroke-width="2"/>
+<path d="M506 304l36 -54 44 39 54 -70M507 224h128" fill="none" stroke="#6fb7c6" opacity=".55" stroke-width="3"/>
+<path d="M508 246H638M508 276H638" stroke="#9de7ce" opacity=".18" stroke-width="2"/>
+<text x="574" y="320" text-anchor="middle" font-family="monospace" font-size="17" fill="#9ee0b9">CAM 11</text></g><g><rect x="665" y="191" width="159" height="153" rx="7" fill="#040d16" stroke="#a18d67" stroke-width="8"/>
+<rect x="675" y="203" width="139" height="122" fill="#163a3d" stroke="#4a8a84" stroke-width="2"/>
+<path d="M677 304l36 -54 44 39 54 -70M678 224h128" fill="none" stroke="#6fb7c6" opacity=".55" stroke-width="3"/>
+<path d="M679 246H809M679 276H809" stroke="#9de7ce" opacity=".18" stroke-width="2"/>
+<text x="745" y="320" text-anchor="middle" font-family="monospace" font-size="17" fill="#9ee0b9">CAM 12</text></g><g><rect x="836" y="191" width="159" height="153" rx="7" fill="#040d16" stroke="#a18d67" stroke-width="8"/>
+<rect x="846" y="203" width="139" height="122" fill="#163a3d" stroke="#4a8a84" stroke-width="2"/>
+<path d="M848 304l36 -54 44 39 54 -70M849 224h128" fill="none" stroke="#6fb7c6" opacity=".55" stroke-width="3"/>
+<path d="M850 246H980M850 276H980" stroke="#9de7ce" opacity=".18" stroke-width="2"/>
+<text x="916" y="320" text-anchor="middle" font-family="monospace" font-size="17" fill="#9ee0b9">CAM 13</text></g>
+<path d="M255 437H1026L1150 659H132Z" fill="#131f29" stroke="#ad8c5a" stroke-width="9"/>
+<path d="M330 471H940L1010 595H268Z" fill="#07141b" stroke="#3b7275" stroke-width="3"/>
+<path d="M405 515H850M470 540H775M510 565H740" stroke="#8cc7bd" stroke-width="10" stroke-dasharray="12 7" opacity=".33"/>
+<ellipse cx="653" cy="392" rx="420" ry="256" fill="url(#cold)" opacity=".19"/>
+<g transform="translate(54 216)"><rect width="212" height="281" fill="#302c29" stroke="#d2b379" stroke-width="6"/>
+<rect x="20" y="30" width="174" height="214" fill="#ddd2b6" stroke="#9e8a65" stroke-width="2"/>
+<path d="M40 77H175M40 112H175M40 147H175M40 183H175" stroke="#8e8a78" stroke-width="4"/>
+<text x="105" y="56" text-anchor="middle" font-size="21" fill="#4d4b41">CCTV / SYNC</text>
+<text x="105" y="219" text-anchor="middle" font-size="32" fill="#57452b">-07 MIN</text></g>
+<g transform="translate(1030 424)"><rect width="214" height="231" rx="9" fill="#1e2b30" stroke="#c5a166" stroke-width="7"/>
+<path d="M0 74H214M0 150H214" stroke="#82694a" stroke-width="4"/>
+<rect x="50" y="23" width="113" height="30" fill="#aa9875"/><rect x="50" y="98" width="113" height="30" fill="#aa9875"/>
+<path d="M82 34H131M82 110H131" stroke="#4d4540" stroke-width="3"/>
+<text x="105" y="183" text-anchor="middle" font-size="18" fill="#ecdbaa">ASSET / LOG</text></g>
+<g transform="translate(555 408)"><rect width="172" height="70" rx="7" fill="#1e313a" stroke="#dcc28d" stroke-width="5"/>
+<text x="86" y="31" text-anchor="middle" font-size="14" fill="#d3c5a3">ARCHIVE 13</text>
+<text x="86" y="55" text-anchor="middle" font-size="18" fill="#88dcbf">LOCKED</text></g>
+<path d="M0 22H1280" stroke="#c2a778" stroke-width="5" opacity=".45"/>
+<rect width="1280" height="760" fill="url(#grain)"/><rect width="1280" height="760" fill="url(#vign)"/></svg>
