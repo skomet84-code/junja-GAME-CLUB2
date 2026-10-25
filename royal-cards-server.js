@@ -10,23 +10,33 @@ const value=c=>rank(c)||15;
 const cardDeck=(joker=false)=>SUITS.flatMap(s=>Array.from({length:13},(_,i)=>s+(i+1))).concat(joker?['JOKB','JOKR']:[]);
 const sameCards=(cards)=>new Set(cards).size===cards.length;
 const sum=cards=>cards.reduce((n,c)=>n+value(c),0);
+// Hula circular order is A,2,...,Q,K,A,2; a given card can appear only once.
+// A run may cross the K->A boundary, e.g. Q-K-A or K-A-2.
+function orderedRun(cards){
+ if(!Array.isArray(cards)||cards.length<2||cards.length>13||!sameCards(cards)||
+   !cards.every(c=>suit(c)===suit(cards[0])&&suit(c)!=='J'&&rank(c)>=1&&rank(c)<=13))return null;
+ const byRank=new Map(cards.map(c=>[rank(c),c]));
+ if(byRank.size!==cards.length)return null;
+ for(let start=1;start<=13;start++){
+  const order=Array.from({length:cards.length},(_,i)=>(start+i-1)%13+1);
+  if(order.every(v=>byRank.has(v)))return order.map(v=>byRank.get(v));
+ }
+ return null;
+}
 function meldKind(cards){
  if(!cards.length||!sameCards(cards)||cards.some(c=>suit(c)==='J'))return null;
  if(cards.length===1&&rank(cards[0])===7)return 'seven';
  if(cards.length<3)return null;
  const ranks=cards.map(rank);
  if(ranks.every(n=>n===ranks[0])&&new Set(cards.map(suit)).size===cards.length&&cards.length<=4)return 'set';
- if(cards.every(c=>suit(c)===suit(cards[0]))){
-  const s=ranks.slice().sort((a,b)=>a-b);
-  if(s.every((v,i)=>!i||v===s[i-1]+1))return 'run';
- }
+ if(orderedRun(cards))return 'run';
  return null;
 }
 function attachable(cards,card,kind){
  if(cards.includes(card)||suit(card)==='J')return false;
  if(kind==='set')return cards.length<4&&rank(card)===rank(cards[0])&&!cards.some(c=>suit(c)===suit(card));
  if(kind==='seven')return suit(card)===suit(cards[0])&&[6,8].includes(rank(card));
- if(kind==='run')return suit(card)===suit(cards[0])&&Math.min(...cards.map(rank))-1===rank(card)||kind==='run'&&suit(card)===suit(cards[0])&&Math.max(...cards.map(rank))+1===rank(card);
+ if(kind==='run')return suit(card)===suit(cards[0])&&meldKind([...cards,card])==='run';
  return false;
 }
 function findThank(hand,discard){
@@ -40,7 +50,7 @@ function findThank(hand,discard){
 }
 function combinations(arr){
  const out=[],seen=new Set();
- const add=cs=>{if(!meldKind(cs))return;const key=cs.slice().sort().join('|');if(seen.has(key))return;seen.add(key);out.push(cs);};
+ const add=cs=>{const kind=meldKind(cs);if(!kind)return;const key=cs.slice().sort().join('|');if(seen.has(key))return;seen.add(key);out.push(kind==='run'?orderedRun(cs):cs);};
  for(let i=0;i<arr.length;i++)if(rank(arr[i])===7)add([arr[i]]);
  for(let i=0;i<arr.length;i++)for(let j=i+1;j<arr.length;j++)for(let k=j+1;k<arr.length;k++)
   add([arr[i],arr[j],arr[k]]);
@@ -50,12 +60,15 @@ function combinations(arr){
    const cs=[arr[i],arr[j],arr[k],arr[l]];
    if(meldKind(cs)==='set')add(cs);
   }
+ // Generate every legal 4+ length circular window (including K-A-2), not
+ // only slices of numerically sorted cards that can miss a wrapped subset.
  for(const s of SUITS){
-  const cards=arr.filter(c=>suit(c)===s).sort((a,b)=>rank(a)-rank(b));
-  for(let i=0;i<cards.length;i++)for(let j=i+3;j<cards.length;j++){
-   const cs=cards.slice(i,j+1);
-   if(meldKind(cs)==='run')add(cs);
-  }
+  const byRank=new Map(arr.filter(c=>suit(c)===s).map(c=>[rank(c),c]));
+  for(let length=4;length<=Math.min(13,byRank.size);length++)
+   for(let start=1;start<=13;start++){
+    const ranks=Array.from({length},(_,i)=>(start+i-1)%13+1);
+    if(ranks.every(n=>byRank.has(n)))add(ranks.map(n=>byRank.get(n)));
+   }
  }
  return out.sort((a,b)=>sum(b)-sum(a));
 }
@@ -162,7 +175,7 @@ module.exports=function createRoyalCards({db,crypto,requireAuth,readBody,json,ra
   if(!kind)throw Error('등록은 동일 숫자 3장, 같은 무늬 연속 3장, 또는 7 한 장만 가능해.');
   const priorRegistration=p.registered;
   cards.forEach(c=>p.hand.splice(p.hand.indexOf(c),1));
-  r.melds.push({owner:p.id,cards:cards.slice(),kind});p.registered=true;
+  r.melds.push({owner:p.id,cards:kind==='run'?orderedRun(cards):cards.slice(),kind});p.registered=true;
   if(logIt)log(r,p.name+' · '+(kind==='seven'?'세븐 등록':kind==='set'?'땡 등록':'연속 등록'));
   if(!p.hand.length)finish(r,p,priorRegistration?'모두 등록하고 완주':'훌라!');
  }
@@ -171,6 +184,7 @@ module.exports=function createRoyalCards({db,crypto,requireAuth,readBody,json,ra
   if(!attachable(m.cards,card,m.kind))throw Error('붙일 수 없는 카드야.');
   p.hand.splice(p.hand.indexOf(card),1);m.cards.push(card);
   if(m.kind==='seven')m.kind='run';
+  if(m.cards.length>=3&&m.kind==='run')m.cards=orderedRun(m.cards)||m.cards;
   log(r,p.name+' · 붙이기 '+LABEL[suit(card)]+rank(card));
   if(!p.hand.length)finish(r,p,'모두 붙이고 완주');
  }
