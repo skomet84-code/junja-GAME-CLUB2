@@ -21,7 +21,7 @@ function render(d){
  state=d;const debt=BigInt(d.outstanding),cash=BigInt(d.wallet),hasLoan=debt>0n;
  const q=d.rankSale;
  const saleHtml=q?'<section class="jbank-rank-sale"><div class="jbank-sale-heading">⚖️ <b>신분 매각 · 빚 상환</b><small>매각은 본인 선택이며 취소할 수 없습니다.</small></div>'+
- '<p>현재 <b>'+esc(q.fromName)+'</b> → <b>'+esc(q.toName)+'</b> · 승급비용의 <b>70%</b> 매입</p>'+
+ '<p>현재 <b>'+esc(q.fromName)+'</b> → <b>'+esc(q.toName)+'</b> · 승급비용의 <b>99%</b> 매입</p>'+
  '<div class="jbank-sale-summary"><span>매각대금 <b>'+fmt(q.salePrice)+' G</b></span><span>대출 자동 상환 <b>'+fmt(q.repayAmount)+' G</b></span><span>매각 후 남는 빚 <b>'+fmt(q.remainingDebt)+' G</b></span><span>지갑에 지급 <b>'+fmt(q.cashBack)+' G</b></span></div>'+
  '<p class="jbank-sale-caution">매각대금은 이자부터 갚는 데 사용돼요. 남은 대출금이 있다면 추가 대출·승급은 계속 불가합니다. 완납하면 한 단계 낮아진 신분의 한도 내에서 다시 대출할 수 있습니다. 되사려면 다시 정상 승급비용을 내야 해요.</p>'+
  '<button class="jbank-submit jbank-sell-btn" data-jbank-action="sellRank" type="button">신분 1단계 매각 · 빚 상환하기</button></section>':
@@ -38,7 +38,7 @@ function close(){$('#jbankModal')?.classList.remove('open');}
 async function sellRank(){
  if(busy||!state?.rankSale)return;
  const quote=state.rankSale;
- const details=quote.fromName+' → '+quote.toName+'\n매각대금: '+fmt(quote.salePrice)+' G (승급비의 70%)\n상환: '+fmt(quote.repayAmount)+' G\n남는 빚: '+fmt(quote.remainingDebt)+' G\n지갑 지급: '+fmt(quote.cashBack)+' G\n\n강등은 취소할 수 없습니다. 정말 매각할까요?';
+ const details=quote.fromName+' → '+quote.toName+'\n매각대금: '+fmt(quote.salePrice)+' G (승급비의 99%)\n상환: '+fmt(quote.repayAmount)+' G\n남는 빚: '+fmt(quote.remainingDebt)+' G\n지갑 지급: '+fmt(quote.cashBack)+' G\n\n강등은 취소할 수 없습니다. 정말 매각할까요?';
  if(!confirm(details))return;
  busy=true;
  document.querySelectorAll('#jbankModal [data-jbank-action]').forEach(b=>b.disabled=true);

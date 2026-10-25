@@ -6,7 +6,7 @@ const LIMITS=Object.freeze([
  '1000000000000','10000000000000','5000000000000000',
  '100000000000000000','300000000000000000'
 ]); // THE ABSOLUTE = 10경 G; GOD JUNJA = 30경 G.
-const RATE_BP=10n,MIN_LOAN=1000000n,SELL_RATE_BP=7000n; // 70% of the rank purchase price // 0.1% simple interest per KST day.
+const RATE_BP=10n,MIN_LOAN=1000000n,SELL_RATE_BP=9900n; // 99% of the rank purchase price // 0.1% simple interest per KST day.
 function dayNumber(s){const n=Date.parse(String(s)+'T00:00:00Z');if(!Number.isFinite(n))throw Error('이자 계산 날짜 오류');return Math.floor(n/86400000);}
 function positive(raw){if(typeof raw!=='string'||!/^[1-9][0-9]{0,79}$/.test(raw))throw Error('금액은 1G 이상의 정수여야 합니다.');return BigInt(raw);}
 function createJBank({db,exactWallet,levels,now,kstDate}){
@@ -29,7 +29,7 @@ function createJBank({db,exactWallet,levels,now,kstDate}){
   const price=level>0?BigInt(String(levels[level].cost))*SELL_RATE_BP/10000n:0n;
   const pay=price<debt?price:debt;
   const rankSale=debt>0n&&level>0?{fromLevel:level,fromName:levels[level].name,toLevel:level-1,toName:levels[level-1].name,
-   salePrice:String(price),repayAmount:String(pay),remainingDebt:String(debt-pay),cashBack:String(price-pay),saleRatePct:70}:null;
+   salePrice:String(price),repayAmount:String(pay),remainingDebt:String(debt-pay),cashBack:String(price-pay),saleRatePct:99}:null;
   return {name:'J-BANK',rank:{level,name:levels[level].name},loanLimit:limit,minLoan:String(MIN_LOAN),
    dailyInterestPct:'0.1',interestMethod:'simple',principal:r.principal,interest:r.interest,
    outstanding:String(debt),canBorrow:debt===0n,canPromote:debt===0n,available:debt===0n?limit:'0',
@@ -125,7 +125,7 @@ function createJBank({db,exactWallet,levels,now,kstDate}){
    store(id,a);
    const ledger=db.prepare('INSERT INTO ledger(user_id,amount,balance_after,amount_exact,balance_after_exact,type,memo,created_at) VALUES(?,?,?,?,?,?,?,?)');
    ledger.run(id,exactWallet.mirror(proceeds),exactWallet.mirror(creditBalance),String(proceeds),String(creditBalance),'jbank_rank_sale',
-     'J-BANK 신분 매각 '+sale.fromName+' → '+sale.toName+' · 승급비의 70%',at);
+     'J-BANK 신분 매각 '+sale.fromName+' → '+sale.toName+' · 승급비의 99%',at);
    ledger.run(id,exactWallet.mirror(-applied),mirror,String(-applied),String(finalBalance),'jbank_rank_sale_repay',
      'J-BANK 신분 매각대금 자동 상환 · 이자 '+paidInterest+' G',at);
    db.prepare('INSERT INTO game_state(key,value,updated_at) VALUES(?,?,?)').run(receiptKey,JSON.stringify({level:expectedLevel,debt:expectedDebt,price:expectedPrice,sale}),at);

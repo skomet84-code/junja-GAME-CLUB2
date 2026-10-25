@@ -1,7 +1,7 @@
 'use strict';
 const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
 const {DatabaseSync}=require('node:sqlite'),exactWallet=require('../exact-wallet');
-const {createJBank,LIMITS,RATE_BP}=require('../j-bank-core');
+const {createJBank,LIMITS,RATE_BP,SELL_RATE_BP}=require('../j-bank-core');
 const server=fs.readFileSync('server.js','utf8'),html=fs.readFileSync('public/index.html','utf8'),ui=fs.readFileSync('public/j-bank.js','utf8'),rankUi=fs.readFileSync('public/rank-system.js','utf8');
 const start=server.indexOf('const SOCIAL_RANKS = ['),end=server.indexOf('\n];',start)+3;
 assert.ok(start>=0&&end>start,'live rank table');
@@ -11,6 +11,7 @@ assert.equal(LIMITS.length,ranks.length);assert.equal(LIMITS[12],'10000000000000
 assert.equal(LIMITS[11],'5000000000000000','JUNJA ROYAL 5000조 G loan limit');
 assert.equal(LIMITS[13],'300000000000000000','30경 G for GOD JUNJA');
 assert.equal(RATE_BP,10n,'simple interest 0.1% daily');
+assert.equal(SELL_RATE_BP,9900n,'sale proceeds are 99 percent');
 const sqlite=new DatabaseSync(':memory:');
 sqlite.exec('CREATE TABLE users(id INTEGER PRIMARY KEY,rank_level INTEGER,is_disabled INTEGER DEFAULT 0,balance INTEGER,balance_exact TEXT,balance_base TEXT);CREATE TABLE game_state(key TEXT PRIMARY KEY,value TEXT,updated_at INTEGER);CREATE TABLE ledger(id INTEGER PRIMARY KEY AUTOINCREMENT,user_id INTEGER,amount INTEGER,balance_after INTEGER,amount_exact TEXT,balance_after_exact TEXT,type TEXT,memo TEXT,created_at INTEGER);');
 const db={exec:s=>sqlite.exec(s),prepare:s=>{const st=sqlite.prepare(s);st.setReadBigInts(true);return st;}};
@@ -80,9 +81,10 @@ bank.borrow(4,'100000000000000000',req('rank_sale_large_loan'));
 const beforeSale=bank.status(4),quote=beforeSale.rankSale;
 assert.equal(quote.fromName,'THE ABSOLUTE');
 assert.equal(quote.toName,'JUNJA ROYAL');
-assert.equal(quote.salePrice,'7000000000000000','70% of 1경 promotion cost is 7000조');
-assert.equal(quote.repayAmount,'7000000000000000');
-assert.equal(quote.remainingDebt,'93000000000000000');
+assert.equal(quote.salePrice,'9900000000000000','99% of 1경 promotion cost is 9900조');
+assert.equal(quote.repayAmount,'9900000000000000');
+assert.equal(quote.saleRatePct,99);
+assert.equal(quote.remainingDebt,'90100000000000000');
 assert.equal(quote.cashBack,'0','sale proceeds cannot bypass outstanding debt');
 assert.throws(()=>bank.sellRank(4,{level:12,debt:'1',price:quote.salePrice},req('sale_stale')),/조건이 변경/);
 assert.equal(bank.status(4).rank.level,12,'stale confirmation never downgrades');
@@ -90,9 +92,9 @@ const sellPayload={level:quote.fromLevel,debt:beforeSale.outstanding,price:quote
 const saleResult=bank.sellRank(4,sellPayload,req('sale_valid'));
 assert.equal(saleResult.sale.fromLevel,12);
 assert.equal(saleResult.sale.toLevel,11);
-assert.equal(saleResult.sale.repaid,'7000000000000000');
-assert.equal(saleResult.status.outstanding,'93000000000000000');
-assert.equal(saleResult.status.principal,'93000000000000000');
+assert.equal(saleResult.sale.repaid,'9900000000000000');
+assert.equal(saleResult.status.outstanding,'90100000000000000');
+assert.equal(saleResult.status.principal,'90100000000000000');
 assert.equal(saleResult.status.rank.name,'JUNJA ROYAL');
 assert.equal(bank.status(4).loanLimit,'5000000000000000','downgraded rank has the correct 5000조 loan cap');
 assert.equal(wallet(4),100000000000000000n,'sale used for debt first, not a free cash credit');
@@ -105,25 +107,25 @@ assert.equal(bank.status(4).saleCount,1);
 assert.equal(bank.status(4).lastRankSale.toName,'JUNJA ROYAL');
 const afterSaleRestart=createJBank({db,exactWallet,levels:ranks,now:()=>tm++,kstDate:()=>day});
 assert.equal(afterSaleRestart.status(4).rank.level,11,'rank sale survives bank restart');
-assert.equal(afterSaleRestart.status(4).outstanding,'93000000000000000','partial debt survives restart');
+assert.equal(afterSaleRestart.status(4).outstanding,'90100000000000000','partial debt survives restart');
 
 // When the sale value exceeds the debt, only the surplus is paid to the wallet.
 add(5,13);
 bank.borrow(5,'300000000000000000',req('god_large_loan'));
 const godBefore=bank.status(5),godQuote=godBefore.rankSale;
-assert.equal(godQuote.salePrice,'700000000000000000','selling 100경 rank returns 70경');
+assert.equal(godQuote.salePrice,'990000000000000000','selling 100경 rank returns 99경');
 assert.equal(godQuote.repayAmount,'300000000000000000','30경 debt is paid in full');
-assert.equal(godQuote.cashBack,'400000000000000000','40경 surplus to wallet');
+assert.equal(godQuote.cashBack,'690000000000000000','69경 surplus to wallet');
 const godSale=bank.sellRank(5,{level:13,debt:godBefore.outstanding,price:godQuote.salePrice},req('god_sell'));
 assert.equal(godSale.status.outstanding,'0','god sale completely pays debt');
 assert.equal(godSale.status.rank.name,'THE ABSOLUTE');
 assert.equal(godSale.status.canPromote,true,'rank promotion unlocks after forced debt payoff');
-assert.equal(wallet(5),700000000000000000n,'original 30경 loan plus 40경 refund stays in wallet');
+assert.equal(wallet(5),990000000000000000n,'original 30경 loan plus 69경 refund stays in wallet');
 assert.equal(godSale.status.canBorrow,true,'re-borrow is now enabled at the lowered rank');
 assert.equal(bank.borrow(5,'100000000000000000',req('after_sale_reloan')).status.outstanding,'100000000000000000');
 assert.equal(bank.status(5).loanLimit,'100000000000000000','re-loan respects downgraded ABSOLUTE 10경 limit');
 assert.throws(()=>bank.borrow(5,'1',req('double_reloan')),/전액 상환/);
-const wrongQuote={level:13,debt:'300000000000000000',price:'700000000000000000'};
+const wrongQuote={level:13,debt:'300000000000000000',price:'990000000000000000'};
 assert.throws(()=>bank.sellRank(5,wrongQuote,req('stale_again')),/조건이 변경/,'cannot sell old rank using old quote');
 assert.throws(()=>bank.sellRank(5,{level:0,debt:'1',price:'1'},req('rank_false')),/조건이 변경/);
 add(6,0);
@@ -134,7 +136,8 @@ assert.ok(server.includes("'/api/jbank/sell-rank'"),'server exposes authenticate
 assert.ok(ui.includes('/api/jbank/sell-rank'),'UI calls sale endpoint');
 assert.ok(ui.includes('quote.remainingDebt'),'show remaining debt before confirmation');
 assert.ok(ui.includes('confirm(details)'),'explicit confirmation before irreversible sale');
+assert.ok(ui.includes('승급비용의 <b>99%</b>'),'sale UI rate is accurate');
 
-console.log('JBANK_RANK_SALE_OK: 70% sale proceeds, interest-first debt, exact refunds, one-tier downgrade, idempotency, re-borrow only after full repayment, no implicit forfeiture');
+console.log('JBANK_RANK_SALE_OK: 99% sale proceeds, interest-first debt, exact refunds, one-tier downgrade, idempotency, re-borrow only after full repayment, no implicit forfeiture');
 
 console.log('JBANK_OK: exact 10경, rank limits, daily simple interest, partial/full repayment, no-double-credit, account isolation, 100경 promotion guard, persistence');
