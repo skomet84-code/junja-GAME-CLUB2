@@ -23,3 +23,11 @@ assert.equal(E.hydrate(JSON.parse(JSON.stringify(s))).ending,'true');
 const old={...s};delete old.ending;
 assert.equal(E.hydrate(old).ending,'partial','v1 saves migrate without erasing progress');
 console.log('BLACKROOM_STORY_OK — partial verdict, five evidence theories, three interrogations, guarded true ending');
+
+{
+ const fs=require('node:fs'),assert=require('node:assert/strict');
+ const ui=fs.readFileSync(require('node:path').join(__dirname,'../public/blackroom/game.js'),'utf8');
+ for(const token of ['sceneChapterNav','사건 002 · 사라진 기록 시작','1화 내부 장소 이동','offerGuestImport','mergeProgress(state,legacyGuestState)','dismiss-import'])
+  assert.ok(ui.includes(token),'first case continuation missing: '+token);
+ console.log('BLACKROOM_CHAPTER_NAV_OK');
+}
