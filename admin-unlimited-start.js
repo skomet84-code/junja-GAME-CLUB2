@@ -204,12 +204,16 @@ source = replaceOne(
   "const wn=Number(w.balance)+stake,ln=Number(l.balance)-stake,t=now();if(!Number.isInteger(wn)||wn>9000000000000000000)throw new Error('보유 게임머니 저장 한도를 초과합니다.');",
   'baccarat large wallet'
 );
-source = replaceOne(
-  source,
-  "if(!Number.isSafeInteger(bal))throw new Error('게임머니 한도를 초과합니다.');",
-  "if(!Number.isInteger(bal)||bal>9000000000000000000)throw new Error('보유 게임머니 저장 한도를 초과합니다.');",
-  'daily bonus large wallet'
-);
+// The core daily endpoint now writes balance_exact with BigInt. Do not apply
+// the old Number-based int64 fallback over the exact-wallet implementation.
+if (!source.includes("SELECT balance,balance_exact,balance_base,last_daily FROM users WHERE id=?")) {
+  source = replaceOne(
+    source,
+    "if(!Number.isSafeInteger(bal))throw new Error('게임머니 한도를 초과합니다.');",
+    "if(!Number.isInteger(bal)||bal>9000000000000000000)throw new Error('보유 게임머니 저장 한도를 초과합니다.');",
+    'daily bonus large wallet'
+  );
+}
 source = source.split("!Number.isSafeInteger(buyIn)||buyIn<1000").join("!Number.isInteger(buyIn)||buyIn<1000||buyIn>9000000000000000000");
 
 // Seven Poker solo: exact BigInt wallet accounting above Number.MAX_SAFE_INTEGER.
