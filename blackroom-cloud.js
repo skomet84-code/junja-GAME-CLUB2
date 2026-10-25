@@ -44,7 +44,7 @@ function createBlackroomCloud({requireAuth,readBody,json,gameStateGet,gameStateS
    return json(res,200,{ok:true,account:{id:user.id,nickname:user.nickname},...current(key)}),true;
   }
   if(req.method==='PUT'){
-   const body=await readBody(req,12000);
+   const body=await readBody(req,96000);
    if(!Number.isInteger(body.revision)||body.revision<0) return json(res,400,{error:'저장 버전이 올바르지 않습니다.'}),true;
    let cleaned;
    try{cleaned=safe(body.state);}catch(e){return json(res,400,{error:e.message}),true;}
