@@ -2,6 +2,7 @@
 const BlackRoomEngine = (() => {
 'use strict';
 const VERSION = 1;
+const SeriesEngine = typeof module==='object'&&module.exports?require('./series-engine.js'):window.BlackRoomSeriesEngine;
 const SCENES = {
  hall:{name:'13층 복도',sub:'멈춘 시계와 존재하지 않는 문'},
  room:{name:'제13호실',sub:'그 누구도 나올 수 없었다는 방'},
@@ -75,7 +76,7 @@ const PEOPLE = {
   rapportLine:'나까지 의심받을까 두려웠어요. 그 사람의 걸음소리를 다시 떠올리고 싶지는 않아요.'}
 };
 const REQUIRED = ['timeline','entry','disguise'];
-function initial(){return {v:VERSION,scene:'hall',clues:[],links:[],door:false,archive:false,interviews:{},observations:{},rapport:{},defensive:{},proofs:{},hypotheses:[],started:false,solved:false,ending:'pending',score:0,hints:0,misses:0,log:[]};}
+function initial(){return {v:VERSION,scene:'hall',clues:[],links:[],door:false,archive:false,interviews:{},observations:{},rapport:{},defensive:{},proofs:{},hypotheses:[],started:false,solved:false,ending:'pending',score:0,hints:0,misses:0,log:[],series:SeriesEngine.fresh()};}
 function hydrate(data){
  if(!data||typeof data!=='object'||data.v!==VERSION)return initial();
  const s=initial();
@@ -101,6 +102,7 @@ function hydrate(data){
  s.hints=Math.max(0,Math.min(999,Number(data.hints)||0));s.misses=Math.max(0,Math.min(999,Number(data.misses)||0));
  s.score=Math.max(0,Math.min(100,Number(data.score)||0));
  s.log=Array.isArray(data.log)?data.log.filter(x=>typeof x==='string').slice(-30):[];
+ s.series=SeriesEngine.hydrate(data.series,s.ending==='true');
  return s;
 }
 function record(s,entry){s.log.unshift(entry);s.log=s.log.slice(0,30);}
