@@ -22,6 +22,14 @@ assert.match(yutFlowBanner({phase:'playing',mine:true,awaitingThrow:true}),/바�
 assert.match(yutFlowBanner({phase:'playing',mine:true,pending:[{name:'도'}]}),/말 선택/);
 assert.match(yutFlowBanner({phase:'playing',mine:false},'<script>'),/&lt;script&gt;/);
 assert.match(yutFlowBanner({phase:'complete'}),/FINISH/);
+// Bottom edge must contain 15, 16, 17, 18, 19, 20 and HOME at equal distances.
+// The previous O20=[82,90] squeezed 19/20 and 20/HOME into half-sized gaps.
+const pos=vm.runInContext('YUT_NODE_POS',ctx);
+const lower=['O15','O16','O17','O18','O19','O20','START'];
+const dx=lower.slice(1).map((node,i)=>pos[node][0]-pos[lower[i]][0]);
+assert.ok(dx.every(d=>Math.abs(d-80/6)<0.004), 'six equally spaced bottom intervals: '+dx);
+assert.ok(lower.every(node=>pos[node][1]===90),'all bottom nodes share the same bottom path');
+assert.ok(dx.every(d=>d>=13),'19, 20 and HOME have adequate separation on small screens');
 const y={sides:[
  {id:'a',label:'나',color:'#ffdd88',playerIds:[1],pieces:[{node:'O5'},{node:'READY'},{node:'FINISH'},{node:'READY'}]},
  {id:'b',label:'봇',color:'#88ddff',playerIds:[2],pieces:[{node:'O8'},{node:'READY'},{node:'FINISH'},{node:'READY'}]}
