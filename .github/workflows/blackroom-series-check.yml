@@ -1,0 +1,35 @@
+name: BLACK ROOM 13-case verification
+on:
+  push:
+    branches: [railway-recovery, main]
+    paths:
+      - 'public/blackroom/**'
+      - 'blackroom-cloud.js'
+      - 'tests/blackroom*.cjs'
+      - 'package.json'
+      - '.github/workflows/blackroom-series-check.yml'
+  pull_request:
+    paths:
+      - 'public/blackroom/**'
+      - 'blackroom-cloud.js'
+      - 'tests/blackroom*.cjs'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  blackroom-campaign:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate modules and legacy episode
+        run: |
+          node --check public/blackroom/engine.js
+          node --check public/blackroom/game.js
+          node --check public/blackroom/series-data.js
+          node --check public/blackroom/series-engine.js
+          node --check public/blackroom/series-ui.js
+          npm run test:blackroom
