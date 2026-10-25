@@ -980,7 +980,7 @@ function settleHoldemDepartures(r){
     if(held){
       const refund=Math.max(0,Math.floor(Number(p.stack||0)));
       if(!Number.isSafeInteger(refund))throw new Error('안전한 정산 가능 금액을 초과했어.');
-      exactWallet.change(db,p.userId,refund,'holdem_cashout',`${r.name} 자동 퇴장 정산`,now(),{escrowRoomId:r.id});
+      exactWallet.change(db,p.userId,refund,'holdem_cashout',`${r.name} 자동 퇴장 정산`,now,{escrowRoomId:r.id});
     }
     r.players=r.players.filter(x=>x.userId!==p.userId);
     if(r.hostId===p.userId)r.hostId=r.players[0]?.userId;
