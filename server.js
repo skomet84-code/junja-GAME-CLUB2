@@ -2050,6 +2050,8 @@ const treasureRaid=createTreasureRaid({
 
 function serveStatic(req,res,url){
   let p=url.pathname==='/'?'/index.html':url.pathname;
+  // Resolve subdirectory launch links (e.g. /blackroom/) to their index pages.
+  if(p.endsWith('/'))p+='index.html';
   if(p.includes('..')){res.writeHead(400);res.end();return;}
   const file=path.join(__dirname,'public',p);
   if(!file.startsWith(path.join(__dirname,'public'))||!fs.existsSync(file)||fs.statSync(file).isDirectory()){res.writeHead(404,securityHeaders());res.end('Not found');return;}
