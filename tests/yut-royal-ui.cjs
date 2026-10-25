@@ -57,4 +57,31 @@ assert.match(html,/yut-royal-v1\.css\?v=/,'premium stylesheet loaded');
 assert.match(style,/prefers-reduced-motion/,'accessible reduced motion');
 assert.match(style,/\.yut-flow/,'turn guidance styled');
 assert.match(style,/\.yut-stack\.can-pick/,'board token affordance styled');
+
+// Final Yut cinematic and precise board-to-docks spacing regression.
+const effectStart=app.indexOf("let yutSeenAction='';");
+const effectEnd=app.indexOf('function renderYut(',effectStart);
+assert.ok(effectStart>0&&effectEnd>effectStart,'effects helper region');
+vm.runInContext(app.slice(effectStart,effectEnd)+'\nthis.yutEffects={yutHighlightKind,yutMomentData,yutVictoryHtml};',ctx);
+const {yutHighlightKind,yutMomentData,yutVictoryHtml}=ctx.yutEffects;
+assert.equal(yutHighlightKind({type:'throw',name:'윷'}),'bonus');
+assert.equal(yutHighlightKind({type:'throw',name:'모'}),'bonus');
+assert.equal(yutHighlightKind({type:'throw',name:'도'}),'');
+assert.equal(yutHighlightKind({type:'throw',name:'빽도',backdo:true}),'backdo');
+assert.equal(yutHighlightKind({type:'move',captured:[{}]}),'capture');
+assert.equal(yutHighlightKind({type:'move',captured:[],message:'우리 말 2개가 업혔다!'}),'stack');
+assert.equal(yutHighlightKind({type:'move',captured:[],stacked:2,message:'이미 업은 말 이동'}),'');
+assert.equal(yutHighlightKind({type:'move',captured:[],backdo:true}),'backdo');
+assert.equal(yutMomentData({type:'move',captured:[{}]}).title,'잡았다!');
+assert.match(yutVictoryHtml('<winner>',true),/&lt;winner&gt;/,'winner escaped');
+assert.doesNotMatch(yutVictoryHtml('<winner>',true),/<winner>/);
+assert.match(yutVictoryHtml('J-BOT',false),/경기 종료/);
+const finalCss=fs.readFileSync('public/yut-royal-v2.css','utf8');
+assert.match(html,/yut-royal-v2\.css\?v=/,'second stylesheet active');
+assert.ok(finalCss.includes('yut-reserve-strip{margin:0 auto 7px!important;'),'normalized space below board');
+assert.match(finalCss,/prefers-reduced-motion/);
+assert.match(finalCss,/yut-cinematic-capture/);
+assert.match(finalCss,/yut-final-confetti/);
+console.log('ROYAL_YUT_V2_OK: verified spectacular results, safety, ending, spacing and reduced motion');
+
 console.log('ROYAL_YUT_UI_OK: flow, scoreboard, board tokens, back-do safeguards, quick throw, responsive stylesheet');
