@@ -261,7 +261,7 @@
   openModal('<span class="eyebrow">FIELD MANUAL / HOW TO PLAY</span><h2 class="modal-headline" id="modalTitle">수사 방법</h2>'+
    '<div class="forensic-quote">① 현장의 빛나는 지점 클릭 → ② 단서 확보 → ③ 수사 보드에서 두 증거 연결 → ④ 용의자 심문 → ⑤ 최종 지목</div>'+
    '<p class="modal-copy">첫 번째 퍼즐은 복도의 장부, 두 번째 퍼즐은 보안실의 장비 안내문이 핵심이야. 틀려도 단서는 유지되고 마지막 지목에서 증거가 충분하지 않으면 진행할 수 없어.</p>'+
-   '<p class="modal-copy">현재는 <strong>첫 번째 1인 플레이 테스트</strong>야. 진행도는 이 기기 브라우저에만 저장돼. 서버 계정 연동과 친구 협동 플레이는 후속 버전에서 추가할 계획이야.</p>'+
+   '<p class="modal-copy"><strong>EP.01 얼리 액세스</strong> · '+(cloud.enabled?'준자랜드 계정으로 수사 기록을 서버에 저장해. 기기에 복구 사본도 남겨.':'비로그인 상태에서는 현재 기기에만 저장돼. 준자랜드 로비에서 로그인하면 계정 저장을 사용할 수 있어.')+' 1~4인 친구 협동과 장편 사건은 정식판 제작 단계에서 추가할 예정이야.</p>'+
    '<button type="button" class="secondary-action" data-action="close-modal">수사 계속하기</button>');
  };
  document.addEventListener('click',ev=>{
