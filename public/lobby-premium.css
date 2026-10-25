@@ -34,7 +34,7 @@
 #view-lobby .game-card.premium-art-card p,#view-lobby .game-card.lobby-art-card p{
  display:block!important;color:#e1e1e6!important;font-size:10px!important;line-height:1.3!important;margin:2px 0 0!important}
 #view-lobby .game-card.goldenbell.premium-art-card .gb-card-content>span{display:none!important}
-#view-lobby .game-card.janggi.premium-art-card>.game-art{filter:saturate(.75) sepia(.22) contrast(1.1)!important}
+#view-lobby .game-card.janggi.premium-art-card>.game-art{filter:saturate(1.06) contrast(1.09)!important}
 #view-lobby .game-card.lobby-art-card{min-height:252px!important}
 #view-lobby .game-card.lobby-art-card>.game-art{filter:saturate(1.16) contrast(1.1)!important}
 #view-lobby .game-card.lobby-art-card>div:last-child{max-width:97%!important}
