@@ -81,6 +81,7 @@ const clone=original.hydrate(JSON.parse(JSON.stringify(run)));
 assert.equal(S.merge(run.series,clone.series,true).cases[13].solved,true,'conflict merge never erases highest progress');
 assert.equal(S.merge(run.series,clone.series,false).cases[2],undefined,'locked guest series must not pass authorization');
 const ui=fs.readFileSync(path.join(__dirname,'../public/blackroom/series-ui.js'),'utf8');
+assert.ok(ui.includes('own.started&&own.solved&&!state.solved'),'EP02 should tolerate a local completion arriving before cloud storage');
 const html=fs.readFileSync(path.join(__dirname,'../public/blackroom/series.html'),'utf8');
 const ep1UI=fs.readFileSync(path.join(__dirname,'../public/blackroom/game.js'),'utf8');
 for(const token of ['srCaseList','srApp','srModal','srHint','series-ui.js'])assert.ok(html.includes(token),'missing '+token);

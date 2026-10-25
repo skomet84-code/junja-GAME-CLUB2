@@ -58,6 +58,24 @@
    account=data.account;revision=data.revision;cloud=true;
    const own=local(userKey());
    state=data.state?E.hydrate(data.state):own.started?own:E.initial();
+   // A fast jump to EP02 may precede the EP01 cloud PUT; preserve same-account completion.
+   if(own.started&&own.solved&&!state.solved){
+    const r=state,l=own;
+    state=E.hydrate({...r,started:true,solved:true,ending:l.ending,
+     door:r.door||l.door,archive:r.archive||l.archive,scene:l.scene,
+     clues:[...new Set([...r.clues,...l.clues])],
+     links:[...new Set([...r.links,...l.links])],
+     proofs:{...r.proofs,...l.proofs},
+     hypotheses:[...new Set([...(r.hypotheses||[]),...(l.hypotheses||[])])],
+     interviews:{...r.interviews,...l.interviews},
+     observations:{...r.observations,...l.observations},
+     rapport:{...r.rapport,...l.rapport},defensive:{...r.defensive,...l.defensive},
+     score:Math.max(r.score,l.score),hints:Math.max(r.hints,l.hints),
+     misses:Math.max(r.misses,l.misses),
+     series:S.merge(r.series,l.series,true),
+     log:[...new Set([...l.log,...r.log])].slice(0,30)});
+    pending=true;
+   }
    if(own.started&&state.solved){
     const merged=S.merge(state.series,own.series,true);
     if(JSON.stringify(merged)!==JSON.stringify(state.series)){state.series=merged;pending=true;}
