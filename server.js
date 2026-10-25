@@ -735,23 +735,25 @@ const SOCIAL_RANKS = [
   {level:9,name:'왕',icon:'♔',cost:30000000000000,className:'king'},
   {level:10,name:'황제',icon:'🏰',cost:100000000000000,className:'emperor'},
   {level:11,name:'JUNJA ROYAL',icon:'J',cost:300000000000000,className:'royal'},
-  {level:12,name:'GOD JUNJA',icon:'G',cost:10000000000000000,className:'god'}
+  {level:12,name:'GOD JUNJA',icon:'G',cost:10000000000000000,className:'god'},
+  // 100경 G · decimal string is exact beyond Number.MAX_SAFE_INTEGER.
+  {level:13,name:'THE ABSOLUTE',icon:'∞',cost:'1000000000000000000',className:'absolute'}
 ];
 function socialRankPerks(level){
   level=Math.max(0,Math.min(SOCIAL_RANKS.length-1,Number(level)||0));
-  const extraDraws=level>=12?6:level>=11?4:level>=9?3:level>=6?2:level>=3?1:0;
-  const dailyBonusPct=[0,5,10,15,20,30,40,50,65,80,100,150,300][level]||0;
-  const dailySalary=[1000000,3000000,10000000,30000000,50000000,100000000,200000000,300000000,600000000,1200000000,2500000000,5000000000,10000000000][level]||0;
-  const transferFeePct=[2,2,1.8,1.6,1.4,1.2,1,0.8,0.6,0.4,0.2,0,0][level]||0;
-  const freeSlots=[0,0,0,5,8,12,18,25,35,50,70,100,200][level]||0;
-  const freeSlotBet=[0,0,0,100000,200000,300000,500000,1000000,2000000,3000000,5000000,10000000,10000000][level]||0;
-  const freeBigWheel=[0,0,0,5,8,12,18,25,35,50,70,100,200][level]||0;
-  const horseWinBonusPct=[0,0,0,0,0,2,3,4,5,6,8,10,15][level]||0;
-  const gameEntryDiscountPct=[0,0,0,0,2,3,4,5,6,8,10,12,20][level]||0;
-  const giftBonusPct=[0,0,0,0,0,2,3,4,5,6,8,10,20][level]||0;
-  const dailyInterestPct=[0,0,0,0,0,0,0,0.001,0.002,0.003,0.004,0.005,0.01][level]||0;
-  const shopTier=level>=12?6:level>=11?5:level>=10?4:level>=9?3:level>=7?2:level>=4?1:0;
-  const appearanceTier=level>=12?6:level>=11?5:level>=10?4:level>=9?3:level>=7?2:level>=4?1:0;
+  const extraDraws=level>=13?9:level>=12?6:level>=11?4:level>=9?3:level>=6?2:level>=3?1:0;
+  const dailyBonusPct=[0,5,10,15,20,30,40,50,65,80,100,150,300,500][level]||0;
+  const dailySalary=[1000000,3000000,10000000,30000000,50000000,100000000,200000000,300000000,600000000,1200000000,2500000000,5000000000,10000000000,100000000000][level]||0;
+  const transferFeePct=[2,2,1.8,1.6,1.4,1.2,1,0.8,0.6,0.4,0.2,0,0,0][level]||0;
+  const freeSlots=[0,0,0,5,8,12,18,25,35,50,70,100,200,500][level]||0;
+  const freeSlotBet=[0,0,0,100000,200000,300000,500000,1000000,2000000,3000000,5000000,10000000,10000000,10000000][level]||0;
+  const freeBigWheel=[0,0,0,5,8,12,18,25,35,50,70,100,200,500][level]||0;
+  const horseWinBonusPct=[0,0,0,0,0,2,3,4,5,6,8,10,15,20][level]||0;
+  const gameEntryDiscountPct=[0,0,0,0,2,3,4,5,6,8,10,12,20,30][level]||0;
+  const giftBonusPct=[0,0,0,0,0,2,3,4,5,6,8,10,20,30][level]||0;
+  const dailyInterestPct=[0,0,0,0,0,0,0,0.001,0.002,0.003,0.004,0.005,0.01,0.015][level]||0;
+  const shopTier=level>=13?7:level>=12?6:level>=11?5:level>=10?4:level>=9?3:level>=7?2:level>=4?1:0;
+  const appearanceTier=level>=13?7:level>=12?6:level>=11?5:level>=10?4:level>=9?3:level>=7?2:level>=4?1:0;
   return {extraDraws,dailyBonusPct,dailyDraws:1+extraDraws,dailySalary,transferFeePct,freeSlots,freeSlotBet,freeBigWheel,horseWinBonusPct,gameEntryDiscountPct,giftBonusPct,dailyInterestPct,shopTier,appearanceTier};
 }
 function socialRankPerksForUser(userId){
@@ -786,7 +788,7 @@ function promoteSocialRank(userId){
     if(!u)throw new Error('사용자를 찾을 수 없습니다.');
     const level=Math.max(0,Math.min(SOCIAL_RANKS.length-1,Number(u.rank_level||0)));
     const next=SOCIAL_RANKS[level+1];
-    if(!next)throw new Error('이미 GOD JUNJA 최고 신분입니다.');
+    if(!next)throw new Error('이미 THE ABSOLUTE · 절대초월자 최고 신분입니다.');
     // Keep rank purchases on the same exact-integer wallet path as the rest of JUNJA LAND.
     const current=exactWallet.read(u),cost=BigInt(next.cost);
     if(current<cost)throw new Error(`신분 상승에 ${formatMoney(next.cost)} G가 필요합니다.`);
@@ -2211,7 +2213,26 @@ const server=http.createServer(async(req,res)=>{
     if(url.pathname==='/api/daily-draw/pick'&&req.method==='POST'){const u=requireAuth(req,res);if(!u)return;if(!rateLimit('daily_draw:'+u.id,8,60000))return json(res,429,{error:'뽑기 요청이 너무 빠릅니다.'});const b=await readBody(req);try{const result=dailyDrawPick(u.id,b.number);pushRefresh();return json(res,200,{ok:true,...result,user:userPublic(u.id)});}catch(e){return json(res,409,{error:e.message,state:dailyDrawState(u.id)});}}
     if(url.pathname==='/api/daily'&&req.method==='POST'){
       const u=requireAuth(req,res);if(!u)return;const d=kstDate();if(u.last_daily===d)return json(res,409,{error:'오늘 출석 보너스는 이미 받았습니다.'});
-      const cosmeticPct=Number(cosmeticsPublic(u.id,true)?.perks?.dailyBonusPct||0),rankPerks=socialRankPerksForUser(u.id),rankPct=Number(rankPerks.dailyBonusPct||0),dailyPct=cosmeticPct+rankPct;db.exec('BEGIN IMMEDIATE');try{const fresh=db.prepare('SELECT balance,last_daily FROM users WHERE id=?').get(u.id);if(!fresh)throw new Error('사용자를 찾을 수 없습니다.');if(fresh.last_daily===d){db.exec('ROLLBACK');return json(res,409,{error:'오늘 출석 보너스는 이미 받았습니다.'});}const dailyAmount=Math.floor(50000*(1+dailyPct/100)),interestPct=Number(rankPerks.dailyInterestPct||0),interest=Math.min(100000000,Math.max(0,Math.floor(Number(fresh.balance||0)*interestPct/100))),total=dailyAmount+interest,bal=Number(fresh.balance||0)+total;if(!Number.isSafeInteger(bal))throw new Error('게임머니 한도를 초과합니다.');db.prepare('UPDATE users SET balance=?,last_daily=? WHERE id=?').run(bal,d,u.id);db.prepare('INSERT INTO ledger(user_id,amount,balance_after,type,memo,created_at) VALUES(?,?,?,?,?,?)').run(u.id,total,bal,'daily',`오늘의 출석 ${formatMoney(dailyAmount)}G${interest?` · 신분 이자 ${formatMoney(interest)}G`:''}`,now());db.exec('COMMIT');pushRefresh();return json(res,200,{balance:bal,amount:total,attendanceAmount:dailyAmount,rankInterest:interest,rankInterestPct:interestPct,dailyBonusPct:dailyPct,rankBonusPct:rankPct});}catch(e){try{db.exec('ROLLBACK')}catch{}throw e;}
+      const cosmeticPct=Number(cosmeticsPublic(u.id,true)?.perks?.dailyBonusPct||0),rankPerks=socialRankPerksForUser(u.id),rankPct=Number(rankPerks.dailyBonusPct||0),dailyPct=cosmeticPct+rankPct;
+      db.exec('BEGIN IMMEDIATE');
+      try{
+        const fresh=db.prepare('SELECT balance,balance_exact,balance_base,last_daily FROM users WHERE id=?').get(u.id);
+        if(!fresh)throw new Error('사용자를 찾을 수 없습니다.');
+        if(fresh.last_daily===d){db.exec('ROLLBACK');return json(res,409,{error:'오늘 출석 보너스는 이미 받았습니다.'});}
+        const prior=exactWallet.read(fresh);
+        const dailyAmount=Math.floor(50000*(1+dailyPct/100));
+        const interestPct=Number(rankPerks.dailyInterestPct||0);
+        // Percent is expressed in thousandths (0.015% = 15 / 100000).
+        const rate=BigInt(Math.round(interestPct*1000));
+        const interest=Number((prior*rate/100000n)>100000000n?100000000n:(prior*rate/100000n));
+        const total=BigInt(dailyAmount+interest),next=prior+total,mirror=exactWallet.mirror(next),t=now();
+        db.prepare('UPDATE users SET balance=?,balance_exact=?,balance_base=?,last_daily=? WHERE id=?')
+          .run(mirror,String(next),String(mirror),d,u.id);
+        db.prepare('INSERT INTO ledger(user_id,amount,balance_after,amount_exact,balance_after_exact,type,memo,created_at) VALUES(?,?,?,?,?,?,?,?)')
+          .run(u.id,Number(total),mirror,String(total),String(next),'daily',`오늘의 출석 ${formatMoney(dailyAmount)}G${interest?` · 신분 이자 ${formatMoney(interest)}G`:''}`,t);
+        db.exec('COMMIT');pushRefresh();
+        return json(res,200,{balance:exactWallet.output(next),amount:Number(total),attendanceAmount:dailyAmount,rankInterest:interest,rankInterestPct:interestPct,dailyBonusPct:dailyPct,rankBonusPct:rankPct});
+      }catch(e){try{db.exec('ROLLBACK')}catch{}throw e;}
     }
     if(url.pathname==='/api/rank/salary'&&req.method==='POST'){
       const u=requireAuth(req,res);if(!u)return;if(!rateLimit('rank_salary:'+u.id,4,60000))return json(res,429,{error:'일급 요청이 너무 빠릅니다.'});
@@ -2219,14 +2240,16 @@ const server=http.createServer(async(req,res)=>{
       if(salary<1n)return json(res,409,{error:'현재 신분에는 지급되는 일급이 없습니다.'});
       db.exec('BEGIN IMMEDIATE');
       try{
-        const fresh=db.prepare('SELECT CAST(balance AS TEXT) AS balance,last_rank_salary FROM users WHERE id=?').get(u.id);
+        const fresh=db.prepare('SELECT balance,balance_exact,balance_base,last_rank_salary FROM users WHERE id=?').get(u.id);
         if(!fresh)throw new Error('사용자를 찾을 수 없습니다.');
         if(fresh.last_rank_salary===d){db.exec('ROLLBACK');return json(res,409,{error:'오늘 신분 일급은 이미 받았습니다.'});}
-        const balance=BigInt(String(fresh.balance||0))+salary,t=now();
-        db.prepare('UPDATE users SET balance=?,last_rank_salary=? WHERE id=?').run(balance,d,u.id);
-        db.prepare('INSERT INTO ledger(user_id,amount,balance_after,type,memo,created_at) VALUES(?,?,?,?,?,?)').run(u.id,Number(salary),balance,'rank_daily_salary',`신분 일급 · ${rank.name} ${formatMoney(Number(salary))}G`,t);
+        const balance=exactWallet.read(fresh)+salary,mirror=exactWallet.mirror(balance),t=now();
+        db.prepare('UPDATE users SET balance=?,balance_exact=?,balance_base=?,last_rank_salary=? WHERE id=?')
+          .run(mirror,String(balance),String(mirror),d,u.id);
+        db.prepare('INSERT INTO ledger(user_id,amount,balance_after,amount_exact,balance_after_exact,type,memo,created_at) VALUES(?,?,?,?,?,?,?,?)')
+          .run(u.id,Number(salary),mirror,String(salary),String(balance),'rank_daily_salary',`신분 일급 · ${rank.name} ${formatMoney(Number(salary))}G`,t);
         db.exec('COMMIT');pushRefresh();
-        return json(res,200,{ok:true,amount:Number(salary),balance:balance<=BigInt(Number.MAX_SAFE_INTEGER)?Number(balance):String(balance),rank:rank.name,user:userPublic(u.id)});
+        return json(res,200,{ok:true,amount:Number(salary),balance:exactWallet.output(balance),rank:rank.name,user:userPublic(u.id)});
       }catch(e){try{db.exec('ROLLBACK')}catch{}throw e;}
     }
     if(url.pathname==='/api/ledger'&&req.method==='GET'){
