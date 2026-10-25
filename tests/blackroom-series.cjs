@@ -8,6 +8,16 @@ const original=require('../public/blackroom/engine.js');
 const S=require('../public/blackroom/series-engine.js');
 assert.equal(S.CASES.length,12,'12 linked case definitions following episode 001');
 assert.deepEqual(S.CASES.map(c=>c.id),Array.from({length:12},(_,i)=>i+2));
+// EP01 core verdict unlocks EP02 without requiring optional TRUE ENDING.
+const partial=original.initial();
+partial.started=true;partial.door=true;partial.archive=true;
+partial.clues=Object.keys(original.CLUES);partial.links=[...original.REQUIRED];
+partial.solved=true;partial.ending='partial';
+const afterVerdict=original.hydrate(partial);
+assert.equal(afterVerdict.ending,'partial');
+assert.equal(S.unlocked(afterVerdict.series,2,afterVerdict.solved),true,'EP02 unlocked after core verdict');
+assert.equal(S.inspect(afterVerdict.series,2,'e0').ok,true,'EP02 playable after core verdict');
+assert.equal(original.hydrate(JSON.parse(JSON.stringify(afterVerdict))).series.cases[2].clues.includes('e0'),true,'EP02 evidence persists across reload');
 const ep=original.initial();
 assert.equal(ep.series.v,S.VERSION,'EP01 snapshot includes series by default');
 assert.equal(S.unlocked(S.fresh(),2,false),false,'episode 002 locked before true ending');

@@ -35,14 +35,14 @@
      revision=data.revision;
      const remote=E.hydrate(data.state);
      // The server revision is authoritative for old EP01 progress. Merge only the campaign's monotonic unlocks.
-     remote.series=S.merge(remote.series,state.series,remote.ending==='true');
+     remote.series=S.merge(remote.series,state.series,remote.solved);
      state=remote;
      try{localStorage.setItem(userKey(),JSON.stringify(state));}catch{}
      pending=true;render();continue;
     }
     if(!response.ok){cloud=false;status('⚠ 서버 동기화 실패 · 기기 기록 유지');showToast(data.error||'서버 저장 실패');break;}
     revision=data.revision;
-    if(pending){const current=state;state=E.hydrate(data.state);state.series=S.merge(state.series,current.series,state.ending==='true');}
+    if(pending){const current=state;state=E.hydrate(data.state);state.series=S.merge(state.series,current.series,state.solved);}
     status('☁ 준자랜드 계정에 저장됨');
    }
   }catch(e){cloud=false;status('⚠ 인터넷 연결 오류 · 기기 기록 유지');}
@@ -58,25 +58,25 @@
    account=data.account;revision=data.revision;cloud=true;
    const own=local(userKey());
    state=data.state?E.hydrate(data.state):own.started?own:E.initial();
-   if(own.started&&state.ending==='true'){
+   if(own.started&&state.solved){
     const merged=S.merge(state.series,own.series,true);
     if(JSON.stringify(merged)!==JSON.stringify(state.series)){state.series=merged;pending=true;}
    }
    if(!data.state&&state.started)pending=true;
-   loaded=true;active=S.highestUnlocked(prog(),state.ending==='true');prog().active=active;
+   loaded=true;active=S.highestUnlocked(prog(),state.solved);prog().active=active;
    render();status('☁ 준자랜드 계정 기록 불러옴');
    try{localStorage.setItem(userKey(),JSON.stringify(state));}catch{}
    if(pending)sync();
   }catch{
    state=guest;cloud=false;loaded=true;
-   active=S.highestUnlocked(prog(),state.ending==='true');render();
+   active=S.highestUnlocked(prog(),state.solved);render();
    status('이 기기에서만 진행 저장 · 로비 로그인 시 계정 저장');
   }
  }
- const progressCount=()=>1+Object.values(prog().cases).filter(p=>p?.solved).length;
+ const progressCount=()=>(state.solved?1:0)+Object.values(prog().cases).filter(p=>p?.solved).length;
  function renderList(){
-  const done1=state.ending==='true';
-  list.innerHTML='<a class="sr-case '+(done1?'done':'')+'" href="/blackroom/"><b>01</b><span><small>사라진 제13호실</small><em>'+(done1?'TRUE ENDING':'조사 미완료')+'</em></span><span class="sr-tick">'+(done1?'✓':'⌕')+'</span></a>'+
+  const done1=state.solved;
+  list.innerHTML='<a class="sr-case '+(done1?'done':'')+'" href="/blackroom/"><b>01</b><span><small>사라진 제13호실</small><em>'+(state.ending==='true'?'TRUE ENDING':done1?'본편 해결 · 진엔딩 도전 가능':'조사 미완료')+'</em></span><span class="sr-tick">'+(done1?'✓':'⌕')+'</span></a>'+
    S.CASES.map(c=>{
     const p=prog().cases[c.id],locked=!S.unlocked(prog(),c.id,done1),done=!!p?.solved;
     return '<button class="sr-case '+(active===c.id?'active ':'')+(done?'done':'')+'" type="button" data-case="'+c.id+'" '+(locked?'disabled':'')+'>'+
@@ -135,10 +135,10 @@
  }
  function render(){
   if(!loaded)return;
-  const cleared=state.ending==='true';
+  const cleared=state.solved;
   renderList();
   if(!cleared){
-   app.innerHTML='<div class="sr-opening"><div><span class="sr-overline">ARCHIVE LOCKED / CASE 001</span><h2>첫 번째 진실을 입증해야 해</h2><p>제13호실의 TRUE ENDING을 달성하면 나머지 열두 사건이 차례로 해금돼. 기존 사건 기록은 유지돼.</p><a href="/blackroom/" class="sr-btn">제13호실 수사 계속하기 →</a></div></div>';return;
+   app.innerHTML='<div class="sr-opening"><div><span class="sr-overline">ARCHIVE LOCKED / CASE 001</span><h2>제13호실의 기본 판결을 마쳐야 해</h2><p>시각·출입·변장에 관한 핵심 추론 3개를 입증하고 결론 탭에서 사건을 해결하면 002화가 열려. 진엔딩은 필수가 아니야. 기존 기록은 유지돼.</p><a href="/blackroom/" class="sr-btn">제13호실 수사 계속하기 →</a></div></div>';return;
   }
   if(tab==='journal'){app.innerHTML=journal();return;}
   if(!S.unlocked(prog(),active,true)){active=S.highestUnlocked(prog(),true);}
@@ -147,7 +147,7 @@
   const p=prog().cases[active];
   app.innerHTML=top(c,p)+({scene,evidence,board,people,verdict}[tab]||scene)(c,p);
  }
- function goCase(id){if(!S.unlocked(prog(),id,state.ending==='true'))return;
+ function goCase(id){if(!S.unlocked(prog(),id,state.solved))return;
   active=id;prog().active=id;tab='scene';selection=[];closeModal();render();save();window.scrollTo({top:0,behavior:'smooth'});}
  function action(name,arg){
   if(!state.series)return;
@@ -179,7 +179,7 @@
   if(t.dataset.witness){action('witness',t.dataset.witness);return;}
   if(t.dataset.action){action(t.dataset.action);return;}
   if(t.dataset.global==='close'){closeModal();return;}
-  if(t.dataset.global==='archive'){openModal('<h2 id="srModalTitle">사건 보관함</h2><div class="sr-case-list">'+S.CASES.map(c=>'<button class="sr-case" type="button" data-case="'+c.id+'" '+(!S.unlocked(prog(),c.id,state.ending==='true')?'disabled':'')+'><b>'+String(c.id).padStart(2,'0')+'</b><span>'+safe(c.title)+(prog().cases[c.id]?.solved?' ✓':'')+'</span><span>›</span></button>').join('')+'</div>');return;}
+  if(t.dataset.global==='archive'){openModal('<h2 id="srModalTitle">사건 보관함</h2><div class="sr-case-list">'+S.CASES.map(c=>'<button class="sr-case" type="button" data-case="'+c.id+'" '+(!S.unlocked(prog(),c.id,state.solved)?'disabled':'')+'><b>'+String(c.id).padStart(2,'0')+'</b><span>'+safe(c.title)+(prog().cases[c.id]?.solved?' ✓':'')+'</span><span>›</span></button>').join('')+'</div>');return;}
   if(t.dataset.global==='scene'||t.dataset.global==='board'||t.dataset.global==='verdict'){tab=t.dataset.global;render();window.scrollTo({top:0,behavior:'smooth'});return;}
  });
  document.addEventListener('submit',event=>{

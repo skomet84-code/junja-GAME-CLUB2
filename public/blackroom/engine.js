@@ -102,7 +102,7 @@ function hydrate(data){
  s.hints=Math.max(0,Math.min(999,Number(data.hints)||0));s.misses=Math.max(0,Math.min(999,Number(data.misses)||0));
  s.score=Math.max(0,Math.min(100,Number(data.score)||0));
  s.log=Array.isArray(data.log)?data.log.filter(x=>typeof x==='string').slice(-30):[];
- s.series=SeriesEngine.hydrate(data.series,s.ending==='true');
+ s.series=SeriesEngine.hydrate(data.series,s.solved);
  return s;
 }
 function record(s,entry){s.log.unshift(entry);s.log=s.log.slice(0,30);}
