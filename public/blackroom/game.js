@@ -27,7 +27,8 @@
    observations:{...r.observations,...l.observations},rapport:{...r.rapport,...l.rapport},defensive:{...r.defensive,...l.defensive},
    hints:Math.max(r.hints,l.hints),misses:Math.max(r.misses,l.misses),
    score:Math.max(r.score,l.score),ending:r.ending==='true'||l.ending==='true'?'true':r.solved||l.solved?'partial':'pending',
-   scene:l.scene,log:[...new Set([...l.log,...r.log])].slice(0,30)};
+   scene:l.scene,log:[...new Set([...l.log,...r.log])].slice(0,30),
+    series:window.BlackRoomSeriesEngine.merge(r.series,l.series,r.ending==='true'||l.ending==='true')};
   return E.hydrate(merged);
  }
  async function flushCloud(){
@@ -109,7 +110,7 @@
  const closeModal=()=>{modal.hidden=true;modalBody.innerHTML='';};
  const mark=x=>'<span class="small-caps">'+esc(x)+'</span>';
  const objective=()=>{
-  if(state.solved)return state.ending==='true'?'진엔딩 완료 · 사건 배후의 단서 발견':
+  if(state.solved)return state.ending==='true'?'진엔딩 완료 · 다음 사건 002가 해금됐어':
   '주요 범인은 입증했어. 남은 두 추론과 세 용의자의 진술을 밝혀 진엔딩에 도전해.';
   if(!state.door)return '13층 복도의 출입 장부를 조사하고 13호실 문을 열어.';
   if(!state.archive)return '객실 안 단서를 모으고, 보안실의 영상 보관함 암호를 해제해.';
@@ -189,7 +190,7 @@
    (state.solved?'<div class="outcome"><strong>'+(state.ending==='true'?'TRUE ENDING':'CASE SOLVED')+'</strong>'+
      '<p>'+ (state.ending==='true'?'숨겨진 진실까지 입증':'1차 용의자 입증 · 미해결 단서 남음')+' · '+state.score+'점</p></div>'+
     '<button type="button" class="secondary-action" data-action="ending">현재 결말 다시 보기</button>'+
-    (state.ending==='true'?'':E.fullTruth(state)?
+    (state.ending==='true'?'<a class="primary-action" style="margin-top:13px" href="/blackroom/series.html">다음 사건 002 · 사라진 기록 →</a>':E.fullTruth(state)?
      '<button style="margin-left:8px" type="button" class="primary-action" data-action="reveal-truth">모든 증거로 진엔딩 입증 →</button>':
      '<p class="modal-copy" style="margin-top:13px">진엔딩 조건: 증거 연결 5개 전부 + 용의자 3명 증언의 모순 입증. '+state.links.length+'/5 추론 · '+Object.values(state.interviews).filter(Boolean).length+'/3 심문</p>'+
      '<button type="button" class="secondary-action" data-tab="board">추가 증거 연결하기</button>'+
@@ -206,7 +207,7 @@
  };
  const journal=()=>heading('수사 기록','조사에서 실제로 확인한 사건의 연표','JOURNAL / FIELD NOTES')+
   (state.log.length?'<ol class="log-list">'+state.log.map(s=>'<li>'+esc(s)+'</li>').join('')+'</ol>':empty('아직 기록 없음','현장에서 새로운 단서를 발견하면 사건 기록에 남아.'))+
-  '<section class="panel-card"><h3>다시 시작</h3><p>이 기기에만 저장된 1인 플레이 기록이 초기화돼. 준자랜드 계정·게임머니·다른 게임 데이터에는 영향을 주지 않아.</p><button class="outline-action" type="button" data-action="restart">이 사건만 초기화</button></section>';
+  '<section class="panel-card"><h3>다시 시작</h3><p>제13호실과 연결된 사건 진행 기록까지 초기화돼. 회원 계정·게임머니·다른 게임 데이터에는 영향을 주지 않아.</p><button class="outline-action" type="button" data-action="restart">이 사건만 초기화</button></section>';
  const screens={scene,evidence,board,people,verdict,journal};
  const render=()=>{
   if(!screens[tab])tab='scene';
@@ -277,7 +278,7 @@
     (Object.values(state.observations||{}).filter(Boolean).length>=2?
       '<p class="modal-copy">추가 관찰 기록: 두 사람이 같은 질문 앞에서 특정 시계를 바라봤다. 그들은 이미 사건의 실제 시각을 알고 있었을 가능성이 높다.</p>':''):
     '<p class="modal-copy">아직 정체가 확인되지 않은 지시자가 있다. 모든 추론 5개와 용의자 3명의 모순을 입증하면 숨겨진 진실을 찾을 수 있다.</p>')+
-   '<div class="modal-actions"><button type="button" data-action="close-modal" class="primary-action">수사 파일로 돌아가기</button></div>');
+   '<div class="modal-actions">'+(full?'<a href="/blackroom/series.html" class="primary-action">사건 002 시작 →</a>':'')+'<button type="button" data-action="close-modal" class="secondary-action">수사 파일로 돌아가기</button></div>');
  };
  const feedbackDialog=(title,message,positive=false)=>{
   openModal('<span class="eyebrow">'+(positive?'DEDUCTION CONFIRMED':'FIELD ANALYSIS')+'</span><h2 class="modal-headline" id="modalTitle">'+esc(title)+'</h2><p class="modal-copy">'+esc(message)+'</p>'+
@@ -287,7 +288,7 @@
   openModal('<span class="eyebrow">FIELD MANUAL / HOW TO PLAY</span><h2 class="modal-headline" id="modalTitle">수사 방법</h2>'+
    '<div class="forensic-quote">① 현장의 빛나는 지점 클릭 → ② 단서 확보 → ③ 수사 보드에서 두 증거 연결 → ④ 용의자 심문 → ⑤ 최종 지목</div>'+
    '<p class="modal-copy">첫 번째 퍼즐은 복도의 장부, 두 번째 퍼즐은 보안실의 장비 안내문이 핵심이야. 틀려도 단서는 유지되고 마지막 지목에서 증거가 충분하지 않으면 진행할 수 없어.</p>'+
-   '<p class="modal-copy"><strong>EP.01 얼리 액세스</strong> · '+(cloud.enabled?'준자랜드 계정으로 수사 기록을 서버에 저장해. 기기에 복구 사본도 남겨.':'비로그인 상태에서는 현재 기기에만 저장돼. 준자랜드 로비에서 로그인하면 계정 저장을 사용할 수 있어.')+' 1~4인 친구 협동과 장편 사건은 정식판 제작 단계에서 추가할 예정이야.</p>'+
+   '<p class="modal-copy"><strong>EP.01 얼리 액세스</strong> · '+(cloud.enabled?'준자랜드 계정으로 수사 기록을 서버에 저장해. 기기에 복구 사본도 남겨.':'비로그인 상태에서는 현재 기기에만 저장돼. 준자랜드 로비에서 로그인하면 계정 저장을 사용할 수 있어.')+' 후속 12개 사건은 진엔딩 뒤 순서대로 해금돼. 1~4인 친구 협동은 아직 개발 중이야.</p>'+
    '<button type="button" class="secondary-action" data-action="close-modal">수사 계속하기</button>');
  };
  document.addEventListener('click',ev=>{
@@ -342,7 +343,7 @@
    legacyGuestState=null;state=E.initial();closeModal();preserve();render();return;
   }
   if(act==='restart'){
-   if(!window.confirm('제13호실의 이 기기 저장 기록만 초기화할까? 준자랜드 계정·게임머니에는 영향 없어.'))return;
+   if(!window.confirm('제13호실 및 후속 사건의 수사 진행 기록을 초기화할까? 복구할 수 없지만 준자랜드 회원·게임머니에는 영향 없어.'))return;
    if(cloud.enabled){
     const rev=cloud.revision;
     // Do not delete the cloud record if another device has newer progress.
