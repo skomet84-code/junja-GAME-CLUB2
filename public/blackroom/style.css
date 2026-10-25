@@ -43,3 +43,14 @@
 }
 @media(max-width:390px){.evidence-grid{grid-template-columns:1fr 1fr}.scene-frame{min-height:206px}.scene-corner{display:none}.location-tabs{gap:4px}.location-tabs button{font-size:10px;padding:7px}.hotspot{min-width:34px;min-height:34px}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;scroll-behavior:auto!important;transition:none!important}}
+
+/* Clearly signposted secondary route to prevent investigation dead ends. */
+.scene-quick-travel{display:flex;gap:12px;align-items:center;justify-content:space-between;
+ margin:13px 0 17px;padding:11px 13px;border:1px solid #e4c98b82;border-radius:13px;
+ background:linear-gradient(120deg,#202d30,#102a31);box-shadow:0 6px 19px #0007}
+.scene-quick-travel .eyebrow{flex:0 0 auto}
+.scene-quick-travel .travel-button{min-height:46px;background:linear-gradient(115deg,#eed8a2,#ac8751);color:#171b17;
+ border:1px solid #ffe6ac;box-shadow:0 0 16px #d3b27c30}
+.location-tabs button{position:relative;z-index:7}
+@media(max-width:700px){.scene-quick-travel{flex-direction:column;align-items:stretch;gap:8px;margin:8px 0 13px}
+.scene-quick-travel .travel-button{font-size:13px;min-height:47px}}

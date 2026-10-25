@@ -37,7 +37,7 @@
  };
  const heading=(title,sub,tag)=>'<header class="section-head"><div>'+mark(tag||'BLACK ROOM / INVESTIGATION')+'<h1>'+esc(title)+'</h1><p>'+esc(sub||'')+'</p></div><div class="section-meta"><span>사건 파일</span><strong>001 / 13</strong></div></header>';
  const places=()=>'<div class="location-tabs" aria-label="조사 위치">'+Object.entries(E.SCENES).map(([id,item])=>
-  '<button type="button" data-scene="'+id+'" class="'+(state.scene===id?'active':'')+'" '+(id!=='hall'&&!state.door?'disabled':'')+'>'+
+  '<button type="button" data-travel="'+id+'" class="'+(state.scene===id?'active':'')+'" '+(id!=='hall'&&!state.door?'disabled':'')+'>'+
   (id==='hall'?'⌖ ':id==='room'?'⌑ ':'◫ ')+esc(item.name)+'</button>').join('')+'</div>';
  const scene=()=>{
   const loc=E.SCENES[state.scene];
@@ -55,6 +55,7 @@
    '<div class="scene-shade"></div><div class="scene-noise"></div><span class="scene-corner">OBJECT SEARCH · TAP TO INSPECT</span>'+
    markers+lockButton+'<span class="scene-caption">BLACK ROOM / '+esc(state.scene.toUpperCase())+'</span></div>'+
    '<div class="scene-footer"><span><strong>'+collected+' / '+total+'</strong> 현장 단서 확보</span><span>빛나는 지점을 터치해 확대 조사</span></div>'+
+   (state.door?'<div class="scene-quick-travel"><span class="eyebrow">NEXT LOCATION</span><button class="secondary-action travel-button" type="button" data-travel="'+(state.scene==='security'?'room':'security')+'">'+(state.scene==='security'?'↶ 제13호실 다시 조사':'◫ 다음 장소 · 보안실 조사하기 →')+'</button></div>':'')+
    '<section class="panel-card"><span class="eyebrow">CURRENT OBJECTIVE</span><h3>'+esc(objective())+'</h3><p>각 물건에서 증거를 확보하고, 수사 보드에서 서로 연결해 가설을 검증해. 오답도 조사 기록을 지우지는 않아.</p>'+
    '<button class="secondary-action" type="button" data-tab="board">증거 연결하러 가기 ↗</button></section>';
  };
@@ -175,10 +176,19 @@
    '<button type="button" class="secondary-action" data-action="close-modal">수사 계속하기</button>');
  };
  document.addEventListener('click',ev=>{
-  const element=ev.target.closest('button[data-action],button[data-tab],button[data-scene],button[data-clue],button[data-evidence],button[data-puzzle],button[data-collect],button[data-person]');
+  const element=ev.target.closest('button[data-action],button[data-tab],button[data-scene],button[data-travel],button[data-clue],button[data-evidence],button[data-puzzle],button[data-collect],button[data-person]');
   if(!element)return;
   if(element.dataset.tab){tab=element.dataset.tab;if(tab!=='board')selected=[];render();$('#mainContent').scrollIntoView({block:'start',behavior:'smooth'});return;}
-  if(element.dataset.scene){const result=E.travel(state,element.dataset.scene);if(result.ok){tab='scene';preserve();render();}else notify(result.message);return;}
+  if(element.dataset.scene||element.dataset.travel){
+   const destination=element.dataset.travel||element.dataset.scene;
+   const result=E.travel(state,destination);
+   if(result.ok){
+    tab='scene';selected=[];preserve();render();
+    $('#mainContent').scrollIntoView({block:'start',behavior:'smooth'});
+    notify(result.message);
+   }else notify(result.message);
+   return;
+  }
   if(element.dataset.clue){clueDialog(element.dataset.clue);return;}
   if(element.dataset.puzzle){puzzleDialog(element.dataset.puzzle);return;}
   if(element.dataset.collect){const res=E.collect(state,element.dataset.collect);if(res.ok){closeModal();preserve();render();}notify(res.message);return;}
