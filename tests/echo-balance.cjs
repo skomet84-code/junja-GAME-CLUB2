@@ -36,6 +36,6 @@ run('reset();wave=12;enemy()');
 assert.ok(run('enemies.length>0'));
 run('updateHud();draw();drawItems()');
 const lobby=fs.readFileSync('public/junja-echo-20261005-2122.html','utf8');
-assert.match(lobby,/junja-survival-20261007\\.js\\?v=20261025-echo2/);
+assert.ok(lobby.includes('/junja-survival-20261007.js?v=20261025-echo2'),'active route must use upgraded engine');
 for(const id of ['bossStatus','bossHPBar','waveCountdown','pauseOverlay'])assert.ok(lobby.includes('id="'+id+'"'),'HUD node '+id);
 console.log('ECHO_BALANCE_OK: XP progression, drop scarcity, boss rewards, original saved profile, premium HUD, current entry route');
