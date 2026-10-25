@@ -132,6 +132,7 @@ async function req(who,path,body){
  const forbiddenUpdates=['UPDATE users','INSERT INTO users','UPDATE room_escrow','DELETE FROM users','walletChange'];
  const src=require('node:fs').readFileSync(require('node:path').join(__dirname,'../royal-cards-server.js'),'utf8');
  for(const word of forbiddenUpdates)assert.ok(!src.includes(word),'Royal cards must be independent from real user wallets: '+word);
+ assert.ok(!src.includes("hulaDraw(r,p,findThank(p.hand,top)?'discard':'stock')"),'Bot should not claim a discard outside THANK YOU');
 
  console.log('ROYAL_CARDS_OK: auth/privacy, 2-player multi, AI Hula, 54/52 decks, off-turn THANK YOU, stats without wallet changes');
 })().catch(e=>{console.error(e);process.exitCode=1});

@@ -245,8 +245,8 @@ module.exports=function createRoyalCards({db,crypto,requireAuth,readBody,json,ra
   if(!r.drew){
    const points=sum(p.hand);
    if(points<=6&&r.players.every(x=>x===p||sum(x.hand)>points)){hulaStop(r,p);return;}
-   const top=r.discard.at(-1);
-   hulaDraw(r,p,findThank(p.hand,top)?'discard':'stock');
+   // Discard claims require a THANK YOU response, not a regular turn draw.
+   hulaDraw(r,p,'stock');
    if(r.phase!=='playing'||current(r)!==p)return;
   }
   let max=15;
