@@ -652,7 +652,7 @@ async function loadCurrentRoom(silent=false){
   try{
     const d=await api(currentGame==='baccarat'?`/api/baccarat/rooms/${currentRoomId}`:`/api/rooms/${currentRoomId}`);
     if(currentRoomId!==requestedRoomId||currentGame!==requestedGame)return;
-    if(d.left){finishRoomExit();toast('정산 완료 · 자동 퇴장했습니다.');return;}
+    if(d.left){try{await refreshMe(false);toast('홀덤 정산 반영 · 지갑 '+money(me.balance));}catch{toast('자동 퇴장됨 · 지갑 잔액은 로비에서 확인해줘.');}finishRoomExit();return;}
     if(!d.room)throw new Error('방을 찾을 수 없습니다.');
     if(Number(d.room.version||0)<Number(lastRoomVersion||0))return;
     const version=d.room.version||0;if(version!==lastRoomVersion){lastRoomVersion=version;renderRoom(d.room)}
@@ -675,7 +675,7 @@ function renderRoom(room){lastRoomVersion=room.version||lastRoomVersion;notifyRo
 async function toggleReady(){if(!currentRoomId)return;try{const d=await api(`/api/rooms/${currentRoomId}/ready`,{method:'POST',body:'{}'});renderRoom(d.room)}catch(e){toast(e.message)}}
 function restoreRoomBrowser(game){$(`#${game}Room`)?.classList.add('hidden');$(`#${game}Browser`)?.classList.remove('hidden');if(game==='baccarat')loadBaccaratRooms();else if(game)loadRooms(game)}
 function finishRoomExit(){const old=currentGame;currentRoomId=null;currentGame=null;lastRoomVersion=-1;stopRoomPolling();clearTimeout(baccaratAutoTimer);void refreshMe();restoreRoomBrowser(old)}
-async function leaveRoom(){if(!currentRoomId)return;try{const endpoint=currentGame==='baccarat'?`/api/baccarat/rooms/${currentRoomId}/leave`:`/api/rooms/${currentRoomId}/leave`;const d=await api(endpoint,{method:'POST',body:'{}'});if(d.queued){toast('나가기 대기 · 이번 판 정산 후 자동 퇴장합니다.');await loadCurrentRoom(true);return;}finishRoomExit()}catch(e){toast(e.message)}}
+async function leaveRoom(){if(!currentRoomId)return;try{const endpoint=currentGame==='baccarat'?`/api/baccarat/rooms/${currentRoomId}/leave`:`/api/rooms/${currentRoomId}/leave`;const d=await api(endpoint,{method:'POST',body:'{}'});if(d.queued){toast('나가기 대기 · 이번 판 정산 후 자동 퇴장합니다.');await loadCurrentRoom(true);return;}if(d.user){me=d.user;updateHeader();toast('홀덤 정산 '+money(d.cashout)+' · 지갑 '+money(d.user.balance));}finishRoomExit()}catch(e){toast(e.message)}}
 async function closeRoom(){if(!currentRoomId)return;if(!confirm('대기실/게임을 종료하고 참가자에게 보유 판돈을 환급할까?'))return;try{await api(`/api/rooms/${currentRoomId}/close`,{method:'POST',body:'{}'});const old=currentGame;currentRoomId=null;currentGame=null;lastRoomVersion=-1;stopRoomPolling();toast('방을 비웠어.');await refreshMe();restoreRoomBrowser(old)}catch(e){toast(e.message)}}
 async function recoverRoom(){if(!currentRoomId)return;if(!confirm('게임 상태가 꼬였을 때만 사용해. 방을 강제 종료하고 판돈을 복구할까?'))return;try{await api(`/api/rooms/${currentRoomId}/recover`,{method:'POST',body:'{}'});const old=currentGame;currentRoomId=null;currentGame=null;lastRoomVersion=-1;stopRoomPolling();toast('게임방 복구 완료 · 로비로 돌아왔어.');await refreshMe();restoreRoomBrowser(old)}catch(e){toast(e.message)}}
 async function startRoom(){try{const d=await api(`/api/rooms/${currentRoomId}/start`,{method:'POST',body:'{}'});renderRoom(d.room);await loadCurrentRoom()}catch(e){toast(e.message)}}
@@ -723,12 +723,24 @@ function bindPokerPresets(root,h){
     input.value=Math.max(l.minRaiseTo,Math.min(l.maxRaiseTo,Math.floor(v/100)*100));fx()
   })
 }
+function holdemFundsHtml(room,solo=false){
+ const seat=room.players.find(p=>Number(p.userId)===Number(me?.id));
+ const stack=Math.max(0,Number(seat?.stack||0)),wallet=solo?me?.balance:room.walletBalance??me?.balance;
+ let total='—';
+ try{total=money(BigInt(String(wallet??0))+BigInt(String(Math.floor(stack))));}catch{}
+ return '<div class="holdem-funds panel" aria-label="홀덤 테이블 칩과 지갑 잔액">'+
+  '<div><small>🃏 테이블 칩 · 승패 즉시 반영</small><strong>'+money(stack)+'</strong></div>'+
+  '<div><small>👛 게임 지갑 · 퇴장 정산 후 반영</small><strong>'+money(wallet??0)+'</strong></div>'+
+  '<div><small>합산 보유 · 지갑 + 테이블</small><strong>'+total+'</strong></div>'+
+  '<p>승리 칩은 테이블에 바로 쌓여. <b>정산 후 나가기</b>로 지갑에 돌려받아.</p></div>';
+}
 function renderHoldem(room){
   $('#holdemBrowser').classList.add('hidden');const root=$('#holdemRoom');root.classList.remove('hidden');
   // Preserve a raise amount while live multiplayer refreshes redraw the table.
   const prevRaise=$('#raiseTo',root),raiseDraft=prevRaise?.value,raiseFocused=document.activeElement===prevRaise;
   const h=room.hand,deal=pokerShouldDeal(room,h);
-  const sec=h?.turnDeadlineAt?Math.max(0,Math.ceil((h.turnDeadlineAt-Date.now())/1000)):null,autoSec=room.autoStartAt?Math.max(0,Math.ceil((room.autoStartAt-Date.now())/1000)):null;root.innerHTML=`${roomToolbar(room)}${room.status==='WAITING'&&autoSec!==null?`<div class="holdem-countdown">🃏 ${h?.phase==='complete'?'다음 핸드':'첫 핸드'} 자동 시작 <b>${autoSec}</b>초 · 전원 READY 유지 시 자동으로 시작합니다.</div>`:''}${h?.phase!=='complete'&&sec!==null?`<div class="holdem-countdown ${sec<=3?'urgent':''}">⏱ ${html(room.turnNickname||'플레이어')} 행동시간 <b>${sec}</b>초 · 0초면 자동 폴드</div>`:''}<div class="table-wrap"><div class="poker-panel panel">${pokerTableHtml(room,h,false,deal)}${holdemActions(h)}</div><div class="side-panel">${pokerStatusPanel(h)}<div class="players-card panel"><div class="section-head"><div><small>PLAYERS</small><h3>참가자 ${room.players.length}/${room.maxPlayers}</h3></div></div><div class="member-list">${room.players.map(p=>`<div class="member poker-member">${pokerFaceHtml(p)}<span>${html(p.nickname)}${room.hostId===p.userId?' 👑':''}</span><b>${money(p.stack)}</b></div>`).join('')}</div></div>${privacyPanelHtml()}</div></div>`;
+  if(room.walletBalance!=null&&String(me?.balance)!==String(room.walletBalance)){me.balance=room.walletBalance;updateHeader();}
+  const sec=h?.turnDeadlineAt?Math.max(0,Math.ceil((h.turnDeadlineAt-Date.now())/1000)):null,autoSec=room.autoStartAt?Math.max(0,Math.ceil((room.autoStartAt-Date.now())/1000)):null;root.innerHTML=`${roomToolbar(room)}${holdemFundsHtml(room)}${room.status==='WAITING'&&autoSec!==null?`<div class="holdem-countdown">🃏 ${h?.phase==='complete'?'다음 핸드':'첫 핸드'} 자동 시작 <b>${autoSec}</b>초 · 전원 READY 유지 시 자동으로 시작합니다.</div>`:''}${h?.phase!=='complete'&&sec!==null?`<div class="holdem-countdown ${sec<=3?'urgent':''}">⏱ ${html(room.turnNickname||'플레이어')} 행동시간 <b>${sec}</b>초 · 0초면 자동 폴드</div>`:''}<div class="table-wrap"><div class="poker-panel panel">${pokerTableHtml(room,h,false,deal)}${holdemActions(h)}</div><div class="side-panel">${pokerStatusPanel(h)}<div class="players-card panel"><div class="section-head"><div><small>PLAYERS</small><h3>참가자 ${room.players.length}/${room.maxPlayers}</h3></div></div><div class="member-list">${room.players.map(p=>`<div class="member poker-member">${pokerFaceHtml(p)}<span>${html(p.nickname)}${room.hostId===p.userId?' 👑':''}</span><b>${money(p.stack)}</b></div>`).join('')}</div></div>${privacyPanelHtml()}</div></div>`;
   bindRoomCommon(root,room);bindPokerPresets(root,h);
   const leaveButton=$('.leave-room',root),leaving=room.players.find(p=>p.userId===me.id)?.leaveAfterHand;
   if(leaveButton){const queued=room.players.find(p=>p.userId===me.id)?.joinNextHand;leaveButton.disabled=!!leaving;leaveButton.title=queued?'대기를 취소하고 보관 중인 칩을 돌려받습니다.':'이번 판이 끝나면 남은 칩을 정산하고 자동 퇴장합니다.';leaveButton.textContent=leaving?'나가기 대기 중':queued?'참가 대기 취소':room.status==='PLAYING'?'나가기 대기':'정산 후 나가기';}
@@ -762,7 +774,7 @@ async function loadSoloHoldem(){try{const d=await api('/api/solo/holdem');if(d.r
 function renderSoloHoldem(room){
   clearTimeout(holdemAutoTimer);
   $('#holdemSoloStart').classList.add('hidden');const root=$('#holdemSoloRoom');root.classList.remove('hidden');const h=room.hand,deal=pokerShouldDeal(room,h);
-  root.innerHTML=`<div class="solo-toolbar"><div><small>AI HEADS UP · SOLO MODE</small><h3>${pokerFaceHtml(room.players.find(p=>p.userId===me.id))}<span>${html(me.nickname)}</span><i>VS</i>${pokerFaceHtml(room.players.find(p=>p.bot))}<span>J-BOT</span></h3></div><button class="secondary solo-cashout" type="button">칩 정산 후 나가기</button></div><div class="table-wrap solo-table-wrap"><div class="poker-panel panel">${pokerTableHtml(room,h,true,deal)}${h?.turnUserId===me.id?'<div class="solo-turn-banner">🔥 내 차례 · 행동을 선택해</div>':h?.phase!=='complete'?'<div class="solo-turn-banner bot">🤖 J-BOT 생각 중...</div>':''}${holdemActions(h,true)}</div><div class="side-panel">${pokerStatusPanel(h)}<div class="panel solo-help-mini"><small>AI 홀덤</small><b>혼자 바로 플레이</b><p>패 분배 애니메이션, 현재 족보, ½ POT·MAX 레이즈를 지원해. 핸드 종료 후 ‘다음 핸드’로 계속 플레이.</p></div></div></div>`;
+  root.innerHTML=`<div class="solo-toolbar"><div><small>AI HEADS UP · SOLO MODE</small><h3>${pokerFaceHtml(room.players.find(p=>p.userId===me.id))}<span>${html(me.nickname)}</span><i>VS</i>${pokerFaceHtml(room.players.find(p=>p.bot))}<span>J-BOT</span></h3></div><button class="secondary solo-cashout" type="button">칩 정산 후 나가기</button></div>${holdemFundsHtml(room,true)}<div class="table-wrap solo-table-wrap"><div class="poker-panel panel">${pokerTableHtml(room,h,true,deal)}${h?.turnUserId===me.id?'<div class="solo-turn-banner">🔥 내 차례 · 행동을 선택해</div>':h?.phase!=='complete'?'<div class="solo-turn-banner bot">🤖 J-BOT 생각 중...</div>':''}${holdemActions(h,true)}</div><div class="side-panel">${pokerStatusPanel(h)}<div class="panel solo-help-mini"><small>AI 홀덤</small><b>혼자 바로 플레이</b><p>패 분배 애니메이션, 현재 족보, ½ POT·MAX 레이즈를 지원해. 핸드 종료 후 ‘다음 핸드’로 계속 플레이.</p></div></div></div>`;
   bindPokerPresets(root,h);
   $$('[data-poker]',root).forEach(b=>b.onclick=async()=>{b.disabled=true;try{const d=await api('/api/solo/holdem/action',{method:'POST',body:JSON.stringify({action:b.dataset.poker,raiseTo:Number($('#raiseTo',root)?.value||0)})});renderSoloHoldem(d.room)}catch(e){toast(e.message);b.disabled=false}});
   $('.solo-next-hand',root)?.addEventListener('click',async()=>{try{const d=await api('/api/solo/holdem/next',{method:'POST',body:'{}'});renderSoloHoldem(d.room)}catch(e){toast(e.message)}});
