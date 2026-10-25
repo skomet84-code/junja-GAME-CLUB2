@@ -975,22 +975,13 @@ function settleHoldemDepartures(r){
   for(const p of [...r.players]){
     if(!p.leaveAfterHand)continue;
     if(roomStatus(r)==='PLAYING'&&r.hand?.p[p.userId])continue;
-    // Balance credit and escrow deletion must commit together, including retries.
-    db.exec('BEGIN IMMEDIATE');
-    try{
-      const held=db.prepare('SELECT amount FROM room_escrow WHERE room_id=? AND user_id=?').get(r.id,p.userId);
-      if(held){
-        const refund=Math.max(0,Number(p.stack||0));
-        const u=db.prepare('SELECT balance FROM users WHERE id=?').get(p.userId);
-        if(!u)throw new Error('사용자를 찾을 수 없습니다.');
-        const balance=u.balance+refund;
-        if(!Number.isSafeInteger(balance))throw new Error('게임머니 한도를 초과합니다.');
-        db.prepare('UPDATE users SET balance=? WHERE id=?').run(balance,p.userId);
-        db.prepare('INSERT INTO ledger(user_id,amount,balance_after,type,memo,created_at) VALUES(?,?,?,?,?,?)').run(p.userId,refund,balance,'holdem_cashout',`${r.name} 자동 퇴장 환급`,now());
-        escrowDelete(r.id,p.userId);
-      }
-      db.exec('COMMIT');
-    }catch(e){db.exec('ROLLBACK');throw e;}
+    // Atomic credit + exact ledger + escrow deletion: retry-safe even with very large wallets.
+    const held=db.prepare('SELECT amount FROM room_escrow WHERE room_id=? AND user_id=?').get(r.id,p.userId);
+    if(held){
+      const refund=Math.max(0,Math.floor(Number(p.stack||0)));
+      if(!Number.isSafeInteger(refund))throw new Error('안전한 정산 가능 금액을 초과했어.');
+      exactWallet.change(db,p.userId,refund,'holdem_cashout',`${r.name} 자동 퇴장 정산`,now(),{escrowRoomId:r.id});
+    }
     r.players=r.players.filter(x=>x.userId!==p.userId);
     if(r.hostId===p.userId)r.hostId=r.players[0]?.userId;
     r.holdemAutoStartAt=null;touchRoom(r);pushRefresh(r.id);
@@ -2049,6 +2040,7 @@ function personalizedRoom(r,userId){
     id:r.id,name:r.name,game:r.game,buyIn:r.buyIn,allWallet:!!r.allWallet,maxPlayers:r.maxPlayers,hostId:r.hostId,status:roomStatus(r),smallBlind:r.smallBlind,bigBlind:r.bigBlind,yutMode:r.yutMode||'individual',yutModeLabel:yutModeLabel(r.yutMode||'individual'),
     version:r.version||0,updatedAt:r.updatedAt||r.createdAt,readyCount:roomReadyCount(r),allReady:r.players.length>=2&&r.players.every(p=>!!p.ready),autoStartAt:holdemAutoStartAt(r),
     turnUserId,turnNickname:turnPlayer?.nickname||null,myTurn:turnUserId===userId,
+    walletBalance:r.game==='holdem'?userPublic(userId)?.balance:null,
     players:orderedPlayers(r).map(p=>({...p,ready:!!p.ready,avatarEmoji:AVATARS[p.avatar%AVATARS.length],cosmetics:cosmeticsPublic(p.userId)})),
     reactions:activeRoomReactions(r),
     gostop:r.game==='gostop'?roomGostopPublic(r,userId):null,
@@ -2570,7 +2562,8 @@ const server=http.createServer(async(req,res)=>{
           const p=roomPlayer(r,u.id);if(!p)return json(res,200,{ok:true});
           p.leaveAfterHand=true;p.ready=false;touchRoom(r);
           settleHoldemDepartures(r);pushRefresh(r.id);
-          return json(res,200,{ok:true,queued:!!roomPlayer(r,u.id)});
+          const queued=!!roomPlayer(r,u.id);
+          return json(res,200,{ok:true,queued,cashout:queued?null:Math.max(0,Number(p.stack||0)),user:queued?null:userPublic(u.id)});
         }
         const p=roomPlayer(r,u.id);if(!p)return json(res,200,{ok:true});if(roomStatus(r)==='PLAYING')return json(res,409,{error:'게임 진행 중에는 나갈 수 없습니다.'});
         const refund=(r.game==='holdem'||r.game==='sevenpoker')?Math.max(0,p.stack):(r.game==='seotda'?(r.seotda?.phase==='complete'?0:r.buyIn):r.game==='gostop'?(r.gostop?.phase==='complete'?0:r.buyIn):(r.yut?.phase==='complete'?0:r.buyIn)); if(refund>0)walletChange(u.id,refund,`${r.game}_cashout`,`${r.name} 퇴장 환급`);escrowDelete(r.id,u.id);r.players=r.players.filter(x=>x.userId!==u.id);
