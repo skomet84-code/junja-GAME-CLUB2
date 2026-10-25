@@ -29,12 +29,18 @@ const LINKS = {
  suspect:{ids:['lock','ledger'],name:'정비 권한의 주인',icon:'♟',result:'강도윤이 잠금 권한과 영상 속 브로치를 모두 가지고 있었다.'}
 };
 const PEOPLE = {
- yoon:{name:'윤서린',role:'호텔 총지배인',statement:'그날 밤 나는 로비에 있었어요. 객실 장부에 내 코드가 왜 있는지 모르겠군요.',needs:['guest','lock'],reveal:'YS-04는 제 코드지만 23:24에 문을 연 건 MAINT-09예요. 정비 권한은 제게 없어요.'},
- kang:{name:'강도윤',role:'시설·보안 기술자',statement:'카메라는 거짓말하지 않죠. 분명 당신이 그곳에 있었습니다.',needs:['sync','ledger'],reveal:'카메라가 7분 느렸다는 건 알고 있었어요. 브로치도 제가 가지고 있었죠. 하지만 전부 우연입니다.'},
- lee:{name:'이현',role:'옆방 투숙객',statement:'그 시각 복도에는 아무도 없었어요. 정말이에요.',needs:['thread','footprint'],reveal:'사실 누군가 지나갔어요. 오른쪽 발을 끌면서 걸었죠. 무서워서 거짓말했어요.'}
+ yoon:{name:'윤서린',role:'호텔 총지배인',statement:'그날 밤 나는 로비에 있었어요. 객실 장부에 내 코드가 왜 있는지 모르겠군요.',needs:['guest','lock'],reveal:'YS-04는 제 코드지만 23:24에 문을 연 건 MAINT-09예요. 정비 권한은 제게 없어요.',
+  behavior:'윤서린은 질문할 때마다 출입 장부를 내려다본다. 손끝에 금빛 잉크가 묻어 있다.',
+  rapportLine:'내 직원코드가 사건에 이용됐다는 사실이 정말 두려워요. 누군가 내 서명을 흉내 냈을지도 몰라요.'},
+ kang:{name:'강도윤',role:'시설·보안 기술자',statement:'카메라는 거짓말하지 않죠. 분명 당신이 그곳에 있었습니다.',needs:['sync','ledger'],reveal:'카메라가 7분 느렸다는 건 알고 있었어요. 브로치도 제가 가지고 있었죠. 하지만 전부 우연입니다.',
+  behavior:'강도윤은 CCTV 시각을 묻자 손목시계를 엄지로 가린다. 화면을 마주보지 않는다.',
+  rapportLine:'내가 시설 문제를 모두 책임지길 바라는 거군요. 장비 결함은 보고했지만 아무도 듣지 않았어요.'},
+ lee:{name:'이현',role:'옆방 투숙객',statement:'그 시각 복도에는 아무도 없었어요. 정말이에요.',needs:['thread','footprint'],reveal:'사실 누군가 지나갔어요. 오른쪽 발을 끌면서 걸었죠. 무서워서 거짓말했어요.',
+  behavior:'이현은 복도 소리를 재현하자 오른발에 시선을 두고 컵을 쥔 손에 힘을 준다.',
+  rapportLine:'나까지 의심받을까 두려웠어요. 그 사람의 걸음소리를 다시 떠올리고 싶지는 않아요.'}
 };
 const REQUIRED = ['timeline','entry','disguise'];
-function initial(){return {v:VERSION,scene:'hall',clues:[],links:[],door:false,archive:false,interviews:{},started:false,solved:false,ending:'pending',score:0,hints:0,misses:0,log:[]};}
+function initial(){return {v:VERSION,scene:'hall',clues:[],links:[],door:false,archive:false,interviews:{},observations:{},rapport:{},defensive:{},started:false,solved:false,ending:'pending',score:0,hints:0,misses:0,log:[]};}
 function hydrate(data){
  if(!data||typeof data!=='object'||data.v!==VERSION)return initial();
  const s=initial();
@@ -45,7 +51,12 @@ function hydrate(data){
  if(!s.archive)s.clues=s.clues.filter(k=>k!=='footage');
  s.links=Array.isArray(data.links)?[...new Set(data.links.filter(k=>LINKS[k]))]:[];
  s.interviews={};
- for(const k of Object.keys(PEOPLE))if(data.interviews&&data.interviews[k])s.interviews[k]=true;
+ for(const k of Object.keys(PEOPLE)){
+  if(data.interviews&&data.interviews[k])s.interviews[k]=true;
+  if(data.observations&&data.observations[k])s.observations[k]=true;
+  if(data.rapport&&data.rapport[k])s.rapport[k]=true;
+  if(data.defensive&&data.defensive[k]&&!s.rapport[k])s.defensive[k]=true;
+ }
  s.hints=Math.max(0,Math.min(999,Number(data.hints)||0));s.misses=Math.max(0,Math.min(999,Number(data.misses)||0));
  s.score=Math.max(0,Math.min(100,Number(data.score)||0));
  s.log=Array.isArray(data.log)?data.log.filter(x=>typeof x==='string').slice(-30):[];
@@ -88,10 +99,33 @@ function connect(s,a,b){
  if(s.links.includes(key))return {ok:true,already:true,key,message:'이미 입증한 결론이야.'};
  s.links.push(key);record(s,'추론 입증 · '+item.name);return {ok:true,key,message:item.result};
 }
-function interrogate(s,id){
+function interrogate(s,id,approach='evidence'){
  const p=PEOPLE[id];if(!p)return {ok:false,message:'존재하지 않는 인물이야.'};
- if(p.needs.every(k=>s.clues.includes(k))){s.interviews[id]=true;record(s,p.name+'의 진술 모순 발견');return {ok:true,reveal:true,message:p.reveal};}
- return {ok:true,reveal:false,message:p.statement};
+ if(!['observe','rapport','evidence'].includes(approach))return {ok:false,message:'허용되지 않은 심문 방법이야.'};
+ if(approach==='observe'){
+  if(!s.observations[id])record(s,p.name+' 행동 관찰 기록');
+  s.observations[id]=true;
+  return {ok:true,reveal:false,approach,message:p.behavior,detail:'관찰만으로는 진술을 입증할 수 없어. 물증을 함께 확보해.'};
+ }
+ if(approach==='rapport'){
+  if(!s.rapport[id])record(s,p.name+'와 신뢰 형성');
+  s.rapport[id]=true;delete s.defensive[id];
+  return {ok:true,reveal:false,approach,message:p.rapportLine,detail:'대화할 여지는 열었지만 모순을 확정하려면 증거를 제시해야 해.'};
+ }
+ if(p.needs.every(k=>s.clues.includes(k))){
+  if(!s.interviews[id])record(s,p.name+'의 진술 모순 입증');
+  s.interviews[id]=true;
+  return {ok:true,reveal:true,approach,
+   message:p.reveal+(s.rapport[id]?' 신뢰가 쌓이자 불필요한 변명을 멈추고 사건 당시의 상황을 차분히 설명한다.':s.defensive[id]?' 끝내 증거 앞에서 인정했지만 다른 질문에는 경계심을 보인다.':''),
+   detail:'서로 독립적인 두 물증이 진술과 모순된다. 입증한 증언을 기록했어.'};
+ }
+ if(!s.rapport[id]){
+  if(!s.defensive[id])record(s,p.name+' 근거 없는 추궁 · 경계심 증가');
+  s.defensive[id]=true;
+ }
+ return {ok:true,reveal:false,approach,message:p.statement+
+  (s.rapport[id]?' 지금 보여준 자료만으로는 답을 바꿀 수 없어요.':' 근거도 없이 저를 범인으로 몰지 마세요.'),
+  detail:'현재 물증으로는 알리바이를 반박할 수 없어. 먼저 해당 인물과 관련된 두 가지 증거를 확보해.'};
 }
 function ready(s){return REQUIRED.every(k=>s.links.includes(k));}
 function fullTruth(s){

@@ -1,0 +1,18 @@
+'use strict';
+const assert=require('node:assert/strict'),E=require('../public/blackroom/engine.js');
+const s=E.initial();
+let r=E.interrogate(s,'kang','evidence');assert.equal(r.reveal,false);
+assert.equal(s.defensive.kang,true,'accusing without evidence makes witness defensive');
+r=E.interrogate(s,'kang','observe');assert.equal(r.reveal,false);assert.equal(s.observations.kang,true);
+r=E.interrogate(s,'kang','rapport');assert.equal(r.reveal,false);
+assert.equal(s.rapport.kang,true);assert.equal(s.defensive.kang,undefined,'rapport repairs defensiveness');
+assert.equal(E.collect(s,'guest').ok,true);assert.equal(E.puzzle(s,'door','2317').ok,true);
+assert.equal(E.collect(s,'sync').ok,true);assert.equal(E.collect(s,'ledger').ok,true);
+r=E.interrogate(s,'kang','evidence');assert.equal(r.reveal,true,'evidence overcomes earlier lies');
+assert.equal(s.interviews.kang,true);
+assert.equal(E.interrogate(s,'kang','not-allowed').ok,false,'reject unknown mode');
+let loaded=E.hydrate(JSON.parse(JSON.stringify(s)));
+assert.equal(loaded.observations.kang,true);assert.equal(loaded.rapport.kang,true);
+assert.equal(loaded.interviews.kang,true);
+assert.ok(loaded.log.find(x=>x.includes('행동 관찰')),'investigation journal records meaningful decision');
+console.log('BLACKROOM_INTERVIEW_OK: dynamic observation, rapport, accusation and safe saved reactions');

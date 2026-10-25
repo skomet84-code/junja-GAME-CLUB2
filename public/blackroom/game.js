@@ -22,6 +22,7 @@
    clues:[...new Set([...r.clues,...l.clues])],
    links:[...new Set([...r.links,...l.links])],
    interviews:{...r.interviews,...l.interviews},
+   observations:{...r.observations,...l.observations},rapport:{...r.rapport,...l.rapport},defensive:{...r.defensive,...l.defensive},
    hints:Math.max(r.hints,l.hints),misses:Math.max(r.misses,l.misses),
    score:Math.max(r.score,l.score),ending:r.ending==='true'||l.ending==='true'?'true':r.solved||l.solved?'partial':'pending',
    scene:l.scene,log:[...new Set([...l.log,...r.log])].slice(0,30)};
@@ -167,8 +168,12 @@
    const good=p.needs.every(k=>state.clues.includes(k));
    return '<article class="suspect-card"><div class="suspect-portrait"><span class="portrait-initial">'+['尹','姜','李'][i]+'</span></div>'+
     '<div class="suspect-info"><span class="eyebrow">PERSON '+String(i+1).padStart(2,'0')+'</span><h3>'+esc(p.name)+'</h3><p>'+esc(p.role)+'</p>'+
-    '<button type="button" class="'+(good?'primary-action':'secondary-action')+'" data-person="'+id+'">'+
-    (state.interviews[id]?'진술 다시 보기':good?'증거 제시하고 추궁':'증언 듣기')+'</button></div></article>';
+    '<div class="suspect-state">'+
+    (state.observations[id]?'<span>◉ 관찰 기록</span>':'')+
+    (state.rapport[id]?'<span>♡ 신뢰 형성</span>':'')+
+    (state.interviews[id]?'<span>✓ 모순 입증</span>':'')+
+    (state.defensive[id]?'<span>! 경계 중</span>':'')+'</div>'+
+    '<button type="button" class="'+(good?'primary-action':'secondary-action')+'" data-person="'+id+'">심문 전략 선택 →</button></div></article>';
   }).join('')+'</div><section class="panel-card" style="margin-top:15px"><h3>심문 원칙</h3><p>증거가 충분하지 않으면 용의자는 기존의 알리바이를 반복해. 잘못된 심문으로 게임이 막히지 않도록 단서는 보존돼.</p></section>';
  const options=(arr)=>'<option value="">— 선택해 —</option>'+arr.map(([value,label])=>'<option value="'+value+'">'+esc(label)+'</option>').join('');
  const verdict=()=>{
@@ -234,13 +239,27 @@
    '<p class="lock-hint">단서에 근거해 해독해야 해. 힌트는 오른쪽 위에서 볼 수 있어.</p>');
  };
  const interviewDialog=id=>{
-  const res=E.interrogate(state,id);preserve();render();
-  openModal('<span class="eyebrow">INTERROGATION / '+esc(E.PEOPLE[id].role)+'</span>'+
-   '<h2 class="modal-headline" id="modalTitle">'+esc(E.PEOPLE[id].name)+'</h2>'+
+  const p=E.PEOPLE[id];if(!p)return;
+  openModal('<span class="eyebrow">INTERROGATION / '+esc(p.role)+'</span>'+
+   '<h2 class="modal-headline" id="modalTitle">'+esc(p.name)+'</h2>'+
+   '<div class="forensic-quote">“'+esc(p.statement)+'”</div>'+
+   '<p class="modal-copy">어떻게 접근할까? 같은 사람도 관찰, 공감, 물증에 따라 반응이 달라진다. 선택은 수사 기록에 남아.</p>'+
+   '<div class="interview-actions">'+
+   '<button type="button" class="secondary-action" data-ask="'+id+'" data-method="observe">⌖ 표정과 행동 관찰<small>비언어적인 단서를 읽는다</small></button>'+
+   '<button type="button" class="secondary-action" data-ask="'+id+'" data-method="rapport">♡ 신뢰를 쌓는 대화<small>경계심을 줄이고 추가 진술 유도</small></button>'+
+   '<button type="button" class="primary-action" data-ask="'+id+'" data-method="evidence">⚖ 증거로 모순 추궁<small>근거가 없으면 오히려 경계</small></button></div>');
+ };
+ const askQuestion=(id,method)=>{
+  const p=E.PEOPLE[id],res=E.interrogate(state,id,method);
+  if(!res.ok){notify(res.message);return;}
+  preserve();render();
+  openModal('<span class="eyebrow">INTERROGATION / '+esc(p.role)+'</span>'+
+   '<h2 class="modal-headline" id="modalTitle">'+esc(p.name)+' · '+(method==='observe'?'행동 관찰':method==='rapport'?'공감 대화':'증거 추궁')+'</h2>'+
    '<div class="forensic-quote">'+esc(res.message)+'</div>'+
-   (res.reveal?'<p class="modal-copy">진술의 모순을 기록했어. 추가 증거와 연결해 최종 추리에 활용할 수 있어.</p>':
-    '<p class="modal-copy">반박할 물증이 부족해. 관련 단서를 확보한 후 다시 심문하면 달라질 수 있어.</p>')+
-   '<div class="modal-actions"><button type="button" class="primary-action" data-action="close-modal">심문 마치기</button></div>');
+   '<p class="modal-copy">'+esc(res.detail||'')+'</p>'+
+   (res.reveal?'<span class="chip">✓ 진술 모순 입증</span>':'')+
+   '<div class="modal-actions"><button type="button" class="secondary-action" data-person="'+id+'">다른 방식으로 질문</button>'+
+   '<button type="button" class="primary-action" data-action="close-modal">수사 계속하기</button></div>');
  };
  const endingDialog=()=>{
   const full=state.ending==='true';
@@ -249,7 +268,9 @@
    '<h2 class="modal-headline" id="modalTitle">'+(full?'밀실 뒤에 남은 명령':'13호실의 첫 번째 진실')+'</h2>'+
    '<div class="outcome"><strong>RANK '+rank+'</strong><p>'+state.score+'점 · 단서 '+state.clues.length+'개 · 힌트 '+state.hints+'회 · 오판 '+state.misses+'회</p></div>'+
    '<p class="modal-copy">강도윤은 CCTV 시간차, 정비 권한, 은빛 브로치를 이용해 당신으로 위장하고 객실 문을 조작했다. 그가 밀실을 만들었다는 사실은 입증됐다.</p>'+
-   (full?'<p class="modal-copy">하지만 모든 출입 경로와 용의자들의 바뀐 진술을 연결하자 숨겨진 지시 관계가 드러난다. 초대장에는 한 줄이 더 남았다. “13호실은 시험에 불과하다. 다음은 네 차례다.”</p>':
+   (full?'<p class="modal-copy">하지만 모든 출입 경로와 용의자들의 바뀐 진술을 연결하자 숨겨진 지시 관계가 드러난다. 초대장에는 한 줄이 더 남았다. “13호실은 시험에 불과하다. 다음은 네 차례다.”</p>'+
+    (Object.values(state.observations||{}).filter(Boolean).length>=2?
+      '<p class="modal-copy">추가 관찰 기록: 두 사람이 같은 질문 앞에서 특정 시계를 바라봤다. 그들은 이미 사건의 실제 시각을 알고 있었을 가능성이 높다.</p>':''):
     '<p class="modal-copy">아직 정체가 확인되지 않은 지시자가 있다. 모든 추론 5개와 용의자 3명의 모순을 입증하면 숨겨진 진실을 찾을 수 있다.</p>')+
    '<div class="modal-actions"><button type="button" data-action="close-modal" class="primary-action">수사 파일로 돌아가기</button></div>');
  };
@@ -265,7 +286,7 @@
    '<button type="button" class="secondary-action" data-action="close-modal">수사 계속하기</button>');
  };
  document.addEventListener('click',ev=>{
-  const element=ev.target.closest('button[data-action],button[data-tab],button[data-scene],button[data-travel],button[data-clue],button[data-evidence],button[data-puzzle],button[data-collect],button[data-person]');
+  const element=ev.target.closest('button[data-action],button[data-tab],button[data-scene],button[data-travel],button[data-clue],button[data-evidence],button[data-puzzle],button[data-collect],button[data-person],button[data-ask]');
   if(!element)return;
   if(element.dataset.tab){tab=element.dataset.tab;if(tab!=='board')selected=[];render();$('#mainContent').scrollIntoView({block:'start',behavior:'smooth'});return;}
   if(element.dataset.scene||element.dataset.travel){
@@ -288,6 +309,7 @@
    render();return;
   }
   if(element.dataset.person){interviewDialog(element.dataset.person);return;}
+  if(element.dataset.ask){askQuestion(element.dataset.ask,element.dataset.method||'evidence');return;}
   const act=element.dataset.action;
   if(act==='start'){state.started=true;preserve();render();notify('첫 번째 수사를 시작해. 출입 장부를 찾아봐.');return;}
   if(act==='hint'){const value=E.hint(state);preserve();render();feedbackDialog('수사 힌트',value,false);return;}
