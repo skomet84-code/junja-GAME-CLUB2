@@ -625,6 +625,9 @@ function transferGameMoney(senderId,targetId,amount){
     if(!sender) throw new Error('보내는 회원을 찾을 수 없습니다.');
     if(!target||target.is_disabled) throw new Error('받는 친구를 찾을 수 없습니다.');
     if(sender.is_disabled) throw new Error('현재 계정에서는 보낼 수 없습니다.');
+    // Bank debt is checked on the authoritative server, inside the transfer transaction.
+    // This includes accrued interest and unlocks automatically after full repayment.
+    if(jBank.owed(senderId)>0n) throw new Error('J-BANK 대출 원금과 이자를 완납해야 다른 회원에게 게임머니를 송금할 수 있습니다.');
     const feePct=Number(socialRankPerksForUser(senderId).transferFeePct||0),fee=Math.max(0,Math.floor(amount*feePct/100)),total=amount+fee;
     if(sender.balance<total) throw new Error(`송금액과 수수료를 포함해 ${formatMoney(total)}G가 필요합니다.`);
     const senderNext=sender.balance-total,targetNext=target.balance+amount,t=now();
