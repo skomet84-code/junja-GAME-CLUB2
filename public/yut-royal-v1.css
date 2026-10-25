@@ -1,0 +1,144 @@
+/* JUNJA LAND · ROYAL YUT V1 / 2026-10-25
+   Presentation only: gameplay, turns, wallet and server rules untouched. */
+#view-yut { --yut-ivory:#ffeed0; --yut-brass:#e6c47c; --yut-forest:#103c31; --yut-dark:#0a1417; }
+#view-yut .yut-flow {
+ position:relative;display:flex;align-items:center;gap:14px;flex-wrap:wrap;
+ padding:15px 18px;margin:12px 0 14px;border-radius:19px;
+ border:1px solid #c6a65b75;background:linear-gradient(119deg,#253a32 0%,#131d27 58%,#151a24 100%);
+ box-shadow:inset 0 1px 0 #ffffff17,0 14px 34px #0006;
+ color:var(--yut-ivory);overflow:hidden
+}
+#view-yut .yut-flow:before{content:"";pointer-events:none;position:absolute;inset:0;background:radial-gradient(ellipse at 0 40%,#edce7840,transparent 43%)}
+#view-yut .yut-flow-seal{position:relative;flex:none;width:45px;height:45px;display:grid;place-items:center;font-size:24px;border:1px solid #f6dda48a;border-radius:14px;background:linear-gradient(145deg,#7e612c,#342915);box-shadow:0 4px 12px #0006}
+#view-yut .yut-flow-copy{position:relative;flex:1 1 160px;min-width:0;display:grid;gap:2px}
+#view-yut .yut-flow-copy small{font-size:9px;letter-spacing:.14em;font-weight:900;color:#d9b870}
+#view-yut .yut-flow-copy strong{font-size:clamp(15px,2vw,21px);font-weight:1000;letter-spacing:-.02em;line-height:1.25;color:#fff0c6}
+#view-yut .yut-flow-copy span{font-size:12px;color:#cbd9d4;line-height:1.4}
+#view-yut .yut-flow-state{position:relative;flex:none;font-size:11px;line-height:1.3;font-weight:1000;color:#ffedb8;padding:9px 11px;border-radius:999px;background:#a6853542;border:1px solid #e7c17b75;white-space:nowrap}
+#view-yut .yut-flow-move{border-color:#8edec18c;background:linear-gradient(120deg,#194538,#17272c 65%,#11191f)}
+#view-yut .yut-flow-move .yut-flow-seal{background:linear-gradient(145deg,#33846b,#143c36)}
+#view-yut .yut-flow-complete{border-color:#ffdb87a8;background:linear-gradient(130deg,#59401c,#181d23)}
+#view-yut .yut-quick-throw{
+ position:relative;flex:0 0 auto;min-height:47px;padding:9px 21px;font-size:15px;font-weight:1000;
+ border-radius:12px;border:1px solid #fff2b0;background:linear-gradient(150deg,#ffefb0,#ddb05b 67%,#be8633);
+ color:#382305;box-shadow:0 6px 0 #704b1d,0 8px 15px #0005;cursor:pointer
+}
+#view-yut .yut-quick-throw:active{transform:translateY(3px);box-shadow:0 3px 0 #704b1d}
+#view-yut .yut-quick-throw:disabled{opacity:.6;cursor:wait;box-shadow:none;transform:none}
+#view-yut .yut-layout-pro{grid-template-columns:minmax(0,1.2fr) minmax(280px,.7fr);gap:15px;align-items:start}
+#view-yut .yut-game.panel{padding:15px 18px 17px;min-width:0;overflow:visible;background:linear-gradient(160deg,#1c2528,#0d191b 55%,#101a21);border:1px solid #a98d5457;border-radius:25px;box-shadow:inset 0 1px 0 #fff2,0 18px 40px #0005}
+#view-yut .yut-board-meta{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:4px 5px 10px;border-bottom:1px solid #e9cf8352;color:#fff5da}
+#view-yut .yut-board-meta>div{display:grid;gap:2px}
+#view-yut .yut-board-meta small{font-size:9px;letter-spacing:.16em;font-weight:850;color:#bba777}
+#view-yut .yut-board-meta strong{font:900 clamp(15px,2.4vw,22px)/1.3 Georgia,'Apple SD Gothic Neo',serif;letter-spacing:.06em}
+#view-yut .yut-board-meta>span{font-size:10px;color:#cbd1b8;text-align:right}
+#view-yut .true-yut-board{
+ position:relative;width:min(100%,690px);max-width:690px!important;aspect-ratio:1!important;
+ margin:14px auto 13px!important;padding:0!important;box-sizing:border-box;
+ overflow:visible!important;border:clamp(6px,.9vw,11px) solid #805c33!important;border-radius:clamp(18px,3vw,30px)!important;
+ background:radial-gradient(circle at 50% 45%,#26634c 0%,#1b4b3a 40%,#0c3027 78%,#09211b 100%)!important;
+ box-shadow:inset 0 0 0 3px #e1bd758a,inset 0 0 0 8px #0c291f9c,inset 0 14px 50px #0009,0 15px 30px #0009!important
+}
+#view-yut .true-yut-board:after{content:"";position:absolute;inset:4%;pointer-events:none;border:1px solid #fff0bd1f;border-radius:10px}
+#view-yut .true-yut-board .board-title{display:none!important}
+#view-yut .true-yut-board .yut-path-svg{inset:7.5%!important;width:85%!important;height:85%!important;filter:drop-shadow(0 3px 3px #0007)!important}
+#view-yut .true-yut-board .yut-path-svg path{stroke:#ffe3a9!important;stroke-width:2!important;opacity:.72}
+#view-yut .true-yut-board .yut-node{width:clamp(25px,4.2vw,40px)!important;height:clamp(25px,4.2vw,40px)!important;border:2px solid #ffde9d!important;background:radial-gradient(circle at 31% 25%,#fff8dc,#d7a660 58%,#956334 100%)!important;box-shadow:0 0 0 2px #35251685,0 5px 11px #000b,inset 0 0 0 2px #fff4!important}
+#view-yut .true-yut-board .yut-node.corner{width:clamp(33px,5.2vw,49px)!important;height:clamp(33px,5.2vw,49px)!important;background:radial-gradient(circle at 30% 25%,#fff4c6,#edbf65 58%,#98632e)!important;box-shadow:0 0 0 4px #edc97735,0 6px 17px #000a!important}
+#view-yut .true-yut-board .yut-node.home-node{border-color:#ffecac!important;box-shadow:0 0 0 5px #f2d37751,0 5px 15px #000a!important}
+#view-yut .true-yut-board .node-num{font-size:clamp(7px,.75vw,9px)!important;font-weight:1000;color:#412d18!important;opacity:.98}
+#view-yut .true-yut-board .node-pieces{z-index:12!important;inset:-9px!important;pointer-events:none;gap:2px;flex-wrap:wrap}
+#view-yut .true-yut-board .yut-stack.cute-yut-token{width:clamp(28px,3.7vw,39px)!important;height:clamp(28px,3.7vw,39px)!important;position:relative;border:2px solid var(--pc,#f9df87)!important;background:linear-gradient(155deg,#fffdf3,#cfc9b5)!important;box-shadow:0 0 0 2px #0b201e,0 7px 16px #000c,0 0 10px var(--pc,#f6ce73)!important;overflow:visible!important;isolation:isolate;touch-action:manipulation}
+#view-yut .true-yut-board .cute-yut-token img{object-fit:contain!important;border-radius:50%!important}
+#view-yut .true-yut-board .cute-yut-token b{right:-8px;bottom:-6px;z-index:4;min-width:21px;height:21px;border:1px solid var(--pc);font-size:10px;box-shadow:0 4px 9px #000a}
+#view-yut .true-yut-board .yut-stack.can-pick{pointer-events:auto;cursor:pointer;outline:2px solid #fff8bb;outline-offset:3px;animation:yutSelectable 1.5s ease-in-out infinite}
+#view-yut .true-yut-board .yut-stack.can-pick:focus-visible{outline:4px solid #b5fbd1;outline-offset:5px}
+#view-yut .true-yut-board .yut-stack.can-pick:after{content:"";position:absolute;inset:-7px;border-radius:50%;pointer-events:auto}
+#view-yut .true-yut-board .yut-stack.can-pick:active{transform:scale(.93)}
+@keyframes yutSelectable{50%{box-shadow:0 0 0 4px #e9df9c55,0 0 21px #f8e399a6,0 8px 14px #000b!important}}
+#view-yut .true-yut-board .start-zone,#view-yut .true-yut-board .finish-zone{z-index:15!important;min-width:92px!important;max-width:128px;width:auto!important;background:linear-gradient(155deg,#0c201be8,#101718e8)!important;border:1px solid #eac67e8c!important;padding:7px 9px!important;border-radius:12px!important;backdrop-filter:blur(8px);box-shadow:0 6px 15px #0009}
+#view-yut .true-yut-board .start-zone{bottom:1%!important;right:1%!important}
+#view-yut .true-yut-board .finish-zone{bottom:1%!important;left:1%!important}
+#view-yut .true-yut-board .start-zone b,#view-yut .true-yut-board .finish-zone b{font-size:9px!important;letter-spacing:.08em}
+#view-yut .true-yut-board .start-zone span,#view-yut .true-yut-board .finish-zone span{font-size:9px!important;line-height:1.4}
+#view-yut .yut-board-legend{display:flex;justify-content:center;flex-wrap:wrap;gap:7px;padding:1px 0 4px}
+#view-yut .yut-board-legend span{padding:7px 10px;border:1px solid #d8c59042;border-radius:999px;background:#a5cba70b;color:#cfdcd0;font-size:10px;font-weight:750}
+#view-yut .yut-board-legend b{color:#edcb7d}
+#view-yut .yut-team-strip{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:9px;margin:7px 0 14px}
+#view-yut .yut-team-card{min-width:0!important;padding:12px 13px 11px;border:1px solid #ffffff18;border-left:4px solid var(--pc,#eac17d)!important;border-radius:15px;background:linear-gradient(145deg,#172b30,#10191e);box-shadow:0 7px 16px #0004}
+#view-yut .yut-team-card.team-mine{background:linear-gradient(145deg,#27413b,#19242a);border-color:#c6ad7955}
+#view-yut .yut-team-card.turn-active{outline:1px solid var(--pc,#dfc386);outline-offset:-2px;box-shadow:0 0 0 2px #f4d77e18,0 8px 18px #0006}
+#view-yut .yut-team-card b{font-size:13px;color:#fff0cc}
+#view-yut .yut-team-card span{font-size:11px!important;line-height:1.4;color:#e1e6df!important}
+#view-yut .yut-team-card small{font-size:11px!important;color:#c3cbbf!important}
+#view-yut .yut-team-progress{height:5px;margin-top:9px;border-radius:999px;background:#030c0d8c;overflow:hidden}
+#view-yut .yut-team-progress i{display:block;height:100%;background:var(--pc,#f2c97e);border-radius:999px;box-shadow:0 0 10px var(--pc,#e1bd78)}
+#view-yut .throw-control.panel{padding:15px;border-radius:22px;border-color:#b5a06b61;background:linear-gradient(160deg,#1a272c,#101821 66%)}
+#view-yut .throw-control .big-yut{font-size:clamp(28px,3vw,42px);font-weight:1000;color:#ffe7aa;letter-spacing:-.03em}
+#view-yut .throw-control .result-name{color:#ffe6a4}
+#view-yut .yut-toss-scene{min-height:146px;border:1px solid #ddb77d57;border-radius:19px;background:radial-gradient(ellipse at 55% 90%,#a97b4240,transparent 67%),linear-gradient(145deg,#28190d,#171613)!important}
+#view-yut .yut-toss-caption{font-size:10px!important;letter-spacing:.04em;line-height:1.35;color:#dcc69e}
+#view-yut .yut-throw,#view-yut .solo-yut-throw{min-height:54px;padding:12px 17px;border:1px solid #ffe3a1;border-radius:13px;background:linear-gradient(155deg,#ffeca8,#d9a958)!important;color:#2e210b!important;font-weight:1000;font-size:17px!important;box-shadow:0 6px 0 #705029,0 9px 20px #0005;cursor:pointer}
+#view-yut .yut-throw:disabled,#view-yut .solo-yut-throw:disabled{opacity:.55;box-shadow:none}
+#view-yut .yut-move-chips{gap:8px;margin:14px 0}
+#view-yut .yut-move-chips button{min-height:48px;min-width:60px;border-radius:12px;border:1px solid #a0b6a17a;background:#1d3230;color:#f3f8ed;font-size:17px;font-weight:1000;transition:transform .12s,background .12s}
+#view-yut .yut-move-chips button.active{border-color:#ffe6a8;background:linear-gradient(140deg,#ffe3a0,#cfa052);color:#302109;box-shadow:0 0 0 3px #ffd98d26}
+#view-yut .yut-move-chips button small{font-size:10px!important;margin-top:3px}
+#view-yut .piece-picker.pro{gap:9px}
+#view-yut .piece-picker.pro button{min-height:75px;border:1px solid #b6c2ad50;border-radius:14px;background:linear-gradient(150deg,#263935,#141f24);color:#fff9df;transition:transform .15s,border-color .15s}
+#view-yut .piece-picker.pro button:not(:disabled):hover,#view-yut .piece-picker.pro button:not(:disabled):focus-visible{border-color:#ffe0a0;box-shadow:0 0 0 3px #dbca8230}
+#view-yut .piece-picker.pro button:disabled{opacity:.36}
+#view-yut .piece-picker.pro b{font-size:13px}
+#view-yut .piece-picker.pro small{font-size:10px!important;color:#c5d6cc!important}
+#view-yut .yut-side{align-content:start;gap:12px}
+#view-yut .yut-rule-panel{background:#111b1b;border-color:#bdb58a30;border-radius:17px}
+#view-yut .yut-rule-panel b{font-size:12px}
+#view-yut .yut-rule-panel span{font-size:11px;line-height:1.5;color:#c5d4ca}
+#view-yut .yut-action-banner{margin:10px 0 12px;border:1px solid #d2b87876;background:linear-gradient(110deg,#243432,#182229);box-shadow:0 8px 18px #0005}
+#view-yut .yut-action-banner strong{font-size:14px;color:#fff0c6}
+#view-yut .yut-route-card h3{font-size:24px}
+@media(max-width:900px){
+ #view-yut .yut-layout-pro{grid-template-columns:1fr!important}
+ #view-yut .yut-side{display:grid;grid-template-columns:1fr!important}
+ #view-yut .yut-game.panel{padding:11px!important}
+ #view-yut .yut-flow{margin-bottom:10px}
+}
+@media(max-width:600px){
+ #view-yut .yut-flow{padding:11px 12px;gap:9px;border-radius:15px}
+ #view-yut .yut-flow-seal{width:38px;height:38px;font-size:20px}
+ #view-yut .yut-flow-copy strong{font-size:15px}
+ #view-yut .yut-flow-copy span{font-size:11px}
+ #view-yut .yut-flow-state{font-size:10px;padding:5px 7px}
+ #view-yut .yut-quick-throw{flex-basis:100%;min-height:49px;font-size:16px;margin:1px 0 5px}
+ #view-yut .yut-board-meta strong{font-size:16px}
+ #view-yut .yut-board-meta small{font-size:8px}
+ #view-yut .yut-board-meta>span{font-size:9px}
+ #view-yut .true-yut-board{width:calc(100% - 7px)!important;margin:10px auto!important;border-width:6px!important}
+ #view-yut .true-yut-board .yut-node{width:clamp(21px,7.4vw,32px)!important;height:clamp(21px,7.4vw,32px)!important;border-width:1.5px!important}
+ #view-yut .true-yut-board .yut-node.corner{width:clamp(27px,9vw,39px)!important;height:clamp(27px,9vw,39px)!important}
+ #view-yut .true-yut-board .node-num{font-size:8px!important}
+ #view-yut .true-yut-board .yut-stack.cute-yut-token{width:clamp(27px,8.7vw,35px)!important;height:clamp(27px,8.7vw,35px)!important;margin:-3px!important}
+ #view-yut .true-yut-board .node-pieces{inset:-7px!important}
+ #view-yut .true-yut-board .start-zone,#view-yut .true-yut-board .finish-zone{min-width:64px!important;max-width:87px!important;padding:5px 6px!important}
+ #view-yut .true-yut-board .start-zone b,#view-yut .true-yut-board .finish-zone b{font-size:8px!important}
+ #view-yut .true-yut-board .start-zone span,#view-yut .true-yut-board .finish-zone span{font-size:8px!important}
+ #view-yut .yut-team-strip{grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+ #view-yut .yut-team-card{padding:8px 9px;border-radius:12px}
+ #view-yut .yut-team-card b{font-size:12px}
+ #view-yut .yut-team-card span{font-size:10px!important}
+ #view-yut .yut-team-card small{font-size:10px!important}
+ #view-yut .yut-board-legend span{font-size:9px;padding:5px 7px}
+ #view-yut .throw-control.panel{padding:12px}
+ #view-yut .piece-picker.pro button{min-height:70px}
+}
+@media(max-width:360px){
+ #view-yut .yut-team-strip{grid-template-columns:1fr 1fr}
+ #view-yut .true-yut-board .yut-stack.cute-yut-token{width:27px!important;height:27px!important}
+ #view-yut .true-yut-board .yut-node.corner{width:29px!important;height:29px!important}
+ #view-yut .true-yut-board .node-num{font-size:6px!important}
+}
+@media(prefers-reduced-motion:reduce){
+ #view-yut .true-yut-board .yut-stack.can-pick{animation:none}
+ #view-yut .yut-action-banner{animation:none}
+ #view-yut .yut-quick-throw{transition:none}
+}
