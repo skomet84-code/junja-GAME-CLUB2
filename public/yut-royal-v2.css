@@ -1,0 +1,114 @@
+/* ROYAL YUT V2 · FINAL CINEMATIC & BOARD SPACING 2026-10-25
+   Readable in dark mode, touch-safe, with reduced-motion fallbacks. */
+
+/* The board, reserve docks and legend form ONE aligned vertical group.
+   Old rules added independent 13px+5px+11px margins, causing uneven gaps. */
+#view-yut .yut-game.panel{display:flex;flex-direction:column;align-items:stretch;gap:0;padding-bottom:11px!important}
+#view-yut .yut-board-meta{margin-bottom:0!important}
+#view-yut .true-yut-board{margin:11px auto 7px!important;flex:0 0 auto}
+#view-yut .yut-reserve-strip{margin:0 auto 7px!important;gap:9px;width:100%;box-sizing:border-box}
+#view-yut .yut-board-legend{margin:0!important;padding:1px 0 0!important;min-height:0!important;line-height:1.2;gap:5px!important;justify-content:center}
+#view-yut .yut-board-legend span{display:inline-flex;align-items:center;justify-content:center;min-height:25px;box-sizing:border-box}
+#view-yut .yut-reserve-strip .start-zone,#view-yut .yut-reserve-strip .finish-zone{min-height:51px;align-items:stretch;text-align:left;gap:3px}
+#view-yut .yut-reserve-strip .start-zone span,#view-yut .yut-reserve-strip .finish-zone span{line-height:1.4}
+#view-yut .yut-layout-pro{align-items:start}
+#view-yut .yut-game.panel>.yut-board-legend:last-child{margin-bottom:0!important}
+
+/* Distinct readable movement and impact choreography, without changing server timing. */
+#view-yut .true-yut-board .yut-motion-token{
+ z-index:25;width:42px;height:42px;margin:-21px 0 0 -21px;
+ background:radial-gradient(circle at 28% 20%,#fff5c8,#eac16d 47%,#8c5e24 100%)!important;
+ border:3px solid #fff1bd!important;color:#3d2a12!important;
+ box-shadow:0 0 0 5px #f5cf7d35,0 0 24px #e4bb7195,0 9px 20px #000a!important;
+ font-size:23px;line-height:1;transition:left .43s cubic-bezier(.2,.73,.3,1),top .43s cubic-bezier(.2,.73,.3,1)
+}
+#view-yut .true-yut-board .yut-node.yut-impact{z-index:14!important;animation:yutRoyalImpact .95s ease-out 1}
+@keyframes yutRoyalImpact{
+ 0%,100%{filter:brightness(1);transform:translate(-50%,-50%) scale(1)}
+ 25%{filter:brightness(1.7);transform:translate(-50%,-50%) scale(1.23)}
+ 65%{filter:brightness(1.1);transform:translate(-50%,-50%) scale(1.04)}
+}
+
+/* Each cinematic result is attached to the board but never captures input. */
+#view-yut .true-yut-board .yut-cinematic{
+ position:absolute;left:50%;top:48%;transform:translate(-50%,-50%);
+ z-index:28;box-sizing:border-box;pointer-events:none;
+ width:min(71%,320px);min-height:132px;padding:15px 14px 16px;
+ border:2px solid #ffe6a7;border-radius:22px;
+ background:radial-gradient(ellipse at 50% 0%,#bb8d3566,transparent 62%),linear-gradient(155deg,#192824f5,#0a1318f7);
+ box-shadow:0 0 0 6px #0b1419c7,0 15px 40px #000c,0 0 45px #e6b757a3;
+ display:flex;align-items:center;justify-content:center;flex-direction:column;gap:2px;
+ text-align:center;animation:yutRoyalMoment 1.75s cubic-bezier(.18,.79,.22,1) forwards
+}
+#view-yut .yut-cinematic-spark{font-size:13px;color:#ffdf86;letter-spacing:.6em;animation:yutRoyalSpark .7s ease-out both}
+#view-yut .yut-cinematic-icon{font-size:39px;color:#fff1b6;line-height:1.1;text-shadow:0 4px 18px #ffd27f}
+#view-yut .yut-cinematic strong{font:1000 clamp(24px,4vw,39px)/1.12 'Apple SD Gothic Neo',sans-serif;letter-spacing:-.04em;color:#fff0b4;text-shadow:0 4px 18px #c99d51}
+#view-yut .yut-cinematic small{font-size:10px;font-weight:900;letter-spacing:.12em;color:#e1c69b}
+#view-yut .yut-cinematic-capture{border-color:#ffb5a2;background:radial-gradient(circle at 50% 0%,#8f302c99,transparent 60%),linear-gradient(160deg,#2b1718f7,#111718f9);box-shadow:0 0 0 6px #090e11ca,0 0 45px #ff725787}
+#view-yut .yut-cinematic-capture .yut-cinematic-icon,#view-yut .yut-cinematic-capture strong{color:#ffd4b6}
+#view-yut .yut-cinematic-stack{border-color:#a6ffdc;background:radial-gradient(circle at 50% 0%,#1d80638c,transparent 65%),linear-gradient(160deg,#112b26f7,#0b191af7);box-shadow:0 0 0 6px #080e12c9,0 0 45px #78e9bc81}
+#view-yut .yut-cinematic-stack .yut-cinematic-icon,#view-yut .yut-cinematic-stack strong{color:#d5ffe8}
+#view-yut .yut-cinematic-backdo{border-color:#ffbe93;background:linear-gradient(160deg,#412117f5,#15171af8)}
+#view-yut .yut-cinematic-backdo .yut-cinematic-icon{color:#ffb18e}
+@keyframes yutRoyalMoment{
+ 0%{opacity:0;transform:translate(-50%,-43%) scale(.74) rotate(-3deg);filter:blur(4px)}
+ 14%,73%{opacity:1;transform:translate(-50%,-50%) scale(1);filter:blur(0)}
+ 85%{opacity:1;transform:translate(-50%,-50%) scale(1.03);filter:blur(0)}
+ 100%{opacity:0;transform:translate(-50%,-54%) scale(.95);filter:blur(3px)}
+}
+@keyframes yutRoyalSpark{0%{opacity:.15;transform:translateY(12px) scale(.6)}100%{opacity:1;transform:none}}
+
+/* Last-match ceremony: layered gilding with deterministic decorative pieces. */
+#view-yut .yut-final-card{
+ position:relative;isolation:isolate;overflow:hidden;
+ display:flex;align-items:center;flex-direction:column;justify-content:center;
+ padding:27px 16px 23px;min-height:255px;border-radius:21px;
+ border:2px solid #d6b779;background:radial-gradient(circle at 50% 20%,#8f6d3690 0%,#33302255 34%,transparent 68%),linear-gradient(145deg,#1e2c30,#0b171c);
+ box-shadow:inset 0 0 0 2px #f6e3ab16,inset 0 0 48px #e0ad4430,0 12px 30px #0008;
+ color:#ffebba;text-align:center
+}
+#view-yut .yut-final-card.mine{border-color:#ffe5a0;background:radial-gradient(circle at 50% 18%,#d6aa558a,transparent 60%),linear-gradient(150deg,#27372b,#151c22)}
+#view-yut .yut-final-wreath{font-size:19px;letter-spacing:.5em;color:#f9d38b;margin-bottom:7px;animation:yutVictoryFloat 2.8s ease-in-out infinite}
+#view-yut .yut-final-kicker{font-size:9px;font-weight:1000;letter-spacing:.15em;color:#d9bd82}
+#view-yut .yut-final-cup{font-size:69px;line-height:1.2;filter:drop-shadow(0 10px 12px #0007);animation:yutVictoryCup .65s cubic-bezier(.18,.85,.3,1) both}
+#view-yut .yut-final-card strong{font-size:clamp(21px,3vw,30px);font-weight:1000;color:#fff0ba;line-height:1.25;letter-spacing:-.02em;position:relative;z-index:2;text-shadow:0 5px 20px #c99a52a8}
+#view-yut .yut-final-verdict{font-size:12px;font-weight:900;color:#efdfae;margin-top:7px;position:relative;z-index:2}
+#view-yut .yut-final-confetti{position:absolute;inset:0;pointer-events:none;overflow:hidden;z-index:1}
+#view-yut .yut-final-confetti i{position:absolute;top:-10px;width:8px;height:16px;background:#ffd978;border-radius:2px;opacity:0;animation:yutVictoryRain 2.7s ease-in infinite}
+#view-yut .yut-final-confetti i:nth-child(1){left:9%;animation-delay:.12s;background:#f2c66b}
+#view-yut .yut-final-confetti i:nth-child(2){left:19%;animation-delay:.7s;background:#aff7d4}
+#view-yut .yut-final-confetti i:nth-child(3){left:34%;animation-delay:1.1s;background:#fff1ca}
+#view-yut .yut-final-confetti i:nth-child(4){left:45%;animation-delay:.4s;background:#f19c8a}
+#view-yut .yut-final-confetti i:nth-child(5){left:57%;animation-delay:1.4s;background:#b7d9ff}
+#view-yut .yut-final-confetti i:nth-child(6){left:71%;animation-delay:.9s;background:#ffd978}
+#view-yut .yut-final-confetti i:nth-child(7){left:84%;animation-delay:.25s;background:#f5cce7}
+#view-yut .yut-final-confetti i:nth-child(8){left:93%;animation-delay:1.7s;background:#e9cd96}
+@keyframes yutVictoryFloat{50%{transform:translateY(-4px);opacity:.7}}
+@keyframes yutVictoryCup{0%{transform:translateY(18px) scale(.72);opacity:.2}75%{transform:translateY(-4px) scale(1.08);opacity:1}100%{transform:none;opacity:1}}
+@keyframes yutVictoryRain{0%{transform:translate3d(0,-14px,0) rotate(0);opacity:0}9%{opacity:1}85%{opacity:.92}100%{transform:translate3d(30px,310px,0) rotate(480deg);opacity:0}}
+/* A single two-column board on phones, without accidental row-space stretching. */
+@media(max-width:900px){
+ #view-yut .yut-layout-pro{gap:11px!important}
+ #view-yut .true-yut-board{margin:8px auto 6px!important}
+ #view-yut .yut-reserve-strip{margin:0 auto 6px!important}
+}
+@media(max-width:600px){
+ #view-yut .yut-game.panel{padding:9px 9px 10px!important;gap:0!important}
+ #view-yut .true-yut-board{margin:7px auto 6px!important}
+ #view-yut .yut-reserve-strip{gap:6px!important;margin:0 auto 5px!important}
+ #view-yut .yut-board-legend{gap:4px!important}
+ #view-yut .yut-board-legend span{font-size:9px!important;min-height:23px;padding:5px 7px!important}
+ #view-yut .true-yut-board .yut-cinematic{width:70%;min-height:97px;padding:10px 9px;border-radius:15px}
+ #view-yut .true-yut-board .yut-cinematic-icon{font-size:26px}
+ #view-yut .true-yut-board .yut-cinematic strong{font-size:clamp(21px,6.5vw,30px)}
+ #view-yut .true-yut-board .yut-cinematic small{font-size:8px;letter-spacing:.08em}
+ #view-yut .yut-final-card{min-height:225px;padding:21px 13px}
+ #view-yut .yut-final-cup{font-size:58px}
+ #view-yut .yut-reserve-strip .start-zone,#view-yut .yut-reserve-strip .finish-zone{min-height:43px!important}
+}
+@media(prefers-reduced-motion:reduce){
+ #view-yut .true-yut-board .yut-cinematic{animation:none;opacity:1}
+ #view-yut .true-yut-board .yut-node.yut-impact{animation:none}
+ #view-yut .yut-final-wreath,#view-yut .yut-final-cup,#view-yut .yut-final-confetti i{animation:none}
+ #view-yut .true-yut-board .yut-motion-token{transition-duration:.16s!important}
+}
