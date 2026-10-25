@@ -1,0 +1,55 @@
+/* BLACK ROOM — JUNJA LAND flagship promotional tile; no other cards affected. */
+#view-lobby .game-grid .blackroom-tile{
+ grid-column:1 / -1!important;display:block!important;position:relative!important;
+ overflow:hidden!important;isolation:isolate!important;
+ min-height:300px!important;height:clamp(285px,31vw,360px)!important;
+ padding:0!important;background:#0c1820!important;
+ border:2px solid #dbc185!important;border-radius:23px!important;
+ box-shadow:inset 0 0 0 1px #f8eac02b,0 15px 37px #0008,0 0 23px #d8b36e22!important;
+ transition:transform .17s,box-shadow .17s!important
+}
+#view-lobby .game-grid .blackroom-tile:hover{transform:translateY(-3px)!important;box-shadow:0 19px 45px #0009,0 0 30px #cda86d33!important}
+#view-lobby .game-grid .blackroom-tile .blackroom-cover{
+ display:block!important;position:absolute!important;inset:0!important;
+ width:100%!important;height:100%!important;max-height:none!important;
+ object-fit:cover!important;object-position:center 49%!important;opacity:1!important;
+ z-index:0!important;filter:contrast(1.09) saturate(.94)!important;
+ mask-image:none!important;-webkit-mask-image:none!important;mix-blend-mode:normal!important
+}
+#view-lobby .blackroom-tile .blackroom-film{position:absolute;inset:0;z-index:1;
+ background:linear-gradient(90deg,#040c15f5 1%,#08111bea 32%,#07111a88 58%,#0b111436 100%),
+ linear-gradient(0deg,#040609a4,transparent 60%);pointer-events:none}
+#view-lobby .blackroom-tile .blackroom-number{position:absolute;right:8%;top:6%;font-family:Georgia,serif;font-size:clamp(70px,13vw,175px);
+ color:#f3d59324;z-index:2;font-weight:400;line-height:1;pointer-events:none;text-shadow:0 0 30px #f5d99815}
+#view-lobby .blackroom-tile .blackroom-info{
+ position:absolute!important;inset:auto auto 0 0!important;
+ display:flex!important;flex-direction:column!important;align-items:flex-start!important;justify-content:flex-end!important;
+ padding:clamp(17px,3vw,34px)!important;z-index:3!important;background:none!important;max-width:95%!important;width:100%!important
+}
+#view-lobby .blackroom-tile .blackroom-label{font-size:clamp(9px,1.25vw,12px);font-weight:900;letter-spacing:.22em;color:#edcf91;
+ border-top:1px solid #d7b78088;padding-top:12px}
+#view-lobby .blackroom-tile .blackroom-title{display:flex!important;align-items:baseline;flex-wrap:wrap;gap:0 .2em;
+ font-family:Georgia,serif;font-size:clamp(38px,5.8vw,69px)!important;line-height:1!important;
+ margin:14px 0 10px!important;color:#fff1ca!important;letter-spacing:-.035em!important;
+ text-shadow:0 5px 23px #000!important;font-weight:500}
+#view-lobby .blackroom-tile .blackroom-title>span{color:#c9a46f!important}
+#view-lobby .blackroom-tile .blackroom-title small{font-family:system-ui,-apple-system,sans-serif;font-size:.33em!important;
+ color:#e2ca96!important;letter-spacing:.02em!important;font-weight:900!important;margin-left:14px}
+#view-lobby .blackroom-tile .blackroom-info p{color:#e5ded1!important;font-size:clamp(11px,1.25vw,15px)!important;
+ text-shadow:0 3px 10px #000!important;margin:0 0 16px!important}
+#view-lobby .blackroom-tile .blackroom-launch{display:inline-flex;align-items:center;gap:25px;border:1px solid #ffefab;
+ background:linear-gradient(120deg,#f4d99b,#b99159);border-radius:10px;padding:10px 18px;
+ color:#1e1b12!important;font-size:13px;font-weight:900}
+#view-lobby .blackroom-tile .blackroom-preview{margin-top:8px;font-size:10px!important;color:#ced6cd;letter-spacing:.1em}
+@media(max-width:700px){
+ #view-lobby .game-grid .blackroom-tile{height:255px!important;min-height:255px!important;border-radius:21px!important}
+ #view-lobby .blackroom-tile .blackroom-film{background:linear-gradient(90deg,#050c15f2,#09151bc9 55%,#0b111459),linear-gradient(0deg,#040609aa,transparent 65%)}
+ #view-lobby .blackroom-tile .blackroom-info{padding:17px!important;max-width:100%!important}
+ #view-lobby .blackroom-tile .blackroom-label{font-size:9px;letter-spacing:.12em}
+ #view-lobby .blackroom-tile .blackroom-title{font-size:clamp(34px,9vw,46px)!important;margin:10px 0 8px!important}
+ #view-lobby .blackroom-tile .blackroom-title small{font-size:16px!important;margin-left:5px!important}
+ #view-lobby .blackroom-tile .blackroom-info p{font-size:11px!important;margin:0 0 12px!important}
+ #view-lobby .blackroom-tile .blackroom-launch{padding:9px 14px;font-size:12px}
+ #view-lobby .blackroom-tile .blackroom-preview{font-size:9px!important}
+ #view-lobby .blackroom-tile .blackroom-number{font-size:120px;right:4%;top:10%}
+}
