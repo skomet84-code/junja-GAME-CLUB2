@@ -68,3 +68,13 @@ body[data-game="hula"] .hero{background:linear-gradient(125deg,#2f152bd9,#140d21
 @media(max-width:650px){.thank-banner{padding:10px;top:4px}.thank-banner strong{font-size:22px}
  .meld-row{flex-wrap:wrap;max-width:100%}.meld-row b{width:100%;font-size:11px}}
 @media(prefers-reduced-motion:reduce){.thank-show{animation:none;opacity:1}}
+
+/* Hula quick registration bar: convenient thumb-size controls without crowding the board. */
+body[data-game="hula"] .hula-assist{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:9px;margin:8px 0 2px;padding:10px 11px;border:1px solid #d9bc79a0;border-radius:12px;background:linear-gradient(120deg,#132c2c,#1d263c);color:#f7e8c2}
+body[data-game="hula"] .hula-assist.hidden{display:none!important}
+.hula-assist-title{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.hula-assist-title strong{font-size:13px;color:#ffe2a0}.hula-assist-title span{font-size:11px;color:#c6e5d4}
+.hula-assist-actions{display:flex;flex-wrap:wrap;gap:6px}
+.hula-assist-actions button{min-height:35px;border-radius:8px;padding:6px 11px;background:#243b41;border:1px solid #c1c9c677;color:#e8eee8;font-size:11px;font-weight:850;cursor:pointer}
+.hula-assist-actions button.active{background:#c5edac;border-color:#e2ffbc;color:#163525}
+.hula-assist-actions button:disabled{opacity:.45;cursor:default}
+@media(max-width:650px){body[data-game="hula"] .hula-assist{padding:9px 8px;gap:7px}.hula-assist-actions button{min-height:39px;flex:1}.hula-assist-actions{width:100%}}
