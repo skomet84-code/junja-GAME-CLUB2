@@ -8,8 +8,11 @@ for(const id of ['footprint','cup','invitation','lock','mirror','sync','ledger']
 assert.equal(E.puzzle(s,'archive','0713').ok,true);
 assert.equal(E.collect(s,'footage').ok,true);
 for(const [a,b] of [['clock','sync'],['guest','lock'],['invitation','footage']])assert.equal(E.connect(s,a,b).ok,true);
+assert.equal(E.ready(s),false,'3 core theories do not unlock shortcut');
+for(const [a,b] of [['thread','footprint'],['lock','ledger']])assert.equal(E.connect(s,a,b).ok,true);
+for(const id of ['kang','yoon'])assert.equal(E.interrogate(s,id).reveal,true);
 assert.equal(E.ready(s),true);
-let result=E.verdict(s,{culprit:'kang',time:'offset',method:'maintenance'});
+let result=E.verdict(s,{culprit:'kang',time:'offset',method:'maintenance',timeProof:'sync',entryProof:'lock',identityProof:'ledger'});
 assert.equal(result.ok,true);assert.equal(result.ending,'partial');
 assert.equal(s.ending,'partial');assert.ok(s.score<=79,'no premature perfect S rank');
 assert.equal(E.fullTruth(s),false);
