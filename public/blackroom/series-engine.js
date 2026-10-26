@@ -5,7 +5,7 @@
  'use strict';const VERSION=1,lookup=new Map(CASES.map(c=>[c.id,c]));
  const own=(v)=>v&&typeof v==='object'&&!Array.isArray(v);
  const unique=(v,valid)=>Array.isArray(v)?[...new Set(v.filter(x=>typeof x==='string'&&valid.includes(x)))]:[];
- const freshCase=()=>({opened:false,scene:0,clues:[],gates:[],theories:[],interviews:[],solved:false,mastered:false,hints:0,misses:0,verdictFails:0,retryAt:0,score:0,log:[]});
+ const freshCase=()=>({opened:false,scene:0,clues:[],gates:[],theories:[],interviews:[],solved:false,mastered:false,hints:0,misses:0,verdictFails:0,retryAt:0,linkFails:0,linkRetryAt:0,score:0,log:[]});
  const fresh=()=>({v:VERSION,cases:{},active:2});
  function cleanCase(data,caseId){
   const c=lookup.get(caseId),s=freshCase();if(!c||!own(data))return s;
@@ -29,6 +29,8 @@
   s.misses=Math.max(0,Math.min(200,Math.floor(Number(data.misses)||0)));
   s.verdictFails=Math.max(0,Math.min(200,Math.floor(Number(data.verdictFails)||0)));
   s.retryAt=Math.max(0,Math.min(Date.now()+90000,Math.floor(Number(data.retryAt)||0)));
+  s.linkFails=Math.max(0,Math.min(200,Math.floor(Number(data.linkFails)||0)));
+  s.linkRetryAt=Math.max(0,Math.min(Date.now()+90000,Math.floor(Number(data.linkRetryAt)||0)));
   s.score=s.solved?Math.max(1,Math.min(100,Math.floor(Number(data.score)||1))):0;
   s.scene=Math.max(0,Math.min(Number(data.scene)||0,s.gates.includes('gate2')?2:s.gates.includes('gate1')?1:0));
   s.log=Array.isArray(data.log)?data.log.filter(x=>typeof x==='string').slice(0,16):[];
@@ -83,8 +85,11 @@
  function connect(s,id,a,b){
   return step(s,id,(c,p)=>{
    if(a===b||!p.clues.includes(a)||!p.clues.includes(b))return {ok:false,message:'수집한 서로 다른 증거 두 개를 선택해.'};
+   if(p.linkRetryAt>Date.now())return {ok:false,message:'연속 추측으로 증거 연결을 일시 중지했어. 기록을 다시 분석한 뒤 시도해.'};
    const k=[a,b].sort().join('|'),found=c.theories.find(t=>t.pair.slice().sort().join('|')===k);
-   if(!found)return {ok:false,message:'연결을 보류했어. 독립된 출처인지, 앞뒤 인과관계가 맞는지 다시 검토해.'};
+   if(!found){p.linkFails++;if(p.linkFails%4===0)p.linkRetryAt=Date.now()+40000;
+    return {ok:false,message:'연결을 보류했어. 시간·출처·물증의 인과관계를 다시 검토해.'};}
+   p.linkFails=0;
    if(!p.theories.includes(found.id)){p.theories.push(found.id);record(p,'추론 입증 · '+found.name);}
    return {ok:true,message:found.text,name:found.name};
   });
@@ -165,6 +170,7 @@ function verdict(s,id,answers){
    c.solved=!!(x?.solved||y?.solved);c.mastered=!!(x?.mastered||y?.mastered);c.scene=Math.max(x?.scene||0,y?.scene||0);
    c.hints=Math.max(x?.hints||0,y?.hints||0);c.misses=Math.max(x?.misses||0,y?.misses||0);
    c.verdictFails=Math.max(x?.verdictFails||0,y?.verdictFails||0);c.retryAt=Math.max(x?.retryAt||0,y?.retryAt||0);
+   c.linkFails=Math.max(x?.linkFails||0,y?.linkFails||0);c.linkRetryAt=Math.max(x?.linkRetryAt||0,y?.linkRetryAt||0);
    c.score=Math.max(x?.score||0,y?.score||0);c.log=[...new Set([...(y?.log||[]),...(x?.log||[])])].slice(0,16);
    out.cases[id]=cleanCase(c,id);
   }
