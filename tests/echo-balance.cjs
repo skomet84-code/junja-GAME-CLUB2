@@ -36,7 +36,7 @@ run('reset();wave=12;enemy()');
 assert.ok(run('enemies.length>0'));
 run('updateHud();draw();drawItems()');
 const lobby=fs.readFileSync('public/junja-echo-20261005-2122.html','utf8');
-assert.ok(lobby.includes('/junja-survival-20261007.js?v=20261025-echo3'),'active route must use upgraded engine');
+assert.ok(lobby.includes('/junja-survival-20261007.js?v=20261026-echo4'),'active route must use upgraded engine');
 for(const id of ['bossStatus','bossHPBar','waveCountdown','pauseOverlay','score','playerNick'])assert.ok(lobby.includes('id="'+id+'"'),'HUD node '+id);
 run("reset();currentPlayer={id:84,name:'햅피'};runPlayerName='햅피';score=15400;end(false)");
 assert.equal(run('ranking[0].name'),'햅피','authenticated nickname is stored instead of static JUNJA');
