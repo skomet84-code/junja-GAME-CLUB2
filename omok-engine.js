@@ -58,6 +58,28 @@ function openThreeGroups(b,x,y){
   }
   return groups.size;
 }
+// JUNJA LAND house rule: even semi-open and split-three crossings are forbidden for black.
+// The classic open-three detector above is retained for full Renju validation.
+function threeThreatDirections(b,x,y){
+  let count=0;
+  for(const [dx,dy] of DIRS){
+    let found=false;
+    for(let offset=-3;offset<=0&&!found;offset++){
+      const row=Array.from({length:4},(_,i)=>[x+(offset+i)*dx,y+(offset+i)*dy]);
+      const stones=row.filter(([cx,cy])=>cell(b,cx,cy)===1);
+      const gaps=row.filter(([cx,cy])=>cell(b,cx,cy)===0);
+      if(stones.length!==3||gaps.length!==1||!stones.some(([cx,cy])=>cx===x&&cy===y))continue;
+      const [xx,yy]=gaps[0];
+      b[yy][xx]=1;
+      const canExtend=!overline(b,xx,yy)&&!winningLine(b,xx,yy,1)&&
+        [offset-1,offset+4].some(k=>winningEndpoint(b,x+k*dx,y+k*dy));
+      b[yy][xx]=0;
+      if(canExtend)found=true;
+    }
+    if(found)count++;
+  }
+  return count;
+}
 function place(b,x,y,color){
   if(!inside(x,y)||![1,2].includes(color))return {ok:false,error:'착수 위치가 올바르지 않습니다.'};
   if(b[y][x]!==0)return {ok:false,error:'이미 돌이 놓인 자리입니다.'};
@@ -68,8 +90,8 @@ function place(b,x,y,color){
   if(color===1&&overline(b,x,y)){b[y][x]=0;return {ok:false,error:'흑돌 장목(6목 이상)은 금수입니다.'};}
   if(color===1){
     if(fourGroups(b,x,y)>=2){b[y][x]=0;return {ok:false,error:'흑돌 4-4 금수입니다.'};}
-    if(openThreeGroups(b,x,y)>=2){b[y][x]=0;return {ok:false,error:'흑돌 3-3 금수입니다.'};}
+    if(openThreeGroups(b,x,y)>=2||threeThreatDirections(b,x,y)>=2){b[y][x]=0;return {ok:false,error:'흑돌 3-3 금수입니다.'};}
   }
   return {ok:true,win:false,draw:b.every(row=>row.every(v=>v!==0))};
 }
-module.exports={SIZE,DIRS,inside,fresh,segment,winningLine,place,overline,fourGroups,openThreeGroups};
+module.exports={SIZE,DIRS,inside,fresh,segment,winningLine,place,overline,fourGroups,openThreeGroups,threeThreatDirections};
