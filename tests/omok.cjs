@@ -18,6 +18,21 @@ function checkRules(){
  assert.equal(rules.place(b,7,7,2).win,true,'white 6 allowed');
  b=mustBoard([[6,7,1],[8,7,1],[7,6,1],[7,8,1]]);
  assert.match(rules.place(b,7,7,1).error,/3-3/,'double three');
+
+ // JUNJA LAND also bans visible semi-open and split 3-3 crossings.
+ b=mustBoard([[6,7,1],[8,7,1],[7,6,1],[7,8,1],[9,7,2],[7,9,2]]);
+ assert.equal(rules.openThreeGroups((()=>{const copy=b.map(row=>row.slice());copy[7][7]=1;return copy;})(),7,7),0,
+  'old open-three-only check misses semi-open double three');
+ assert.match(rules.place(b,7,7,1).error,/3-3/,'semi-open double three');
+ assert.equal(b[7][7],0,'rejected black 3-3 does not alter board');
+ b=mustBoard([[5,7,1],[8,7,1],[7,6,1],[7,8,1],[9,7,2],[7,9,2]]);
+ assert.match(rules.place(b,7,7,1).error,/3-3/,'split/semi-open double three');
+ assert.equal(b[7][7],0,'rejected broken double three leaves turn board intact');
+ b=mustBoard([[6,7,1],[8,7,1],[7,6,1],[7,8,1],[5,7,2],[9,7,2],[7,5,2],[7,9,2]]);
+ assert.equal(rules.place(b,7,7,1).ok,true,'fully blocked lines do not count as three threats');
+ b=mustBoard([[6,7,2],[8,7,2],[7,6,2],[7,8,2],[9,7,1],[7,9,1]]);
+ assert.equal(rules.place(b,7,7,2).ok,true,'white 3-3 remains allowed');
+
  b=mustBoard([[5,7,1],[6,7,1],[8,7,1],[7,5,1],[7,6,1],[7,8,1]]);
  assert.match(rules.place(b,7,7,1).error,/4-4/,'double four');
  b=mustBoard([[3,7,1],[4,7,1],[5,7,1],[6,7,1],[7,6,1],[7,8,1]]);
