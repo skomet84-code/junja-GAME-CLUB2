@@ -71,6 +71,9 @@ async function settle(){for(let i=0;i<12;i++)await Promise.resolve()}
  assert.equal(el('#drawPile').disabled,true);
  assert.match(el('#handHints').innerHTML,/등록 가능한 조합/);
  assert.equal(typeof el('#meldBtn').onclick,'function');
+  assert.ok(html.includes('id="hulaAssist"'),'Hula sorting and selection controls accessible');
+  assert.match(el('#hulaAssist').innerHTML,/숫자순.*무늬순.*선택 해제/,'visible sorting controls');
+  assert.match(el('#actions').innerHTML,/추천 조합 바로 등록/,'one-tap suggested meld appears');
  assert.equal(typeof el('#discardBtn').onclick,'function');
  assert.ok(html.includes('premium-table.css'));
  console.log('ROYAL_CARDS_UI_OK: stock draw buttons and legal Hula selection UI');
