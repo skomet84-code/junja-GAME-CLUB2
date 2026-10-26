@@ -177,7 +177,7 @@
    (!state.archive||!state.clues.includes('footage')?'<section class="panel-card" style="margin:12px 0"><h3>아직 보안실 단서가 남아 있어</h3><p>객실의 5/5는 그 장소 단서 수야. 보안실로 이동해 CCTV 보관함과 영상을 조사해 봐.</p><button type="button" class="secondary-action" data-action="go-security">보안실로 이동 →</button></section>':
     !state.solved&&E.ready(state)?'<section class="panel-card" style="margin:12px 0"><h3>이제 기본 판결이 가능해!</h3><p>5/5를 모두 채우지 않아도 1화를 해결하고 2화로 넘어갈 수 있어.</p><button type="button" class="primary-action" data-tab="verdict">결론 · 최종 지목으로 →</button></section>':
     !state.solved?'<section class="panel-card" style="margin:12px 0"><h3>핵심 추론 '+E.REQUIRED.filter(id=>state.links.includes(id)).length+' / 3 완료</h3><p>남은 추론: '+esc(E.REQUIRED.filter(id=>!state.links.includes(id)).map(id=>E.LINKS[id].name).join(' · '))+'. 수집한 증거 두 개를 연결해 입증해 봐.</p></section>':'')+
-   (!state.solved&&E.canAdvance(state)?'<section class="panel-card" style="margin:12px 0"><h3>다음 사건으로 진행할 수 있어!</h3><p>검증한 추론 '+state.links.length+'개로 기본 수사를 종결할 수 있어. 남은 증거는 나중에 돌아와 진엔딩에 도전할 수 있어.</p><button class="primary-action" type="button" data-tab="verdict">결론으로 이동 · 2화 해금 →</button></section>':'')+
+   (false&&E.canAdvance(state)?'<section class="panel-card" style="margin:12px 0"><h3>다음 사건으로 진행할 수 있어!</h3><p>검증한 추론 '+state.links.length+'개로 기본 수사를 종결할 수 있어. 남은 증거는 나중에 돌아와 진엔딩에 도전할 수 있어.</p><button class="primary-action" type="button" data-tab="verdict">결론으로 이동 · 2화 해금 →</button></section>':'')+
    (state.clues.length?'<div class="combine-dock" role="region" aria-label="단서 조합"><div class="chosen"><span class="chosen-count">'+selected.length+' / 2 선택됨</span><span>'+esc(picks)+'</span></div><button class="outline-action" data-action="clear" type="button">선택 해제</button><button class="primary-action" data-action="connect" type="button" '+(selected.length!==2?'disabled':'')+'>선택한 증거 연결 ⟷</button></div>':'')+
    (state.clues.length?'<div class="evidence-grid">'+list+'</div>':empty('연결할 증거가 없어','현장에서 최소 두 개를 확보한 뒤 돌아와.'))+
    '<div class="section-head" style="margin-top:25px"><div><span class="eyebrow">VERIFIED THEORY</span><h1 style="font-size:23px">입증된 추론</h1></div></div>'+
@@ -202,7 +202,7 @@
   return heading('최종 추리','누가, 언제, 어떻게 밀실을 만들었는지 증거로 입증해야 한다','VERDICT / THE TRUTH')+
    '<section class="panel-card"><span class="eyebrow">REQUIRED EVIDENCE</span><h3>진실을 말할 준비가 되었는가?</h3>'+
    '<div class="verdict-gates">'+satisfied.map(([id,it])=>'<span class="'+(state.links.includes(id)?'passed':'')+'">'+(state.links.includes(id)?'✓ ':'⌑ ')+esc(it.name)+'</span>').join('')+'</div>'+
-   (!state.solved&&E.canAdvance(state)?'<div class="panel-card" style="margin:15px 0;border-color:#c4a36d"><h3>수사 종결 · 다음 사건으로</h3><p>이미 '+state.links.length+'개의 유효한 증거 추론을 입증했어. 남은 필수 추론을 다시 조합하지 않아도 <strong>2화로 넘어갈 수 있어.</strong> 모든 진실을 밝히는 진엔딩은 나중에 도전 가능해.</p><button type="button" class="primary-action" style="width:100%" data-action="advance-case">1화 종결하고 2화 열기 →</button></div>':'')+
+   (false&&E.canAdvance(state)?'<div class="panel-card" style="margin:15px 0;border-color:#c4a36d"><h3>수사 종결 · 다음 사건으로</h3><p>이미 '+state.links.length+'개의 유효한 증거 추론을 입증했어. 남은 필수 추론을 다시 조합하지 않아도 <strong>2화로 넘어갈 수 있어.</strong> 모든 진실을 밝히는 진엔딩은 나중에 도전 가능해.</p><button type="button" class="primary-action" style="width:100%" data-action="advance-case">1화 종결하고 2화 열기 →</button></div>':'')+
    (state.solved?'<div class="outcome"><strong>'+(state.ending==='true'?'TRUE ENDING':'CASE SOLVED')+'</strong>'+
      '<p>'+ (state.ending==='true'?'숨겨진 진실까지 입증':'1차 용의자 입증 · 미해결 단서 남음')+' · '+state.score+'점</p></div>'+
     '<button type="button" class="secondary-action" data-action="ending">현재 결말 다시 보기</button>'+
@@ -212,15 +212,18 @@
      '<p class="modal-copy" style="margin-top:13px">진엔딩 조건: 증거 연결 5개 전부 + 용의자 3명 증언의 모순 입증. '+state.links.length+'/5 추론 · '+Object.values(state.interviews).filter(Boolean).length+'/3 심문</p>'+
      '<button type="button" class="secondary-action" data-tab="board">추가 증거 연결하기</button>'+
      '<button type="button" class="outline-action" data-tab="people" style="margin-left:7px">용의자 심문하기</button>'):
-    E.ready(state)?'<p>검증 가능한 논리 세 가지가 완성됐어. 이제 최종 판단을 내려.</p>'+
+    E.ready(state)?'<p>다섯 가지 독립 추론과 핵심 진술을 검토했어. 결론과 근거 물증을 함께 제출해.</p>'+
     '<form id="verdictForm" class="verdict-form">'+
     '<label>① 진짜 범인은 누구인가?<select name="culprit" required>'+options([['yoon','윤서린 · 총지배인'],['kang','강도윤 · 기술자'],['lee','이현 · 투숙객']])+'</select></label>'+
     '<label>② CCTV 시간의 모순은 무엇인가?<select name="time" required>'+options([['offset','CCTV가 실제보다 7분 느렸다'],['fake','복도 시계가 7분 빨랐다'],['none','시간 조작은 없었다']])+'</select></label>'+
     '<label>③ 어떻게 밀실을 만들었는가?<select name="method" required>'+options([['inside','안에서 잠그고 창문으로 탈출'],['maintenance','정비용 마스터 잠금 해제'],['guest','일반 투숙객 카드로 열었다']])+'</select></label>'+
-    '<button class="primary-action" type="submit">최종 지목 · 진상 입증 →</button></form>':
+    '<label>④ CCTV 시간 판단의 기준 자료<select name="timeProof" required>'+options(state.clues.map(id=>[id,E.CLUES[id].name]))+'</select></label>'+
+    '<label>⑤ 출입 수단을 확인한 장비 자료<select name="entryProof" required>'+options(state.clues.map(id=>[id,E.CLUES[id].name]))+'</select></label>'+
+    '<label>⑥ 위장자의 신원과 관련된 원본 증거<select name="identityProof" required>'+options(state.clues.map(id=>[id,E.CLUES[id].name]))+'</select></label>'+
+    '<button class="primary-action" type="submit">원본 증거 3건 첨부 · 판결 제출 →</button></form>':
     '<p>성급한 지목은 진실을 왜곡해. 수사 보드에서 위 세 결론을 먼저 입증해야 해.</p>'+
     '<button type="button" class="secondary-action" data-tab="board">수사 보드에서 추론하기</button>')+
-   '</section><section class="panel-card"><h3>판결 기준</h3><p>범인을 우연히 맞혀도 성공하지 않아. CCTV의 실제 시각과 잠금 장치 조작 방법까지 모두 설명해야 해. 오판하면 감점되지만, 확보한 단서는 사라지지 않아.</p></section>';
+   '</section><section class="panel-card"><h3>판결 기준</h3><p>범인을 우연히 맞혀도 성공하지 않아. 다섯 가지 독립 추론과 심문 두 건, 세 종류의 실물 증거가 함께 입증되어야 해. 오판하면 감점되지만, 확보한 단서는 사라지지 않아.</p></section>';
  };
  const journal=()=>heading('수사 기록','조사에서 실제로 확인한 사건의 연표','JOURNAL / FIELD NOTES')+
   (state.log.length?'<ol class="log-list">'+state.log.map(s=>'<li>'+esc(s)+'</li>').join('')+'</ol>':empty('아직 기록 없음','현장에서 새로운 단서를 발견하면 사건 기록에 남아.'))+
@@ -401,7 +404,7 @@
   if(ev.target.id==='verdictForm'){
    ev.preventDefault();
    const fd=new FormData(ev.target);
-   const res=E.verdict(state,{culprit:fd.get('culprit'),time:fd.get('time'),method:fd.get('method')});
+   const res=E.verdict(state,{culprit:fd.get('culprit'),time:fd.get('time'),method:fd.get('method'),timeProof:fd.get('timeProof'),entryProof:fd.get('entryProof'),identityProof:fd.get('identityProof')});
    preserve();render();
    if(res.ok)endingDialog();else feedbackDialog('추론에 오류가 있어',res.message,false);
   }
