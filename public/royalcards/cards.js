@@ -3,7 +3,7 @@ const game=new URLSearchParams(location.search).get('game')==='hula'?'hula':'one
 document.body.dataset.game=game;
 const $=sel=>document.querySelector(sel);
 const $$=sel=>[...document.querySelectorAll(sel)];
-let room=null,selected=new Set(),changedVersion=-1,busy=false,stopping=false,callOne=false,inviteAttempted=false,localDeadline=0,score={games:0,wins:0,bestStreak:0,streak:0};
+let room=null,selected=new Set(),hulaSort='rank',changedVersion=-1,busy=false,stopping=false,callOne=false,inviteAttempted=false,localDeadline=0,score={games:0,wins:0,bestStreak:0,streak:0};
 const SUIT={S:'♠',H:'♥',D:'♦',C:'♣'};
 const NAME={onecard:'ROYAL ONE CARD',hula:'ROYAL HULA'};
 const ESC={'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'};
@@ -105,11 +105,23 @@ function renderPlaying(r,mine){
  const attachments=Array.isArray(r.allowedAttachments)?r.allowedAttachments:[];
  const meldCards=new Set(groups.flat()),attachCards=new Set(attachments.map(x=>x.card));
  const action=myTurn&&r.phase==='playing';
- $('#hand').innerHTML=r.hand.map(c=>{
+ const sortedHand=r.game==='hula'?[...r.hand].sort((a,b)=>hulaSort==='suit'?(a[0].localeCompare(b[0])||Number(a.slice(1))-Number(b.slice(1))):(Number(a.slice(1))-Number(b.slice(1))||a[0].localeCompare(b[0]))):r.hand;
+ $('#hand').innerHTML=sortedHand.map(c=>{
   const hint=!action?'':r.game==='onecard'?(r.legal.includes(c)?'play':''):
     r.drew?(meldCards.has(c)?'meld':attachCards.has(c)?'attach':''):'';
   return cardHtml(c,{hand:true,active:!!hint,select:selected.has(c),hint});
  }).join('');
+ const assist=$('#hulaAssist');
+ if(assist){
+  assist.classList.toggle('hidden',r.game!=='hula');
+  if(r.game==='hula'){
+   const matched=(r.allowedMelds||[]).some(cs=>cs.length===selected.size&&cs.every(c=>selected.has(c)));
+   assist.innerHTML='<div class="hula-assist-title"><strong>♛ 내 패 정리</strong><span>'+selected.size+'장 선택'+(matched?' · ✓ 바로 등록 가능':'')+'</span></div>'+
+    '<div class="hula-assist-actions"><button type="button" data-hula-sort="rank" class="'+(hulaSort==='rank'?'active':'')+'">숫자순</button><button type="button" data-hula-sort="suit" class="'+(hulaSort==='suit'?'active':'')+'">무늬순</button><button type="button" data-hula-clear '+(!selected.size?'disabled':'')+'>선택 해제</button></div>';
+   assist.querySelectorAll?.('[data-hula-sort]').forEach(b=>b.onclick=()=>{hulaSort=b.dataset.hulaSort;renderPlaying(r,mine);});
+   const clear=assist.querySelector?.('[data-hula-clear]');if(clear)clear.onclick=()=>{selected.clear();renderPlaying(r,mine);};
+  }
+ }
  const guide=$('#handHints');
  if(guide){
   const labelCards=cards=>cards.map(c=>glyph(c)+n(c)).join(' ');
@@ -238,12 +250,13 @@ function renderActions(r,myTurn){
  }else{
   $('#suitPicker').classList.add('hidden');
   const canMeld=sel.length>0&&(r.allowedMelds||[]).some(cs=>cs.length===sel.length&&cs.every(c=>sel.includes(c)));
+  const quickGroup=!sel.length&&(r.allowedMelds||[]).length?r.allowedMelds[0]:null;
   el.innerHTML=!r.drew?'<button id="takeStock" class="take-card-button" '+(!myTurn?'disabled':'')+'>🂠 카드 한 장 받기</button><button id="stopBtn" class="secondary" '+(!myTurn?'disabled':'')+'>✋ 스톱 선언</button>':
-   '<button id="meldBtn" '+(!myTurn||!canMeld?'disabled':'')+'>♛ '+(canMeld?'선택 조합 등록하기':'새 조합을 선택해')+'</button><button class="secondary" id="discardBtn" '+(!myTurn||sel.length!==1?'disabled':'')+'>↗ 선택 카드 버리기</button><span class="muted">붙이려면 한 장 선택 후 바닥 조합의 +버튼</span>';
+   '<button id="meldBtn" '+(!myTurn||!(canMeld||quickGroup)?'disabled':'')+'>♛ '+(canMeld?'선택 조합 등록':quickGroup?'추천 조합 바로 등록':'등록할 조합 선택')+'</button><button class="secondary" id="discardBtn" '+(!myTurn||sel.length!==1?'disabled':'')+'>↗ 선택 카드 버리기</button><span class="muted">붙이려면 한 장 선택 후 바닥 조합의 +버튼</span>';
   if($('#takeStock'))$('#takeStock').onclick=()=>command('/'+r.id+'/take',{source:'stock'});
   if($('#stopBtn'))$('#stopBtn').onclick=()=>command('/'+r.id+'/stop');
-  if($('#meldBtn'))$('#meldBtn').onclick=()=>{if(!canMeld||busy)return;selected.clear();command('/'+r.id+'/meld',{cards:sel});};
-  if($('#discardBtn'))$('#discardBtn').onclick=()=>command('/'+r.id+'/discard',{card:sel[0]}).then(()=>selected.clear());
+  if($('#meldBtn'))$('#meldBtn').onclick=()=>{if(!(canMeld||quickGroup)||busy)return;selected.clear();command('/'+r.id+'/meld',{cards:canMeld?sel:quickGroup.slice()});};
+  if($('#discardBtn'))$('#discardBtn').onclick=()=>{const card=sel[0];selected.clear();command('/'+r.id+'/discard',{card});};
  }
 }
 function renderDone(r){
