@@ -98,7 +98,7 @@
    S.CASES.map(c=>{
     const p=prog().cases[c.id],locked=!S.unlocked(prog(),c.id,done1),done=!!p?.solved;
     return '<button class="sr-case '+(active===c.id?'active ':'')+(done?'done':'')+'" type="button" data-case="'+c.id+'" '+(locked?'disabled':'')+'>'+
-      '<b>'+String(c.id).padStart(2,'0')+'</b><span><small>'+safe(c.title)+'</small><em>'+(locked?'잠김 · 이전 사건 해결 필요':done?'해결 완료':p?.opened?'수사 중':'새 사건')+'</em></span><span class="sr-tick">'+(locked?'⌑':done?'✓':'⌖')+'</span></button>';
+      '<b>'+String(c.id).padStart(2,'0')+'</b><span><small>'+safe(c.title)+'</small><em>'+(locked?'잠김 · 이전 사건 해결 필요':done?(p?.mastered?'★ 심화 재수사 완료':'해결 · 심화 재수사 가능'):p?.opened?'수사 중':'새 사건')+'</em></span><span class="sr-tick">'+(locked?'⌑':done?'✓':'⌖')+'</span></button>';
    }).join('');
   document.getElementById('srComplete').textContent=String(progressCount()).padStart(2,'0')+' / 13';
   document.getElementById('srHint').disabled=!done1||!!prog().cases[active]?.solved;
@@ -132,15 +132,23 @@
    c.witnesses.map((w,i)=>'<div class="sr-card"><div class="sr-witness"><div class="sr-avatar">'+safe(w.name.slice(0,1))+'</div><div><h3>'+safe(w.name)+' <small>· '+safe(w.role)+'</small></h3><p>“'+safe(w.claim)+'”</p><button class="sr-btn secondary" data-witness="'+w.id+'">'+(p.interviews.includes(w.id)?'✓ 진술 입증 다시 보기':'증거 제시하며 심문하기')+'</button></div></div></div>').join('')+outcome(c,p);
  }
  function verdict(c,p){
-  const complete=p.gates.length===2&&p.theories.length===3&&p.interviews.length===2;
-  const question=(key,label)=>'<label class="sr-field">'+label+'<select name="'+key+'" required><option value="">— 증거를 보고 선택해 —</option>'+S.options(c.id,key).map(value=>'<option value="'+safe(value)+'">'+safe(value)+'</option>').join('')+'</select></label>';
-  const forms=complete?'<form id="srVerdict">'+question('culprit','① 증거를 조작한 핵심 인물은 누구인가?')+
-   question('act','② 사건에서 조작된 핵심 사실은 무엇인가?')+question('motive','③ 조작과 은폐의 최종 목적은 무엇인가?')+
-   '<button class="sr-btn" type="submit">최종 판결 · 진상 입증 →</button></form>':
-   '<div class="sr-info">필요 조건: 잠금 2/2 · 추론 '+p.theories.length+'/3 · 심문 '+p.interviews.length+'/2. 나머지 증거를 확인해.</div>';
-  return '<div class="sr-card"><span class="sr-overline">THE FINAL JUDGMENT</span><h2>판결에 필요한 근거</h2>'+
-   '<div class="sr-logic">'+c.theories.map(t=>'<div class="sr-logic-piece"><b>'+(p.theories.includes(t.id)?'✓':'⌑')+' '+safe(t.name)+'</b><p>'+(p.theories.includes(t.id)?safe(t.text):'아직 증명되지 않은 추론')+'</p></div>').join('')+'</div>'+
-   '<p>용의자의 이름만 맞혀서는 해결로 인정하지 않아. 조작과 동기를 모두 입증해야 해.</p>'+(!p.solved?forms:'')+'</div>'+outcome(c,p);
+  const complete=p.gates.length===2&&p.theories.length===3&&p.interviews.length===2&&p.clues.length===8;
+  const question=(key,label)=>'<label class="sr-field">'+label+'<select name="'+key+'" required><option value="">— 증거를 보고 선택 —</option>'+S.options(c.id,key).map(v=>'<option value="'+safe(v)+'">'+safe(v)+'</option>').join('')+'</select></label>';
+  const evidence=(key,label)=>'<label class="sr-field">'+label+'<select name="'+key+'" required><option value="">— 원본 물증을 선택 —</option>'+c.clues.filter(e=>p.clues.includes(e.id)).map(e=>'<option value="'+safe(e.id)+'">'+safe(e.name)+'</option>').join('')+'</select></label>';
+  const form=complete?'<form id="'+(p.solved?'srMaster':'srVerdict')+'">'+
+   question('culprit','① 사건의 핵심 실행자로 지목할 사람은?')+
+   question('act','② 조작된 사건의 핵심 사실은?')+
+   question('motive','③ 은폐로 달성하려 했던 목적은?')+
+   evidence('contradiction','④ 공식 진술과 정면으로 충돌하는 원본 물증')+
+   evidence('mechanism','⑤ 조작 수단을 밝혀 주는 원본 물증')+
+   evidence('outcome','⑥ 은폐된 결과와 연결되는 원본 물증')+
+   '<button class="sr-btn" type="submit">'+(p.solved?'★ 심화 재수사 검증':'증거 교차검증 · 최종 판결')+' →</button></form>':
+   '<div class="sr-info">필요: 원본 물증 '+p.clues.length+'/8 · 잠금 '+p.gates.length+'/2 · 추론 '+p.theories.length+'/3 · 심문 '+p.interviews.length+'/2. 수사를 마친 뒤 6가지 주장을 함께 입증해.</div>';
+  return '<div class="sr-card"><span class="sr-overline">FORENSIC FINAL REPORT</span><h2>'+(!p.solved?'최종 수사 보고서':p.mastered?'★ 심화 재수사 완료':'★ 고난도 재수사')+'</h2>'+
+   '<div class="sr-logic">'+c.theories.map(t=>'<div class="sr-logic-piece"><b>'+(p.theories.includes(t.id)?'✓':'⌑')+' '+safe(t.name)+'</b><p>'+(p.theories.includes(t.id)?safe(t.text):'교차검증되지 않은 진술')+'</p></div>').join('')+'</div>'+
+   '<p>범인 이름을 맞혀도 끝나지 않아. 모순·수단·은폐 결과에 맞는 독립 물증 세 건을 직접 골라야 해. 연속 추측은 잠시 제한돼.</p>'+
+   (p.mastered?'<div class="sr-info">★ 심화 재수사까지 입증을 마쳤어. 기존 완료 기록은 그대로 유지돼.</div>':form)+
+   '</div>'+outcome(c,p);
  }
  function journal(){
   const cases=S.CASES,done=cases.filter(c=>prog().cases[c.id]?.solved);
@@ -224,11 +232,15 @@
    save();if(res.ok){closeModal();render();showToast(res.message);}else{showToast(res.message);}
    return;
   }
-  if(event.target.id==='srVerdict'){
-   event.preventDefault();const fd=new FormData(event.target),res=S.verdict(prog(),active,{culprit:fd.get('culprit'),act:fd.get('act'),motive:fd.get('motive')});
+  if(event.target.id==='srVerdict'||event.target.id==='srMaster'){
+   event.preventDefault();
+   const fd=new FormData(event.target),expert=event.target.id==='srMaster';
+   const answers={culprit:fd.get('culprit'),act:fd.get('act'),motive:fd.get('motive'),
+    contradiction:fd.get('contradiction'),mechanism:fd.get('mechanism'),outcome:fd.get('outcome')};
+   const res=expert?S.masterCase(prog(),active,answers):S.verdict(prog(),active,answers);
    save();render();
-   if(res.ok){openModal('<span class="sr-overline">TRUE ENDING / CASE '+String(active).padStart(3,'0')+'</span><h2 id="srModalTitle">사건 해결 · '+res.score+'점</h2><p>'+safe(res.message)+'</p>'+
-    (res.finished?'<button class="sr-btn" data-tab="journal">13개 사건 최종 보고서 보기</button>':'<button class="sr-btn" data-next="'+res.next+'">다음 사건으로 →</button>'));}
+   if(res.ok){openModal('<span class="sr-overline">'+(expert?'EXPERT REINVESTIGATION':'CASE CLOSED')+' / CASE '+String(active).padStart(3,'0')+'</span><h2 id="srModalTitle">'+(expert?'심화 재수사 성공':'사건 해결 · '+res.score+'점')+'</h2><p>'+safe(res.message)+'</p>'+
+    (expert?'<button class="sr-btn" data-global="close">사건 기록으로 돌아가기</button>':res.finished?'<button class="sr-btn" data-tab="journal">13개 사건 최종 보고서 보기</button>':'<button class="sr-btn" data-next="'+res.next+'">다음 사건으로 →</button>'));}
    else showToast(res.message);
   }
  });
