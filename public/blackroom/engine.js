@@ -9,7 +9,7 @@ const SCENES = {
  security:{name:'보안실',sub:'기록되지 않은 일곱 분'}
 };
 const CLUES = {
- guest:{scene:'hall',name:'23:17 객실 장부',type:'문서',x:21,y:58,description:'13호실 마지막 방문 시각은 23:17. 인증코드 YS-04가 적혀 있다. 문 옆 키패드는 마지막 방문 시각 네 자리를 요구한다.',fragment:'13호실 · 23:17 · 인증 YS-04'},
+ guest:{scene:'hall',name:'23:17 객실 장부',type:'문서',x:21,y:58,description:'13호실 마지막 방문 기록은 23:17. 인증코드 YS-04가 남았지만 장부의 시각과 실제 출입 시각이 일치하는지는 알 수 없다.',fragment:'13호실 · 23:17 · 인증 YS-04'},
  clock:{scene:'hall',name:'멈춘 복도 시계',type:'물증',x:80,y:21,description:'시계는 정확히 23:24에 멈췄다. 한밤중의 사건 시각을 가리키는 것 같지만 카메라 기록과 다르다.',fragment:'23:24 — 멈춘 초침'},
  thread:{scene:'hall',name:'문틀의 청색 섬유',type:'물증',x:72,y:75,description:'문틀에 감색 울 섬유가 걸려 있다. 호텔 제복과는 다른 고급 원단이다.',fragment:'감색 울 원단 · 바깥쪽 문틀'},
  latch:{scene:'hall',name:'긁힌 정비 잠금쇠',type:'현장',x:53,y:49,description:'출입문의 정비용 잠금쇠에 최근 생긴 긁힘이 있다. 안쪽에서 잠근 밀실만은 아닌 것 같다.',fragment:'외부 정비용 강제 해제 흔적'},
@@ -18,7 +18,7 @@ const CLUES = {
  invitation:{scene:'room',name:'찢어진 초대장',type:'문서',x:54,y:53,description:'뒷면에는 은빛 초승달 브로치가 그려져 있다. “이 표식은 오직 단 한 사람에게만.”',fragment:'은빛 초승달 · 한 사람만의 소품'},
  lock:{scene:'room',name:'정비용 잠금 로그',type:'디지털',x:86,y:28,description:'23:24에 사용된 실제 잠금 권한은 MAINT-09. 객실 장부에 남은 YS-04와는 전혀 다른 종류다.',fragment:'23:24 · MAINT-09 · OVERRIDE'},
  mirror:{scene:'room',name:'거울의 숨겨진 문구',type:'암호',x:23,y:28,description:'입김을 불면 “영상은 진실보다 7분 늦는다”라는 글이 나타난다.',fragment:'진실보다 7분 늦는 영상'},
- sync:{scene:'security',name:'CCTV 동기화 메모',type:'문서',x:19,y:33,description:'CCTV 장비는 실제보다 7분 느리다. 영상 보관함 암호 규칙: [지연 분 두 자리] + [객실 번호 두 자리].',fragment:'지연 07 / 객실 13'},
+ sync:{scene:'security',name:'CCTV 동기화 메모',type:'문서',x:19,y:33,description:'CCTV 장비 동기화 시험표는 7분의 편차를 보인다. 보안실 보관함은 편차 코드와 객실 관리번호를 순서대로 요구한다.',fragment:'지연 07 / 객실 13'},
  footage:{scene:'security',name:'13호실 CCTV 원본',type:'영상',x:53,y:47,gate:'archive',description:'영상의 23:17은 실제 23:24. 당신과 비슷한 외투를 입었지만 가슴에는 은빛 초승달 브로치가 보인다.',fragment:'23:17 영상 · 은빛 초승달 브로치'},
  ledger:{scene:'security',name:'보안실 대여 장부',type:'문서',x:80,y:71,description:'기술자 강도윤이 초승달 소품을 빌리고 돌려주지 않았다. MAINT-09 정비 권한도 그가 가지고 있다.',fragment:'강도윤 · 브로치 미반납 · MAINT-09'}
 };
@@ -122,13 +122,13 @@ function puzzle(s,id,answer){
  const v=String(answer==null?'':answer).replace(/[^0-9]/g,'').slice(0,4);
  if(id==='door'){
   if(s.door)return {ok:true,message:'이미 열린 문이야.'};
-  if(v!=='2317')return {ok:false,message:'틀린 번호야. 장부에 기록된 마지막 방문 시각을 살펴봐.'};
+  if(v!=='2317')return {ok:false,message:'틀린 번호야. 어떤 문서가 출입의 최초 기준인지 먼저 검토해.'};
   s.door=true;s.scene='room';record(s,'제13호실 잠금 해제');return {ok:true,message:'쇳소리와 함께 제13호실 문이 열렸다.'};
  }
  if(id==='archive'){
   if(!s.door)return {ok:false,message:'보안실까지 먼저 가야 해.'};
   if(s.archive)return {ok:true,message:'이미 열린 보관함이야.'};
-  if(v!=='0713')return {ok:false,message:'암호가 틀렸어. 지연 분과 객실 번호를 두 자리씩 입력해.'};
+  if(v!=='0713')return {ok:false,message:'암호가 틀렸어. 보관함 식별방식과 동기화 문서를 대조해.'};
   s.archive=true;record(s,'CCTV 원본 아카이브 잠금 해제');return {ok:true,message:'화면이 켜지고 23:17 영상이 재생된다.'};
  }
  return {ok:false,message:'알 수 없는 장치야.'};
@@ -179,13 +179,13 @@ function interrogate(s,id,approach='evidence'){
   (s.rapport[id]?' 지금 보여준 자료만으로는 답을 바꿀 수 없어요.':' 근거도 없이 저를 범인으로 몰지 마세요.'),
   detail:'현재 물증으로는 알리바이를 반박할 수 없어. 먼저 해당 인물과 관련된 두 가지 증거를 확보해.'};
 }
-function ready(s){return REQUIRED.every(k=>s.links.includes(k));}
+function ready(s){return REQUIRED.every(k=>s.links.includes(k))&&s.links.length===Object.keys(LINKS).length&&Object.values(s.interviews).filter(Boolean).length>=2;}
 // Three independently verified deductions suffice for the main story route.
 // Completion of all five theories and three interviews remains optional TRUE ENDING.
-function canAdvance(s){return !!s.door&&s.links.length>=3;}
+function canAdvance(s){return !!s.door&&!!s.archive&&s.clues.includes('footage')&&ready(s);}
 function advance(s){
  if(s.solved)return {ok:true,already:true,score:s.score,message:'이미 해결한 사건이야. 2화를 계속 진행할 수 있어.'};
- if(!canAdvance(s))return {ok:false,message:'서로 다른 증거를 연결해 검증한 추론 3개가 필요해.'};
+ if(!canAdvance(s))return {ok:false,message:'진상 입증 전에 독립 추론 5개, CCTV 원본, 상충하는 심문 2개 이상이 필요해.'};
  s.solved=true;s.ending='partial';
  s.score=Math.min(79,Math.max(1,100-s.hints*8-s.misses*12));
  record(s,'본편 사건 종결 · 입증한 추론 '+s.links.length+'개 · 후속 002 해금');
@@ -204,8 +204,8 @@ function revealTruth(s){
  return {ok:true,score:s.score,rank:s.score>=90?'S':'A',message:'밀실뿐 아니라 은폐된 이동 경로와 세 명의 모순된 증언을 모두 밝혀냈다. 사건 뒤에는 또 다른 지시자가 존재한다.'};
 }
 function verdict(s,answers){
- if(!ready(s))return {ok:false,locked:true,message:'시각 · 출입 · 변장에 관한 세 추론이 필요해.'};
- if(!answers||answers.culprit!=='kang'||answers.time!=='offset'||answers.method!=='maintenance'){
+ if(!ready(s))return {ok:false,locked:true,message:'독립 추론 5개와 심문 2개를 완료하고 최종 보고서에 물증을 첨부해.'};
+ if(!answers||answers.culprit!=='kang'||answers.time!=='offset'||answers.method!=='maintenance'||answers.timeProof!=='sync'||answers.entryProof!=='lock'||answers.identityProof!=='ledger'){
   s.misses++;record(s,'섣부른 지목 · 재검토 필요');return {ok:false,message:'증거 한 개가 결론과 모순된다. 단서는 보존되니 다시 추리해.'};
  }
  s.solved=true;s.ending='partial';
@@ -220,12 +220,12 @@ function verdict(s,answers){
 }
 function hint(s){
  s.hints++;
- const info=!s.door?'13호실 방문 장부의 네 자리 시각을 문 옆 숫자패드에 입력해.':
-  !s.archive?'보안실 동기화 메모를 읽어. 지연 분 두 자리 + 객실 두 자리야.':
+ const info=!s.door?'객실 출입을 승인한 최초의 독립 문서를 확인해. 단순히 한 사람의 증언은 부족해.':
+  !s.archive?'보관함은 서로 다른 두 시스템의 식별정보를 조합해. 원본 기록의 출처를 확인해.':
   !s.clues.includes('footage')?'암호를 풀었다면 CCTV 화면을 조사해.':
-  !s.links.includes('timeline')?'복도 시계와 CCTV 장비 메모를 연결해.':
-  !s.links.includes('entry')?'객실 장부와 정비 잠금 로그의 권한을 비교해.':
-  !s.links.includes('disguise')?'초대장 뒷면의 브로치와 CCTV 영상을 비교해.':
+  !s.links.includes('timeline')?'두 개의 시계 중 하나는 조작됐을 수 있어. 외부 기준 자료를 찾아.':
+  !s.links.includes('entry')?'접속 권한의 주인과 문을 실제로 열었던 수단을 구분해.':
+  !s.links.includes('disguise')?'사람의 외형과 소품의 소유자가 일치하는지 확인해.':
   '최종 지목에서 시간·정비 권한·위장자의 정체를 모두 정확히 선택해.';
  record(s,'힌트 사용');return info;
 }
