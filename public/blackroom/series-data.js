@@ -75,18 +75,23 @@ const raw=[
  ['도유찬','수사관 범인 조작','조직 전체의 책임 은폐'],
  '모든 파일이 열렸다. 첫 사건의 일곱 분은 사고가 아니라 인간의 신원을 지우기 위한 체계적인 조작이었다. 하지만 진실을 보존할 책임은 이제 당신에게 있다.']
 ];
+// Per-case contradictions, modification paths and hidden outcomes are distinct.
+// Stored chapter progress uses stable theory IDs and is never reset on this update.
+const forensicRoutes={"2":[["e1","e6"],["e3","e4"],["e5","e7"],["e6","e3","e5"]],"3":[["e2","e6"],["e2","e3"],["e5","e7"],["e6","e2","e5"]],"4":[["e2","e6"],["e3","e7"],["e5","e7"],["e7","e6","e5"]],"5":[["e2","e6"],["e4","e5"],["e6","e7"],["e6","e7","e5"]],"6":[["e2","e6"],["e3","e5"],["e5","e7"],["e2","e6","e7"]],"7":[["e2","e7"],["e3","e5"],["e5","e6"],["e2","e5","e7"]],"8":[["e2","e5"],["e3","e6"],["e6","e7"],["e6","e5","e7"]],"9":[["e2","e6"],["e4","e5"],["e5","e7"],["e6","e5","e7"]],"10":[["e2","e7"],["e3","e6"],["e5","e7"],["e7","e6","e5"]],"11":[["e2","e6"],["e4","e5"],["e5","e7"],["e6","e5","e7"]],"12":[["e2","e6"],["e3","e5"],["e6","e7"],["e2","e5","e7"]],"13":[["e2","e7"],["e3","e6"],["e5","e7"],["e7","e3","e6"]]};
 const entries=raw.map(([id,title,subtitle,locations,pinA,pinB,items,people,verdict,ending])=>{
  const clues=items.map((str,i)=>{const [name,description]=str.split('|');return {id:'e'+i,name,description,scene:i<3?0:i<6?1:2};});
- const witnesses=people.map((str,i)=>{const [name,role,claim,reveal]=str.split('|');return {id:'w'+i,name,role,claim,reveal,needs:i===0?['e0','e3']:['e4','e7']};});
+ const route=forensicRoutes[id];
+ const witnesses=people.map((str,i)=>{const [name,role,claim,reveal]=str.split('|');return {id:'w'+i,name,role,claim,reveal,needs:route[i===0?0:2].slice()};});
  return {id,title,subtitle,locations,puzzles:[
-  {id:'gate1',name:locations[1]+' 잠금 해제',intro:'첫 번째 장소에서 확인한 두 숫자를 순서대로 결합해.',answer:pinA,hint:'증거 e0과 e1의 관리번호를 확인해.'},
-  {id:'gate2',name:locations[2]+' 잠금 해제',intro:'두 번째 장소에서 찾은 장비 번호를 순서대로 결합해.',answer:pinB,hint:'증거 e3과 e4의 번호를 확인해.'}],
+  {id:'gate1',name:locations[1]+' 잠금 해제',intro:'별개의 발급 기록에서 얻은 두 자리 번호를 시간 순서에 맞춰 재구성해.',answer:pinA,hint:'초기 현장의 번호가 나뉜 두 독립 자료를 비교해.'},
+  {id:'gate2',name:locations[2]+' 잠금 해제',intro:'장비 라벨과 승인 기록의 서로 다른 번호를 대조해.',answer:pinB,hint:'실물 장비의 관리번호와 전산 기록이 같은 사건을 가리키는지 확인해.'}],
  clues,witnesses,
  theories:[
-  {id:'t0',name:'서로 모순된 기록',pair:['e0','e3'],text:clues[0].name+'과 '+clues[3].name+'을 함께 보니 공식 기록이 실제 경로와 맞지 않는다.'},
-  {id:'t1',name:'사라진 경로',pair:['e1','e4'],text:clues[1].name+'과 '+clues[4].name+'을 비교하면 누군가 접근 권한을 의도적으로 바꾼 사실이 드러난다.'},
-  {id:'t2',name:'은폐의 목적',pair:['e5','e7'],text:clues[5].name+'과 '+clues[7].name+'을 연결하자 이번 사건의 은폐 목적이 드러난다.'}],
- verdict:{culprit:verdict[0],act:verdict[1],motive:verdict[2]},
+  {id:'t0',name:'공식 진술의 모순',pair:route[0],text:'두 기록이 같은 사건을 다르게 설명한다. 어느 자료가 원본인지 확인해야 한다.'},
+  {id:'t1',name:'조작 수단 추적',pair:route[1],text:'조작이 가능했던 수단의 범위가 좁혀졌다. 기록의 출처를 다시 비교해야 한다.'},
+  {id:'t2',name:'은폐된 결과',pair:route[2],text:'고의적인 은폐를 의심할 근거를 찾았다. 범인 지목에는 추가 입증이 필요하다.'}],
+ forensic:{trail:route[3].slice()},
+  verdict:{culprit:verdict[0],act:verdict[1],motive:verdict[2]},
  ending,signature:'달의 그림자 / FILE '+String(id).padStart(3,'0')};
 });
 return Object.freeze(entries);
