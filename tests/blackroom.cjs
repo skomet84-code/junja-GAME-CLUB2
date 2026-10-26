@@ -21,10 +21,15 @@ assert.equal(hypothesis.ok,true,'related evidence should generate an investigabl
 assert.equal(hypothesis.provisional,true,'guest log and clock alone cannot prove a theory');
 assert.equal(s.links.length,0,'unverified hypothesis must not count as a verified deduction');
 [['clock','sync'],['guest','lock'],['invitation','footage']].forEach(([a,b])=>assert.equal(E.connect(s,a,b).ok,true));
+assert.equal(E.ready(s),false,'3 theories no longer unlock verdict');
+[['thread','footprint'],['lock','ledger']].forEach(([a,b])=>assert.equal(E.connect(s,a,b).ok,true));
+assert.equal(E.interrogate(s,'yoon').reveal,true);
+assert.equal(E.interrogate(s,'lee').reveal,true);
 assert.equal(E.ready(s),true);
 assert.equal(E.interrogate(s,'kang').reveal,true);
 assert.equal(E.verdict(s,{culprit:'lee',time:'offset',method:'maintenance'}).ok,false);
-assert.equal(E.verdict(s,{culprit:'kang',time:'offset',method:'maintenance'}).ok,true);
+assert.equal(E.verdict(s,{culprit:'kang',time:'offset',method:'maintenance'}).ok,false,'guessed identity without evidence fails');
+assert.equal(E.verdict(s,{culprit:'kang',time:'offset',method:'maintenance',timeProof:'sync',entryProof:'lock',identityProof:'ledger'}).ok,true);
 assert.equal(E.hydrate(JSON.parse(JSON.stringify(s))).solved,true);
 assert.equal(E.hydrate({v:1,scene:'security',door:false,archive:false,clues:['footage']}).clues.length,0);
 console.log('BLACKROOM_EP01_OK — gating, deduction, interrogations, two endings and save invariants');
