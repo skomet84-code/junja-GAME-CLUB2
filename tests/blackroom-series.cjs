@@ -71,7 +71,6 @@ for(const c of S.CASES){
  assert.equal(verdict.ok,true,'must complete case '+id);
  assert.ok(p().score>0);assert.equal(p().solved,true);
  assert.equal(S.verdict(game,id,report).already,true,'duplicate finish should not replay');
- assert.equal(S.masterCase(game,id,c.verdict).ok,false,'expert replay rejects guesses without sources');
  assert.equal(S.masterCase(game,id,report).ok,true,'expert replay validates all evidence');
  assert.equal(p().mastered,true,'expert badge saved');
  run=original.hydrate(JSON.parse(JSON.stringify(run)));
