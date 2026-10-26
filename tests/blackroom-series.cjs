@@ -47,6 +47,7 @@ for(const c of S.CASES){
  assert.ok(S.unlocked(game,id,true),'case '+id+' must unlock after the previous verdict');
  if(id<13)assert.equal(S.unlocked(game,id+1,true),false,'future case prematurely opened: '+(id+1));
  const p=()=>game.cases[id];
+ assert.equal(c.forensic.trail.length,3,'each case requires 3 independent proof roles');
  assert.equal(S.travel(game,id,2).ok,false,'cannot skip rooms');
  assert.equal(S.unlock(game,id,'gate1',c.puzzles[0].answer).ok,false,'cannot guess keypad without clues');
  for(const clue of ['e0','e1','e2'])assert.equal(S.inspect(game,id,clue).ok,true,id+':'+clue);
@@ -61,12 +62,18 @@ for(const c of S.CASES){
  const opts=['culprit','act','motive'];
  for(const type of opts)assert.ok(S.options(id,type).includes(c.verdict[type]),'answer hidden from options for '+id);
  assert.equal(S.verdict(game,id,{culprit:'wrong',act:'wrong',motive:'wrong'}).ok,false);
- const verdict=S.verdict(game,id,c.verdict);
+ const report={...c.verdict,contradiction:c.forensic.trail[0],mechanism:c.forensic.trail[1],outcome:c.forensic.trail[2]};
+ assert.equal(S.verdict(game,id,c.verdict).ok,false,'culprit guess without forensic proof must fail');
+ const verdict=S.verdict(game,id,report);
  assert.equal(verdict.ok,true,'must complete case '+id);
  assert.ok(p().score>0);assert.equal(p().solved,true);
- assert.equal(S.verdict(game,id,c.verdict).already,true,'duplicate finish should not replay');
+ assert.equal(S.verdict(game,id,report).already,true,'duplicate finish should not replay');
+ assert.equal(S.masterCase(game,id,c.verdict).ok,false,'expert replay rejects guesses without sources');
+ assert.equal(S.masterCase(game,id,report).ok,true,'expert replay validates all evidence');
+ assert.equal(p().mastered,true,'expert badge saved');
  run=original.hydrate(JSON.parse(JSON.stringify(run)));
  assert.equal(run.series.cases[id]?.solved,true,'reconnect must keep completed case '+id);
+ assert.equal(run.series.cases[id]?.mastered,true,'reconnect keeps expert clear '+id);
  assert.ok(run.series.cases[id].clues.length===8);
 }
 assert.equal(run.series.cases[13].solved,true);
@@ -78,6 +85,7 @@ const historic=original.hydrate(raw);
 assert.equal(historic.v,1);assert.equal(historic.started,false);
 assert.equal(historic.series.v,1,'legacy EP01 save upgrade remains compatible');
 const clone=original.hydrate(JSON.parse(JSON.stringify(run)));
+assert.equal(S.merge(run.series,clone.series,true).cases[13].mastered,true,'expert replay achievements survive merge');
 assert.equal(S.merge(run.series,clone.series,true).cases[13].solved,true,'conflict merge never erases highest progress');
 assert.equal(S.merge(run.series,clone.series,false).cases[2],undefined,'locked guest series must not pass authorization');
 const ui=fs.readFileSync(path.join(__dirname,'../public/blackroom/series-ui.js'),'utf8');
@@ -85,6 +93,6 @@ assert.ok(ui.includes('own.started&&own.solved&&!state.solved'),'EP02 should tol
 const html=fs.readFileSync(path.join(__dirname,'../public/blackroom/series.html'),'utf8');
 const ep1UI=fs.readFileSync(path.join(__dirname,'../public/blackroom/game.js'),'utf8');
 for(const token of ['srCaseList','srApp','srModal','srHint','series-ui.js'])assert.ok(html.includes(token),'missing '+token);
-for(const token of ['S.inspect(','S.unlock(','S.connect(','S.question(','S.verdict(','/api/blackroom/state'])assert.ok(ui.includes(token),'UI missing '+token);
+for(const token of ['S.inspect(','S.unlock(','S.connect(','S.question(','S.verdict(','S.masterCase(','/api/blackroom/state'])assert.ok(ui.includes(token),'UI missing '+token);
 assert.ok(ep1UI.includes('/blackroom/series.html'),'EP01 true ending must link to 13-case campaign');
 console.log('BLACKROOM_13_CASES_OK — episode 001 migration, 12 unlocks, 96 clues, 24 locks, 36 theories, 24 witnesses, 12 verdicts, save/merge/UI link');
