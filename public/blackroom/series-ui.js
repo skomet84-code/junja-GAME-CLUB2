@@ -201,7 +201,7 @@
    const c=lookup(active),e=c.clues.find(x=>x.id===imm.dataset.immClue);
    if(!e||!window.BlackRoomImmersive||!window.BlackRoomImmersive.checkChallenge(active,imm.dataset.immClue,imm.dataset.immAnswer)){
     const fail=inside.querySelector('.br-failure');
-    if(fail)fail.textContent='✕ 기록이 일치하지 않아. 카메라 시각에 7분을 더해 봐.';
+    if(fail)fail.textContent='✕ 교차검증에 실패했어. 어떤 시계가 원본 기준인지 다시 확인해.';
     return;
    }
    const result=S.inspect(prog(),active,e.id);
