@@ -18,21 +18,40 @@ function checkRules(){
  assert.equal(rules.place(b,7,7,2).win,true,'white 6 allowed');
  b=mustBoard([[6,7,1],[8,7,1],[7,6,1],[7,8,1]]);
  assert.match(rules.place(b,7,7,1).error,/3-3/,'double three');
+
+ // JUNJA LAND also bans visible semi-open and split 3-3 crossings.
+ b=mustBoard([[6,7,1],[8,7,1],[7,6,1],[7,8,1],[9,7,2],[7,9,2]]);
+ assert.equal(rules.openThreeGroups((()=>{const copy=b.map(row=>row.slice());copy[7][7]=1;return copy;})(),7,7),0,
+  'old open-three-only check misses semi-open double three');
+ assert.match(rules.place(b,7,7,1).error,/3-3/,'semi-open double three');
+ assert.equal(b[7][7],0,'rejected black 3-3 does not alter board');
+ b=mustBoard([[5,7,1],[8,7,1],[7,6,1],[7,8,1],[9,7,2],[7,9,2]]);
+ assert.match(rules.place(b,7,7,1).error,/3-3/,'split/semi-open double three');
+ assert.equal(b[7][7],0,'rejected broken double three leaves turn board intact');
+ b=mustBoard([[6,7,1],[8,7,1],[7,6,1],[7,8,1],[5,7,2],[9,7,2],[7,5,2],[7,9,2]]);
+ assert.equal(rules.place(b,7,7,1).ok,true,'fully blocked lines do not count as three threats');
+ b=mustBoard([[6,7,2],[8,7,2],[7,6,2],[7,8,2],[9,7,1],[7,9,1]]);
+ assert.equal(rules.place(b,7,7,2).ok,true,'white 3-3 remains allowed');
+
  b=mustBoard([[5,7,1],[6,7,1],[8,7,1],[7,5,1],[7,6,1],[7,8,1]]);
  assert.match(rules.place(b,7,7,1).error,/4-4/,'double four');
  b=mustBoard([[3,7,1],[4,7,1],[5,7,1],[6,7,1],[7,6,1],[7,8,1]]);
  assert.equal(rules.place(b,7,7,1).win,true,'exact 5 wins before 3-3 test');
  assert.equal(rules.place(rules.fresh(),15,1,1).ok,false,'out of board');
- // Regression: the black defence intersections shown in the support screenshot
- // are legal, including the square in front of white's horizontal three.
- const screenshot=mustBoard([
+ // Support screenshot: black must be able to block white's horizontal three.
+ b=mustBoard([
   [7,5,1],[4,6,1],[6,7,1],[7,7,1],[6,8,1],[7,8,1],[8,8,1],[9,8,1],[8,10,1],
   [8,5,2],[5,6,2],[7,6,2],[8,6,2],[9,6,2],[9,7,2],[5,8,2],[10,8,2],[9,9,2]
  ]);
  for(const [x,y] of [[6,6],[10,6]]){
-  const attempt=screenshot.map(row=>row.slice());
-  assert.equal(rules.place(attempt,x,y,1).ok,true,'black must be allowed to defend white three at '+x+','+y);
+  const copy=b.map(row=>row.slice());
+  assert.equal(rules.place(copy,x,y,1).ok,true,'black defensive block accepted at '+x+','+y);
+  assert.equal(copy[y][x],1,'defence persisted on board');
  }
+ // An actual open double three remains forbidden, even when a nearby white
+ // diagonal run of three is also adjacent to the move.
+ b=mustBoard([[6,7,1],[8,7,1],[7,6,1],[7,8,1],[8,8,2],[9,9,2],[10,10,2]]);
+ assert.match(rules.place(b,7,7,1).error,/3-3/,'true open 3-3 remains forbidden while defending');
  b=mustBoard([[2,7,1],[3,7,1],[4,7,1],[5,7,1],[6,7,1],[7,3,1],[7,4,1],[7,5,1],[7,6,1]]);
  assert.equal(rules.place(b,7,7,1).win,true,'exact 5 outranks simultaneous overline');
 }

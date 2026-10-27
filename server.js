@@ -6,13 +6,15 @@ const path = require('node:path');
 const crypto = require('node:crypto');
 const staticResponse = require('./static-response');
 const exactWallet = require('./exact-wallet');
+const {createJBank}=require('./j-bank-core');
 const { DatabaseSync } = require('./persistent-db');
 const createTreasureRaid = require('./treasure-raid-server');
 const createBlackroomCloud = require('./blackroom-cloud');
 
 const PORT = Number(process.env.PORT || 10000);
 const HOST = '0.0.0.0';
-const ADMIN_USERNAME = String(process.env.ADMIN_USERNAME || '').trim().toLowerCase();
+const ADMIN_USERNAME = String(process.env.ADMIN_USERNAME || 'admin_junja').trim().toLowerCase();
+const ADMIN_SETUP_HASH = 'dccc80e909dfac3f13c81387d82b712348f16a002c3e7b165c8ee3c51c1f4c88';
 const ADMIN_PASSWORD = String(process.env.ADMIN_PASSWORD || '');
 const ADMIN_NICKNAME = '갓준자';
 const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, 'data');
@@ -153,6 +155,7 @@ ensureColumn('stats','roulette_wins','INTEGER NOT NULL DEFAULT 0');
 ensureColumn('stats','roulette_profit','INTEGER NOT NULL DEFAULT 0');
 ensureColumn('users','is_admin','INTEGER NOT NULL DEFAULT 0');
 ensureColumn('users','is_disabled','INTEGER NOT NULL DEFAULT 0');
+ensureColumn('users','is_archived','INTEGER NOT NULL DEFAULT 0');
 ensureColumn('users','rank_level','INTEGER NOT NULL DEFAULT 0');
 ensureColumn('user_loadout','character','TEXT');
 
@@ -206,17 +209,22 @@ function recordSlot777Jackpot(user,{jackpotAward,regularPayout,bet}){
 
 
 const goldenbell=require('./goldenbell-server')({db,crypto,readBody,requireAuth,json,rateLimit,
-  isUserBusy:id=>!!findUserRoom(id)||!!baccaratFindUser(id)||treasureRaid.hasUser(id)||sichuanBattle.hasUser(id)||omok.hasUser(id)||liar.hasUser(id),
+  isUserBusy:id=>!!findUserRoom(id)||!!baccaratFindUser(id)||treasureRaid.hasUser(id)||sichuanBattle.hasUser(id)||omok.hasUser(id)||liar.hasUser(id)||janggi.hasUser(id)||royalCards.hasUser(id),
   notify:(ids,roomId)=>{for(const [,client] of sseClients)if(ids.includes(Number(client.userId))){try{client.res.write(`event: refresh\ndata: ${JSON.stringify({goldenbell:true,roomId})}\n\n`);}catch{}}}
 });
 const omok=require('./omok-server')({db,crypto,readBody,requireAuth,json,rateLimit,
   isUserBusy:id=>!!findUserRoom(id)||!!baccaratFindUser(id)||treasureRaid.hasUser(id)||goldenbell.hasUser(id)||sichuanBattle.hasUser(id),
   notify:(ids,roomId)=>{for(const [,client] of sseClients)if(ids.includes(Number(client.userId))){try{client.res.write(`event: refresh\ndata: ${JSON.stringify({omok:true,roomId})}\n\n`);}catch{}}}
 });
-const sichuanBattle=require('./sichuan-battle-server')({db,crypto,readBody,requireAuth,json,rateLimit,isUserBusy:id=>goldenbell.hasUser(id)||omok.hasUser(id)||liar.hasUser(id)});
+const sichuanBattle=require('./sichuan-battle-server')({db,crypto,readBody,requireAuth,json,rateLimit,isUserBusy:id=>goldenbell.hasUser(id)||omok.hasUser(id)||liar.hasUser(id)||janggi.hasUser(id)||royalCards.hasUser(id)});
 const liar=require('./liar-server')({db,crypto,readBody,requireAuth,json,rateLimit,
   isUserBusy:id=>!!findUserRoom(id)||!!baccaratFindUser(id)||treasureRaid.hasUser(id)||goldenbell.hasUser(id)||omok.hasUser(id)||sichuanBattle.hasUser(id),
   notify:(ids,roomId)=>{for(const [,client] of sseClients)if(ids.includes(Number(client.userId))){try{client.res.write(`event: refresh\ndata: ${JSON.stringify({liar:true,roomId})}\n\n`);}catch{}}}
+});
+const janggi=require('./janggi-server')({db,crypto,readBody,requireAuth,json,rateLimit,
+  credit:(userId,amount,key)=>exactWallet.change(db,userId,amount,'janggi_ai_win','준자 장기 최강 AI 격파 · 1조 G',now,{requestKey:key}),
+  isUserBusy:id=>!!findUserRoom(id)||!!baccaratFindUser(id)||treasureRaid.hasUser(id)||goldenbell.hasUser(id)||omok.hasUser(id)||liar.hasUser(id)||janggi.hasUser(id)||royalCards.hasUser(id)||sichuanBattle.hasUser(id),
+  notify:(ids,roomId)=>{for(const [,client] of sseClients)if(ids.includes(Number(client.userId))){try{client.res.write(`event: refresh\ndata: ${JSON.stringify({janggi:true,roomId})}\n\n`);}catch{}}}
 });
 // If the server restarted while rooms were active, return virtual chips safely.
 const staleEscrows = db.prepare('SELECT room_id,user_id,COALESCE(amount_exact,CAST(amount AS TEXT)) AS amount,game FROM room_escrow').all();
@@ -536,7 +544,10 @@ function ensureAdminAccount(){
   const existing=db.prepare('SELECT * FROM users WHERE username=?').get(ADMIN_USERNAME);
   const salt=randomToken(16),hash=hashPassword(ADMIN_PASSWORD,salt),t=now();
   if(existing){
-    db.prepare('UPDATE users SET pass_salt=?,pass_hash=?,nickname=?,is_admin=1,is_disabled=0 WHERE id=?').run(salt,hash,ADMIN_NICKNAME,existing.id);
+    // A player who claimed the reserved username before setup must never
+    // acquire elevated privileges or have their password silently replaced.
+    if(Number(existing.is_admin)!==1)throw new Error('Admin name collision: refusing to promote an unverified player account.');
+    db.prepare('UPDATE users SET pass_salt=?,pass_hash=?,is_disabled=0 WHERE id=?').run(salt,hash,existing.id);
     console.log(`Admin account ready: ${ADMIN_USERNAME}`);
     return;
   }
@@ -614,6 +625,9 @@ function transferGameMoney(senderId,targetId,amount){
     if(!sender) throw new Error('보내는 회원을 찾을 수 없습니다.');
     if(!target||target.is_disabled) throw new Error('받는 친구를 찾을 수 없습니다.');
     if(sender.is_disabled) throw new Error('현재 계정에서는 보낼 수 없습니다.');
+    // Bank debt is checked on the authoritative server, inside the transfer transaction.
+    // This includes accrued interest and unlocks automatically after full repayment.
+    if(jBank.owed(senderId)>0n) throw new Error('J-BANK 대출 원금과 이자를 완납해야 다른 회원에게 게임머니를 송금할 수 있습니다.');
     const feePct=Number(socialRankPerksForUser(senderId).transferFeePct||0),fee=Math.max(0,Math.floor(amount*feePct/100)),total=amount+fee;
     if(sender.balance<total) throw new Error(`송금액과 수수료를 포함해 ${formatMoney(total)}G가 필요합니다.`);
     const senderNext=sender.balance-total,targetNext=target.balance+amount,t=now();
@@ -725,23 +739,26 @@ const SOCIAL_RANKS = [
   {level:9,name:'왕',icon:'♔',cost:30000000000000,className:'king'},
   {level:10,name:'황제',icon:'🏰',cost:100000000000000,className:'emperor'},
   {level:11,name:'JUNJA ROYAL',icon:'J',cost:300000000000000,className:'royal'},
-  {level:12,name:'GOD JUNJA',icon:'G',cost:1000000000000000,className:'god'}
+  {level:12,name:'THE ABSOLUTE',icon:'∞',cost:10000000000000000,className:'god'},
+  // GOD JUNJA final tier, 100경 G · decimal string is exact beyond Number.MAX_SAFE_INTEGER.
+  {level:13,name:'GOD JUNJA',icon:'G',cost:'1000000000000000000',className:'absolute'}
 ];
+const jBank=createJBank({db,exactWallet,levels:SOCIAL_RANKS,now,kstDate});
 function socialRankPerks(level){
   level=Math.max(0,Math.min(SOCIAL_RANKS.length-1,Number(level)||0));
-  const extraDraws=level>=12?6:level>=11?4:level>=9?3:level>=6?2:level>=3?1:0;
-  const dailyBonusPct=[0,5,10,15,20,30,40,50,65,80,100,150,300][level]||0;
-  const dailySalary=[1000000,3000000,10000000,30000000,50000000,100000000,200000000,300000000,600000000,1200000000,2500000000,5000000000,10000000000][level]||0;
-  const transferFeePct=[2,2,1.8,1.6,1.4,1.2,1,0.8,0.6,0.4,0.2,0,0][level]||0;
-  const freeSlots=[0,0,0,5,8,12,18,25,35,50,70,100,200][level]||0;
-  const freeSlotBet=[0,0,0,100000,200000,300000,500000,1000000,2000000,3000000,5000000,10000000,10000000][level]||0;
-  const freeBigWheel=[0,0,0,5,8,12,18,25,35,50,70,100,200][level]||0;
-  const horseWinBonusPct=[0,0,0,0,0,2,3,4,5,6,8,10,15][level]||0;
-  const gameEntryDiscountPct=[0,0,0,0,2,3,4,5,6,8,10,12,20][level]||0;
-  const giftBonusPct=[0,0,0,0,0,2,3,4,5,6,8,10,20][level]||0;
-  const dailyInterestPct=[0,0,0,0,0,0,0,0.001,0.002,0.003,0.004,0.005,0.01][level]||0;
-  const shopTier=level>=12?6:level>=11?5:level>=10?4:level>=9?3:level>=7?2:level>=4?1:0;
-  const appearanceTier=level>=12?6:level>=11?5:level>=10?4:level>=9?3:level>=7?2:level>=4?1:0;
+  const extraDraws=level>=13?9:level>=12?6:level>=11?4:level>=9?3:level>=6?2:level>=3?1:0;
+  const dailyBonusPct=[0,5,10,15,20,30,40,50,65,80,100,150,300,500][level]||0;
+  const dailySalary=[1000000,3000000,10000000,30000000,50000000,100000000,200000000,300000000,600000000,1200000000,2500000000,5000000000,10000000000,100000000000][level]||0;
+  const transferFeePct=[2,2,1.8,1.6,1.4,1.2,1,0.8,0.6,0.4,0.2,0,0,0][level]||0;
+  const freeSlots=[0,0,0,5,8,12,18,25,35,50,70,100,200,500][level]||0;
+  const freeSlotBet=[0,0,0,100000,200000,300000,500000,1000000,2000000,3000000,5000000,10000000,10000000,10000000][level]||0;
+  const freeBigWheel=[0,0,0,5,8,12,18,25,35,50,70,100,200,500][level]||0;
+  const horseWinBonusPct=[0,0,0,0,0,2,3,4,5,6,8,10,15,20][level]||0;
+  const gameEntryDiscountPct=[0,0,0,0,2,3,4,5,6,8,10,12,20,30][level]||0;
+  const giftBonusPct=[0,0,0,0,0,2,3,4,5,6,8,10,20,30][level]||0;
+  const dailyInterestPct=[0,0,0,0,0,0,0,0.001,0.002,0.003,0.004,0.005,0.01,0.015][level]||0;
+  const shopTier=level>=13?7:level>=12?6:level>=11?5:level>=10?4:level>=9?3:level>=7?2:level>=4?1:0;
+  const appearanceTier=level>=13?7:level>=12?6:level>=11?5:level>=10?4:level>=9?3:level>=7?2:level>=4?1:0;
   return {extraDraws,dailyBonusPct,dailyDraws:1+extraDraws,dailySalary,transferFeePct,freeSlots,freeSlotBet,freeBigWheel,horseWinBonusPct,gameEntryDiscountPct,giftBonusPct,dailyInterestPct,shopTier,appearanceTier};
 }
 function socialRankPerksForUser(userId){
@@ -767,22 +784,28 @@ function socialRankPublic(userId){
   const row=db.prepare('SELECT rank_level FROM users WHERE id=?').get(Number(userId));
   const level=Math.max(0,Math.min(SOCIAL_RANKS.length-1,Number(row?.rank_level||0)));
   const current=SOCIAL_RANKS[level],next=SOCIAL_RANKS[level+1]||null;
-  return {level,name:current.name,icon:current.icon,className:current.className,perks:socialRankPerks(level),freePlay:{slot:rankFreePlayState(userId,'slot'),wheel:rankFreePlayState(userId,'wheel')},maxLevel:!next,next:next?{level:next.level,name:next.name,icon:next.icon,cost:next.cost,className:next.className,perks:socialRankPerks(next.level)}:null};
+  const bankDebt=jBank.owed(userId);
+  return {level,name:current.name,icon:current.icon,className:current.className,bankDebt:String(bankDebt),promotionLocked:bankDebt>0n,perks:socialRankPerks(level),freePlay:{slot:rankFreePlayState(userId,'slot'),wheel:rankFreePlayState(userId,'wheel')},maxLevel:!next,next:next?{level:next.level,name:next.name,icon:next.icon,cost:next.cost,className:next.className,perks:socialRankPerks(next.level)}:null};
 }
 function promoteSocialRank(userId){
   db.exec('BEGIN IMMEDIATE');
   try{
-    const u=db.prepare('SELECT CAST(balance AS TEXT) AS balance,rank_level FROM users WHERE id=?').get(userId);
+    const u=db.prepare('SELECT balance,balance_exact,balance_base,rank_level FROM users WHERE id=?').get(userId);
     if(!u)throw new Error('사용자를 찾을 수 없습니다.');
     const level=Math.max(0,Math.min(SOCIAL_RANKS.length-1,Number(u.rank_level||0)));
     const next=SOCIAL_RANKS[level+1];
-    if(!next)throw new Error('이미 GOD JUNJA 최고 신분입니다.');
-    if(BigInt(u.balance)<BigInt(next.cost))throw new Error(`신분 상승에 ${formatMoney(next.cost)} G가 필요합니다.`);
-    const balance=BigInt(u.balance)-BigInt(next.cost),t=now();
-    db.prepare('UPDATE users SET balance=?,rank_level=? WHERE id=?').run(balance,next.level,userId);
-    db.prepare('INSERT INTO ledger(user_id,amount,balance_after,type,memo,created_at) VALUES(?,?,?,?,?,?)').run(userId,-next.cost,balance,'rank_promotion',`신분 상승 · ${next.name}`,t);
+    if(!next)throw new Error('이미 GOD JUNJA · 갓준자 최고 신분입니다.');
+    if(jBank.owed(userId)>0n)throw new Error('J-BANK 원금과 이자를 완납해야 신분 상승이 가능합니다.');
+    // Keep rank purchases on the same exact-integer wallet path as the rest of JUNJA LAND.
+    const current=exactWallet.read(u),cost=BigInt(next.cost);
+    if(current<cost)throw new Error(`신분 상승에 ${formatMoney(next.cost)} G가 필요합니다.`);
+    const balance=current-cost,mirror=exactWallet.mirror(balance),t=now();
+    db.prepare('UPDATE users SET balance=?,balance_exact=?,balance_base=?,rank_level=? WHERE id=?')
+      .run(mirror,String(balance),String(mirror),next.level,userId);
+    db.prepare('INSERT INTO ledger(user_id,amount,balance_after,amount_exact,balance_after_exact,type,memo,created_at) VALUES(?,?,?,?,?,?,?,?)')
+      .run(userId,exactWallet.mirror(-cost),mirror,String(-cost),String(balance),'rank_promotion',`신분 상승 · ${next.name}`,t);
     db.exec('COMMIT');
-    return {balance:balance<=BigInt(Number.MAX_SAFE_INTEGER)?Number(balance):String(balance),rank:socialRankPublic(userId)};
+    return {balance:exactWallet.output(balance),rank:socialRankPublic(userId)};
   }catch(e){try{db.exec('ROLLBACK')}catch{};throw e;}
 }
 
@@ -962,22 +985,13 @@ function settleHoldemDepartures(r){
   for(const p of [...r.players]){
     if(!p.leaveAfterHand)continue;
     if(roomStatus(r)==='PLAYING'&&r.hand?.p[p.userId])continue;
-    // Balance credit and escrow deletion must commit together, including retries.
-    db.exec('BEGIN IMMEDIATE');
-    try{
-      const held=db.prepare('SELECT amount FROM room_escrow WHERE room_id=? AND user_id=?').get(r.id,p.userId);
-      if(held){
-        const refund=Math.max(0,Number(p.stack||0));
-        const u=db.prepare('SELECT balance FROM users WHERE id=?').get(p.userId);
-        if(!u)throw new Error('사용자를 찾을 수 없습니다.');
-        const balance=u.balance+refund;
-        if(!Number.isSafeInteger(balance))throw new Error('게임머니 한도를 초과합니다.');
-        db.prepare('UPDATE users SET balance=? WHERE id=?').run(balance,p.userId);
-        db.prepare('INSERT INTO ledger(user_id,amount,balance_after,type,memo,created_at) VALUES(?,?,?,?,?,?)').run(p.userId,refund,balance,'holdem_cashout',`${r.name} 자동 퇴장 환급`,now());
-        escrowDelete(r.id,p.userId);
-      }
-      db.exec('COMMIT');
-    }catch(e){db.exec('ROLLBACK');throw e;}
+    // Atomic credit + exact ledger + escrow deletion: retry-safe even with very large wallets.
+    const held=db.prepare('SELECT amount FROM room_escrow WHERE room_id=? AND user_id=?').get(r.id,p.userId);
+    if(held){
+      const refund=Math.max(0,Math.floor(Number(p.stack||0)));
+      if(!Number.isSafeInteger(refund))throw new Error('안전한 정산 가능 금액을 초과했어.');
+      exactWallet.change(db,p.userId,refund,'holdem_cashout',`${r.name} 자동 퇴장 정산`,now,{escrowRoomId:r.id});
+    }
     r.players=r.players.filter(x=>x.userId!==p.userId);
     if(r.hostId===p.userId)r.hostId=r.players[0]?.userId;
     r.holdemAutoStartAt=null;touchRoom(r);pushRefresh(r.id);
@@ -2036,6 +2050,7 @@ function personalizedRoom(r,userId){
     id:r.id,name:r.name,game:r.game,buyIn:r.buyIn,allWallet:!!r.allWallet,maxPlayers:r.maxPlayers,hostId:r.hostId,status:roomStatus(r),smallBlind:r.smallBlind,bigBlind:r.bigBlind,yutMode:r.yutMode||'individual',yutModeLabel:yutModeLabel(r.yutMode||'individual'),
     version:r.version||0,updatedAt:r.updatedAt||r.createdAt,readyCount:roomReadyCount(r),allReady:r.players.length>=2&&r.players.every(p=>!!p.ready),autoStartAt:holdemAutoStartAt(r),
     turnUserId,turnNickname:turnPlayer?.nickname||null,myTurn:turnUserId===userId,
+    walletBalance:r.game==='holdem'?userPublic(userId)?.balance:null,
     players:orderedPlayers(r).map(p=>({...p,ready:!!p.ready,avatarEmoji:AVATARS[p.avatar%AVATARS.length],cosmetics:cosmeticsPublic(p.userId)})),
     reactions:activeRoomReactions(r),
     gostop:r.game==='gostop'?roomGostopPublic(r,userId):null,
@@ -2045,7 +2060,13 @@ function personalizedRoom(r,userId){
 
 const treasureRaid=createTreasureRaid({
   crypto,now,readBody,requireAuth,json,walletChange,userPublic,escrowSet,escrowDelete,pushRefresh,formatMoney,rateLimit,
-  isUserBusy:userId=>!!findUserRoom(userId)||!!baccaratFindUser(userId)||goldenbell.hasUser(userId)||omok.hasUser(userId)||liar.hasUser(userId)
+  isUserBusy:userId=>!!findUserRoom(userId)||!!baccaratFindUser(userId)||goldenbell.hasUser(userId)||omok.hasUser(userId)||liar.hasUser(userId)||janggi.hasUser(userId)||royalCards.hasUser(userId)
+});
+
+
+const royalCards=require('./royal-cards-server')({db,crypto,readBody,requireAuth,json,rateLimit,
+  otherBusy:id=>!!findUserRoom(id)||!!baccaratFindUser(id)||treasureRaid.hasUser(id)||goldenbell.hasUser(id)||omok.hasUser(id)||liar.hasUser(id)||janggi.hasUser(id)||sichuanBattle.hasUser(id),
+  notify:(ids,roomId)=>{for(const [,client] of sseClients)if(ids.includes(Number(client.userId))){try{client.res.write('event: refresh\n'+'data: '+JSON.stringify({royalcards:true,roomId})+'\n\n');}catch{}}}
 });
 
 function serveStatic(req,res,url){
@@ -2055,7 +2076,7 @@ function serveStatic(req,res,url){
   if(p.includes('..')){res.writeHead(400);res.end();return;}
   const file=path.join(__dirname,'public',p);
   if(!file.startsWith(path.join(__dirname,'public'))||!fs.existsSync(file)||fs.statSync(file).isDirectory()){res.writeHead(404,securityHeaders());res.end('Not found');return;}
-  const ext=path.extname(file).toLowerCase();const ct={'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'application/javascript; charset=utf-8','.json':'application/json; charset=utf-8','.webmanifest':'application/manifest+json','.png':'image/png','.webp':'image/webp','.svg':'image/svg+xml'}[ext]||'application/octet-stream';
+  const ext=path.extname(file).toLowerCase();const ct={'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'application/javascript; charset=utf-8','.json':'application/json; charset=utf-8','.webmanifest':'application/manifest+json','.png':'image/png','.webp':'image/webp','.avif':'image/avif','.svg':'image/svg+xml'}[ext]||'application/octet-stream';
   const st=fs.statSync(file);staticResponse(req,res,file,st,ct,securityHeaders());
 }
 
@@ -2065,15 +2086,44 @@ const server=http.createServer(async(req,res)=>{
     const url=new URL(req.url,`http://${req.headers.host||'localhost'}`);
     if(!sameOriginPost(req)){return json(res,403,{error:'잘못된 요청 출처입니다.'});}
     if(url.pathname.startsWith('/api/blackroom/')){if(await blackroomCloud.handle(req,res,url))return;}
+    if(url.pathname.startsWith('/api/royalcards')){if(await royalCards.handle(req,res,url))return;}
+    if(url.pathname.startsWith('/api/janggi')){if(await janggi.handle(req,res,url))return;}
     if(url.pathname.startsWith('/api/liar')){if(await liar.handle(req,res,url))return;}
     if(url.pathname.startsWith('/api/omok')){if(await omok.handle(req,res,url))return;}
     if(url.pathname.startsWith('/api/goldenbell')){if(await goldenbell.handle(req,res,url))return;}
     if(url.pathname.startsWith('/api/treasure-raid')){if(await treasureRaid.handle(req,res,url))return;}
     if(url.pathname.startsWith('/api/sichuan/battle')){if(await sichuanBattle.handle(req,res,url))return;}
-    if(url.pathname==='/healthz')return json(res,200,{ok:true,rooms:rooms.size+baccaratRooms.size+sichuanBattle.roomCount()+treasureRaid.roomCount()+goldenbell.roomCount()+omok.roomCount()+liar.roomCount(),online:onlineCount()});
+    if(url.pathname==='/healthz')return json(res,200,{ok:true,rooms:rooms.size+baccaratRooms.size+sichuanBattle.roomCount()+treasureRaid.roomCount()+goldenbell.roomCount()+omok.roomCount()+liar.roomCount()+janggi.roomCount()+royalCards.roomCount(),online:onlineCount()});
+    if(url.pathname==='/api/admin/claim'&&req.method==='POST'){
+      const caller=String(req.headers['x-forwarded-for']||req.socket.remoteAddress||'').split(',')[0].trim();
+      if(!rateLimit('admin-claim:'+caller,5,3600000))return json(res,429,{error:'관리자 개설 시도 횟수를 초과했습니다.'});
+      const b=await readBody(req),proof=String(b.setupCode||'').trim(),password=String(b.password||'');
+      const submitted=crypto.createHash('sha256').update(proof).digest(),expected=Buffer.from(ADMIN_SETUP_HASH,'hex');
+      if(!proof||!crypto.timingSafeEqual(submitted,expected))return json(res,403,{error:'관리자 개설 코드가 올바르지 않습니다.'});
+      if(password.length<12||password.length>72)return json(res,400,{error:'비밀번호는 12~72자로 설정하세요.'});
+      db.exec('BEGIN IMMEDIATE');
+      try{
+        // The claim is one-time: never promote a regular user or overwrite an existing administrator.
+        if(db.prepare('SELECT 1 FROM users WHERE username=?').get(ADMIN_USERNAME)||db.prepare('SELECT 1 FROM users WHERE is_admin=1 LIMIT 1').get()){
+          db.exec('ROLLBACK');
+          return json(res,409,{error:'관리자 계정이 이미 개설되어 있습니다.'});
+        }
+        const salt=randomToken(16),hash=hashPassword(password,salt),t=now();
+        let nickname=ADMIN_NICKNAME;
+        if(db.prepare('SELECT 1 FROM users WHERE nickname=?').get(nickname))nickname=(nickname+'J').slice(0,14);
+        const result=db.prepare('INSERT INTO users(username,pass_salt,pass_hash,nickname,balance,created_at,avatar,is_admin,is_disabled) VALUES(?,?,?,?,?,?,?,?,?)').run(ADMIN_USERNAME,salt,hash,nickname,1000000,t,3,1,0);
+        const uid=Number(result.lastInsertRowid);
+        db.prepare('INSERT INTO stats(user_id) VALUES(?)').run(uid);
+        db.prepare('INSERT INTO ledger(user_id,amount,balance_after,type,memo,created_at) VALUES(?,?,?,?,?,?)').run(uid,1000000,1000000,'admin_seed','일회용 코드로 인증된 운영자 개설',t);
+        db.exec('COMMIT');
+        console.log('[ADMIN] Junja Land verified admin claimed.');
+        return json(res,201,{ok:true,username:ADMIN_USERNAME});
+      }catch(e){try{db.exec('ROLLBACK')}catch{};throw e;}
+    }
     if(url.pathname==='/api/register'&&req.method==='POST'){
       const ip=req.socket.remoteAddress||'ip';if(!rateLimit('reg:'+ip,6,60000))return json(res,429,{error:'잠시 후 다시 시도하세요.'});
       const b=await readBody(req);const username=escText(b.username,20).toLowerCase(),nickname=escText(b.nickname,14),password=String(b.password||'');
+      if(ADMIN_USERNAME&&username===ADMIN_USERNAME)return json(res,403,{error:'관리자 전용 계정입니다.'});
       if(!/^[a-z0-9_]{4,20}$/.test(username))return json(res,400,{error:'아이디는 영문 소문자/숫자/_ 4~20자로 입력하세요.'});
       if(nickname.length<2)return json(res,400,{error:'닉네임은 2자 이상 입력하세요.'});
       if(containsContactInfo(nickname))return json(res,400,{error:'닉네임에는 전화번호, 이메일, SNS ID, 링크 같은 개인정보를 사용할 수 없습니다.'});
@@ -2105,6 +2155,20 @@ const server=http.createServer(async(req,res)=>{
       const token=parseCookies(req).sid;if(token)db.prepare('DELETE FROM sessions WHERE token=?').run(token);return json(res,200,{ok:true},{'Set-Cookie':'sid=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0'});
     }
     if(url.pathname==='/api/me'&&req.method==='GET'){const u=requireAuth(req,res);if(!u)return;const includePresence=url.searchParams.get('presence')==='1';return json(res,200,{user:u,online:onlineCount(),presence:includePresence?presenceSnapshot():[]});}
+    if(url.pathname==='/api/jbank'&&req.method==='GET'){
+      const u=requireAuth(req,res);if(!u)return;
+      try{return json(res,200,{ok:true,...jBank.status(u.id)});}catch(e){return json(res,400,{error:e.message});}
+    }
+    if((url.pathname==='/api/jbank/borrow'||url.pathname==='/api/jbank/repay'||url.pathname==='/api/jbank/sell-rank')&&req.method==='POST'){
+      const u=requireAuth(req,res);if(!u)return;
+      if(!rateLimit('jbank:'+u.id,12,60000))return json(res,429,{error:'은행 거래 요청이 너무 빠릅니다. 잠시 후 다시 시도하세요.'});
+      try{
+        const b=await readBody(req),action=url.pathname.endsWith('/borrow')?'borrow':url.pathname.endsWith('/sell-rank')?'sellRank':'repay';
+        const result=action==='sellRank'?jBank.sellRank(u.id,b.confirmation,b.requestId):jBank[action](u.id,b.amount,b.requestId);
+        await db.flush();pushRefresh();
+        return json(res,200,{...result,user:userPublic(u.id)});
+      }catch(e){return json(res,400,{error:e.message});}
+    }
     if(url.pathname==='/api/rank'&&req.method==='GET'){const u=requireAuth(req,res);if(!u)return;return json(res,200,{rank:socialRankPublic(u.id),user:userPublic(u.id),ranks:SOCIAL_RANKS});}
     if(url.pathname==='/api/rank/promote'&&req.method==='POST'){
       const u=requireAuth(req,res);if(!u)return;
@@ -2172,7 +2236,26 @@ const server=http.createServer(async(req,res)=>{
     if(url.pathname==='/api/daily-draw/pick'&&req.method==='POST'){const u=requireAuth(req,res);if(!u)return;if(!rateLimit('daily_draw:'+u.id,8,60000))return json(res,429,{error:'뽑기 요청이 너무 빠릅니다.'});const b=await readBody(req);try{const result=dailyDrawPick(u.id,b.number);pushRefresh();return json(res,200,{ok:true,...result,user:userPublic(u.id)});}catch(e){return json(res,409,{error:e.message,state:dailyDrawState(u.id)});}}
     if(url.pathname==='/api/daily'&&req.method==='POST'){
       const u=requireAuth(req,res);if(!u)return;const d=kstDate();if(u.last_daily===d)return json(res,409,{error:'오늘 출석 보너스는 이미 받았습니다.'});
-      const cosmeticPct=Number(cosmeticsPublic(u.id,true)?.perks?.dailyBonusPct||0),rankPerks=socialRankPerksForUser(u.id),rankPct=Number(rankPerks.dailyBonusPct||0),dailyPct=cosmeticPct+rankPct;db.exec('BEGIN IMMEDIATE');try{const fresh=db.prepare('SELECT balance,last_daily FROM users WHERE id=?').get(u.id);if(!fresh)throw new Error('사용자를 찾을 수 없습니다.');if(fresh.last_daily===d){db.exec('ROLLBACK');return json(res,409,{error:'오늘 출석 보너스는 이미 받았습니다.'});}const dailyAmount=Math.floor(50000*(1+dailyPct/100)),interestPct=Number(rankPerks.dailyInterestPct||0),interest=Math.min(100000000,Math.max(0,Math.floor(Number(fresh.balance||0)*interestPct/100))),total=dailyAmount+interest,bal=Number(fresh.balance||0)+total;if(!Number.isSafeInteger(bal))throw new Error('게임머니 한도를 초과합니다.');db.prepare('UPDATE users SET balance=?,last_daily=? WHERE id=?').run(bal,d,u.id);db.prepare('INSERT INTO ledger(user_id,amount,balance_after,type,memo,created_at) VALUES(?,?,?,?,?,?)').run(u.id,total,bal,'daily',`오늘의 출석 ${formatMoney(dailyAmount)}G${interest?` · 신분 이자 ${formatMoney(interest)}G`:''}`,now());db.exec('COMMIT');pushRefresh();return json(res,200,{balance:bal,amount:total,attendanceAmount:dailyAmount,rankInterest:interest,rankInterestPct:interestPct,dailyBonusPct:dailyPct,rankBonusPct:rankPct});}catch(e){try{db.exec('ROLLBACK')}catch{}throw e;}
+      const cosmeticPct=Number(cosmeticsPublic(u.id,true)?.perks?.dailyBonusPct||0),rankPerks=socialRankPerksForUser(u.id),rankPct=Number(rankPerks.dailyBonusPct||0),dailyPct=cosmeticPct+rankPct;
+      db.exec('BEGIN IMMEDIATE');
+      try{
+        const fresh=db.prepare('SELECT balance,balance_exact,balance_base,last_daily FROM users WHERE id=?').get(u.id);
+        if(!fresh)throw new Error('사용자를 찾을 수 없습니다.');
+        if(fresh.last_daily===d){db.exec('ROLLBACK');return json(res,409,{error:'오늘 출석 보너스는 이미 받았습니다.'});}
+        const prior=exactWallet.read(fresh);
+        const dailyAmount=Math.floor(50000*(1+dailyPct/100));
+        const interestPct=Number(rankPerks.dailyInterestPct||0);
+        // Percent is expressed in thousandths (0.015% = 15 / 100000).
+        const rate=BigInt(Math.round(interestPct*1000));
+        const interest=Number((prior*rate/100000n)>100000000n?100000000n:(prior*rate/100000n));
+        const total=BigInt(dailyAmount+interest),next=prior+total,mirror=exactWallet.mirror(next),t=now();
+        db.prepare('UPDATE users SET balance=?,balance_exact=?,balance_base=?,last_daily=? WHERE id=?')
+          .run(mirror,String(next),String(mirror),d,u.id);
+        db.prepare('INSERT INTO ledger(user_id,amount,balance_after,amount_exact,balance_after_exact,type,memo,created_at) VALUES(?,?,?,?,?,?,?,?)')
+          .run(u.id,Number(total),mirror,String(total),String(next),'daily',`오늘의 출석 ${formatMoney(dailyAmount)}G${interest?` · 신분 이자 ${formatMoney(interest)}G`:''}`,t);
+        db.exec('COMMIT');pushRefresh();
+        return json(res,200,{balance:exactWallet.output(next),amount:Number(total),attendanceAmount:dailyAmount,rankInterest:interest,rankInterestPct:interestPct,dailyBonusPct:dailyPct,rankBonusPct:rankPct});
+      }catch(e){try{db.exec('ROLLBACK')}catch{}throw e;}
     }
     if(url.pathname==='/api/rank/salary'&&req.method==='POST'){
       const u=requireAuth(req,res);if(!u)return;if(!rateLimit('rank_salary:'+u.id,4,60000))return json(res,429,{error:'일급 요청이 너무 빠릅니다.'});
@@ -2180,14 +2263,16 @@ const server=http.createServer(async(req,res)=>{
       if(salary<1n)return json(res,409,{error:'현재 신분에는 지급되는 일급이 없습니다.'});
       db.exec('BEGIN IMMEDIATE');
       try{
-        const fresh=db.prepare('SELECT CAST(balance AS TEXT) AS balance,last_rank_salary FROM users WHERE id=?').get(u.id);
+        const fresh=db.prepare('SELECT balance,balance_exact,balance_base,last_rank_salary FROM users WHERE id=?').get(u.id);
         if(!fresh)throw new Error('사용자를 찾을 수 없습니다.');
         if(fresh.last_rank_salary===d){db.exec('ROLLBACK');return json(res,409,{error:'오늘 신분 일급은 이미 받았습니다.'});}
-        const balance=BigInt(String(fresh.balance||0))+salary,t=now();
-        db.prepare('UPDATE users SET balance=?,last_rank_salary=? WHERE id=?').run(balance,d,u.id);
-        db.prepare('INSERT INTO ledger(user_id,amount,balance_after,type,memo,created_at) VALUES(?,?,?,?,?,?)').run(u.id,Number(salary),balance,'rank_daily_salary',`신분 일급 · ${rank.name} ${formatMoney(Number(salary))}G`,t);
+        const balance=exactWallet.read(fresh)+salary,mirror=exactWallet.mirror(balance),t=now();
+        db.prepare('UPDATE users SET balance=?,balance_exact=?,balance_base=?,last_rank_salary=? WHERE id=?')
+          .run(mirror,String(balance),String(mirror),d,u.id);
+        db.prepare('INSERT INTO ledger(user_id,amount,balance_after,amount_exact,balance_after_exact,type,memo,created_at) VALUES(?,?,?,?,?,?,?,?)')
+          .run(u.id,Number(salary),mirror,String(salary),String(balance),'rank_daily_salary',`신분 일급 · ${rank.name} ${formatMoney(Number(salary))}G`,t);
         db.exec('COMMIT');pushRefresh();
-        return json(res,200,{ok:true,amount:Number(salary),balance:balance<=BigInt(Number.MAX_SAFE_INTEGER)?Number(balance):String(balance),rank:rank.name,user:userPublic(u.id)});
+        return json(res,200,{ok:true,amount:Number(salary),balance:exactWallet.output(balance),rank:rank.name,user:userPublic(u.id)});
       }catch(e){try{db.exec('ROLLBACK')}catch{}throw e;}
     }
     if(url.pathname==='/api/ledger'&&req.method==='GET'){
@@ -2200,12 +2285,13 @@ const server=http.createServer(async(req,res)=>{
       const admin=requireAdmin(req,res);if(!admin)return;
       const q=escText(url.searchParams.get('q')||'',30);
       const like=`%${q}%`;
-      const rows=db.prepare(`SELECT u.id,u.username,u.nickname,u.balance,u.created_at,u.is_admin,u.is_disabled,u.avatar,
+      const showArchived=url.searchParams.get('archived')==='1';
+      const rows=db.prepare(`SELECT u.id,u.username,u.nickname,u.balance,u.created_at,u.is_admin,u.is_disabled,u.is_archived,u.avatar,
         s.slot_spins,s.slot_profit,s.poker_hands,s.poker_wins,s.yut_games,s.yut_wins,s.seotda_games,s.seotda_wins,s.gostop_games,s.gostop_wins,s.horse_races,s.horse_wins,s.horse_profit,s.bigwheel_plays,s.bigwheel_wins,s.bigwheel_profit,s.sicbo_plays,s.sicbo_wins,s.sicbo_profit,
     s.seven_games,s.seven_wins,s.baccarat_games,s.baccarat_wins,s.baccarat_profit,s.roulette_plays,s.roulette_wins,s.roulette_profit
         FROM users u JOIN stats s ON s.user_id=u.id
-        WHERE (?='' OR u.username LIKE ? OR u.nickname LIKE ?)
-        ORDER BY u.is_admin DESC,u.id DESC LIMIT 100`).all(q,like,like).map(x=>({...x,avatarEmoji:AVATARS[x.avatar%AVATARS.length]}));
+        WHERE (?='' OR u.username LIKE ? OR u.nickname LIKE ?) AND (?=1 OR u.is_archived=0)
+        ORDER BY u.is_admin DESC,u.id DESC LIMIT 100`).all(q,like,like,showArchived?1:0).map(x=>({...x,avatarEmoji:AVATARS[x.avatar%AVATARS.length]}));
       return json(res,200,{rows});
     }
     if(url.pathname==='/api/admin/audit'&&req.method==='GET'){
@@ -2232,12 +2318,44 @@ const server=http.createServer(async(req,res)=>{
     if(url.pathname==='/api/admin/status'&&req.method==='POST'){
       const admin=requireAdmin(req,res);if(!admin)return;
       const b=await readBody(req);const targetId=Number(b.userId),disabled=b.disabled?1:0;
-      const target=db.prepare('SELECT id,is_admin FROM users WHERE id=?').get(targetId);if(!target)return json(res,404,{error:'대상 회원을 찾을 수 없습니다.'});
+      const target=db.prepare('SELECT id,is_admin,is_archived FROM users WHERE id=?').get(targetId);if(!target)return json(res,404,{error:'대상 회원을 찾을 수 없습니다.'});
+      if(target.is_archived)return json(res,409,{error:'삭제 보관된 계정은 먼저 복구해야 상태를 변경할 수 있습니다.'});
       if(target.is_admin)return json(res,400,{error:'관리자 계정은 중지할 수 없습니다.'});
       db.prepare('UPDATE users SET is_disabled=? WHERE id=?').run(disabled,targetId);
       if(disabled)db.prepare('DELETE FROM sessions WHERE user_id=?').run(targetId);
       db.prepare('INSERT INTO admin_audit(admin_user_id,target_user_id,action,amount,memo,created_at) VALUES(?,?,?,?,?,?)').run(admin.id,targetId,disabled?'disable':'enable',0,disabled?'계정 이용중지':'계정 이용재개',now());
       pushRefresh();return json(res,200,{ok:true,user:userPublic(targetId)});
+    }
+
+    // Reversible account removal: never erase existing balances, ledgers or member IDs.
+    // The admin must type the exact username. Archived accounts cannot authenticate.
+    if(url.pathname==='/api/admin/archive'&&req.method==='POST'){
+      const admin=requireAdmin(req,res);if(!admin)return;
+      if(!rateLimit('admin-archive:'+admin.id,12,3600000))return json(res,429,{error:'계정 삭제·복구 횟수 제한입니다.'});
+      const b=await readBody(req),id=Number(b.userId),action=String(b.action||'');
+      if(!Number.isSafeInteger(id)||id<1||!['archive','restore'].includes(action))return json(res,400,{error:'올바른 대상과 작업을 선택해주세요.'});
+      const target=db.prepare('SELECT id,username,nickname,is_admin,is_archived FROM users WHERE id=?').get(id);
+      if(!target)return json(res,404,{error:'대상 회원을 찾을 수 없습니다.'});
+      if(target.is_admin||target.id===admin.id)return json(res,403,{error:'운영자 계정은 삭제할 수 없습니다.'});
+      if(String(b.confirmUsername||'')!==target.username)return json(res,400,{error:'확인한 계정 아이디가 일치하지 않습니다.'});
+      if(action==='archive'&&target.is_archived||action==='restore'&&!target.is_archived)return json(res,409,{error:'이미 처리된 계정입니다. 목록을 새로고침해주세요.'});
+      if(action==='archive'){
+        if(db.prepare('SELECT 1 FROM room_escrow WHERE user_id=? LIMIT 1').get(id)||findUserRoom(id)||baccaratFindUser(id)||janggi.hasUser(id)||omok.hasUser(id)||liar.hasUser(id)||royalCards.hasUser(id)||goldenbell.hasUser(id)||treasureRaid.hasUser(id)||sichuanBattle.hasUser(id)){
+          return json(res,409,{error:'진행 중인 게임이나 예치금이 있습니다. 게임 종료 및 정산 후 삭제해주세요.'});
+        }
+      }
+      db.exec('BEGIN IMMEDIATE');
+      try{
+        db.prepare('UPDATE users SET is_archived=?,is_disabled=? WHERE id=?').run(action==='archive'?1:0,action==='archive'?1:0,id);
+        db.prepare('DELETE FROM sessions WHERE user_id=?').run(id);
+        const reason=escText(b.reason,80)||'운영자 회원 정리';
+        db.prepare('INSERT INTO admin_audit(admin_user_id,target_user_id,action,amount,memo,created_at) VALUES(?,?,?,?,?,?)')
+          .run(admin.id,id,action,0,(action==='archive'?'계정 안전삭제':'계정 복구')+' · '+reason,now());
+        db.exec('COMMIT');
+      }catch(e){db.exec('ROLLBACK');throw e;}
+      await db.flush();
+      pushRefresh();
+      return json(res,200,{ok:true,archived:action==='archive',userId:id});
     }
 
     if(url.pathname==='/api/admin/rooms'&&req.method==='GET'){
@@ -2368,14 +2486,14 @@ const server=http.createServer(async(req,res)=>{
     // Baccarat duel rooms
     if(url.pathname==='/api/baccarat/rooms'&&req.method==='GET'){const u=requireAuth(req,res);if(!u)return;return json(res,200,{rooms:[...baccaratRooms.values()].map(baccaratSummary).sort((a,b)=>b.updatedAt-a.updatedAt)});}
     if(url.pathname==='/api/baccarat/rooms'&&req.method==='POST'){
-      const u=requireAuth(req,res);if(!u)return;if(findUserRoom(u.id)||baccaratFindUser(u.id)||treasureRaid.hasUser(u.id)||goldenbell.hasUser(u.id)||omok.hasUser(u.id)||liar.hasUser(u.id))return json(res,409,{error:'이미 참가 중인 게임방이 있어. 먼저 나가줘.'});const id=baccaratMakeId(),t=now();
+      const u=requireAuth(req,res);if(!u)return;if(findUserRoom(u.id)||baccaratFindUser(u.id)||treasureRaid.hasUser(u.id)||goldenbell.hasUser(u.id)||omok.hasUser(u.id)||liar.hasUser(u.id)||janggi.hasUser(u.id))return json(res,409,{error:'이미 참가 중인 게임방이 있어. 먼저 나가줘.'});const id=baccaratMakeId(),t=now();
       const r={id,game:'baccarat',name:`바카라 듀얼 ${id}`,hostId:u.id,phase:'waiting',stake:10000,roundNo:0,startBankerIndex:crypto.randomInt(2),players:[{userId:u.id,nickname:u.nickname,avatar:u.avatar,ready:false,auto:false,joinedAt:t}],result:null,createdAt:t,updatedAt:t,version:1};baccaratRooms.set(id,r);pushRefresh();return json(res,201,{room:baccaratPublic(r,u.id)});
     }
     const baccaratMatch=url.pathname.match(/^\/api\/baccarat\/rooms\/([A-F0-9]+)(?:\/(.*))?$/);
     if(baccaratMatch){
       const u=requireAuth(req,res);if(!u)return;const r=baccaratRooms.get(baccaratMatch[1]);if(!r)return json(res,404,{error:'바카라 방을 찾을 수 없어.'});const op=baccaratMatch[2]||'';
       if(!op&&req.method==='GET'){if(!baccaratPlayer(r,u.id))return json(res,403,{error:'이 바카라 방 참가자가 아니야.'});return json(res,200,{room:baccaratPublic(r,u.id)});}
-      if(op==='join'&&req.method==='POST'){if(baccaratPlayer(r,u.id))return json(res,200,{room:baccaratPublic(r,u.id)});if(findUserRoom(u.id)||baccaratFindUser(u.id)||treasureRaid.hasUser(u.id)||goldenbell.hasUser(u.id)||omok.hasUser(u.id)||liar.hasUser(u.id))return json(res,409,{error:'이미 참가 중인 게임방이 있어.'});if(r.players.length>=2)return json(res,409,{error:'이미 두 명이 참가 중이야.'});r.players.push({userId:u.id,nickname:u.nickname,avatar:u.avatar,ready:false,auto:false,joinedAt:now()});r.stake=Math.max(1000,Math.min(10000,Math.floor(baccaratMaxStake(r))));r.phase='waiting';baccaratTouch(r);pushRefresh();return json(res,200,{room:baccaratPublic(r,u.id)});}
+      if(op==='join'&&req.method==='POST'){if(baccaratPlayer(r,u.id))return json(res,200,{room:baccaratPublic(r,u.id)});if(findUserRoom(u.id)||baccaratFindUser(u.id)||treasureRaid.hasUser(u.id)||goldenbell.hasUser(u.id)||omok.hasUser(u.id)||liar.hasUser(u.id)||janggi.hasUser(u.id))return json(res,409,{error:'이미 참가 중인 게임방이 있어.'});if(r.players.length>=2)return json(res,409,{error:'이미 두 명이 참가 중이야.'});r.players.push({userId:u.id,nickname:u.nickname,avatar:u.avatar,ready:false,auto:false,joinedAt:now()});r.stake=Math.max(1000,Math.min(10000,Math.floor(baccaratMaxStake(r))));r.phase='waiting';baccaratTouch(r);pushRefresh();return json(res,200,{room:baccaratPublic(r,u.id)});}
       if(op==='leave'&&req.method==='POST'){const p=baccaratPlayer(r,u.id);if(!p)return json(res,200,{ok:true});r.players=r.players.filter(x=>x.userId!==u.id);if(!r.players.length)baccaratRooms.delete(r.id);else{r.hostId=r.players[0].userId;r.phase='waiting';r.result=null;r.players[0].ready=false;r.players[0].auto=false;baccaratTouch(r);}pushRefresh();return json(res,200,{ok:true});}
       if(op==='ready'&&req.method==='POST'){const p=baccaratPlayer(r,u.id);if(!p)return json(res,403,{error:'참가자가 아니야.'});p.ready=!p.ready;baccaratTouch(r);pushRefresh();return json(res,200,{room:baccaratPublic(r,u.id)});}
       if(op==='auto'&&req.method==='POST'){const p=baccaratPlayer(r,u.id);if(!p)return json(res,403,{error:'참가자가 아니야.'});const b=await readBody(req);p.auto=!!b.enabled;if(p.auto)p.ready=true;baccaratTouch(r);pushRefresh();return json(res,200,{room:baccaratPublic(r,u.id)});}
@@ -2433,13 +2551,13 @@ const server=http.createServer(async(req,res)=>{
       return json(res,200,{order:order.map((h,i)=>({id:h.id,name:h.name,color:h.color,coat:h.coat,finish:i+1})),result,user:userPublic(u.id)});
     }
     if(url.pathname==='/api/my-room'&&req.method==='GET'){
-      const u=requireAuth(req,res);if(!u)return;const lr=liar.findUserRoom(u.id);if(lr)return json(res,200,{room:{id:lr.id,game:'liar',name:lr.name}});const om=omok.findUserRoom(u.id);if(om)return json(res,200,{room:{id:om.id,game:'omok',name:om.name}});const gb=goldenbell.findUserRoom(u.id);if(gb)return json(res,200,{room:{id:gb.id,game:'goldenbell',name:'준자 골든벨'}});const r=findUserRoom(u.id);if(r)return json(res,200,{room:personalizedRoom(r,u.id)});const br=baccaratFindUser(u.id);if(br)return json(res,200,{room:baccaratPublic(br,u.id)});const tr=treasureRaid.findUserRoom(u.id);return json(res,200,{room:tr?{id:tr.id,game:'treasure',name:tr.name}:null});
+      const u=requireAuth(req,res);if(!u)return;const royal=royalCards.findUserRoom(u.id);if(royal)return json(res,200,{room:royal});const jr=janggi.findUserRoom(u.id);if(jr)return json(res,200,{room:{id:jr.id,game:'janggi',name:jr.name}});const lr=liar.findUserRoom(u.id);if(lr)return json(res,200,{room:{id:lr.id,game:'liar',name:lr.name}});const om=omok.findUserRoom(u.id);if(om)return json(res,200,{room:{id:om.id,game:'omok',name:om.name}});const gb=goldenbell.findUserRoom(u.id);if(gb)return json(res,200,{room:{id:gb.id,game:'goldenbell',name:'준자 골든벨'}});const r=findUserRoom(u.id);if(r)return json(res,200,{room:personalizedRoom(r,u.id)});const br=baccaratFindUser(u.id);if(br)return json(res,200,{room:baccaratPublic(br,u.id)});const tr=treasureRaid.findUserRoom(u.id);return json(res,200,{room:tr?{id:tr.id,game:'treasure',name:tr.name}:null});
     }
     if(url.pathname==='/api/rooms'&&req.method==='GET'){
       const u=requireAuth(req,res);if(!u)return;const game=url.searchParams.get('game');const list=[...rooms.values()].filter(r=>!game||r.game===game).map(roomSummary).sort((a,b)=>a.status.localeCompare(b.status));return json(res,200,{rooms:list});
     }
     if(url.pathname==='/api/rooms'&&req.method==='POST'){
-      const u=requireAuth(req,res);if(!u)return;if(findUserRoom(u.id)||baccaratFindUser(u.id)||treasureRaid.hasUser(u.id)||goldenbell.hasUser(u.id)||omok.hasUser(u.id)||liar.hasUser(u.id))return json(res,409,{error:'이미 다른 게임방에 참가 중입니다. 먼저 그 방에서 나와주세요.'});const b=await readBody(req),requested=String(b.game||'holdem'),game=['holdem','yut','seotda','sevenpoker','gostop'].includes(requested)?requested:'holdem';
+      const u=requireAuth(req,res);if(!u)return;if(findUserRoom(u.id)||baccaratFindUser(u.id)||treasureRaid.hasUser(u.id)||goldenbell.hasUser(u.id)||omok.hasUser(u.id)||liar.hasUser(u.id)||janggi.hasUser(u.id)||royalCards.hasUser(u.id))return json(res,409,{error:'이미 다른 게임방에 참가 중입니다. 먼저 그 방에서 나와주세요.'});const b=await readBody(req),requested=String(b.game||'holdem'),game=['holdem','yut','seotda','sevenpoker','gostop'].includes(requested)?requested:'holdem';
       const yutMode=game==='yut'&&['individual','2v2','3v3'].includes(b.yutMode)?b.yutMode:'individual';const maxPlayers=(game==='holdem'||game==='sevenpoker')?clampInt(b.maxPlayers,2,6):game==='yut'?(yutMode==='2v2'?4:yutMode==='3v3'?6:clampInt(b.maxPlayers,2,6)):2;const chipGame=game==='holdem'||game==='sevenpoker';let buyIn;try{buyIn=chipGame?Math.floor(Number(u.balance||0)):game==='seotda'?walletWager(b.buyIn,u.balance,5000,1000):game==='gostop'?gameWager(b.buyIn,5000,Number.MAX_SAFE_INTEGER,1000):gameWager(b.buyIn,5000,100000,1000)}catch(e){return json(res,400,{error:e.message})};
       if(!Number.isSafeInteger(buyIn)||buyIn<1000)return json(res,400,{error:'포커 테이블 입장에는 최소 1,000G가 필요합니다.'});if(u.balance<buyIn)return json(res,400,{error:'방 참가금보다 보유 게임머니가 적습니다.'});
       const id=makeRoomId();const name=game==='holdem'?`홀덤 테이블 ${id}`:game==='yut'?`윷놀이 방 ${id}`:game==='seotda'?`3장 섯다 듀얼 ${id}`:game==='gostop'?`맞고 대전방 ${id}`:`세븐포커 테이블 ${id}`;walletChange(u.id,-buyIn,`${game}_buyin`,chipGame?`${name} 전액 스택 입장`:`${name} 참가금`);
@@ -2484,7 +2602,7 @@ const server=http.createServer(async(req,res)=>{
         closeRoomAndRefund(r,'오류 복구 환급');return json(res,200,{ok:true});
       }
       if(op==='join'&&req.method==='POST'){
-        if(roomPlayer(r,u.id))return json(res,200,{room:personalizedRoom(r,u.id)});if(findUserRoom(u.id)||baccaratFindUser(u.id)||treasureRaid.hasUser(u.id)||goldenbell.hasUser(u.id)||omok.hasUser(u.id)||liar.hasUser(u.id))return json(res,409,{error:'이미 다른 게임방에 참가 중입니다. 먼저 그 방에서 나와주세요.'});if(roomStatus(r)==='PLAYING'&&r.game!=='holdem')return json(res,409,{error:'게임 진행 중에는 입장할 수 없습니다.'});if(r.players.length>=r.maxPlayers)return json(res,409,{error:'방이 가득 찼습니다.'});const chipGame=r.game==='holdem'||r.game==='sevenpoker',entry=chipGame?Math.floor(Number(u.balance||0)):r.buyIn;if(entry<1000||u.balance<entry)return json(res,400,{error:'게임머니가 부족합니다.'});
+        if(roomPlayer(r,u.id))return json(res,200,{room:personalizedRoom(r,u.id)});if(findUserRoom(u.id)||baccaratFindUser(u.id)||treasureRaid.hasUser(u.id)||goldenbell.hasUser(u.id)||omok.hasUser(u.id)||liar.hasUser(u.id)||janggi.hasUser(u.id))return json(res,409,{error:'이미 다른 게임방에 참가 중입니다. 먼저 그 방에서 나와주세요.'});if(roomStatus(r)==='PLAYING'&&r.game!=='holdem')return json(res,409,{error:'게임 진행 중에는 입장할 수 없습니다.'});if(r.players.length>=r.maxPlayers)return json(res,409,{error:'방이 가득 찼습니다.'});const chipGame=r.game==='holdem'||r.game==='sevenpoker',entry=chipGame?Math.floor(Number(u.balance||0)):r.buyIn;if(entry<1000||u.balance<entry)return json(res,400,{error:'게임머니가 부족합니다.'});
         const joinNextHand=r.game==='holdem'&&roomStatus(r)==='PLAYING';
         walletChange(u.id,-entry,`${r.game}_buyin`,chipGame?`${r.name} 전액 스택 입장`:`${r.name} 참가금`);r.players.push({userId:u.id,nickname:u.nickname,avatar:u.avatar,seat:nextSeat(r),stack:chipGame?entry:0,ready:joinNextHand,joinNextHand,joinedAt:now()});escrowSet(r.id,u.id,entry,r.game);touchRoom(r);pushRefresh(r.id);return json(res,200,{room:personalizedRoom(r,u.id)});
       }
@@ -2493,7 +2611,8 @@ const server=http.createServer(async(req,res)=>{
           const p=roomPlayer(r,u.id);if(!p)return json(res,200,{ok:true});
           p.leaveAfterHand=true;p.ready=false;touchRoom(r);
           settleHoldemDepartures(r);pushRefresh(r.id);
-          return json(res,200,{ok:true,queued:!!roomPlayer(r,u.id)});
+          const queued=!!roomPlayer(r,u.id);
+          return json(res,200,{ok:true,queued,cashout:queued?null:Math.max(0,Number(p.stack||0)),user:queued?null:userPublic(u.id)});
         }
         const p=roomPlayer(r,u.id);if(!p)return json(res,200,{ok:true});if(roomStatus(r)==='PLAYING')return json(res,409,{error:'게임 진행 중에는 나갈 수 없습니다.'});
         const refund=(r.game==='holdem'||r.game==='sevenpoker')?Math.max(0,p.stack):(r.game==='seotda'?(r.seotda?.phase==='complete'?0:r.buyIn):r.game==='gostop'?(r.gostop?.phase==='complete'?0:r.buyIn):(r.yut?.phase==='complete'?0:r.buyIn)); if(refund>0)walletChange(u.id,refund,`${r.game}_cashout`,`${r.name} 퇴장 환급`);escrowDelete(r.id,u.id);r.players=r.players.filter(x=>x.userId!==u.id);

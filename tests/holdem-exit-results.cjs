@@ -3,22 +3,23 @@ const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const vm=require('node:vm');
 const crypto=require('node:crypto');
+const exactWallet=require('../exact-wallet');
 const {DatabaseSync}=require('node:sqlite');
 const server=fs.readFileSync('server.js','utf8');
 const app=fs.readFileSync('public/app.js','utf8');
 const db=new DatabaseSync(':memory:');
-db.exec(`CREATE TABLE users(id INTEGER PRIMARY KEY,balance INTEGER);
+db.exec(`CREATE TABLE users(id INTEGER PRIMARY KEY,balance INTEGER,balance_exact TEXT,balance_base TEXT);
 CREATE TABLE room_escrow(room_id TEXT,user_id INTEGER,amount INTEGER);
-CREATE TABLE ledger(user_id INTEGER,amount INTEGER,balance_after INTEGER,type TEXT,memo TEXT,created_at INTEGER);
+CREATE TABLE ledger(user_id INTEGER,amount INTEGER,balance_after INTEGER,amount_exact TEXT,balance_after_exact TEXT,type TEXT,memo TEXT,created_at INTEGER);
 CREATE TABLE stats(user_id INTEGER,poker_hands INTEGER,poker_wins INTEGER);
-INSERT INTO users VALUES(1,100),(2,100);INSERT INTO stats VALUES(1,0,0),(2,0,0);
+INSERT INTO users(id,balance) VALUES(1,100),(2,100);INSERT INTO stats VALUES(1,0,0),(2,0,0);
 INSERT INTO room_escrow VALUES('A',1,500),('A',2,500);`);
 let clock=100000;
 const r={id:'A',game:'holdem',name:'test',hostId:1,players:[
   {userId:1,nickname:'A',stack:400,leaveAfterHand:true,ready:false,joinedAt:10000},
   {userId:2,nickname:'B',stack:600,ready:true,joinedAt:10000}],
   hand:{phase:'river',p:{1:{totalBet:100},2:{totalBet:100}}}};
-const ctx={db,rooms:new Map([['A',r]]),sseClients:new Map(),now:()=>clock,
+const ctx={db,exactWallet,rooms:new Map([['A',r]]),sseClients:new Map(),now:()=>clock,
   roomStatus:r=>r.hand?.phase!=='complete'?'PLAYING':'WAITING',
   touchRoom:r=>r.version=(r.version||0)+1,pushRefresh:()=>{},
   escrowDelete:(id,uid)=>db.prepare('DELETE FROM room_escrow WHERE room_id=? AND user_id=?').run(id,uid),
@@ -35,6 +36,7 @@ ctx.pokerAfterHand(r,[2]);
 ctx.settleHoldemDepartures(r);
 assert.equal(r.players.length,1);assert.equal(r.hostId,2);
 assert.equal(db.prepare('SELECT balance FROM users WHERE id=1').get().balance,500);
+assert.equal(db.prepare('SELECT amount_exact FROM ledger WHERE user_id=1').get().amount_exact,'400','ledger exact cashout');
 ctx.settleHoldemDepartures(r);
 assert.equal(db.prepare('SELECT count(*) n FROM ledger').get().n,1,'no duplicate refund');
 assert.equal(r.hand.result.payouts[1].reason,'플러시');
@@ -58,8 +60,15 @@ const result={pot:600,payouts:[{nickname:'A',award:200,net:100,reason:'스트레
 const markup=ui.pokerTableHtml({players:[],maxPlayers:2},{phase:'complete',board:[],result});
 for(const s of ['WINNER','스트레이트','플러시','받은 금액 200','받은 금액 400','순이익 +100','순이익 +200'])assert.ok(markup.includes(s),s);
 console.log('HOLDEM_EXIT_RESULTS_TESTS_OK');
+db.exec("INSERT INTO users(id,balance,balance_exact,balance_base) VALUES(4,1000000000000000000,'1000000000000000000','1000000000000000000');INSERT INTO room_escrow(room_id,user_id,amount) VALUES('HI',4,900)");
+const rich={id:'HI',game:'holdem',name:'high-value',hostId:4,players:[{userId:4,stack:900,leaveAfterHand:true}],
+ hand:{phase:'complete',p:{4:{totalBet:0}}}};
+ctx.rooms.set('HI',rich);ctx.settleHoldemDepartures(rich);
+assert.equal(exactWallet.read(db.prepare('SELECT balance,balance_exact,balance_base FROM users WHERE id=4').get()),1000000000000000900n,
+ 'even a small cashout at very large wallet must not be lost');
+assert.equal(db.prepare("SELECT amount_exact FROM ledger WHERE user_id=4").get().amount_exact,'900');
 // Pending entrants have a seat and escrow, but no contribution to the live hand.
-db.exec("INSERT INTO users VALUES(3,0); INSERT INTO room_escrow VALUES('Q',3,1000)");
+db.exec("INSERT INTO users(id,balance) VALUES(3,0); INSERT INTO room_escrow VALUES('Q',3,1000)");
 const q={id:'Q',game:'holdem',name:'queue',hostId:1,hand:{phase:'flop',p:{1:{totalBet:100},2:{totalBet:100}}},players:[{userId:1},{userId:2},{userId:3,stack:1000,joinNextHand:true,leaveAfterHand:true}]};
 ctx.rooms.set('Q',q);ctx.settleHoldemDepartures(q);
 assert.equal(q.players.length,2);assert.equal(db.prepare('SELECT balance FROM users WHERE id=3').get().balance,1000);

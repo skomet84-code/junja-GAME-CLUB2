@@ -5,7 +5,7 @@
  'use strict';const VERSION=1,lookup=new Map(CASES.map(c=>[c.id,c]));
  const own=(v)=>v&&typeof v==='object'&&!Array.isArray(v);
  const unique=(v,valid)=>Array.isArray(v)?[...new Set(v.filter(x=>typeof x==='string'&&valid.includes(x)))]:[];
- const freshCase=()=>({opened:false,scene:0,clues:[],gates:[],theories:[],interviews:[],solved:false,hints:0,misses:0,score:0,log:[]});
+ const freshCase=()=>({opened:false,scene:0,clues:[],gates:[],theories:[],interviews:[],solved:false,mastered:false,hints:0,misses:0,verdictFails:0,retryAt:0,linkFails:0,linkRetryAt:0,score:0,log:[]});
  const fresh=()=>({v:VERSION,cases:{},active:2});
  function cleanCase(data,caseId){
   const c=lookup.get(caseId),s=freshCase();if(!c||!own(data))return s;
@@ -24,8 +24,13 @@
    return witness.needs.every(p=>s.clues.includes(p))&&s.theories.includes(id==='w0'?'t0':'t2');
   });
   s.solved=!!data.solved&&s.gates.length===2&&s.theories.length===3&&s.interviews.length===2;
+  s.mastered=s.solved&&data.mastered===true;
   s.hints=Math.max(0,Math.min(200,Math.floor(Number(data.hints)||0)));
   s.misses=Math.max(0,Math.min(200,Math.floor(Number(data.misses)||0)));
+  s.verdictFails=Math.max(0,Math.min(200,Math.floor(Number(data.verdictFails)||0)));
+  s.retryAt=Math.max(0,Math.min(Date.now()+90000,Math.floor(Number(data.retryAt)||0)));
+  s.linkFails=Math.max(0,Math.min(200,Math.floor(Number(data.linkFails)||0)));
+  s.linkRetryAt=Math.max(0,Math.min(Date.now()+90000,Math.floor(Number(data.linkRetryAt)||0)));
   s.score=s.solved?Math.max(1,Math.min(100,Math.floor(Number(data.score)||1))):0;
   s.scene=Math.max(0,Math.min(Number(data.scene)||0,s.gates.includes('gate2')?2:s.gates.includes('gate1')?1:0));
   s.log=Array.isArray(data.log)?data.log.filter(x=>typeof x==='string').slice(0,16):[];
@@ -80,8 +85,11 @@
  function connect(s,id,a,b){
   return step(s,id,(c,p)=>{
    if(a===b||!p.clues.includes(a)||!p.clues.includes(b))return {ok:false,message:'수집한 서로 다른 증거 두 개를 선택해.'};
+   if(p.linkRetryAt>Date.now())return {ok:false,message:'연속 추측으로 증거 연결을 일시 중지했어. 기록을 다시 분석한 뒤 시도해.'};
    const k=[a,b].sort().join('|'),found=c.theories.find(t=>t.pair.slice().sort().join('|')===k);
-   if(!found)return {ok:false,message:'그럴듯하지만 이 두 기록만으로는 결론을 입증할 수 없어. 시각·출입 기록·은폐 목적을 다시 비교해.'};
+   if(!found){p.linkFails++;if(p.linkFails%4===0)p.linkRetryAt=Date.now()+40000;
+    return {ok:false,message:'연결을 보류했어. 시간·출처·물증의 인과관계를 다시 검토해.'};}
+   p.linkFails=0;
    if(!p.theories.includes(found.id)){p.theories.push(found.id);record(p,'추론 입증 · '+found.name);}
    return {ok:true,message:found.text,name:found.name};
   });
@@ -93,7 +101,7 @@
    if(!w.needs.every(x=>p.clues.includes(x))||!p.theories.includes(theorem))
     return {ok:true,reveal:false,message:w.claim+' 하지만 그 진술을 반박할 구체적인 증거가 아직 부족해.'};
    if(!p.interviews.includes(witness)){p.interviews.push(witness);record(p,'심문 입증 · '+w.name);}
-   return {ok:true,reveal:true,message:w.reveal};
+   return {ok:true,reveal:true,message:'진술의 모순을 입증했어. '+w.needs.map(k=>c.clues.find(e=>e.id===k)?.name).join(' / ')+'의 출처를 최종 보고서에서 교차 검증해.'};
   });
  }
  function options(id,kind){
@@ -102,12 +110,34 @@
   const current=c.verdict[kind],offset=kind==='act'?3:5;
   return [others[(id+offset)%others.length].verdict[kind],current,others[(id+offset+4)%others.length].verdict[kind]].filter((x,i,a)=>a.indexOf(x)===i);
  }
- function verdict(s,id,answers){
+ // Three case-specific physical records must substantiate the account, not a lucky guess.
+const reportKeys=['contradiction','mechanism','outcome'];
+function validReport(c,answers){
+ return !!answers&&answers.culprit===c.verdict.culprit&&answers.act===c.verdict.act&&
+ answers.motive===c.verdict.motive&&reportKeys.every((key,i)=>answers[key]===c.forensic.trail[i]);
+}
+function masterCase(s,id,answers){
+ return step(s,id,(c,p)=>{
+  if(!p.solved)return {ok:false,message:'본편을 먼저 해결해야 심화 재수사를 시작할 수 있어.'};
+  if(p.mastered)return {ok:true,already:true,message:'이미 심화 재수사 입증을 완료한 사건이야.'};
+  if(p.clues.length<8)return {ok:false,message:'심화 재수사에는 8개 원본 물증을 모두 확보해야 해.'};
+  if(p.retryAt>Date.now())return {ok:false,message:'연속 추측으로 교차검증이 일시 보류됐어. 잠시 뒤 다시 시도해.'};
+  if(!validReport(c,answers)){
+   p.misses++;p.verdictFails++;if(p.verdictFails%3===0)p.retryAt=Date.now()+45000;
+   return {ok:false,message:'최종 재수사 보고서와 현장 물증 사이에 모순이 있어. 다시 조사해.'};
+  }
+  p.mastered=true;record(p,'심화 재수사 · 증거 교차검증 완료');
+  return {ok:true,mastered:true,message:'세 가지 물증의 역할과 최종 판결을 확인했어. 심화 재수사 완료!'};
+ });
+}
+function verdict(s,id,answers){
   return step(s,id,(c,p)=>{
    if(p.solved)return {ok:true,already:true,message:c.ending,score:p.score};
    if(p.theories.length!==3||p.interviews.length!==2||p.gates.length!==2)
     return {ok:false,message:'세 가지 추론과 두 사람의 진술을 모두 입증해야 최종 판결이 가능해.'};
-   if(!answers||answers.culprit!==c.verdict.culprit||answers.act!==c.verdict.act||answers.motive!==c.verdict.motive){
+   if(p.retryAt>Date.now())return {ok:false,message:'연속 추측으로 판결을 잠시 보류했어. 증거를 다시 살펴본 뒤 재시도해.'};
+   if(!validReport(c,answers)){
+    p.verdictFails++;if(p.verdictFails%3===0)p.retryAt=Date.now()+45000;
     p.misses++;record(p,'판결 재검토 · 증거와 결론의 충돌');return {ok:false,message:'판결의 논리 중 하나가 증거와 충돌해. 단서는 그대로 보존돼.'};
    }
    p.solved=true;p.score=Math.max(1,100-p.hints*5-p.misses*8);
@@ -120,7 +150,7 @@
    p.hints++;
    const line=!p.gates.includes('gate1')?c.puzzles[0].hint:
     !p.gates.includes('gate2')?c.puzzles[1].hint:
-    p.theories.length<3?'추론 탭에서 0↔3, 1↔4, 5↔7번 증거의 연결을 살펴봐.':
+    p.theories.length<3?'공식 진술과 충돌하는 객관 기록, 조작 수단, 감춘 결과를 구분해.':
     p.interviews.length<2?'심문 시 각각의 인물에게 모순을 입증한 증거를 보여줘.':'최종 판결에서 가해자·조작 내용·은폐 목적을 모두 일치시켜.';
    return {ok:true,message:line};
   });
@@ -137,12 +167,14 @@
    c.gates=[...new Set([...(x?.gates||[]),...(y?.gates||[])])];
    c.theories=[...new Set([...(x?.theories||[]),...(y?.theories||[])])];
    c.interviews=[...new Set([...(x?.interviews||[]),...(y?.interviews||[])])];
-   c.solved=!!(x?.solved||y?.solved);c.scene=Math.max(x?.scene||0,y?.scene||0);
+   c.solved=!!(x?.solved||y?.solved);c.mastered=!!(x?.mastered||y?.mastered);c.scene=Math.max(x?.scene||0,y?.scene||0);
    c.hints=Math.max(x?.hints||0,y?.hints||0);c.misses=Math.max(x?.misses||0,y?.misses||0);
+   c.verdictFails=Math.max(x?.verdictFails||0,y?.verdictFails||0);c.retryAt=Math.max(x?.retryAt||0,y?.retryAt||0);
+   c.linkFails=Math.max(x?.linkFails||0,y?.linkFails||0);c.linkRetryAt=Math.max(x?.linkRetryAt||0,y?.linkRetryAt||0);
    c.score=Math.max(x?.score||0,y?.score||0);c.log=[...new Set([...(y?.log||[]),...(x?.log||[])])].slice(0,16);
    out.cases[id]=cleanCase(c,id);
   }
   out.active=highestUnlocked(out,true);return out;
  }
- return Object.freeze({VERSION,CASES,lookup,fresh,freshCase,cleanCase,hydrate,unlocked,highestUnlocked,inspect,unlock,travel,connect,question,options,verdict,hint,merge});
+ return Object.freeze({VERSION,CASES,lookup,fresh,freshCase,cleanCase,hydrate,unlocked,highestUnlocked,inspect,unlock,travel,connect,question,options,verdict,masterCase,hint,merge});
 });

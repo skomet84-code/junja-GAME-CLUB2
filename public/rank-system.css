@@ -81,3 +81,36 @@ body[data-social-rank="god"] #nickName{text-shadow:0 0 6px #fff,0 0 16px #a45cff
 @media(prefers-reduced-motion:reduce){
  #leaderboard .rank-row.rank-user-royal::before,#leaderboard .rank-row.rank-user-god::before{animation:none;transform:none;opacity:.25}
 }
+
+
+/* THE ABSOLUTE · 100경 G · only one ultimate rank above GOD JUNJA. */
+.absolute-mini{display:inline-grid;place-items:center;width:28px;height:28px;border-radius:50%;font:bold 23px Georgia,serif;color:#fffce6;border:1px solid #e9faff;background:radial-gradient(circle at 40% 30%,#f7ffff 0%,#bd9bf5 26%,#562490 47%,#060616 80%);box-shadow:0 0 12px #fff9,0 0 22px #a98cff,0 0 38px #d9bc7777}
+.rank-absolute{border-color:#efffff!important;box-shadow:0 0 19px #fff9,0 0 35px #aa8bfa88,inset 0 0 24px #d5f5ff22!important}
+.rank-road.rank-absolute{background:linear-gradient(135deg,#302149,#100d20 55%,#131723);border-color:#e4d6ff66}
+.rank-road.rank-absolute.current{border-color:#fff5cb;box-shadow:0 0 28px #ead7ff77}
+.rank-road.rank-absolute span{color:#fff6cb;text-shadow:0 0 13px #fff,0 0 23px #b5a1fa}
+.rank-hero.rank-absolute{position:relative;isolation:isolate;border:1px solid #faffff;background:radial-gradient(ellipse at 50% 24%,#fff9 0%,transparent 27%),radial-gradient(circle at 20% 35%,#7b49d090,transparent 42%),radial-gradient(circle at 85% 78%,#d6ba6480,transparent 40%),linear-gradient(140deg,#06050f,#1b1033 54%,#090816);box-shadow:inset 0 0 65px #c6a4ff44,0 0 30px #fff8,0 0 55px #c7a6ff55}
+.rank-hero.rank-absolute::before{content:"";position:absolute;inset:-60%;z-index:-2;background:conic-gradient(from 60deg,transparent 0 14%,#fff9 19%,transparent 26% 45%,#a47aff99 55%,transparent 63% 84%,#ffe6a077 92%,transparent);animation:absoluteOrbit 15s linear infinite}
+.rank-hero.rank-absolute::after{content:"";position:absolute;inset:0;z-index:-1;background:repeating-linear-gradient(123deg,transparent 0 34px,#ffffff08 35px 36px,transparent 37px 70px);pointer-events:none}
+.rank-hero.rank-absolute .rank-crown{font-size:76px;filter:drop-shadow(0 0 13px #fff) drop-shadow(0 0 38px #c6a4ff);animation:absoluteAscend 2.8s ease-in-out infinite alternate}
+.rank-hero.rank-absolute .absolute-mini{width:88px;height:88px;font-size:72px;border-width:2px}
+.rank-hero.rank-absolute h2{font-family:Georgia,serif;font-size:38px;letter-spacing:4px;color:#fffced;text-shadow:0 0 14px #fff,0 0 32px #bd95fb,0 0 50px #ffe6a0}
+.absolute-subtitle{font-size:12px;letter-spacing:7px;font-weight:900;color:#ffe9b0;margin-top:-2px;margin-bottom:12px;text-shadow:0 0 12px #ebccff}
+.social-rank.rank-absolute{border:1px solid #fff8d2;background:linear-gradient(125deg,#423064,#1a112f,#51422e);box-shadow:0 0 15px #fff8,0 0 27px #b4a3ff88;color:#fffbea}
+.rank-promote-absolute{position:relative;overflow:hidden;border-color:#f6f7ff;background:linear-gradient(110deg,#342361,#9063c5 38%,#d8b96e 70%,#493379);box-shadow:0 0 25px #d5a9ff66,0 0 35px #e7d49b55;align-items:center;gap:12px}
+.rank-promote-absolute::after{content:"";position:absolute;inset:-100% -40%;background:linear-gradient(90deg,transparent 38%,#ffffff6a 50%,transparent 62%);animation:absoluteButton 3.5s ease-in-out infinite;pointer-events:none}
+.rank-max-absolute{color:#fff9df;border:1px solid #f2e3b0;background:linear-gradient(135deg,#39235f,#9e7ad2,#43351f);box-shadow:0 0 23px #efdaff88;font-size:14px;letter-spacing:.5px}
+.rank-hero.rank-absolute + .rank-copy + .god-power{border-color:#f5eeff;background:radial-gradient(circle at 80% 0,#af80ff33,transparent 48%),linear-gradient(140deg,#261b44,#0e0d18)}
+.rank-up-fx.rank-absolute{background:radial-gradient(circle at center,#ffffffc9,#d3bcff77 18%,#b78adc77 33%,#02020cf5 75%);animation-duration:5.4s}
+.rank-up-fx.rank-absolute .absolute-mini{height:130px;width:130px;font-size:98px;box-shadow:0 0 28px white,0 0 80px #a585ff,0 0 125px #fff1ba}
+.rank-up-fx.rank-absolute b{font:900 clamp(32px,6vw,60px) Georgia,serif;color:#fffde9;text-shadow:0 0 18px #fff,0 0 40px #b18cff;letter-spacing:3px}
+.rank-up-fx.rank-absolute em{color:#e4c5ff}
+body[data-social-rank="absolute"] #nickName{color:#fff8de;text-shadow:0 0 10px #fff,0 0 21px #be9bff,0 0 38px #ffe9aa}
+#leaderboard .rank-row.rank-user-absolute{--prestige-light:#fffbe6;--prestige-edge:#f7eac0;position:relative;isolation:isolate;overflow:hidden!important;border:1px solid #f7eac0!important;border-radius:16px;background:radial-gradient(ellipse at 20% 0,#ad7dff55,transparent 50%),linear-gradient(110deg,#1b1233,#080c19 65%,#2b1b40)!important;box-shadow:inset 0 0 18px #c2b5ff22,0 0 22px #ddbeff55!important}
+#leaderboard .rank-row.rank-user-absolute::before{content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(105deg,transparent 22%,#ffffff55 48%,transparent 68%);transform:translateX(-120%);animation:rankPrestigeSweep 6s ease-in-out infinite}
+#leaderboard .rank-row.rank-user-absolute .rank-name>span>b{color:#fffce6!important;text-shadow:0 0 14px #dec5ff!important}
+#leaderboard .rank-row.rank-user-absolute .rank-status-badge{border:1px solid #ffe9c5!important;background:linear-gradient(105deg,#613f86,#22182e)!important;color:#fff6d6!important;box-shadow:0 0 17px #e0c6ff66!important}
+#leaderboard .rank-row.rank-user-absolute .rank-money{color:#ffeec8!important}
+@keyframes absoluteOrbit{to{transform:rotate(360deg)}}@keyframes absoluteAscend{to{transform:translateY(-6px) scale(1.08)}}@keyframes absoluteButton{50%,100%{transform:translateX(55%)}}
+@media(max-width:600px){.rank-hero.rank-absolute h2{font-size:30px;letter-spacing:2px}.rank-promote-absolute{font-size:13px}.absolute-subtitle{letter-spacing:5px}.rank-up-fx.rank-absolute b{font-size:34px}}
+@media(prefers-reduced-motion:reduce){.rank-hero.rank-absolute::before,.rank-hero.rank-absolute .rank-crown,.rank-promote-absolute::after,.rank-up-fx.rank-absolute::before,#leaderboard .rank-row.rank-user-absolute::before{animation:none!important}}

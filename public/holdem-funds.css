@@ -1,0 +1,27 @@
+/* JUNJA HOLD'EM — separate current table chips from settled wallet money. */
+.holdem-funds{
+ display:grid;grid-template-columns:repeat(3,minmax(0,1fr));
+ gap:9px;margin:10px 0 14px;padding:13px;
+ background:linear-gradient(135deg,rgba(15,30,38,.98),rgba(21,23,39,.97));
+ border:1px solid rgba(233,198,122,.57);border-radius:16px;
+ box-shadow:0 8px 25px #0007,inset 0 1px #ffffff1a;
+}
+.holdem-funds>div{display:flex;flex-direction:column;gap:5px;padding:11px 12px;
+ background:linear-gradient(145deg,#0b1e25,#0a1422);border:1px solid #c8b98657;border-radius:11px;
+ min-width:0}
+.holdem-funds small{font-size:11px;color:#c8ccbc;font-weight:900;line-height:1.4;word-break:keep-all}
+.holdem-funds strong{font-size:clamp(14px,1.7vw,21px);font-weight:900;
+ color:#ffde94;overflow-wrap:anywhere;font-variant-numeric:tabular-nums}
+.holdem-funds>div:first-child{border-color:#94ebb68a;background:linear-gradient(135deg,#122e29,#09262d)}
+.holdem-funds>div:first-child strong{color:#c4ffae;text-shadow:0 0 12px #77f8ad38}
+.holdem-funds>p{grid-column:1/-1;margin:0;padding:6px 3px 1px;color:#cddae1;
+ font-size:11px;line-height:1.5;text-align:center}
+.holdem-funds>p b{color:#ffe3a4}
+@media(max-width:680px){
+ .holdem-funds{gap:5px;margin:8px 0 12px;padding:8px;grid-template-columns:1fr 1fr}
+ .holdem-funds>div{padding:9px 8px;gap:4px}
+ .holdem-funds>div:last-of-type{grid-column:1/-1;flex-direction:row;align-items:center;justify-content:space-between}
+ .holdem-funds small{font-size:10px}
+ .holdem-funds strong{font-size:clamp(12px,3.4vw,16px)}
+ .holdem-funds>p{font-size:10px}
+}

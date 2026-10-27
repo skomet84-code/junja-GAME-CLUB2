@@ -1,5 +1,6 @@
 const $=(s,r=document)=>r.querySelector(s), $$=(s,r=document)=>[...r.querySelectorAll(s)];
 let rankFreeSlotNext=false,rankFreeWheelNext=false;let me=null,currentView='lobby',currentRoomId=null,currentGame=null,events=null,selectedBet=10000,refreshTimer=null,slotSpinState=null,autoSpinRunning=false,rankFreeSlotAutoRunning=false,autoSpinStop=false,slotSession={spins:0,wins:0,net:0,best:0,recent:[]},selectedYutMoveIndex=0,selectedSoloYutMoveIndex=0,horseCardData=null,horseRacing=false,horseLastResult=null,bigWheelSelected='x2',bigWheelSpinning=false,bigWheelAngle=0,sicboSelected='small',sicboRolling=false,roomPollTimer=null,roomRefreshBusy=false,lastRoomVersion=-1,roomSeenMembers=new Map(),liveGame=null,liveHeartbeatTimer=null,liveKnownIds=new Set(),liveInitialized=false,liveRefreshBusy=false,resumeSyncBusy=false,lastResumeSyncAt=0,networkFailureStreak=0,sevenAutoTimer=null,holdemAutoTimer=null,baccaratAutoTimer=null,baccaratLastAutoRound=-1,networkDegraded=false,bigWheelAutoStop=false,sicboAutoStop=false,bigWheelAutoRunning=false,sicboAutoRunning=false,shopData=null,shopCategory='all',shopOwnedOnly=false,shopCharacterGender='all',horseMeetTimer=null,horseMeetData=null,horseAnimatedRoundId=null,horseAnimationFrame=null,horseAutoRemaining=0,horseAutoTotal=0,horseAutoBetRound=null,horseAutoBusy=false,slotJackpotPollTimer=null,rouletteMode='straight',rouletteChip=10000,rouletteBets=[],rouletteSpinning=false,rouletteWheelAngle=0,rouletteBallAngle=0,roulettePending=[],audioScene='lobby',soloYutReplayBusy=false;
+document.addEventListener('jbank:wallet-change',e=>{if(!me)return;if(e.detail?.user)me=e.detail.user;else if(e.detail?.balance!=null)me.balance=e.detail.balance;updateHeader();window.JunjaRank?.decorate(me);});
 const SLOT_SYMBOLS=['🍒','🍋','🍊','🔔','⭐','💎','7️⃣','J'];
 const SLOT_CELL_CLASS={'🍒':'cherry','🍋':'lemon','🍊':'orange','🔔':'bell','⭐':'star','💎':'diamond','7️⃣':'seven','J':'junja'};
 const REACTION_META={godone:['♛','유일무이','bubble_godjunja_oracle'],godclass:['✧','품격을 증명하지','bubble_godjunja_oracle'],godworld:['♜','내 세계에 온 걸 환영해','bubble_godjunja_oracle'],godfate:['✦','운명은 내 편','bubble_godjunja_oracle'],frustrated:['😫','답답해!','base'],hurry:['⏩','빨리빨리!','base'],cry:['😭','으앙 ㅠㅠ','base'],laugh:['😂','ㅋㅋㅋㅋ','base'],wow:['😲','헐?!','base'],sad:['😢','슬퍼...','base'],nice:['😎','나이스~','base'],go:['🔥','가즈아!','base'],lucky:['🍀','오늘 느낌 온다!','bubble_hype'],gg:['🤝','굿게임!','bubble_hype'],boom:['💥','터졌다!','bubble_hype'],clutch:['🎯','딱 맞췄다!','bubble_hype'],heart:['💖','좋아좋아!','bubble_cute'],wink:['😉','찡긋~','bubble_cute'],pout:['🥺','한 번만...','bubble_cute'],clap:['👏','박수!','bubble_cute'],crown:['👑','품격 있게~','bubble_royal'],sparkle:['✨','클래스가 다르지','bubble_royal'],salute:['🫡','인정!','bubble_royal'],throne:['🪑','왕좌는 내 자리','bubble_royal'],bigbet:['💸','큰 판 간다!','bubble_highroller'],chips:['🪙','칩 쌓아!','bubble_highroller'],allin:['🔥','올인 감성!','bubble_highroller'],myday:['😎','오늘은 내 날','bubble_highroller'],legend:['⚡','전설 등장!','bubble_legend'],classup:['👑','이게 클래스','bubble_legend'],mood:['✨','분위기 잡았다','bubble_legend'],finish:['🏆','끝내자!','bubble_legend']};
@@ -359,6 +360,9 @@ async function openProfile(){
   $('#profileSheet').classList.remove('hidden');
 }
 let friendTransferTarget=null,friendTransferBusy=false;
+function friendTransferDebtOutstanding(){return BigInt(me?.rank?.bankDebt||'0')>0n;}
+function friendTransferDebtWarning(){return '⛔ J-BANK 미상환 '+money(me?.rank?.bankDebt||'0')+' · 원금과 이자를 완납해야 친구에게 송금할 수 있어.';}
+document.addEventListener('jbank:wallet-change',()=>{const send=$('#friendSendBtn'),info=$('#friendTransferInfo');if(!send||!info)return;send.disabled=friendTransferDebtOutstanding()||!friendTransferTarget;if(friendTransferDebtOutstanding())info.textContent=friendTransferDebtWarning();else if($('#friendSendAmount'))$('#friendSendAmount').dispatchEvent(new Event('input'));});
 function resetFriendTarget(message='닉네임을 확인하면 캐릭터가 표시돼.'){
   friendTransferTarget=null;const box=$('#friendLookupResult');if(box){box.className='friend-lookup-result muted';box.textContent=message}const send=$('#friendSendBtn');if(send)send.disabled=true;
 }
@@ -366,14 +370,14 @@ function bindFriendTransfer(){
   $('#closeTransferProfile')?.addEventListener('click',()=>$('#profileSheet')?.classList.add('hidden'));
   const nick=$('#friendNickname'),lookup=$('#friendLookupBtn'),amount=$('#friendSendAmount'),max=$('#friendMaxBtn'),send=$('#friendSendBtn');if(!nick||!lookup||!amount||!send)return;
   nick.addEventListener('input',()=>resetFriendTarget('닉네임이 바뀌었어. 다시 친구 확인을 눌러줘.'));
-  lookup.onclick=async()=>{const q=nick.value.trim();if(!q){toast('받는 친구 닉네임을 입력해줘.');return}lookup.disabled=true;try{const d=await api('/api/member/lookup?nickname='+encodeURIComponent(q));friendTransferTarget=d.user;$('#friendLookupResult').className='friend-lookup-result ok';$('#friendLookupResult').innerHTML=`<div class="friend-profile-hero">${avatarImg(d.user.avatar,d.user.nickname,'friend-profile-face',d.user.cosmetics)}<div><b>${html(d.user.nickname)}</b>${equippedTitle(d.user.cosmetics)?`<em>${html(equippedTitle(d.user.cosmetics))}</em>`:''}<small>${d.user.ownedCount||0}개 아이템 보유</small></div><span>✓ 친구 확인</span></div><div class="friend-equipped-row">${['character','frame','title','pet','table_skin','card_back'].map(k=>d.user.cosmetics?.[k]?`<i>${html(d.user.cosmetics[k].icon||'◆')} ${html(d.user.cosmetics[k].name)}</i>`:'').filter(Boolean).join('')||'<small>장착 아이템 없음</small>'}</div><div class="friend-owned-preview">${(d.user.ownedItems||[]).filter(Boolean).slice(0,8).map(x=>`<button type="button" data-friend-owned="${x.id}" title="${html(x.name||'아이템')}"><b>${html(x.icon||'◆')}</b><small>${html(x.name||'아이템')}</small></button>`).join('')||'<small>공개된 보유 아이템 없음</small>'}</div><button id="friendGiftOpen" class="secondary full" type="button">🎁 이 친구에게 아이템 선물하기</button>`;send.disabled=false;$('#friendGiftOpen')?.addEventListener('click',()=>openFriendGiftPicker(d.user));fx()}catch(e){resetFriendTarget('친구를 찾지 못했어. 닉네임을 다시 확인해줘.');toast(e.message)}finally{lookup.disabled=false}};
-  const transferPreview=()=>{const n=Math.max(0,Math.trunc(Number(amount.value)||0)),pct=Number(me?.rank?.perks?.transferFeePct||0),fee=Math.floor(n*pct/100),total=n+fee,info=$('#friendTransferInfo');if(info)info.textContent=`신분 수수료 ${pct}% · ${money(fee)} · 총 차감 ${money(total)}`;return {n,pct,fee,total}};
+  lookup.onclick=async()=>{const q=nick.value.trim();if(!q){toast('받는 친구 닉네임을 입력해줘.');return}lookup.disabled=true;try{const d=await api('/api/member/lookup?nickname='+encodeURIComponent(q));friendTransferTarget=d.user;$('#friendLookupResult').className='friend-lookup-result ok';$('#friendLookupResult').innerHTML=`<div class="friend-profile-hero">${avatarImg(d.user.avatar,d.user.nickname,'friend-profile-face',d.user.cosmetics)}<div><b>${html(d.user.nickname)}</b>${equippedTitle(d.user.cosmetics)?`<em>${html(equippedTitle(d.user.cosmetics))}</em>`:''}<small>${d.user.ownedCount||0}개 아이템 보유</small></div><span>✓ 친구 확인</span></div><div class="friend-equipped-row">${['character','frame','title','pet','table_skin','card_back'].map(k=>d.user.cosmetics?.[k]?`<i>${html(d.user.cosmetics[k].icon||'◆')} ${html(d.user.cosmetics[k].name)}</i>`:'').filter(Boolean).join('')||'<small>장착 아이템 없음</small>'}</div><div class="friend-owned-preview">${(d.user.ownedItems||[]).filter(Boolean).slice(0,8).map(x=>`<button type="button" data-friend-owned="${x.id}" title="${html(x.name||'아이템')}"><b>${html(x.icon||'◆')}</b><small>${html(x.name||'아이템')}</small></button>`).join('')||'<small>공개된 보유 아이템 없음</small>'}</div><button id="friendGiftOpen" class="secondary full" type="button">🎁 이 친구에게 아이템 선물하기</button>`;send.disabled=friendTransferDebtOutstanding();$('#friendGiftOpen')?.addEventListener('click',()=>openFriendGiftPicker(d.user));fx()}catch(e){resetFriendTarget('친구를 찾지 못했어. 닉네임을 다시 확인해줘.');toast(e.message)}finally{lookup.disabled=false}};
+  const transferPreview=()=>{const n=Math.max(0,Math.trunc(Number(amount.value)||0)),pct=Number(me?.rank?.perks?.transferFeePct||0),fee=Math.floor(n*pct/100),total=n+fee,info=$('#friendTransferInfo');if(info)info.textContent=friendTransferDebtOutstanding()?friendTransferDebtWarning():`신분 수수료 ${pct}% · ${money(fee)} · 총 차감 ${money(total)}`;if(send)send.disabled=friendTransferDebtOutstanding()||!friendTransferTarget;return {n,pct,fee,total}};
   amount.addEventListener('input',transferPreview);transferPreview();
   const friendAmountButtons=[...document.querySelectorAll('[data-friend-amount]')];
   friendAmountButtons.forEach(b=>{b.onclick=()=>{const pct=Number(me?.rank?.perks?.transferFeePct||0),maxSend=Math.floor(Number(me?.balance||0)/(1+pct/100));amount.value=Math.min(Number(b.dataset.friendAmount),maxSend);transferPreview();fx()}});
   max.onclick=()=>{const pct=Number(me?.rank?.perks?.transferFeePct||0);amount.value=Math.max(0,Math.floor(Number(me?.balance||0)/(1+pct/100)));transferPreview();fx()};
   send.onclick=async()=>{
-    if(friendTransferBusy||!friendTransferTarget)return;const n=Math.trunc(Number(amount.value));if(!Number.isFinite(n)||n<1){toast('보낼 금액을 입력해줘.');return}if(n>Number(me?.balance||0)){toast('현재 보유 게임머니보다 많이 보낼 수 없어.');return}
+    if(friendTransferBusy||!friendTransferTarget)return;if(friendTransferDebtOutstanding()){toast(friendTransferDebtWarning());send.disabled=true;return;}const n=Math.trunc(Number(amount.value));if(!Number.isFinite(n)||n<1){toast('보낼 금액을 입력해줘.');return}if(n>Number(me?.balance||0)){toast('현재 보유 게임머니보다 많이 보낼 수 없어.');return}
     const preview=transferPreview();if(preview.total>Number(me?.balance||0)){toast(`수수료 포함 ${money(preview.total)}가 필요해.`);return}const ok=confirm(`${friendTransferTarget.nickname}님에게 ${money(n)}를 보낼까?\n신분 수수료 ${money(preview.fee)} (${preview.pct}%) · 총 ${money(preview.total)} 차감\n전송 후에는 자동 취소되지 않아.`);if(!ok)return;
     friendTransferBusy=true;send.disabled=true;send.textContent='보내는 중...';try{const d=await api('/api/wallet/transfer',{method:'POST',body:JSON.stringify({targetId:friendTransferTarget.id,amount:n})});me=d.user;updateHeader();const profileBalance=$('#profileBalance');if(profileBalance)profileBalance.textContent=money(me.balance);toast(`🎁 ${friendTransferTarget.nickname}님에게 ${money(n)} 보냈어!`);amount.value=Math.min(10000,Number(me.balance||0));resetFriendTarget('전송 완료. 또 보내려면 친구를 다시 확인해줘.');nick.value='';fx('win')}catch(e){toast(e.message);send.disabled=false}finally{friendTransferBusy=false;send.textContent='선택한 친구에게 보내기'}
   };
@@ -395,28 +399,31 @@ async function loadLedger(){try{const d=await api('/api/ledger');$('#ledgerList'
 
 
 // ADMIN CONTROL CENTER
+let adminShowArchived=false;
 async function loadAdmin(query='',notify=true){
   if(!me?.is_admin)return;
   try{
-    const [u,a,rr]=await Promise.all([api('/api/admin/users?q='+encodeURIComponent(query)),api('/api/admin/audit'),api('/api/admin/rooms')]);
+    const [u,a,rr]=await Promise.all([api('/api/admin/users?q='+encodeURIComponent(query)+'&archived='+(adminShowArchived?'1':'0')),api('/api/admin/audit'),api('/api/admin/rooms')]);
     const rows=u.rows||[];
     $('#adminUserCount').textContent=rows.length;
     $('#adminTotalMoney').textContent=money(rows.reduce((s,x)=>s+Number(x.balance||0),0));
     $('#adminDisabledCount').textContent=rows.filter(x=>x.is_disabled).length;
     $('#adminUsers').innerHTML=rows.map(adminUserHtml).join('')||'<div class="empty">검색 결과가 없습니다.</div>';
-    $('#adminAudit').innerHTML=(a.rows||[]).map(x=>`<div class="admin-audit-row"><div><b>${x.action==='credit'?'💰 지급':x.action==='debit'?'💸 차감':x.action==='disable'?'⛔ 이용중지':'✅ 이용재개'}</b><span>${html(x.target_nickname)} <small>@${html(x.target_username)}</small></span></div><strong class="${x.amount>0?'plus':x.amount<0?'minus':''}">${x.amount?((x.amount>0?'+':'')+money(x.amount)):'-'}</strong><p>${html(x.memo)} · ${timeText(x.created_at)}</p></div>`).join('')||'<div class="empty">관리자 작업 기록이 없습니다.</div>';
+    const archiveToggle=$('#adminArchiveToggle');if(archiveToggle){archiveToggle.textContent=adminShowArchived?'삭제 계정 숨기기':'삭제한 계정 보기';archiveToggle.setAttribute('aria-pressed',String(adminShowArchived));archiveToggle.onclick=()=>{adminShowArchived=!adminShowArchived;loadAdmin($('#adminSearch')?.value.trim()||'');};}
+    $('#adminAudit').innerHTML=(a.rows||[]).map(x=>`<div class="admin-audit-row"><div><b>${x.action==='credit'?'💰 지급':x.action==='debit'?'💸 차감':x.action==='disable'?'⛔ 이용중지':x.action==='archive'?'🗃️ 안전 삭제':x.action==='restore'?'♻️ 계정 복구':'✅ 이용재개'}</b><span>${html(x.target_nickname)} <small>@${html(x.target_username)}</small></span></div><strong class="${x.amount>0?'plus':x.amount<0?'minus':''}">${x.amount?((x.amount>0?'+':'')+money(x.amount)):'-'}</strong><p>${html(x.memo)} · ${timeText(x.created_at)}</p></div>`).join('')||'<div class="empty">관리자 작업 기록이 없습니다.</div>';
     if($('#adminRooms'))$('#adminRooms').innerHTML=(rr.rows||[]).map(r=>`<div class="admin-room-row"><div><b>${html(r.name)}</b><small>${r.game==='holdem'?'홀덤':r.game==='baccarat'?'바카라':'윷놀이'} · ${r.status} · ${r.players}/${r.maxPlayers}명 · ${money(r.game==='baccarat'?r.stake:r.buyIn)}</small><div class="room-mini-users">${(r.participants||[]).map(p=>`<span class="${p.ready?'ready':''}">${AVATAR_SAFE(p.avatar)} ${html(p.nickname)}</span>`).join('')}</div></div><button class="danger" data-admin-close-room="${r.id}" type="button">강제 종료</button></div>`).join('')||'<div class="empty">현재 열린 게임방이 없습니다.</div>';
     bindAdminRows();bindAdminRoomRows();
   }catch(e){if(notify)toast(e.message)}
 }
 function adminUserHtml(u){
+  if(u.is_archived)return '<div class="admin-user-card disabled-user" data-admin-user="'+u.id+'"><div class="admin-user-main"><div class="admin-avatar">🗃️</div><div class="admin-identity"><b>'+html(u.nickname)+'</b> <span class="disabled-mini-badge">삭제 보관</span><small>@'+html(u.username)+' · 기존 잔액·거래내역 보존</small></div><button type="button" class="admin-restore-btn">♻ 계정 복구</button></div></div>';
   const totalGames=(u.poker_hands||0)+(u.yut_games||0)+(u.seotda_games||0)+(u.gostop_games||0)+(u.slot_spins||0)+(u.horse_races||0)+(u.bigwheel_plays||0)+(u.sicbo_plays||0);
   return `<div class="admin-user-card ${u.is_disabled?'disabled-user':''}" data-admin-user="${u.id}">
     <div class="admin-user-main"><div class="admin-avatar">${u.avatarEmoji}</div><div class="admin-identity"><div><b>${html(u.nickname)}</b>${u.is_admin?'<span class="admin-mini-badge">ADMIN</span>':''}${u.is_disabled?'<span class="disabled-mini-badge">STOP</span>':''}</div><small>@${html(u.username)} · 가입 ${new Date(u.created_at).toLocaleDateString('ko-KR')}</small></div><div class="admin-balance"><span>보유머니</span><b>${money(u.balance)}</b></div></div>
     <div class="admin-user-stats"><span>플레이 <b>${totalGames}</b></span><span>홀덤승 <b>${u.poker_wins||0}</b></span><span>윷승 <b>${u.yut_wins||0}</b></span><span>슬롯손익 <b>${signedMoney(u.slot_profit||0)}</b></span></div>
     <div class="admin-quick-money credit"><span>빠른 지급</span><button type="button" data-admin-add="10000000">+1,000만</button><button type="button" data-admin-add="1000000000">+10억</button><button type="button" data-admin-add="100000000000">+1,000억</button></div>
     <div class="admin-quick-money debit"><span>빠른 차감</span><button type="button" data-admin-debit="100000">-10만</button><button type="button" data-admin-debit="1000000">-100만</button><button type="button" data-admin-debit="all">잔액 전액</button></div>
-    <div class="admin-custom-control"><input class="admin-amount" inputmode="numeric" type="number" min="1" max="1000000000" step="1000" placeholder="직접 금액 입력"><input class="admin-memo" maxlength="60" placeholder="사유 예: 이벤트 보너스"><button class="admin-credit-btn" type="button">+ 지급</button><button class="admin-debit-btn danger" type="button">− 차감</button>${u.is_admin?'':`<button class="${u.is_disabled?'admin-enable-btn':'admin-disable-btn'}" type="button">${u.is_disabled?'이용재개':'이용중지'}</button>`}</div>
+    <div class="admin-custom-control"><input class="admin-amount" inputmode="numeric" type="number" min="1" max="1000000000" step="1000" placeholder="직접 금액 입력"><input class="admin-memo" maxlength="60" placeholder="사유 예: 이벤트 보너스"><button class="admin-credit-btn" type="button">+ 지급</button><button class="admin-debit-btn danger" type="button">− 차감</button>${u.is_admin?'':`<button class="${u.is_disabled?'admin-enable-btn':'admin-disable-btn'}" type="button">${u.is_disabled?'이용재개':'이용중지'}</button><button class="admin-archive-btn danger" type="button">🗃 계정 삭제</button>`}</div>
   </div>`;
 }
 function bindAdminRows(){
@@ -428,6 +435,8 @@ function bindAdminRows(){
     $('.admin-debit-btn',card)?.addEventListener('click',()=>{const n=Math.trunc(Number(amountInput.value));if(n>0)adminAdjustMoney(userId,n,'debit',memoInput.value||'관리자 차감');else toast('차감 금액을 입력해줘.')});
     $('.admin-disable-btn',card)?.addEventListener('click',()=>adminSetStatus(userId,true));
     $('.admin-enable-btn',card)?.addEventListener('click',()=>adminSetStatus(userId,false));
+    $('.admin-archive-btn',card)?.addEventListener('click',()=>adminArchiveAccount(userId,card,false));
+    $('.admin-restore-btn',card)?.addEventListener('click',()=>adminArchiveAccount(userId,card,true));
   });
 }
 async function refreshAdminSlot777(){
@@ -447,6 +456,21 @@ async function adminAdjustMoney(userId,amount,direction='credit',memo='관리자
   if(direction==='credit'&&amount>=10000000&&!confirm(`${money(amount)}을 지급할까?`))return;
   try{const d=await api('/api/admin/wallet',{method:'POST',body:JSON.stringify({userId,amount,direction,memo})});toast(`✅ ${action} 완료 · 잔액 ${money(d.balance)}`);await loadAdmin($('#adminSearch')?.value.trim()||'');await refreshMe()}catch(e){toast(`❌ ${action} 실패 · ${e.message}`)}
 }
+async function adminArchiveAccount(userId,card,restore=false){
+ const username=card.querySelector('.admin-identity small')?.textContent.match(/@([^\s·]+)/)?.[1]||'';
+ if(!username){toast('대상 아이디를 확인할 수 없어.');return;}
+ const detail=restore?'삭제 보관한 계정을 다시 로그인 가능 상태로 복구할까?':'이 계정을 안전 삭제하면 즉시 로그인이 차단되고 일반 회원 목록에서 숨겨져. 기존 잔액과 거래내역은 복구 가능하도록 보관해.';
+ if(!confirm(detail+'\n대상: '+username))return;
+ const typed=prompt('오작동 방지를 위해 삭제·복구할 계정의 아이디를 정확히 입력해줘.\n'+username);
+ if(typed!==username){if(typed!==null)toast('아이디가 일치하지 않아 작업을 취소했어.');return;}
+ const action=restore?'restore':'archive';
+ try{
+  await api('/api/admin/archive',{method:'POST',body:JSON.stringify({userId,action,confirmUsername:typed,reason:restore?'관리자 복구':'미이용·허위 계정 정리'})});
+  toast(restore?'계정 복구 완료 · 다시 로그인 가능':'계정 안전 삭제 완료 · 거래내역 보존');
+  await loadAdmin($('#adminSearch')?.value.trim()||'');
+ }catch(e){toast('계정 작업 실패: '+e.message);}
+}
+
 async function adminSetStatus(userId,disabled){
   if(!confirm(disabled?'이 회원의 로그인을 즉시 중지할까?':'이 회원의 이용을 다시 허용할까?'))return;
   try{await api('/api/admin/status',{method:'POST',body:JSON.stringify({userId,disabled})});toast(disabled?'계정 이용중지 완료':'계정 이용재개 완료');await loadAdmin($('#adminSearch')?.value.trim()||'')}catch(e){toast(e.message)}
@@ -575,6 +599,7 @@ async function resumeMyRoom(){
     const room=d.room;
     // Omok owns a dedicated responsive board and preserves the logged-in session.
     if(room.game==='omok'){window.location.assign('/omok/index.html');return;}
+    if(room.game==='janggi'){window.location.assign('/janggi/online.html');return;}
     if(room.game==='liar'){window.location.assign('/liar/index.html');return;}
     // Treasure Raid owns its room state and settlement UI separately.
     if(room.game==='goldenbell'){
@@ -631,7 +656,7 @@ async function loadCurrentRoom(silent=false){
   try{
     const d=await api(currentGame==='baccarat'?`/api/baccarat/rooms/${currentRoomId}`:`/api/rooms/${currentRoomId}`);
     if(currentRoomId!==requestedRoomId||currentGame!==requestedGame)return;
-    if(d.left){finishRoomExit();toast('정산 완료 · 자동 퇴장했습니다.');return;}
+    if(d.left){try{await refreshMe(false);toast('홀덤 정산 반영 · 지갑 '+money(me.balance));}catch{toast('자동 퇴장됨 · 지갑 잔액은 로비에서 확인해줘.');}finishRoomExit();return;}
     if(!d.room)throw new Error('방을 찾을 수 없습니다.');
     if(Number(d.room.version||0)<Number(lastRoomVersion||0))return;
     const version=d.room.version||0;if(version!==lastRoomVersion){lastRoomVersion=version;renderRoom(d.room)}
@@ -654,7 +679,7 @@ function renderRoom(room){lastRoomVersion=room.version||lastRoomVersion;notifyRo
 async function toggleReady(){if(!currentRoomId)return;try{const d=await api(`/api/rooms/${currentRoomId}/ready`,{method:'POST',body:'{}'});renderRoom(d.room)}catch(e){toast(e.message)}}
 function restoreRoomBrowser(game){$(`#${game}Room`)?.classList.add('hidden');$(`#${game}Browser`)?.classList.remove('hidden');if(game==='baccarat')loadBaccaratRooms();else if(game)loadRooms(game)}
 function finishRoomExit(){const old=currentGame;currentRoomId=null;currentGame=null;lastRoomVersion=-1;stopRoomPolling();clearTimeout(baccaratAutoTimer);void refreshMe();restoreRoomBrowser(old)}
-async function leaveRoom(){if(!currentRoomId)return;try{const endpoint=currentGame==='baccarat'?`/api/baccarat/rooms/${currentRoomId}/leave`:`/api/rooms/${currentRoomId}/leave`;const d=await api(endpoint,{method:'POST',body:'{}'});if(d.queued){toast('나가기 대기 · 이번 판 정산 후 자동 퇴장합니다.');await loadCurrentRoom(true);return;}finishRoomExit()}catch(e){toast(e.message)}}
+async function leaveRoom(){if(!currentRoomId)return;try{const endpoint=currentGame==='baccarat'?`/api/baccarat/rooms/${currentRoomId}/leave`:`/api/rooms/${currentRoomId}/leave`;const d=await api(endpoint,{method:'POST',body:'{}'});if(d.queued){toast('나가기 대기 · 이번 판 정산 후 자동 퇴장합니다.');await loadCurrentRoom(true);return;}if(d.user){me=d.user;updateHeader();toast('홀덤 정산 '+money(d.cashout)+' · 지갑 '+money(d.user.balance));}finishRoomExit()}catch(e){toast(e.message)}}
 async function closeRoom(){if(!currentRoomId)return;if(!confirm('대기실/게임을 종료하고 참가자에게 보유 판돈을 환급할까?'))return;try{await api(`/api/rooms/${currentRoomId}/close`,{method:'POST',body:'{}'});const old=currentGame;currentRoomId=null;currentGame=null;lastRoomVersion=-1;stopRoomPolling();toast('방을 비웠어.');await refreshMe();restoreRoomBrowser(old)}catch(e){toast(e.message)}}
 async function recoverRoom(){if(!currentRoomId)return;if(!confirm('게임 상태가 꼬였을 때만 사용해. 방을 강제 종료하고 판돈을 복구할까?'))return;try{await api(`/api/rooms/${currentRoomId}/recover`,{method:'POST',body:'{}'});const old=currentGame;currentRoomId=null;currentGame=null;lastRoomVersion=-1;stopRoomPolling();toast('게임방 복구 완료 · 로비로 돌아왔어.');await refreshMe();restoreRoomBrowser(old)}catch(e){toast(e.message)}}
 async function startRoom(){try{const d=await api(`/api/rooms/${currentRoomId}/start`,{method:'POST',body:'{}'});renderRoom(d.room);await loadCurrentRoom()}catch(e){toast(e.message)}}
@@ -702,12 +727,24 @@ function bindPokerPresets(root,h){
     input.value=Math.max(l.minRaiseTo,Math.min(l.maxRaiseTo,Math.floor(v/100)*100));fx()
   })
 }
+function holdemFundsHtml(room,solo=false){
+ const seat=room.players.find(p=>Number(p.userId)===Number(me?.id));
+ const stack=Math.max(0,Number(seat?.stack||0)),wallet=solo?me?.balance:room.walletBalance??me?.balance;
+ let total='—';
+ try{total=money(BigInt(String(wallet??0))+BigInt(String(Math.floor(stack))));}catch{}
+ return '<div class="holdem-funds panel" aria-label="홀덤 테이블 칩과 지갑 잔액">'+
+  '<div><small>🃏 테이블 칩 · 승패 즉시 반영</small><strong>'+money(stack)+'</strong></div>'+
+  '<div><small>👛 게임 지갑 · 퇴장 정산 후 반영</small><strong>'+money(wallet??0)+'</strong></div>'+
+  '<div><small>합산 보유 · 지갑 + 테이블</small><strong>'+total+'</strong></div>'+
+  '<p>승리 칩은 테이블에 바로 쌓여. <b>정산 후 나가기</b>로 지갑에 돌려받아.</p></div>';
+}
 function renderHoldem(room){
   $('#holdemBrowser').classList.add('hidden');const root=$('#holdemRoom');root.classList.remove('hidden');
   // Preserve a raise amount while live multiplayer refreshes redraw the table.
   const prevRaise=$('#raiseTo',root),raiseDraft=prevRaise?.value,raiseFocused=document.activeElement===prevRaise;
   const h=room.hand,deal=pokerShouldDeal(room,h);
-  const sec=h?.turnDeadlineAt?Math.max(0,Math.ceil((h.turnDeadlineAt-Date.now())/1000)):null,autoSec=room.autoStartAt?Math.max(0,Math.ceil((room.autoStartAt-Date.now())/1000)):null;root.innerHTML=`${roomToolbar(room)}${room.status==='WAITING'&&autoSec!==null?`<div class="holdem-countdown">🃏 ${h?.phase==='complete'?'다음 핸드':'첫 핸드'} 자동 시작 <b>${autoSec}</b>초 · 전원 READY 유지 시 자동으로 시작합니다.</div>`:''}${h?.phase!=='complete'&&sec!==null?`<div class="holdem-countdown ${sec<=3?'urgent':''}">⏱ ${html(room.turnNickname||'플레이어')} 행동시간 <b>${sec}</b>초 · 0초면 자동 폴드</div>`:''}<div class="table-wrap"><div class="poker-panel panel">${pokerTableHtml(room,h,false,deal)}${holdemActions(h)}</div><div class="side-panel">${pokerStatusPanel(h)}<div class="players-card panel"><div class="section-head"><div><small>PLAYERS</small><h3>참가자 ${room.players.length}/${room.maxPlayers}</h3></div></div><div class="member-list">${room.players.map(p=>`<div class="member poker-member">${pokerFaceHtml(p)}<span>${html(p.nickname)}${room.hostId===p.userId?' 👑':''}</span><b>${money(p.stack)}</b></div>`).join('')}</div></div>${privacyPanelHtml()}</div></div>`;
+  if(room.walletBalance!=null&&String(me?.balance)!==String(room.walletBalance)){me.balance=room.walletBalance;updateHeader();}
+  const sec=h?.turnDeadlineAt?Math.max(0,Math.ceil((h.turnDeadlineAt-Date.now())/1000)):null,autoSec=room.autoStartAt?Math.max(0,Math.ceil((room.autoStartAt-Date.now())/1000)):null;root.innerHTML=`${roomToolbar(room)}${holdemFundsHtml(room)}${room.status==='WAITING'&&autoSec!==null?`<div class="holdem-countdown">🃏 ${h?.phase==='complete'?'다음 핸드':'첫 핸드'} 자동 시작 <b>${autoSec}</b>초 · 전원 READY 유지 시 자동으로 시작합니다.</div>`:''}${h?.phase!=='complete'&&sec!==null?`<div class="holdem-countdown ${sec<=3?'urgent':''}">⏱ ${html(room.turnNickname||'플레이어')} 행동시간 <b>${sec}</b>초 · 0초면 자동 폴드</div>`:''}<div class="table-wrap"><div class="poker-panel panel">${pokerTableHtml(room,h,false,deal)}${holdemActions(h)}</div><div class="side-panel">${pokerStatusPanel(h)}<div class="players-card panel"><div class="section-head"><div><small>PLAYERS</small><h3>참가자 ${room.players.length}/${room.maxPlayers}</h3></div></div><div class="member-list">${room.players.map(p=>`<div class="member poker-member">${pokerFaceHtml(p)}<span>${html(p.nickname)}${room.hostId===p.userId?' 👑':''}</span><b>${money(p.stack)}</b></div>`).join('')}</div></div>${privacyPanelHtml()}</div></div>`;
   bindRoomCommon(root,room);bindPokerPresets(root,h);
   const leaveButton=$('.leave-room',root),leaving=room.players.find(p=>p.userId===me.id)?.leaveAfterHand;
   if(leaveButton){const queued=room.players.find(p=>p.userId===me.id)?.joinNextHand;leaveButton.disabled=!!leaving;leaveButton.title=queued?'대기를 취소하고 보관 중인 칩을 돌려받습니다.':'이번 판이 끝나면 남은 칩을 정산하고 자동 퇴장합니다.';leaveButton.textContent=leaving?'나가기 대기 중':queued?'참가 대기 취소':room.status==='PLAYING'?'나가기 대기':'정산 후 나가기';}
@@ -741,7 +778,7 @@ async function loadSoloHoldem(){try{const d=await api('/api/solo/holdem');if(d.r
 function renderSoloHoldem(room){
   clearTimeout(holdemAutoTimer);
   $('#holdemSoloStart').classList.add('hidden');const root=$('#holdemSoloRoom');root.classList.remove('hidden');const h=room.hand,deal=pokerShouldDeal(room,h);
-  root.innerHTML=`<div class="solo-toolbar"><div><small>AI HEADS UP · SOLO MODE</small><h3>${pokerFaceHtml(room.players.find(p=>p.userId===me.id))}<span>${html(me.nickname)}</span><i>VS</i>${pokerFaceHtml(room.players.find(p=>p.bot))}<span>J-BOT</span></h3></div><button class="secondary solo-cashout" type="button">칩 정산 후 나가기</button></div><div class="table-wrap solo-table-wrap"><div class="poker-panel panel">${pokerTableHtml(room,h,true,deal)}${h?.turnUserId===me.id?'<div class="solo-turn-banner">🔥 내 차례 · 행동을 선택해</div>':h?.phase!=='complete'?'<div class="solo-turn-banner bot">🤖 J-BOT 생각 중...</div>':''}${holdemActions(h,true)}</div><div class="side-panel">${pokerStatusPanel(h)}<div class="panel solo-help-mini"><small>AI 홀덤</small><b>혼자 바로 플레이</b><p>패 분배 애니메이션, 현재 족보, ½ POT·MAX 레이즈를 지원해. 핸드 종료 후 ‘다음 핸드’로 계속 플레이.</p></div></div></div>`;
+  root.innerHTML=`<div class="solo-toolbar"><div><small>AI HEADS UP · SOLO MODE</small><h3>${pokerFaceHtml(room.players.find(p=>p.userId===me.id))}<span>${html(me.nickname)}</span><i>VS</i>${pokerFaceHtml(room.players.find(p=>p.bot))}<span>J-BOT</span></h3></div><button class="secondary solo-cashout" type="button">칩 정산 후 나가기</button></div>${holdemFundsHtml(room,true)}<div class="table-wrap solo-table-wrap"><div class="poker-panel panel">${pokerTableHtml(room,h,true,deal)}${h?.turnUserId===me.id?'<div class="solo-turn-banner">🔥 내 차례 · 행동을 선택해</div>':h?.phase!=='complete'?'<div class="solo-turn-banner bot">🤖 J-BOT 생각 중...</div>':''}${holdemActions(h,true)}</div><div class="side-panel">${pokerStatusPanel(h)}<div class="panel solo-help-mini"><small>AI 홀덤</small><b>혼자 바로 플레이</b><p>패 분배 애니메이션, 현재 족보, ½ POT·MAX 레이즈를 지원해. 핸드 종료 후 ‘다음 핸드’로 계속 플레이.</p></div></div></div>`;
   bindPokerPresets(root,h);
   $$('[data-poker]',root).forEach(b=>b.onclick=async()=>{b.disabled=true;try{const d=await api('/api/solo/holdem/action',{method:'POST',body:JSON.stringify({action:b.dataset.poker,raiseTo:Number($('#raiseTo',root)?.value||0)})});renderSoloHoldem(d.room)}catch(e){toast(e.message);b.disabled=false}});
   $('.solo-next-hand',root)?.addEventListener('click',async()=>{try{const d=await api('/api/solo/holdem/next',{method:'POST',body:'{}'});renderSoloHoldem(d.room)}catch(e){toast(e.message)}});
@@ -754,11 +791,50 @@ const YUT_NODE_POS={
   READY:[98,98],START:[90,90],O1:[90,74],O2:[90,58],O3:[90,42],O4:[90,26],O5:[90,10],
   O6:[74,10],O7:[58,10],O8:[42,10],O9:[26,10],O10:[10,10],
   O11:[10,26],O12:[10,42],O13:[10,58],O14:[10,74],O15:[10,90],
-  O16:[26,90],O17:[42,90],O18:[58,90],O19:[74,90],O20:[82,90],
+  // Six equal intervals from O15 (10%) through O20 to HOME/START (90%).
+  O16:[23.333,90],O17:[36.667,90],O18:[50,90],O19:[63.333,90],O20:[76.667,90],
   A1:[75,25],A2:[63,37],C:[50,50],A4:[37,63],A5:[25,75],
   B1:[25,25],B2:[37,37],B4:[63,63],B5:[75,75],FINISH:[90,90]
 };
 function yutPhysicalClient(p){if(!p)return'READY';if(p.node==='CA'||p.node==='CB')return'C';return p.node||'READY'}
+
+function yutFlowBanner(state,who=''){
+  const phase=state?.phase||'waiting', mine=!!state?.mine, waitingForThrow=!!state?.awaitingThrow;
+  const pending=Array.isArray(state?.pending)?state.pending:[];
+  const stage=phase==='complete'?'complete':phase==='waiting'?'waiting':mine?(waitingForThrow?'throw':pending.length?'move':'wait'):'wait';
+  const info={
+    waiting:['준비 단계','참가자가 모두 준비하면 시작해','방장이 시작할 때까지 기다려줘'],
+    throw:['내 차례 · 윷 던지기','윷을 던져 승부를 시작해',pending.length?'윷·모 추가 던지기 기회가 있어!':'아래 던지기 버튼을 눌러줘'],
+    move:['내 차례 · 말 이동','결과를 고르고 말을 움직여','윷판 위 내 말을 누르거나 아래에서 선택해'],
+    wait:['상대 차례','상대가 진행하고 있어',who?who+'님의 차례 · 결과를 함께 확인해':'잠시 후 내 차례가 돌아와'],
+    complete:['경기 종료','승부가 결정됐어','최종 결과를 확인해']
+  }[stage];
+  return '<div class="yut-flow yut-flow-'+stage+'" role="status" aria-live="polite">'+
+   '<span class="yut-flow-seal" aria-hidden="true">'+(stage==='throw'?'🪵':stage==='move'?'🐾':stage==='complete'?'🏆':stage==='waiting'?'♛':'⌛')+'</span>'+
+   '<div class="yut-flow-copy"><small>ROYAL YUT · '+info[0]+'</small><strong>'+info[1]+'</strong><span>'+html(info[2])+'</span></div>'+
+   '<span class="yut-flow-state">'+(stage==='throw'?'① 던지기':stage==='move'?'② 말 선택':stage==='complete'?'FINISH':stage==='waiting'?'READY':'상대 진행')+'</span>'+(stage==='throw'?'<button class="yut-quick-throw" type="button" data-yut-quick-throw>🪵 바로 던지기</button>':'')+'</div>';
+}
+function wireYutQuickThrow(root){
+  const quick=$('[data-yut-quick-throw]',root),main=$('.yut-throw',root)||$('.solo-yut-throw',root);
+  if(quick&&main)quick.onclick=()=>{if(quick.disabled||main.disabled)return;quick.disabled=true;main.click();};
+}
+function enableYutBoardTokens(root,side,attr,move){
+  if(!root||!side||!move)return;
+  const eligible=(side.pieces||[]);
+  $$('.true-yut-board .yut-stack[data-yut-side]',root).forEach(token=>{
+    if(token.dataset.yutSide!==String(side.id))return;
+    const i=Number(token.dataset.yutIndex),p=eligible[i],pos=yutPhysicalClient(p);
+    if(!Number.isInteger(i)||!p||pos==='FINISH'||(move.backdo&&pos==='READY'))return;
+    const target=$('['+attr+'="'+i+'"]',root);
+    if(!target||target.disabled)return;
+    token.classList.add('can-pick');
+    token.setAttribute('role','button');token.tabIndex=0;
+    token.setAttribute('aria-label','내 말 '+(i+1)+'번 선택');
+    token.onclick=()=>target.click();
+    token.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();target.click();}};
+  });
+}
+
 function yutSideForMe(y){return y?.sides?.find(s=>(s.playerIds||[]).map(Number).includes(Number(me.id)))}
 function yutPiecesAt(y,node){const out=[];for(const side of (y?.sides||[])){const idx=[];(side.pieces||[]).forEach((p,i)=>{if(yutPhysicalClient(p)===node)idx.push(i)});if(idx.length)out.push({side,idx})}return out}
 function yutSideAvatar(side,room,extra='yut-piece-face'){
@@ -767,12 +843,12 @@ function yutSideAvatar(side,room,extra='yut-piece-face'){
   if(side?.id==='U'||ids.includes(Number(me?.id)))return avatarImg(me?.avatar,me?.nickname,extra,me?.cosmetics);
   return botFace('yut',extra)
 }
-function yutNodePieces(room,y,node){const mascots=['tiger','rabbit','fox','bear'];return yutPiecesAt(y,node).map(g=>{const si=Math.max(0,(y?.sides||[]).indexOf(g.side)),mascot=mascots[si%mascots.length];return `<div class="yut-stack cute-yut-token" style="--pc:${g.side.color}"><img src="/art/v28/yut/token-${mascot}.webp" alt="${html(g.side.label)} 말"><b>${g.idx.length>1?'×'+g.idx.length:g.idx[0]+1}</b></div>`}).join('')}
+function yutNodePieces(room,y,node){const mascots=['tiger','rabbit','fox','bear'];return yutPiecesAt(y,node).map(g=>{const si=Math.max(0,(y?.sides||[]).indexOf(g.side)),mascot=mascots[si%mascots.length];return `<div class="yut-stack cute-yut-token" style="--pc:${g.side.color}" data-yut-side="${html(String(g.side.id))}" data-yut-index="${g.idx[0]}"><img src="/art/v28/yut/token-${mascot}.webp" alt="${html(g.side.label)} 말"><b>${g.idx.length>1?'×'+g.idx.length:g.idx[0]+1}</b></div>`}).join('')}
 function yutBoardHtml(room,y){
-  const nodes=Object.entries(YUT_NODE_POS).filter(([k])=>!['READY','FINISH'].includes(k)).map(([node,[x,yy]])=>`<div class="yut-node ${['START','O5','O10','O15','C'].includes(node)?'corner':''} ${node==='START'?'home-node':''}" style="--x:${x}%;--y:${yy}%"><span class="node-num">${node==='C'?'★':node==='START'?'HOME':node.replace('O','')}</span><div class="node-pieces">${yutNodePieces(room,y,node)}</div></div>`).join('');
+  const nodes=Object.entries(YUT_NODE_POS).filter(([k])=>!['READY','FINISH'].includes(k)).map(([node,[x,yy]])=>`<div class="yut-node ${['START','O5','O10','O15','C'].includes(node)?'corner':''} ${node==='START'?'home-node':''}" style="--x:${x}%;--y:${yy}%" data-yut-node="${node}"><span class="node-num">${node==='C'?'★':node==='START'?'HOME':node.replace('O','')}</span><div class="node-pieces">${yutNodePieces(room,y,node)}</div></div>`).join('');
   const reserveCounts=(y?.sides||[]).map(side=>`<span style="--pc:${side.color}">${html(side.label)} ${(side.pieces||[]).filter(p=>yutPhysicalClient(p)==='READY').length}</span>`).join('');
   const finishCounts=(y?.sides||[]).map(side=>`<span style="--pc:${side.color}">${html(side.label)} ${(side.pieces||[]).filter(p=>yutPhysicalClient(p)==='FINISH').length}/4</span>`).join('');
-  return `<div class="yut-board-pro true-yut-board"><svg class="yut-path-svg" viewBox="0 0 100 100" preserveAspectRatio="none"><path d="M90 90 L90 10 L10 10 L10 90 L90 90"/><path d="M90 10 L50 50 L10 90"/><path d="M10 10 L50 50 L90 90"/></svg><div class="board-title"><b>JUNJA YUT ARENA</b><span>출발 도=1번 칸 · 돌아온 HOME은 1칸으로 인정, 다음 이동에 골인</span></div><div class="start-zone"><b>대기 말</b>${reserveCounts}</div><div class="finish-zone"><b>FINISH</b>${finishCounts}</div>${nodes}</div>`;
+  return `<div class="yut-board-meta"><div><small>JUNJA LAND · SIGNATURE SERIES</small><strong>♛ ROYAL YUT ARENA</strong></div><span>정통 윷놀이 · 잡기 · 업기 · 지름길</span></div><div class="yut-board-pro true-yut-board" aria-label="윷놀이 게임판"><svg class="yut-path-svg" viewBox="0 0 100 100" preserveAspectRatio="none"><path d="M90 90 L90 10 L10 10 L10 90 L90 90"/><path d="M90 10 L50 50 L10 90"/><path d="M10 10 L50 50 L90 90"/></svg><div class="board-title"><b>JUNJA YUT ARENA</b><span>출발 도=1번 칸 · 돌아온 HOME은 1칸으로 인정, 다음 이동에 골인</span></div>${nodes}</div><div class="yut-reserve-strip"><div class="start-zone"><b>대기 말</b>${reserveCounts}</div><div class="finish-zone"><b>FINISH</b>${finishCounts}</div></div><div class="yut-board-legend"><span><b>●</b> 말을 눌러 이동</span><span>★ 중앙길</span><span>HOME 출발·도착</span></div>`;
 }
 function yutMoveChips(pending,sel,attr){return `<div class="yut-move-chips">${(pending||[]).map((m,i)=>`<button class="${i===sel?'active':''} ${m.backdo?'backdo-chip':''}" ${attr}="${i}" type="button">${m.name}<small>${m.backdo?'1칸 뒤로':m.move+'칸'}</small></button>`).join('')}</div>`}
 function yutPieceButtons(side,move,attr){
@@ -789,34 +865,82 @@ function yutSticksHtml(sticks,throwing=false){
 }
 let yutSeenAction='';
 function yutActionBanner(last,room){if(!last)return'';const p=(room?.players||[]).find(x=>Number(x.userId)===Number(last.userId)),who=p?.nickname||(last.side==='bot'?'J-BOT':'나');return `<div class="yut-action-banner ${last.backdo?'backdo':''} ${last.captured?.length?'capture':''}"><b>${last.type==='throw'?'🪵':'🐾'} ${html(who)}</b><strong>${html(last.message||last.name||'')}</strong></div>`}
-function animateYutTrace(root,last){if(!last?.trace?.length)return;const board=$('.true-yut-board',root),from=YUT_NODE_POS[last.from],steps=last.trace.map(n=>YUT_NODE_POS[n]).filter(Boolean);if(!board||!from||!steps.length)return;const token=document.createElement('div');token.className='yut-motion-token';token.textContent=last.backdo?'↩':'🐾';board.appendChild(token);const place=p=>{token.style.left=p[0]+'%';token.style.top=p[1]+'%'};place(from);steps.forEach((p,i)=>setTimeout(()=>place(p),120+i*520));setTimeout(()=>token.remove(),steps.length*520+750)}
+
+function yutHighlightKind(last){
+ if(!last)return'';
+ if(last.type==='throw'){
+  if(last.backdo)return'backdo';
+  return last.name==='윷'||last.name==='모'?'bonus':'';
+ }
+ if(last.type==='move'){
+  if(Array.isArray(last.captured)&&last.captured.length)return'capture';
+  if(String(last.message||'').includes('업혔다'))return'stack';
+  return last.backdo?'backdo':'';
+ }
+ return'';
+}
+function yutMomentData(last){
+ const kind=yutHighlightKind(last),labels={
+  bonus:{icon:'✦',title:String(last?.name||'윷'),subtitle:'BONUS THROW · 한 번 더!'},
+  capture:{icon:'⚔',title:'잡았다!',subtitle:'CAPTURE · 추가 던지기'},
+  stack:{icon:'♛',title:'업기 성공!',subtitle:'TEAM COMBO · 함께 이동'},
+  backdo:{icon:'↩',title:'빽도!',subtitle:'BACK DO · 한 칸 후퇴'}
+ };
+ return kind?{kind,...labels[kind]}:null;
+}
+function showYutMoment(root,last){
+ const board=$('.true-yut-board',root),data=yutMomentData(last);
+ if(!board||!data)return;
+ const moment=document.createElement('div');
+ moment.className='yut-cinematic yut-cinematic-'+data.kind;
+ moment.setAttribute('role','status');
+ moment.innerHTML='<span class="yut-cinematic-spark" aria-hidden="true">✦ ✧ ✦</span><span class="yut-cinematic-icon" aria-hidden="true">'+data.icon+'</span><strong>'+html(data.title)+'</strong><small>'+html(data.subtitle)+'</small>';
+ board.appendChild(moment);
+ const target=last?.to&&$('[data-yut-node="'+last.to+'"]',board);
+ if(target&&(data.kind==='capture'||data.kind==='stack')){
+  target.classList.add('yut-impact');
+  setTimeout(()=>target.classList.remove('yut-impact'),1250);
+ }
+ setTimeout(()=>moment.remove(),1750);
+}
+function yutVictoryHtml(label,mine){
+ return '<div class="yut-final-card '+(mine?'mine':'')+'"><div class="yut-final-wreath" aria-hidden="true">✦ ♛ ✦</div>'+
+  '<span class="yut-final-kicker">ROYAL YUT · MATCH COMPLETE</span>'+
+  '<div class="yut-final-cup" aria-hidden="true">🏆</div><strong>'+html(label||'우승')+'</strong>'+
+  '<span class="yut-final-verdict">'+(mine?'영광의 우승! 축하해!':'경기 종료 · 멋진 승부였어')+'</span>'+
+  '<div class="yut-final-confetti" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div>';
+}
+
+function animateYutTrace(root,last){if(!last?.trace?.length)return;const board=$('.true-yut-board',root),from=YUT_NODE_POS[last.from],steps=last.trace.map(n=>YUT_NODE_POS[n]).filter(Boolean);if(!board||!from||!steps.length)return;const token=document.createElement('div');token.className='yut-motion-token';token.textContent=last.backdo?'↩':'♛';token.setAttribute('aria-hidden','true');board.appendChild(token);const place=p=>{token.style.left=p[0]+'%';token.style.top=p[1]+'%'};place(from);steps.forEach((p,i)=>setTimeout(()=>place(p),120+i*520));setTimeout(()=>token.remove(),steps.length*520+750)}
 function renderYut(room){
   $('#yutBrowser').classList.add('hidden');const root=$('#yutRoom');root.classList.remove('hidden');const y=room.yut,cur=y?.phase==='playing'?room.players[y.turnIndex%room.players.length]:null,isTurn=cur?.userId===me.id,mySide=yutSideForMe(y);let control='';
   if(!y)control=`${yutSticksHtml(null)}<h3>${html(room.yutModeLabel||'개인전')}</h3><p>방장이 시작하면 정통 윷판에서 경기해.</p>`;
-  else if(y.phase==='complete'){const w=y.sides.find(s=>s.id===y.winnerSideId);control=`<div class="victory-crown">👑</div><div class="big-yut">${html(w?.label||'승리')}</div><h3>우승!</h3>`}
+  else if(y.phase==='complete'){const w=y.sides.find(s=>s.id===y.winnerSideId);control=yutVictoryHtml(w?.label||'승리',w===mySide)}
   else if(isTurn&&y.awaitingThrow)control=`${yutSticksHtml(y.last?.sticks)}<div class="big-yut">내 차례</div><p>${y.pending.length?'윷/모 보너스 던지기!':'윷가락을 던져줘.'}</p><button class="primary yut-throw" type="button">🪵 윷가락 던지기</button>`;
   else if(isTurn&&y.pending?.length){selectedYutMoveIndex=Math.min(selectedYutMoveIndex,y.pending.length-1);control=`${yutSticksHtml(y.last?.sticks)}<div class="big-yut result-name">${y.pending[selectedYutMoveIndex]?.backdo?'↩ 빽도':'말 이동'}</div>${yutMoveChips(y.pending,selectedYutMoveIndex,'data-yut-move')}<p>${y.pending[selectedYutMoveIndex]?.backdo?'판 위의 말을 골라 한 칸 뒤로 이동해.':'사용할 결과를 고르고 움직일 말을 선택해.'}</p>${yutPieceButtons(mySide,y.pending[selectedYutMoveIndex],'data-piece')}`}
   else control=`${yutSticksHtml(y.last?.sticks)}<div class="big-yut">${html(y.last?.name||'대기')}</div><p>${cur?`${cur.avatarEmoji} ${html(cur.nickname)} 차례`:''}</p>`;
-  const teams=(y?.sides||[]).map(s=>`<div class="yut-team-card" style="--pc:${s.color}"><b>${html(s.label)}</b><span>${s.playerIds.map(id=>room.players.find(p=>p.userId===id)?.nickname||'?').map(html).join(' · ')}</span><small>완주 ${s.pieces.filter(p=>yutPhysicalClient(p)==='FINISH').length}/4</small></div>`).join('');
-  root.innerHTML=`${roomToolbar(room)}${yutActionBanner(y?.last,room)}<div class="yut-team-strip">${teams}</div><div class="yut-layout yut-layout-pro"><div class="yut-game panel">${yutBoardHtml(room,y)}</div><div class="side-panel yut-side"><div class="throw-control panel">${control}</div><div class="panel yut-rule-panel"><b>정통 룰 + 빽도 적용</b><span>점 표시 윷가락 하나만 뒤집히면 빽도 · 한 칸 뒤로</span><span>판 위 말이 없을 때 빽도는 차례 넘김</span><span>업기 · 잡기 추가턴 · 윷/모 추가턴 · 대각선 지름길</span></div>${privacyPanelHtml()}</div></div>`;
-  const actionKey=y?.last?`${y.last.at}-${y.last.type}`:'';if(actionKey&&actionKey!==yutSeenAction){yutSeenAction=actionKey;if(y.last.type==='move')animateYutTrace(root,y.last);if(y.last.type==='throw'&&Number(y.last.userId)!==Number(me.id)){const scene=$('.yut-toss-scene',root);scene?.classList.add('throwing');setTimeout(()=>scene?.classList.remove('throwing'),1650)}if(y.last.message)toast(y.last.message)}
-  bindRoomCommon(root,room);$$('[data-yut-move]',root).forEach(b=>b.onclick=()=>{selectedYutMoveIndex=Number(b.dataset.yutMove);renderYut(room)});$('.yut-throw',root)?.addEventListener('click',async()=>{const btn=$('.yut-throw',root);btn.disabled=true;$('.yut-toss-scene',root)?.classList.add('throwing');fx('yut');try{const d=await api(`/api/rooms/${currentRoomId}/yut/throw`,{method:'POST',body:'{}'});await sleep(1750);renderYut(d.room)}catch(e){toast(e.message);btn.disabled=false}});$$('[data-piece]',root).forEach(b=>b.onclick=async()=>{try{const pi=Number(b.dataset.piece),routeChoice=await yutRouteDialog(mySide?.pieces?.[pi]);const d=await api(`/api/rooms/${currentRoomId}/yut/move`,{method:'POST',body:JSON.stringify({pieceIndex:pi,moveIndex:selectedYutMoveIndex,routeChoice})});selectedYutMoveIndex=0;renderYut(d.room);await refreshMe()}catch(e){toast(e.message)}})
+  const teams=(y?.sides||[]).map(s=>{const done=s.pieces.filter(p=>yutPhysicalClient(p)==='FINISH').length,active=cur&&(s.playerIds||[]).some(id=>Number(id)===Number(cur.userId));return `<div class="yut-team-card ${active?'turn-active':''} ${s===mySide?'team-mine':''}" style="--pc:${s.color}"><b>${html(s.label)}</b><span>${s.playerIds.map(id=>room.players.find(p=>p.userId===id)?.nickname||'?').map(html).join(' · ')}</span><small>완주 ${done}/4 ${active?'· 진행 중':''}</small><div class="yut-team-progress" aria-label="완주 ${done}/4"><i style="width:${done*25}%"></i></div></div>`}).join('');
+  root.innerHTML=`${roomToolbar(room)}${yutFlowBanner({phase:y?.phase,mine:isTurn,awaitingThrow:y?.awaitingThrow,pending:y?.pending},cur?.nickname||'')}${yutActionBanner(y?.last,room)}<div class="yut-team-strip">${teams}</div><div class="yut-layout yut-layout-pro"><div class="yut-game panel">${yutBoardHtml(room,y)}</div><div class="side-panel yut-side"><div class="throw-control panel">${control}</div><div class="panel yut-rule-panel"><b>정통 룰 + 빽도 적용</b><span>점 표시 윷가락 하나만 뒤집히면 빽도 · 한 칸 뒤로</span><span>판 위 말이 없을 때 빽도는 차례 넘김</span><span>업기 · 잡기 추가턴 · 윷/모 추가턴 · 대각선 지름길</span></div>${privacyPanelHtml()}</div></div>`;
+  const actionKey=y?.last?`${room.id||'room'}-${y.last.at}-${y.last.type}`:'';if(actionKey&&actionKey!==yutSeenAction){yutSeenAction=actionKey;if(y.last.type==='move')animateYutTrace(root,y.last);if(yutHighlightKind(y.last))showYutMoment(root,y.last);if(y.last.type==='throw'&&Number(y.last.userId)!==Number(me.id)){const scene=$('.yut-toss-scene',root);scene?.classList.add('throwing');setTimeout(()=>scene?.classList.remove('throwing'),1650)}if(y.last.message)toast(y.last.message)}
+  bindRoomCommon(root,room);$$('[data-yut-move]',root).forEach(b=>b.onclick=()=>{selectedYutMoveIndex=Number(b.dataset.yutMove);renderYut(room)});$('.yut-throw',root)?.addEventListener('click',async()=>{const btn=$('.yut-throw',root);btn.disabled=true;$('.yut-toss-scene',root)?.classList.add('throwing');fx('yut');try{const d=await api(`/api/rooms/${currentRoomId}/yut/throw`,{method:'POST',body:'{}'});await sleep(1750);renderYut(d.room)}catch(e){toast(e.message);btn.disabled=false}});$$('[data-piece]',root).forEach(b=>b.onclick=async()=>{try{const pi=Number(b.dataset.piece),routeChoice=await yutRouteDialog(mySide?.pieces?.[pi]);const d=await api(`/api/rooms/${currentRoomId}/yut/move`,{method:'POST',body:JSON.stringify({pieceIndex:pi,moveIndex:selectedYutMoveIndex,routeChoice})});selectedYutMoveIndex=0;renderYut(d.room);await refreshMe()}catch(e){toast(e.message)}});wireYutQuickThrow(root);enableYutBoardTokens(root,mySide,'data-piece',isTurn&&y?.pending?.length&&!y.awaitingThrow?y.pending[selectedYutMoveIndex]:null);
 }
-function soloYutAsMulti(g){return {sides:[{id:'U',label:'나',color:'#f6cf67',playerIds:[me.id],pieces:g.sides.user},{id:'B',label:'J-BOT',color:'#71a8ff',playerIds:[-1],pieces:g.sides.bot}]}}
+function soloYutAsMulti(g){return {phase:g.phase==='complete'&&!soloYutReplayBusy?'complete':'playing',winnerSideId:g.winner==='user'?'U':'B',sides:[{id:'U',label:'나',color:'#f6cf67',playerIds:[me.id],pieces:g.sides.user},{id:'B',label:'J-BOT',color:'#71a8ff',playerIds:[-1],pieces:g.sides.bot}]}}
 function soloYutBoard(g){return yutBoardHtml({},soloYutAsMulti(g))}
+let yutSoloSeenAction='';
 async function loadSoloYut(silent=false){try{const d=await api('/api/solo/yut');if(d.game)renderSoloYut(d.game);else{$('#yutSoloStart')?.classList.remove('hidden');$('#yutSoloRoom')?.classList.add('hidden')}}catch(e){if(!silent)toast(e.message)}}
 async function startSoloYut(){try{const d=await api('/api/solo/yut/start',{method:'POST',body:JSON.stringify({bet:Number($('#soloYutBet').value)})});me=d.user;updateHeader();renderSoloYut(d.game)}catch(e){toast(e.message)}}
 function renderSoloYut(g){
   $('#yutSoloStart').classList.add('hidden');const root=$('#yutSoloRoom');root.classList.remove('hidden');let control='';
-  if(g.phase==='complete')control=`<div class="victory-crown">${g.winner==='user'?'🏆':'🤖'}</div><h2>${g.winner==='user'?'승리!':'J-BOT 승리'}</h2><button class="primary solo-yut-close" type="button">새 게임 준비</button>`;
+  if(g.phase==='complete')control=yutVictoryHtml(g.winner==='user'?'나 · CHAMPION':'J-BOT · CHAMPION',g.winner==='user')+'<button class="primary solo-yut-close" type="button">새 게임 준비</button>';
   else if(soloYutReplayBusy)control=`${yutSticksHtml(g.last?.sticks)}<h3>🤖 J-BOT 차례 재생 중</h3><p>던진 결과와 말 이동을 순서대로 보여주는 중이야.</p>`;
   else if(g.turn==='user'&&g.awaitingThrow)control=`${yutSticksHtml(g.last?.sticks)}<h3>내 차례</h3><button class="primary solo-yut-throw" type="button">🪵 윷 던지기</button>`;
   else if(g.turn==='user'&&g.pending?.length){selectedSoloYutMoveIndex=Math.min(selectedSoloYutMoveIndex,g.pending.length-1);control=`${yutSticksHtml(g.last?.sticks)}${yutMoveChips(g.pending,selectedSoloYutMoveIndex,'data-solo-yut-move')}${yutPieceButtons({id:'U',pieces:g.sides.user},g.pending[selectedSoloYutMoveIndex],'data-solo-yut-piece')}`}
   else control=`${yutSticksHtml(g.last?.sticks)}<h3>J-BOT 진행 중</h3>`;
-  root.innerHTML=`<div class="solo-toolbar character-toolbar"><div><small>AI YUT · ${money(g.bet)}</small><h3>${avatarImg(me.avatar,me.nickname,'duel-face',me.cosmetics)} <span>${html(me.nickname)}</span> <i>VS</i> ${botFace('yut','duel-face')} <span>J-BOT</span></h3></div><button class="danger solo-yut-quit" type="button">게임 포기</button></div>${yutActionBanner(g.last,{players:[]})}<div class="yut-layout yut-layout-pro"><div class="yut-game panel">${soloYutBoard(g)}</div><div class="throw-control panel">${control}<div id="soloYutAiReplay" class="solo-yut-ai-replay ${soloYutReplayBusy?'active':''}">${soloYutReplayBusy?'<b>🤖 J-BOT 행동 재생</b><span>윷 결과 확인 중...</span>':''}</div><div class="score-strip"><span>내 완주 <b>${g.sides.user.filter(x=>yutPhysicalClient(x)==='FINISH').length}/4</b></span><span>BOT 완주 <b>${g.sides.bot.filter(x=>yutPhysicalClient(x)==='FINISH').length}/4</b></span></div></div></div>`;
+  root.innerHTML=`<div class="solo-toolbar character-toolbar"><div><small>AI YUT · ${money(g.bet)}</small><h3>${avatarImg(me.avatar,me.nickname,'duel-face',me.cosmetics)} <span>${html(me.nickname)}</span> <i>VS</i> ${botFace('yut','duel-face')} <span>J-BOT</span></h3></div><button class="danger solo-yut-quit" type="button">게임 포기</button></div>${yutFlowBanner({phase:g.phase,mine:g.turn==='user'&&!soloYutReplayBusy,awaitingThrow:g.awaitingThrow,pending:g.pending},'J-BOT')}${yutActionBanner(g.last,{players:[]})}<div class="yut-layout yut-layout-pro"><div class="yut-game panel">${soloYutBoard(g)}</div><div class="throw-control panel">${control}<div id="soloYutAiReplay" class="solo-yut-ai-replay ${soloYutReplayBusy?'active':''}">${soloYutReplayBusy?'<b>🤖 J-BOT 행동 재생</b><span>윷 결과 확인 중...</span>':''}</div><div class="score-strip"><span>내 완주 <b>${g.sides.user.filter(x=>yutPhysicalClient(x)==='FINISH').length}/4</b></span><span>BOT 완주 <b>${g.sides.bot.filter(x=>yutPhysicalClient(x)==='FINISH').length}/4</b></span></div></div></div>`;
+  if(!soloYutReplayBusy&&g?.last?.at){const key=String(g.last.at)+'-'+g.last.type+'-'+g.last.side;if(yutSoloSeenAction!==key){yutSoloSeenAction=key;if(yutHighlightKind(g.last))showYutMoment(root,g.last);if(g.last.type==='move'&&g.last.side==='user')animateYutTrace(root,g.last);}}
   $$('[data-solo-yut-move]',root).forEach(b=>b.onclick=()=>{selectedSoloYutMoveIndex=Number(b.dataset.soloYutMove);renderSoloYut(g)});
   $('.solo-yut-throw',root)?.addEventListener('click',async()=>{try{$('.yut-toss-scene',root)?.classList.add('throwing');const d=await api('/api/solo/yut/throw',{method:'POST',body:'{}'});await sleep(1450);renderSoloYut(d.game)}catch(e){toast(e.message)}});
-  $$('[data-solo-yut-piece]',root).forEach(b=>b.onclick=async()=>{try{const pi=Number(b.dataset.soloYutPiece),routeChoice=await yutRouteDialog(g.sides.user?.[pi]);const d=await api('/api/solo/yut/move',{method:'POST',body:JSON.stringify({pieceIndex:pi,moveIndex:selectedSoloYutMoveIndex,routeChoice})});selectedSoloYutMoveIndex=0;if(d.user){me=d.user;updateHeader()}await playSoloYutReplay(d.game)}catch(e){soloYutReplayBusy=false;toast(e.message)}});
+  $$('[data-solo-yut-piece]',root).forEach(b=>b.onclick=async()=>{try{const pi=Number(b.dataset.soloYutPiece),routeChoice=await yutRouteDialog(g.sides.user?.[pi]);const d=await api('/api/solo/yut/move',{method:'POST',body:JSON.stringify({pieceIndex:pi,moveIndex:selectedSoloYutMoveIndex,routeChoice})});selectedSoloYutMoveIndex=0;if(d.user){me=d.user;updateHeader()}await playSoloYutReplay(d.game)}catch(e){soloYutReplayBusy=false;toast(e.message)}});wireYutQuickThrow(root);enableYutBoardTokens(root,{id:'U',pieces:g.sides.user},'data-solo-yut-piece',g.turn==='user'&&!soloYutReplayBusy&&g.pending?.length&&!g.awaitingThrow?g.pending[selectedSoloYutMoveIndex]:null);
   $('.solo-yut-quit',root)?.addEventListener('click',async()=>{if(soloYutReplayBusy)return;if(!confirm('포기하면 참가금은 돌아오지 않아. 포기할까?'))return;const d=await api('/api/solo/yut/quit',{method:'POST',body:'{}'});me=d.user;updateHeader();root.classList.add('hidden');$('#yutSoloStart').classList.remove('hidden')});
   $('.solo-yut-close',root)?.addEventListener('click',async()=>{await api('/api/solo/yut/quit',{method:'POST',body:'{}'}).catch(()=>{});root.classList.add('hidden');$('#yutSoloStart').classList.remove('hidden');await refreshMe()})
 }
@@ -831,13 +955,14 @@ async function playSoloYutReplay(g){
       const scene=$('.yut-toss-scene',root);if(scene)scene.outerHTML=yutSticksHtml(action.sticks,true);
       const nextScene=$('.yut-toss-scene',root);nextScene?.classList.add('throwing');fx('yut');
       if(status)status.innerHTML=`<b>🤖 J-BOT이 윷을 던졌어</b><span>${action.backdo?'↩ ':''}${html(action.name||'')} · ${action.backdo?'한 칸 뒤로':Math.abs(Number(action.move||0))+'칸'}${action.skipped?' · 이동할 말 없어 턴 종료':''}</span>`;
+      if(yutHighlightKind(action))showYutMoment(root,action);
       await sleep(1050);nextScene?.classList.remove('throwing');await sleep(350);
     }else if(action.type==='move'){
       if(status)status.innerHTML=`<b>${action.captured?.length?'💥 잡았다!':'🐾 J-BOT 말 이동'}</b><span>${html(action.message||`${action.name||''} 이동`)}</span>`;
-      animateYutTrace(root,action);fx(action.captured?.length?'win':'click');await sleep(Math.max(900,(action.trace?.length||1)*520+420));
+      animateYutTrace(root,action);if(yutHighlightKind(action))showYutMoment(root,action);fx(action.captured?.length?'win':'click');await sleep(Math.max(900,(action.trace?.length||1)*520+420));
     }
   }
-  soloYutReplayBusy=false;renderSoloYut({...g,replay:[]});
+  soloYutReplayBusy=false;if(g?.last?.at)yutSoloSeenAction=String(g.last.at)+'-'+g.last.type+'-'+g.last.side;renderSoloYut({...g,replay:[]});
 }
 
 

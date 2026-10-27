@@ -75,13 +75,13 @@ function challenge(c,e){
  '<div class="br-recovery-grid">'+
  '<button type="button" data-imm-answer="a" data-imm-clue="'+esc(e.id)+'"><small>FILE 01</small><strong>23:17</strong><span>CCTV 표시 시각</span></button>'+
  '<button type="button" data-imm-answer="b" data-imm-clue="'+esc(e.id)+'"><small>FILE 02</small><strong>23:31</strong><span>후속 감시 기록</span></button>'+
- '<button type="button" data-imm-answer="c" data-imm-clue="'+esc(e.id)+'"><small>FILE 03</small><strong>23:24</strong><span>보정된 원본 시각</span></button></div>'+
- '<p class="br-forensic-foot">힌트: 13호실 복도 시계와 CCTV의 7분 차이를 기억해.</p><p class="br-failure" aria-live="polite"></p></div>';
+ '<button type="button" data-imm-answer="c" data-imm-clue="'+esc(e.id)+'"><small>FILE 03</small><strong>23:24</strong><span>미상 단편 C · 비교 필요</span></button></div>'+
+ '<p class="br-forensic-foot">현장 시계와 녹화장비는 서로 다른 기준을 쓴다. 시간의 출처를 재검증해.</p><p class="br-failure" aria-live="polite"></p></div>';
 }
 function checkChallenge(caseId,clue,answer){return Number(caseId)===2&&clue==='e5'&&answer==='c';}
 function recovered(c,e){
  return '<div class="br-proof-recovered"><span class="br-proof-tick">✓</span><span class="br-forensic-tag">ORIGINAL FOOTAGE RECOVERED</span><h2 id="srModalTitle">영상 원본 확보</h2>'+
- '<p>23:17은 카메라가 표시한 시간이었어. 실제 시간 23:24로 원본을 복원했어.</p>'+
+ '<p>시각 보정 자료와 대조해 원본의 실제 촬영 시각을 복원했어.</p>'+
  '<div class="br-discovery">'+esc(e.description)+'</div><button class="sr-btn" data-global="close">증거 수첩에 저장하고 계속 조사 →</button></div>';
 }
 function artifact(c,e){
@@ -95,7 +95,7 @@ function interview(w,res){
  return '<div class="br-interrogation"><div class="br-interrogation-stage"><div class="br-person-shape"><div></div></div>'+
  '<span>INTERROGATION ROOM <b class="br-rec">● REC</b></span></div>'+
  '<div class="br-speaker">'+esc(w.name)+'<small>'+esc(w.role)+'</small></div>'+
- '<blockquote>“'+esc(res.reveal?w.reveal:w.claim)+'”</blockquote>'+
+ '<blockquote>“'+esc(res.message)+'”</blockquote>'+
  '<p class="br-interrogation-status">'+(res.reveal?'✓ 거짓 진술의 모순을 입증했어':'증거가 더 필요해. 수사 보드에서 기록을 연결해.')+'</p>'+
  '<button class="sr-btn" data-global="close">심문 종료 →</button></div>';
 }

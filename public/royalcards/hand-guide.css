@@ -1,0 +1,22 @@
+/* Server-validated playable-card indicators — onecard and Hula */
+.hand-hints{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;min-height:48px;
+ padding:11px 9px;margin:0 0 14px;background:linear-gradient(130deg,#16392c,#14202e);
+ border:1px solid #d7bb7075;border-radius:12px;color:#d9e4d6;text-align:center}
+.hand-hints strong{color:#dcff9c;font-weight:900;font-size:13px}.hand-hints>span{font-size:11px;line-height:1.5}
+.hand-legend{color:#ecf4f2;font-weight:800}.suggestion-list{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;max-width:100%}
+.suggestion-btn{background:linear-gradient(150deg,#326c29,#153b31);border:1px solid #c6ff87;
+ color:#f3ffc8;min-height:38px;padding:9px;border-radius:9px;font-weight:900;font-size:12px}
+.hand .card.face{overflow:visible;isolation:isolate}.hand .card.face .corner,.hand .card.face .middle{position:relative;z-index:1}
+.hand .card.face.hint-play,.hand .card.face.hint-meld{border:3px solid #9bff68!important;
+ box-shadow:0 0 0 2px #143a1a,0 0 17px #9bff66bb,inset 0 0 16px #b8ff7360,0 9px 18px #0008!important}
+.hand .card.face.hint-attach{border:3px solid #70d5ff!important;
+ box-shadow:0 0 0 2px #17406b,0 0 16px #43abf5b8,0 8px 17px #0008!important}
+.hand .card.face.selected{transform:translateY(-14px)!important;z-index:5;border:3px solid #ffdd65!important;
+ box-shadow:0 0 0 2px #fff1b3,0 0 15px #ffd44e,0 16px 20px #0008!important}
+.hand .card.face .card-hint-label{position:absolute;z-index:4;left:50%;bottom:-12px;
+ transform:translateX(-50%);padding:3px 4px;border-radius:6px;white-space:nowrap;pointer-events:none;
+ background:#245a28;border:1px solid #b7ff83;color:#efffbd;font-size:9px;font-weight:900;line-height:1.1;box-shadow:0 3px 8px #0008}
+.hand .card.face.hint-attach .card-hint-label{background:#17456b;border-color:#9bdfff;color:#f1fbff}
+.hand{padding-bottom:31px!important;overflow-y:visible!important}.hand .card:focus-visible{outline:3px solid #fff;outline-offset:3px}
+@media(max-width:650px){.hand{min-height:136px!important}.hand-hints{padding:9px 5px}.hand-hints strong{font-size:12px}.suggestion-btn{font-size:11px;padding:7px}.hand .card.face .card-hint-label{font-size:8px}}
+@media(prefers-reduced-motion:reduce){.hand .card{transition:none!important}}

@@ -42,6 +42,8 @@ const EXTRA_COLUMNS = {
     ['balance_text','TEXT'],
     ['is_admin','INTEGER NOT NULL DEFAULT 0'],
     ['is_disabled','INTEGER NOT NULL DEFAULT 0'],
+    // Must exist before inserting the remote users snapshot, not after server startup.
+    ['is_archived','INTEGER NOT NULL DEFAULT 0'],
     ['rank_level','INTEGER NOT NULL DEFAULT 0'],
     ['last_rank_salary','TEXT'],
     ['rank_free_slot_date','TEXT'],
@@ -70,24 +72,21 @@ let remoteReady = false;
 let restoreHealthy = false;
 
 function persistenceUrl(){ return String(process.env.DATABASE_URL || '').trim(); }
-function isRenderPrivateUrl(url){
-  try{
-    const h=new URL(url).hostname.toLowerCase();
-    return /^dpg-[a-z0-9-]+$/.test(h);
-  }catch{return false;}
-}
 function isRailwayPrivateUrl(url){
   try{
     const u=new URL(url);
-    return /^postgres(?:ql)?:$/.test(u.protocol) && /^[a-z0-9-]+\.railway\.internal$/i.test(u.hostname);
+    // Only the new Railway private-network database is writable in recovery mode.
+    // Never connect to or modify the original Render database.
+    return /^postgres(?:ql)?:$/.test(u.protocol)
+      && /^[a-z0-9-]+\.railway\.internal$/i.test(u.hostname);
   }catch{return false;}
 }
 function hasRemote(){
   const url=persistenceUrl();
-  if(process.env.RAILWAY_ENVIRONMENT_ID && (!url || !isRailwayPrivateUrl(url))){
-    throw new Error('[PERSIST SAFETY] Missing or invalid private Railway DATABASE_URL; refusing local-only user database.');
+  if(url && !isRailwayPrivateUrl(url)){
+    throw new Error('Railway recovery refuses non-Railway PostgreSQL hosts.');
   }
-  return !!url && (isRenderPrivateUrl(url) || isRailwayPrivateUrl(url));
+  return !!url;
 }
 
 function sslOptions(){
@@ -126,21 +125,12 @@ function loadRemoteSnapshotSync(){
     const out=execFileSync(process.execPath,[path.join(__dirname,'remote-load.js')],{
       env:process.env,encoding:'utf8',stdio:['ignore','pipe','pipe'],timeout:60000,maxBuffer:192*1024*1024
     }).trim();
-    if(!out || out==='null'){
-      if(isRailwayPrivateUrl(persistenceUrl())) throw new Error('No existing Railway Postgres snapshot found');
-      return null;
-    }
+    if(!out || out==='null') return null;
     const snapshot=JSON.parse(out);
-    if(isRailwayPrivateUrl(persistenceUrl())){
-      const users=Array.isArray(snapshot?.tables?.users)?snapshot.tables.users.length:0;
-      if(users<10) throw new Error('Railway snapshot has only '+users+' users; safety stop to preserve original accounts.');
-      console.log('[PERSIST SAFETY] Verified existing Railway snapshot: '+users+' users; proceeding with restore.');
-    }
     return snapshot;
   }catch(e){
-    console.error('[PERSIST] Persistent database restore failed:',e.message);
-    if(isRailwayPrivateUrl(persistenceUrl())) throw e; // Never start a replacement empty user database.
-    return null;
+    console.error('[PERSIST] Railway PostgreSQL connection failed; refusing an unsafe temporary database:',e.message);
+    throw e;
   }
 }
 
@@ -241,34 +231,34 @@ class DatabaseSync {
         counts.unsafeWallets=wallets.filter(u=>u.balance>BigInt(Number.MAX_SAFE_INTEGER)).length;
         counts.textWalletMismatches=wallets.filter(u=>u.balance_text!=null&&String(u.balance)!==u.balance_text).length;
         console.log('[RESTORE AUDIT] '+JSON.stringify({snapshotAt:snap.updatedAt,counts,adminWallets:wallets.filter(u=>u.is_admin===1n).map(u=>({id:String(u.id),balance:String(u.balance),balance_text:u.balance_text,disabled:String(u.is_disabled)}))}));
-        if(hasRemote() && restoredUsers===0) throw new Error('Safety stop: persistent snapshot contains zero users.');
+        if(hasRemote() && restoredUsers===0 && String(process.env.ALLOW_EMPTY_REMOTE_INIT||'').trim()!=='1') throw new Error('Safety stop: persistent snapshot contains zero users.');
         this._restoredFromLegacy=snap.__restoreSource==='legacy';
         this._persistedLedgerId=this._restoredFromLegacy?0:Math.max(0,Number(snap.__remoteLedgerMaxId||0));
         restoreHealthy=true;
         this._restore=null;
-        console.log(`[PERSIST] Restored ${restoredRows} rows from Render Postgres (${restoredUsers} users, remote ledger through #${this._persistedLedgerId}).`);
+        console.log(`[PERSIST] Restored ${restoredRows} rows from Railway Postgres (${restoredUsers} users, remote ledger through #${this._persistedLedgerId}).`);
       }catch(e){
         try{this._native.exec('ROLLBACK; PRAGMA foreign_keys=ON;');}catch{}
         restoreHealthy=false;
         console.error('[PERSIST] Snapshot restore failed; remote writes DISABLED for safety:',e);
       }
     }else{
-      const freshRemoteInit=hasRemote() && !isRailwayPrivateUrl(persistenceUrl()) && String(process.env.ALLOW_EMPTY_REMOTE_INIT||'').trim()==='1';
+      const freshRemoteInit=hasRemote() && String(process.env.ALLOW_EMPTY_REMOTE_INIT||'').trim()==='1';
       restoreHealthy=!hasRemote() || freshRemoteInit;
       if(freshRemoteInit){
-        console.log('[PERSIST] Render Postgres connected with no previous snapshot; fresh-start initialization enabled.');
+        console.log('[PERSIST] Railway Postgres connected with no previous snapshot; fresh-start initialization enabled.');
       }else{
-        console.log(hasRemote()?'[PERSIST] Render Postgres connected but no previous snapshot exists; remote writes DISABLED for safety.':'[PERSIST] DATABASE_URL not set; local SQLite mode.');
+        console.log(hasRemote()?'[PERSIST] Railway Postgres connected but no previous snapshot exists; remote writes DISABLED for safety.':'[PERSIST] DATABASE_URL not set; local SQLite mode.');
       }
     }
     this._restored=true;
     this._enabled=true;
-    const freshRemoteInit=hasRemote() && !isRailwayPrivateUrl(persistenceUrl()) && String(process.env.ALLOW_EMPTY_REMOTE_INIT||'').trim()==='1' && !this._restore;
+    const freshRemoteInit=hasRemote() && String(process.env.ALLOW_EMPTY_REMOTE_INIT||'').trim()==='1' && !this._restore;
     if(this._restoredFromLegacy && restoreHealthy){
-      console.log('[PERSIST] Legacy snapshot recovered; copying it once into private Render Postgres.');
+      console.log('[PERSIST] Legacy snapshot recovered; copying it once into private Railway Postgres.');
       this._queueSave();
     }else if(freshRemoteInit && restoreHealthy){
-      console.log('[PERSIST] Fresh-start database detected; seeding private Render Postgres from the current local state.');
+      console.log('[PERSIST] Fresh-start database detected; seeding private Railway Postgres from the current local state.');
       this._queueSave();
     }
   }
@@ -361,7 +351,7 @@ class DatabaseSync {
         if(ms>250)console.log(`[PERSIST] save ${ms}ms · core ${Buffer.byteLength(json)}B · ledger +${ledgerCount}`);
       }catch(e){
         if(client)try{await client.query('ROLLBACK');}catch{}
-        console.error('[PERSIST] Render Postgres save failed:',e.message);
+        console.error('[PERSIST] Railway Postgres save failed:',e.message);
       }finally{
         if(client)client.release();
         snapshot.tables=null;

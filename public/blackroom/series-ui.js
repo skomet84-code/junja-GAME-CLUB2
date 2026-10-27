@@ -35,14 +35,14 @@
      revision=data.revision;
      const remote=E.hydrate(data.state);
      // The server revision is authoritative for old EP01 progress. Merge only the campaign's monotonic unlocks.
-     remote.series=S.merge(remote.series,state.series,remote.ending==='true');
+     remote.series=S.merge(remote.series,state.series,remote.solved);
      state=remote;
      try{localStorage.setItem(userKey(),JSON.stringify(state));}catch{}
      pending=true;render();continue;
     }
     if(!response.ok){cloud=false;status('⚠ 서버 동기화 실패 · 기기 기록 유지');showToast(data.error||'서버 저장 실패');break;}
     revision=data.revision;
-    if(pending){const current=state;state=E.hydrate(data.state);state.series=S.merge(state.series,current.series,state.ending==='true');}
+    if(pending){const current=state;state=E.hydrate(data.state);state.series=S.merge(state.series,current.series,state.solved);}
     status('☁ 준자랜드 계정에 저장됨');
    }
   }catch(e){cloud=false;status('⚠ 인터넷 연결 오류 · 기기 기록 유지');}
@@ -58,29 +58,47 @@
    account=data.account;revision=data.revision;cloud=true;
    const own=local(userKey());
    state=data.state?E.hydrate(data.state):own.started?own:E.initial();
-   if(own.started&&state.ending==='true'){
+   // A fast jump to EP02 may precede the EP01 cloud PUT; preserve same-account completion.
+   if(own.started&&own.solved&&!state.solved){
+    const r=state,l=own;
+    state=E.hydrate({...r,started:true,solved:true,ending:l.ending,
+     door:r.door||l.door,archive:r.archive||l.archive,scene:l.scene,
+     clues:[...new Set([...r.clues,...l.clues])],
+     links:[...new Set([...r.links,...l.links])],
+     proofs:{...r.proofs,...l.proofs},
+     hypotheses:[...new Set([...(r.hypotheses||[]),...(l.hypotheses||[])])],
+     interviews:{...r.interviews,...l.interviews},
+     observations:{...r.observations,...l.observations},
+     rapport:{...r.rapport,...l.rapport},defensive:{...r.defensive,...l.defensive},
+     score:Math.max(r.score,l.score),hints:Math.max(r.hints,l.hints),
+     misses:Math.max(r.misses,l.misses),
+     series:S.merge(r.series,l.series,true),
+     log:[...new Set([...l.log,...r.log])].slice(0,30)});
+    pending=true;
+   }
+   if(own.started&&state.solved){
     const merged=S.merge(state.series,own.series,true);
     if(JSON.stringify(merged)!==JSON.stringify(state.series)){state.series=merged;pending=true;}
    }
    if(!data.state&&state.started)pending=true;
-   loaded=true;active=S.highestUnlocked(prog(),state.ending==='true');prog().active=active;
+   loaded=true;active=S.highestUnlocked(prog(),state.solved);prog().active=active;
    render();status('☁ 준자랜드 계정 기록 불러옴');
    try{localStorage.setItem(userKey(),JSON.stringify(state));}catch{}
    if(pending)sync();
   }catch{
    state=guest;cloud=false;loaded=true;
-   active=S.highestUnlocked(prog(),state.ending==='true');render();
+   active=S.highestUnlocked(prog(),state.solved);render();
    status('이 기기에서만 진행 저장 · 로비 로그인 시 계정 저장');
   }
  }
- const progressCount=()=>1+Object.values(prog().cases).filter(p=>p?.solved).length;
+ const progressCount=()=>(state.solved?1:0)+Object.values(prog().cases).filter(p=>p?.solved).length;
  function renderList(){
-  const done1=state.ending==='true';
-  list.innerHTML='<a class="sr-case '+(done1?'done':'')+'" href="/blackroom/"><b>01</b><span><small>사라진 제13호실</small><em>'+(done1?'TRUE ENDING':'조사 미완료')+'</em></span><span class="sr-tick">'+(done1?'✓':'⌕')+'</span></a>'+
+  const done1=state.solved;
+  list.innerHTML='<a class="sr-case '+(done1?'done':'')+'" href="/blackroom/"><b>01</b><span><small>사라진 제13호실</small><em>'+(state.ending==='true'?'TRUE ENDING':done1?'본편 해결 · 진엔딩 도전 가능':'조사 미완료')+'</em></span><span class="sr-tick">'+(done1?'✓':'⌕')+'</span></a>'+
    S.CASES.map(c=>{
     const p=prog().cases[c.id],locked=!S.unlocked(prog(),c.id,done1),done=!!p?.solved;
     return '<button class="sr-case '+(active===c.id?'active ':'')+(done?'done':'')+'" type="button" data-case="'+c.id+'" '+(locked?'disabled':'')+'>'+
-      '<b>'+String(c.id).padStart(2,'0')+'</b><span><small>'+safe(c.title)+'</small><em>'+(locked?'잠김 · 이전 사건 해결 필요':done?'해결 완료':p?.opened?'수사 중':'새 사건')+'</em></span><span class="sr-tick">'+(locked?'⌑':done?'✓':'⌖')+'</span></button>';
+      '<b>'+String(c.id).padStart(2,'0')+'</b><span><small>'+safe(c.title)+'</small><em>'+(locked?'잠김 · 이전 사건 해결 필요':done?(p?.mastered?'★ 심화 재수사 완료':'해결 · 심화 재수사 가능'):p?.opened?'수사 중':'새 사건')+'</em></span><span class="sr-tick">'+(locked?'⌑':done?'✓':'⌖')+'</span></button>';
    }).join('');
   document.getElementById('srComplete').textContent=String(progressCount()).padStart(2,'0')+' / 13';
   document.getElementById('srHint').disabled=!done1||!!prog().cases[active]?.solved;
@@ -114,15 +132,23 @@
    c.witnesses.map((w,i)=>'<div class="sr-card"><div class="sr-witness"><div class="sr-avatar">'+safe(w.name.slice(0,1))+'</div><div><h3>'+safe(w.name)+' <small>· '+safe(w.role)+'</small></h3><p>“'+safe(w.claim)+'”</p><button class="sr-btn secondary" data-witness="'+w.id+'">'+(p.interviews.includes(w.id)?'✓ 진술 입증 다시 보기':'증거 제시하며 심문하기')+'</button></div></div></div>').join('')+outcome(c,p);
  }
  function verdict(c,p){
-  const complete=p.gates.length===2&&p.theories.length===3&&p.interviews.length===2;
-  const question=(key,label)=>'<label class="sr-field">'+label+'<select name="'+key+'" required><option value="">— 증거를 보고 선택해 —</option>'+S.options(c.id,key).map(value=>'<option value="'+safe(value)+'">'+safe(value)+'</option>').join('')+'</select></label>';
-  const forms=complete?'<form id="srVerdict">'+question('culprit','① 증거를 조작한 핵심 인물은 누구인가?')+
-   question('act','② 사건에서 조작된 핵심 사실은 무엇인가?')+question('motive','③ 조작과 은폐의 최종 목적은 무엇인가?')+
-   '<button class="sr-btn" type="submit">최종 판결 · 진상 입증 →</button></form>':
-   '<div class="sr-info">필요 조건: 잠금 2/2 · 추론 '+p.theories.length+'/3 · 심문 '+p.interviews.length+'/2. 나머지 증거를 확인해.</div>';
-  return '<div class="sr-card"><span class="sr-overline">THE FINAL JUDGMENT</span><h2>판결에 필요한 근거</h2>'+
-   '<div class="sr-logic">'+c.theories.map(t=>'<div class="sr-logic-piece"><b>'+(p.theories.includes(t.id)?'✓':'⌑')+' '+safe(t.name)+'</b><p>'+(p.theories.includes(t.id)?safe(t.text):'아직 증명되지 않은 추론')+'</p></div>').join('')+'</div>'+
-   '<p>용의자의 이름만 맞혀서는 해결로 인정하지 않아. 조작과 동기를 모두 입증해야 해.</p>'+(!p.solved?forms:'')+'</div>'+outcome(c,p);
+  const complete=p.gates.length===2&&p.theories.length===3&&p.interviews.length===2&&p.clues.length===8;
+  const question=(key,label)=>'<label class="sr-field">'+label+'<select name="'+key+'" required><option value="">— 증거를 보고 선택 —</option>'+S.options(c.id,key).map(v=>'<option value="'+safe(v)+'">'+safe(v)+'</option>').join('')+'</select></label>';
+  const evidence=(key,label)=>'<label class="sr-field">'+label+'<select name="'+key+'" required><option value="">— 원본 물증을 선택 —</option>'+c.clues.filter(e=>p.clues.includes(e.id)).map(e=>'<option value="'+safe(e.id)+'">'+safe(e.name)+'</option>').join('')+'</select></label>';
+  const form=complete?'<form id="'+(p.solved?'srMaster':'srVerdict')+'">'+
+   question('culprit','① 사건의 핵심 실행자로 지목할 사람은?')+
+   question('act','② 조작된 사건의 핵심 사실은?')+
+   question('motive','③ 은폐로 달성하려 했던 목적은?')+
+   evidence('contradiction','④ 공식 진술과 정면으로 충돌하는 원본 물증')+
+   evidence('mechanism','⑤ 조작 수단을 밝혀 주는 원본 물증')+
+   evidence('outcome','⑥ 은폐된 결과와 연결되는 원본 물증')+
+   '<button class="sr-btn" type="submit">'+(p.solved?'★ 심화 재수사 검증':'증거 교차검증 · 최종 판결')+' →</button></form>':
+   '<div class="sr-info">필요: 원본 물증 '+p.clues.length+'/8 · 잠금 '+p.gates.length+'/2 · 추론 '+p.theories.length+'/3 · 심문 '+p.interviews.length+'/2. 수사를 마친 뒤 6가지 주장을 함께 입증해.</div>';
+  return '<div class="sr-card"><span class="sr-overline">FORENSIC FINAL REPORT</span><h2>'+(!p.solved?'최종 수사 보고서':p.mastered?'★ 심화 재수사 완료':'★ 고난도 재수사')+'</h2>'+
+   '<div class="sr-logic">'+c.theories.map(t=>'<div class="sr-logic-piece"><b>'+(p.theories.includes(t.id)?'✓':'⌑')+' '+safe(t.name)+'</b><p>'+(p.theories.includes(t.id)?safe(t.text):'교차검증되지 않은 진술')+'</p></div>').join('')+'</div>'+
+   '<p>범인 이름을 맞혀도 끝나지 않아. 모순·수단·은폐 결과에 맞는 독립 물증 세 건을 직접 골라야 해. 연속 추측은 잠시 제한돼.</p>'+
+   (p.mastered?'<div class="sr-info">★ 심화 재수사까지 입증을 마쳤어. 기존 완료 기록은 그대로 유지돼.</div>':form)+
+   '</div>'+outcome(c,p);
  }
  function journal(){
   const cases=S.CASES,done=cases.filter(c=>prog().cases[c.id]?.solved);
@@ -132,10 +158,10 @@
  }
  function render(){
   if(!loaded)return;
-  const cleared=state.ending==='true';
+  const cleared=state.solved;
   renderList();
   if(!cleared){
-   app.innerHTML='<div class="sr-opening"><div><span class="sr-overline">ARCHIVE LOCKED / CASE 001</span><h2>첫 번째 진실을 입증해야 해</h2><p>제13호실의 TRUE ENDING을 달성하면 나머지 열두 사건이 차례로 해금돼. 기존 사건 기록은 유지돼.</p><a href="/blackroom/" class="sr-btn">제13호실 수사 계속하기 →</a></div></div>';return;
+   app.innerHTML='<div class="sr-opening"><div><span class="sr-overline">ARCHIVE LOCKED / CASE 001</span><h2>제13호실의 기본 판결을 마쳐야 해</h2><p>1화에서 서로 다른 증거를 연결한 추론 3개를 입증했다면 결론 탭에서 ‘1화 종결하고 2화 열기’를 눌러. 진엔딩은 필수가 아니야. 기존 기록은 유지돼.</p><a href="/blackroom/" class="sr-btn">제13호실 수사 계속하기 →</a></div></div>';return;
   }
   if(tab==='journal'){app.innerHTML=journal();return;}
   if(!S.unlocked(prog(),active,true)){active=S.highestUnlocked(prog(),true);}
@@ -144,7 +170,7 @@
   const p=prog().cases[active];
   app.innerHTML=top(c,p)+({scene,evidence,board,people,verdict}[tab]||scene)(c,p);
  }
- function goCase(id){if(!S.unlocked(prog(),id,state.ending==='true'))return;
+ function goCase(id){if(!S.unlocked(prog(),id,state.solved))return;
   active=id;prog().active=id;tab='scene';selection=[];closeModal();render();save();window.scrollTo({top:0,behavior:'smooth'});}
  function action(name,arg){
   if(!state.series)return;
@@ -175,7 +201,7 @@
    const c=lookup(active),e=c.clues.find(x=>x.id===imm.dataset.immClue);
    if(!e||!window.BlackRoomImmersive||!window.BlackRoomImmersive.checkChallenge(active,imm.dataset.immClue,imm.dataset.immAnswer)){
     const fail=inside.querySelector('.br-failure');
-    if(fail)fail.textContent='✕ 기록이 일치하지 않아. 카메라 시각에 7분을 더해 봐.';
+    if(fail)fail.textContent='✕ 교차검증에 실패했어. 어떤 시계가 원본 기준인지 다시 확인해.';
     return;
    }
    const result=S.inspect(prog(),active,e.id);
@@ -197,7 +223,7 @@
   if(t.dataset.witness){action('witness',t.dataset.witness);return;}
   if(t.dataset.action){action(t.dataset.action);return;}
   if(t.dataset.global==='close'){closeModal();return;}
-  if(t.dataset.global==='archive'){openModal('<h2 id="srModalTitle">사건 보관함</h2><div class="sr-case-list">'+S.CASES.map(c=>'<button class="sr-case" type="button" data-case="'+c.id+'" '+(!S.unlocked(prog(),c.id,state.ending==='true')?'disabled':'')+'><b>'+String(c.id).padStart(2,'0')+'</b><span>'+safe(c.title)+(prog().cases[c.id]?.solved?' ✓':'')+'</span><span>›</span></button>').join('')+'</div>');return;}
+  if(t.dataset.global==='archive'){openModal('<h2 id="srModalTitle">사건 보관함</h2><div class="sr-case-list">'+S.CASES.map(c=>'<button class="sr-case" type="button" data-case="'+c.id+'" '+(!S.unlocked(prog(),c.id,state.solved)?'disabled':'')+'><b>'+String(c.id).padStart(2,'0')+'</b><span>'+safe(c.title)+(prog().cases[c.id]?.solved?' ✓':'')+'</span><span>›</span></button>').join('')+'</div>');return;}
   if(t.dataset.global==='scene'||t.dataset.global==='board'||t.dataset.global==='verdict'){tab=t.dataset.global;render();window.scrollTo({top:0,behavior:'smooth'});return;}
  });
  document.addEventListener('submit',event=>{
@@ -206,11 +232,15 @@
    save();if(res.ok){closeModal();render();showToast(res.message);}else{showToast(res.message);}
    return;
   }
-  if(event.target.id==='srVerdict'){
-   event.preventDefault();const fd=new FormData(event.target),res=S.verdict(prog(),active,{culprit:fd.get('culprit'),act:fd.get('act'),motive:fd.get('motive')});
+  if(event.target.id==='srVerdict'||event.target.id==='srMaster'){
+   event.preventDefault();
+   const fd=new FormData(event.target),expert=event.target.id==='srMaster';
+   const answers={culprit:fd.get('culprit'),act:fd.get('act'),motive:fd.get('motive'),
+    contradiction:fd.get('contradiction'),mechanism:fd.get('mechanism'),outcome:fd.get('outcome')};
+   const res=expert?S.masterCase(prog(),active,answers):S.verdict(prog(),active,answers);
    save();render();
-   if(res.ok){openModal('<span class="sr-overline">TRUE ENDING / CASE '+String(active).padStart(3,'0')+'</span><h2 id="srModalTitle">사건 해결 · '+res.score+'점</h2><p>'+safe(res.message)+'</p>'+
-    (res.finished?'<button class="sr-btn" data-tab="journal">13개 사건 최종 보고서 보기</button>':'<button class="sr-btn" data-next="'+res.next+'">다음 사건으로 →</button>'));}
+   if(res.ok){openModal('<span class="sr-overline">'+(expert?'EXPERT REINVESTIGATION':'CASE CLOSED')+' / CASE '+String(active).padStart(3,'0')+'</span><h2 id="srModalTitle">'+(expert?'심화 재수사 성공':'사건 해결 · '+res.score+'점')+'</h2><p>'+safe(res.message)+'</p>'+
+    (expert?'<button class="sr-btn" data-global="close">사건 기록으로 돌아가기</button>':res.finished?'<button class="sr-btn" data-tab="journal">13개 사건 최종 보고서 보기</button>':'<button class="sr-btn" data-next="'+res.next+'">다음 사건으로 →</button>'));}
    else showToast(res.message);
   }
  });

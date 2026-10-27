@@ -1,0 +1,71 @@
+/* JUNJA LAND: original art for the three previously blank lobby game tiles. */
+#view-lobby .game-card.lobby-art-card{
+  isolation:isolate!important;overflow:hidden!important;
+  border-color:rgba(218,185,116,.36)!important;
+  background:linear-gradient(155deg,#181a35,#070d1c)!important;
+}
+#view-lobby .game-card.lobby-art-card .game-art{
+  display:block!important;position:absolute!important;
+  inset:0!important;left:0!important;right:0!important;top:0!important;
+  width:100%!important;height:100%!important;max-width:none!important;max-height:none!important;
+  border-radius:0!important;object-fit:cover!important;object-position:52% 32%!important;
+  opacity:1!important;mix-blend-mode:normal!important;mask-image:none!important;-webkit-mask-image:none!important;
+  filter:saturate(1.13) contrast(1.05)!important;z-index:0!important;pointer-events:none!important;
+}
+#view-lobby .game-card.lobby-art-card::before{
+  content:"";inset:0!important;position:absolute!important;
+  background:linear-gradient(0deg,rgba(6,8,18,.26),transparent 45%)!important;z-index:1!important;pointer-events:none;
+}
+#view-lobby .game-card.lobby-art-card::after{
+  content:"";position:absolute!important;inset:0!important;width:100%!important;height:100%!important;
+  border-radius:inherit!important;opacity:1!important;filter:none!important;
+  background:linear-gradient(90deg,rgba(5,8,17,.98) 0%,rgba(5,8,17,.76) 31%,rgba(5,8,17,.24) 68%,rgba(5,8,17,.02) 100%),
+             linear-gradient(0deg,rgba(5,8,17,.83) 0%,transparent 65%)!important;
+  z-index:1!important;pointer-events:none!important;
+}
+#view-lobby .game-card.lobby-art-card .game-icon,
+#view-lobby .game-card.lobby-art-card .dual-badge{position:relative;z-index:4!important}
+#view-lobby .game-card.lobby-art-card>div:last-child{
+  position:relative!important;z-index:3!important;max-width:78%!important;
+  text-shadow:0 2px 7px #02050d,0 4px 13px #02050d!important;
+}
+#view-lobby .game-card.lobby-art-card small{color:#ead7ba!important}
+#view-lobby .game-card.lobby-art-card h3{color:#fff4d9!important}
+#view-lobby .game-card.lobby-art-card p{color:#d9d8e1!important}
+#view-lobby .game-card.omok.lobby-art-card{
+  align-items:stretch!important;justify-content:flex-end!important;
+  flex-direction:column!important;
+}
+#view-lobby .game-card.omok.lobby-art-card .gb-card-content{
+  position:relative!important;inset:auto!important;display:block!important;
+  width:100%!important;max-width:100%!important;
+  padding:12px 16px 14px!important;text-align:left!important;
+  margin-top:auto!important;background:transparent!important;
+}
+#view-lobby .game-card.omok.lobby-art-card .gb-card-content>span{display:none!important}
+#view-lobby .game-card.omok.lobby-art-card small{
+  display:block!important;font-size:9px!important;letter-spacing:1.7px!important;
+  margin:0 0 4px!important;color:#efd4a4!important;
+}
+#view-lobby .game-card.omok.lobby-art-card h3{
+  display:block!important;font-size:22px!important;margin:4px 0!important;
+}
+#view-lobby .game-card.omok.lobby-art-card p{display:block!important;font-size:11px!important}
+@media(max-width:760px){
+  #view-lobby .game-card.lobby-art-card .game-art{
+    width:100%!important;height:100%!important;object-position:54% 27%!important;
+  }
+  #view-lobby .game-card.lobby-art-card>div:last-child{max-width:90%!important;padding-top:42px!important}
+  #view-lobby .game-card.omok.lobby-art-card .gb-card-content{
+    padding:9px 11px 12px!important;
+  }
+  #view-lobby .game-card.omok.lobby-art-card h3{font-size:17px!important}
+  #view-lobby .game-card.omok.lobby-art-card p{font-size:9px!important}
+}
+@media(max-width:420px){
+  #view-lobby .game-card.lobby-art-card::after{
+    background:linear-gradient(90deg,rgba(5,8,17,.96) 0%,rgba(5,8,17,.73) 34%,rgba(5,8,17,.12) 83%),
+               linear-gradient(0deg,rgba(5,8,17,.8),transparent 65%)!important;
+  }
+  #view-lobby .game-card.lobby-art-card .game-art{object-position:54% 25%!important}
+}

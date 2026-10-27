@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900">
+<defs>
+<radialGradient id="bg"><stop stop-color="#394255"/><stop offset=".48" stop-color="#141a2d"/><stop offset="1" stop-color="#050b12"/></radialGradient>
+<radialGradient id="halo"><stop stop-color="#f8da8a" stop-opacity=".7"/><stop offset=".53" stop-color="#dba94d" stop-opacity=".11"/><stop offset="1" stop-color="#bc853e" stop-opacity="0"/></radialGradient>
+<linearGradient id="gold" x2="1" y2="1"><stop stop-color="#fff2c6"/><stop offset=".35" stop-color="#bf8d3e"/><stop offset=".68" stop-color="#f1d58e"/><stop offset="1" stop-color="#8e612b"/></linearGradient>
+<linearGradient id="card"><stop stop-color="#171d34"/><stop offset="1" stop-color="#02050e"/></linearGradient>
+<filter id="glow"><feGaussianBlur stdDeviation="15"/></filter>
+<pattern id="stars" width="125" height="95" patternUnits="userSpaceOnUse"><path d="M63 4v7m-4-4h8" stroke="#e1c17c" stroke-opacity=".21"/><circle cx="12" cy="78" r="1.4" fill="#f5d28c" opacity=".35"/></pattern>
+</defs>
+<rect width="1600" height="900" fill="url(#bg)"/><rect width="1600" height="900" fill="url(#stars)"/>
+<path d="M620 900V135Q620 70 690 70H1530Q1595 70 1595 135V900" fill="#141a2b" stroke="#8b6739" stroke-width="14" opacity=".85"/>
+<path d="M670 900V170Q670 125 720 125H1490Q1540 125 1540 170V900" fill="#0a0f1e" stroke="#d6ad65" stroke-width="4"/>
+<path d="M1100 130V900M880 130V900M1310 130V900" stroke="#6b5838" stroke-width="7" opacity=".35"/>
+<circle cx="1150" cy="330" r="420" fill="url(#halo)"/>
+<ellipse cx="1120" cy="800" rx="680" ry="250" fill="#090d13" stroke="#b59558" stroke-width="13"/>
+<ellipse cx="1120" cy="800" rx="575" ry="190" fill="#1b2533" stroke="#917142" stroke-width="5"/>
+<ellipse cx="1120" cy="800" rx="430" ry="140" fill="#111726" stroke="#d9b56e" stroke-width="2" stroke-dasharray="7 15"/>
+<g transform="translate(1060 475) rotate(-16)"><rect x="-145" y="-225" width="215" height="325" rx="18" fill="#000" opacity=".6" transform="translate(19 17)"/><rect x="-145" y="-225" width="215" height="325" rx="18" fill="url(#card)" stroke="url(#gold)" stroke-width="8"/><rect x="-126" y="-206" width="177" height="287" rx="9" fill="none" stroke="#e2c783" stroke-width="2"/><path d="M-36-110C-70-51-112-65-109-20C-100 32-34 48-36 74C-21 40 51 30 38-20C26-67-5-49-36-110Z" fill="url(#gold)" /><text x="-113" y="-175" font-size="31" font-family="Georgia" fill="#eed7a0">A</text><text x="21" y="60" font-size="31" fill="#eed7a0">♠</text></g>
+<g transform="translate(1280 500) rotate(13)"><rect x="-115" y="-220" width="220" height="330" rx="18" fill="url(#card)" stroke="url(#gold)" stroke-width="8"/><rect x="-98" y="-201" width="187" height="293" rx="10" fill="none" stroke="#e8d69d" stroke-width="2"/><text x="-78" y="-131" font-size="58" fill="#d3b56c" font-family="Georgia">♛</text><path d="M-55-40L-13-105L31-40L60-100L70 45H-87L-70-100Z" fill="url(#gold)" opacity=".9"/><text x="-72" y="72" font-size="19" fill="#ead69f" letter-spacing="6">JUNJA</text></g>
+<g fill="#e7c16e" opacity=".8"><circle cx="160" cy="132" r="2"/><circle cx="442" cy="235" r="2"/><circle cx="655" cy="65" r="3"/><circle cx="1198" cy="89" r="4"/><circle cx="1540" cy="430" r="4"/></g>
+<path d="M0 0H1600V900H0Z" fill="none" stroke="#79552b" stroke-width="24" opacity=".7"/>
+</svg>

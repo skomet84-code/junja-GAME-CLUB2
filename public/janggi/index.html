@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="ko"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#10151f">
+<title>준자 장기 · JUNJA LAND</title>
+<link rel="stylesheet" href="/janggi/style.css?v=1">
+<script defer src="/janggi/engine.js?v=2"></script>
+<script defer src="/janggi/game.js?v=3"></script>
+</head><body>
+<div class="jg-shell">
+ <header class="jg-top">
+  <a href="/" class="jg-back">← 준자랜드 로비</a><a href="/janggi/online.html" class="jg-back">🌐 온라인 장기 · AI 1조 챌린지 →</a>
+  <span class="jg-logo"><b>J</b> JUNJA <em>LAND</em></span>
+  <span class="jg-label">ROYAL STRATEGY</span>
+ </header>
+ <main class="jg-page">
+  <div class="jg-heading">
+   <div><div class="jg-kicker">THE KING'S COURT <span>✦</span> KOREAN CHESS</div><h1>준자 <em>장기</em></h1><p>궁성을 지키고 장군을 선언하라. 정통 한국 장기의 두뇌 대결.</p></div>
+   <div class="jg-seal">將<br><span>帥</span></div>
+  </div>
+  <div class="jg-app">
+   <section class="jg-boardcolumn" aria-label="장기 대국">
+    <div class="jg-rival">
+     <div class="jg-avatar han">漢</div><div class="jg-rival-info"><small>한 · HAN</small><strong id="hanName">J-BOT</strong></div>
+     <div class="jg-chip" id="hanPieces">16기</div><div class="jg-turntag" id="hanTurn">대기</div>
+    </div>
+    <div class="jg-boardframe">
+     <div class="jg-board" id="janggiBoard" aria-label="9열 10행 장기판" role="grid"></div>
+     <div class="jg-edge"><span>JUNJA · ROYAL EDITION</span><span>九 路 十 行</span></div>
+    </div>
+    <div class="jg-rival below">
+     <div class="jg-avatar cho">楚</div><div class="jg-rival-info"><small>초 · CHO</small><strong id="choName">나</strong></div>
+     <div class="jg-chip" id="choPieces">16기</div><div class="jg-turntag" id="choTurn">선공</div>
+    </div>
+    <div id="gameBanner" class="jg-banner" role="status" aria-live="polite">기물을 선택하여 이동할 교차점을 눌러주세요.</div>
+   </section>
+   <aside class="jg-sidebar">
+    <section class="jg-panel jg-match">
+     <div class="jg-panelcap">MATCH CONTROL <span>● LIVE BOARD</span></div>
+     <h2>대국 설정</h2>
+     <div class="jg-segment" id="modeGroup" role="group" aria-label="대국 방식">
+      <button class="active" data-mode="ai" type="button">🤖 AI 대국</button>
+      <button data-mode="local" type="button">⚔️ 2인 대국</button>
+     </div>
+     <div class="jg-config">
+      <label>난이도 <select id="difficulty"><option value="easy">초급 · 수읽기 연습</option><option value="normal">고급 · 전략형</option><option value="hard" selected>마스터 · 심층 탐색 (강력)</option></select></label>
+      <label>내 진영 <select id="mySide"><option value="c">초楚 · 선공</option><option value="h">한漢 · 후공</option></select></label>
+      <label>초楚 시작 차림 <select id="choFormation" aria-label="초 시작 차림">
+       <option value="left">왼상 · 象馬象馬</option>
+       <option value="right">오른상 · 馬象馬象</option>
+       <option value="inner" selected>안상 · 馬象象馬</option>
+       <option value="outer">바깥상 · 象馬馬象</option>
+      </select></label>
+      <label>한漢 시작 차림 <select id="hanFormation" aria-label="한 시작 차림">
+       <option value="left">왼상 · 象馬象馬</option>
+       <option value="right">오른상 · 馬象馬象</option>
+       <option value="inner" selected>안상 · 馬象象馬</option>
+       <option value="outer">바깥상 · 象馬馬象</option>
+      </select></label>
+     </div>
+     <div class="jg-actions">
+      <button id="newGame" class="jg-btn primary" type="button">✦ 새 대국 시작</button>
+      <button id="undo" class="jg-btn secondary" type="button">↶ 무르기</button>
+      <button id="pass" class="jg-btn secondary" type="button">차례 넘기기</button>
+     </div>
+     <p class="jg-note">마스터 AI는 수를 더 오래 탐색합니다. 완전무결한 인공지능은 아니며 기기 성능에 따라 대기 시간이 달라집니다.</p><p class="jg-note">초·한의 시작 차림을 4가지 중 각각 선택할 수 있습니다. 차림을 바꾸면 새 대국이 시작되며 진행 중인 대국은 확인을 거칩니다. 대국은 이 기기에 자동 저장됩니다.</p>
+    </section>
+    <section class="jg-panel jg-progress">
+     <div class="jg-panelcap">BATTLE STATUS <span id="roundText">ROUND 01</span></div>
+     <div class="jg-bigturn"><span id="turnSide">楚</span><div><small>현재 차례</small><strong id="turnName">초 · 선공</strong></div><b id="moveNumber">1수</b></div>
+     <div class="jg-state" id="checkNotice">대국 진행 중</div>
+     <div class="jg-scoreline"><span>초楚</span><span id="choScore">72.0점</span><span class="sep">/</span><span id="hanScore">73.5점</span><span>한漢</span></div>
+    </section>
+    <section class="jg-panel jg-moves">
+     <div class="jg-panelcap">GAME RECORD <button id="soundToggle" type="button" class="jg-textbutton">🔇 효과음 끔</button></div>
+     <h2>기보 <small id="recordCount">0수 진행</small></h2>
+     <ol id="moveHistory" class="jg-history"><li class="empty">첫 수를 기다리는 중…</li></ol>
+    </section>
+    <section class="jg-panel jg-rulecard">
+     <div class="jg-panelcap">QUICK RULES</div>
+     <h2>장기의 묘미</h2>
+     <p><b>車 차</b> 직선 이동 · 궁성 대각선 이동</p>
+     <p><b>包 포</b> 포가 아닌 기물 하나를 넘어 이동</p>
+     <p><b>馬 마 · 象 상</b> 가는 길목에 기물이 있으면 이동 불가</p>
+     <p><b>卒 졸 · 兵 병</b> 전진과 옆 이동 · 궁성 내 전진 대각선</p>
+     <p><b>將 장군</b> 왕이 공격받으면 반드시 멍군으로 대응</p>
+     <div class="jg-footnote">정통 9×10판 · 궁성 이동 · 합법 수 표시 · 장군/외통 · 빅장 안내</div>
+    </section>
+   </aside>
+  </div>
+ </main>
+ <footer>JUNJA LAND © ROYAL CHESS STUDIO <span>기품 있게 두고, 실력으로 승부하라.</span></footer>
+</div>
+</body></html>

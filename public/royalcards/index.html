@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#090e19"><title>ROYAL CARDS · 준자랜드</title><link rel="stylesheet" href="/royalcards/cards.css?v=2"><link rel="stylesheet" href="/royalcards/hand-guide.css?v=20261025-3"><link rel="stylesheet" href="/royalcards/premium-table.css?v=20261026-4"></head>
+<body><div class="ambient" aria-hidden="true"><i>♠</i><i>♥</i><i>♣</i><i>♦</i></div>
+<main id="app" class="shell">
+<header class="masthead"><a class="backlink" href="/" aria-label="준자랜드 로비로">← 로비</a><div class="brand"><div class="crown">♛</div><span>JUNJA LAND · PREMIUM SERIES</span><strong>ROYAL <em>CARDS</em></strong></div><div id="account" class="account">● SYNC</div></header>
+<nav class="game-switch" aria-label="카드 게임 선택"><a href="?game=onecard" id="nav-onecard"><span>🂡</span> 원카드 <small>ONE CARD</small></a><a href="?game=hula" id="nav-hula"><span>🂱</span> 훌라 <small>KOREAN RUMMY</small></a></nav>
+<div id="notice" role="status" aria-live="polite"></div>
+<section id="landing" class="landing">
+ <div class="hero"><div class="hero-overline">THE NEXT CROWN · JUNJA ORIGINAL</div><h1 id="heroTitle">ROYAL ONE CARD</h1><p id="heroSub">카드 한 장, 왕좌의 주인은 단 한 사람.</p><div class="hero-stats"><span><b>2–4</b> REAL PLAYERS</span><span><b>1 VS 1</b> J-BOT</span><span><b>100%</b> FAIR DECK</span></div></div>
+ <div class="launch-panel"><div class="panel-eyebrow">CHOOSE YOUR ARENA</div>
+ <div class="launch-grid"><button class="launch-card" id="aiBtn"><span class="launch-icon">♟</span><b>J-BOT 도전</b><small>생각하는 AI와 즉시 1:1</small><span class="launch-action">솔로 플레이 →</span></button>
+ <button class="launch-card" id="multiBtn"><span class="launch-icon">♜</span><b>친구와 대전</b><small>실시간 2–4명 온라인 테이블</small><span class="launch-action">멀티 방 만들기 →</span></button></div>
+ <div class="room-title"><b>LIVE TABLES</b><button id="refreshBtn" class="text-button">⟳ 새로고침</button></div><div id="rooms" class="room-list">열린 테이블을 확인하는 중...</div>
+ </div>
+ <div class="rules-preview"><span>✦ HOW TO PLAY</span><h2 id="ruleHeadline">원카드</h2><p id="ruleSummary"></p><button id="rulesBtn" class="outline-btn">전체 규칙 보기 ↗</button></div>
+ <div class="stats-panel"><small>MY ROYAL RECORD</small><b id="record">0 WIN · 0 PLAYED</b><span id="streak">승리 기록이 여기에 남아.</span></div>
+</section>
+<section id="match" class="match hidden" aria-live="polite">
+ <div class="match-top"><div><span class="micro">LIVE PRIVATE TABLE</span><h2 id="roomName">ROYAL TABLE</h2><span id="matchSub" class="muted">플레이어를 기다리고 있어</span></div><button class="outline-btn danger" id="leaveBtn">↗ 나가기</button></div>
+ <div id="thankBanner" class="thank-banner hidden" role="status" aria-live="polite"></div>
+ <div id="waiting" class="waiting hidden"><div class="wait-orbit">♜</div><h2>ROYAL LOUNGE</h2><p>최소 2명 · 참가자 모두 준비하면 방장이 시작해.</p><div id="readyList" class="ready-list"></div><div class="wait-actions"><button class="gold-btn" id="readyBtn">준비하기</button><button class="gold-btn" id="startBtn">대결 시작하기</button></div><div class="share-tip" id="roomCode"></div></div>
+ <div id="table" class="table-area hidden">
+   <div class="table-frame"><div class="table-sheen"></div><div id="opponents" class="opponents"></div>
+   <div class="table-center"><div class="table-badge" id="turnBadge">READY</div><div id="turnSteps" class="turn-steps hidden"></div><div class="table-decks"><div class="stock-stack"><button id="drawPile" class="card-back deck" type="button" aria-label="더미에서 카드 한 장 받기"><span class="back-pattern">♛<small>JUNJA</small></span></button><small id="stockCaption" class="stock-caption">더미에서 받기</small></div><div class="discard-wrap"><div id="topDiscard" class="card face">♠ A</div><small id="discardCaption">DISCARD PILE</small></div></div><div id="playInfo" class="play-info"></div><div id="melds" class="melds"></div></div>
+   </div>
+   <div class="bottom-board"><div class="self-header"><div><span class="micro">YOUR HAND</span><strong id="yourName">PLAYER</strong></div><div class="hand-meta"><span id="handCount">7장</span><span id="countdown">--s</span></div></div>
+   <button id="quickTake" type="button" class="quick-take hidden">🂠 카드 한 장 받기 · 내 차례</button><div id="hulaAssist" class="hula-assist hidden" aria-label="훌라 패 정렬과 선택 현황"></div><div id="hand" class="hand" aria-label="내 카드"></div><div id="handHints" class="hand-hints" aria-live="polite"></div>
+   <div id="suitPicker" class="suit-picker hidden"><div>바꿀 무늬 선택</div><button data-suit="S">♠</button><button data-suit="H">♥</button><button data-suit="D">♦</button><button data-suit="C">♣</button></div>
+   <div id="actions" class="game-actions"></div>
+   <div id="feedback" class="feedback"></div>
+   </div>
+ </div>
+ <div id="finalPanel" class="finish hidden"><div class="trophy">♛</div><span>ROYAL FINISH</span><h2 id="winnerName">WINNER</h2><p id="winReason"></p><div id="finalScores"></div><div class="final-actions"><button id="againBtn" class="gold-btn">한 판 더!</button><button id="lobbyBtn" class="outline-btn">로비로</button></div></div>
+</section>
+<footer>ROYAL CARDS COLLECTION <span>·</span> FAIR PLAY · 카드 게임은 현금 가치 없는 친선 대전입니다</footer>
+<div id="rulesModal" class="modal hidden"><div class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="rulesHeading"><button id="closeRules" class="modal-close">✕</button><span class="micro">OFFICIAL HOUSE RULES</span><h2 id="rulesHeading">게임 규칙</h2><div id="rulesBody"></div><button id="closeRulesBottom" class="gold-btn">확인했어</button></div></div>
+</main><script src="/royalcards/cards.js?v=20261026-8" defer></script></body></html>
