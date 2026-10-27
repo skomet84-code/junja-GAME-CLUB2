@@ -23,6 +23,16 @@ function checkRules(){
  b=mustBoard([[3,7,1],[4,7,1],[5,7,1],[6,7,1],[7,6,1],[7,8,1]]);
  assert.equal(rules.place(b,7,7,1).win,true,'exact 5 wins before 3-3 test');
  assert.equal(rules.place(rules.fresh(),15,1,1).ok,false,'out of board');
+ // Regression: the black defence intersections shown in the support screenshot
+ // are legal, including the square in front of white's horizontal three.
+ const screenshot=mustBoard([
+  [7,5,1],[4,6,1],[6,7,1],[7,7,1],[6,8,1],[7,8,1],[8,8,1],[9,8,1],[8,10,1],
+  [8,5,2],[5,6,2],[7,6,2],[8,6,2],[9,6,2],[9,7,2],[5,8,2],[10,8,2],[9,9,2]
+ ]);
+ for(const [x,y] of [[6,6],[10,6]]){
+  const attempt=screenshot.map(row=>row.slice());
+  assert.equal(rules.place(attempt,x,y,1).ok,true,'black must be allowed to defend white three at '+x+','+y);
+ }
  b=mustBoard([[2,7,1],[3,7,1],[4,7,1],[5,7,1],[6,7,1],[7,3,1],[7,4,1],[7,5,1],[7,6,1]]);
  assert.equal(rules.place(b,7,7,1).win,true,'exact 5 outranks simultaneous overline');
 }

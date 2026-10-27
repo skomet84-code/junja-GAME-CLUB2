@@ -5,7 +5,16 @@ const root=document.getElementById('omokRoot'),notice=document.getElementById('o
 const state={room:null,home:null,busy:false,loading:false,offset:0,inviteChecked:false};
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const label=c=>c===1?'흑':c===2?'백':'없음';
-function message(t=''){notice.textContent=t;}
+function message(t=''){
+ notice.textContent=t;
+ // Display rejected-move reasons beside the board as well as at the top.
+ // Mobile users are often scrolled past the top notification.
+ const status=root.querySelector('.omk-status');
+ if(status&&t){
+   status.textContent=t;
+   status.classList.add('omk-status-error');
+ }
+}
 async function api(path,body){
  const ctrl=new AbortController(),timer=setTimeout(()=>ctrl.abort(),12000);
  try{
@@ -95,7 +104,7 @@ function board(r){
   const star=[3,7,11].includes(x)&&[3,7,11].includes(y);
   return `<button role="gridcell" type="button" class="omk-point ${star?'star':''} ${x===lx&&y===ly?'last':''} ${wins.has(y*15+x)?'winning':''}"
    data-action="move" data-x="${x}" data-y="${y}" aria-label="${x+1}열 ${y+1}행 ${value?label(value)+'돌':'빈 자리'}"
-   ${!r.myTurn||r.phase!=='playing'||value||(r.moves===0&&(x!==7||y!==7))?'disabled':''}>${value?`<span class="omk-stone ${value===1?'black':'white'}"></span>`:''}</button>`;
+   ${r.phase!=='playing'||value||(r.moves===0&&(x!==7||y!==7))?'disabled':''}>${value?`<span class="omk-stone ${value===1?'black':'white'}"></span>`:''}</button>`;
  }).join('')).join('');
  return `<div class="omk-board-wrap"><div class="omk-board" role="grid" aria-label="15줄 오목판">${cells}</div>
   <div class="omk-board-caption"><span>15 × 15 · 렌주룰</span><span>${r.moves}수 진행 · ${r.round}국</span></div></div>`;
@@ -132,7 +141,11 @@ root.addEventListener('submit',e=>{
 });
 root.addEventListener('click',e=>{
  const b=e.target.closest('button[data-action]');
- if(!b||b.disabled||state.busy)return;
+ if(!b||b.disabled)return;
+ if(state.busy){
+   if(b.dataset.action==='move')message('착수 처리 중입니다. 중복 입력을 막고 있어요.');
+   return;
+ }
  const action=b.dataset.action,r=state.room;
  if(action==='refresh'){refresh(true);return;}
  if(action==='join'){act('/'+b.dataset.id+'/join');return;}
@@ -145,7 +158,17 @@ root.addEventListener('click',e=>{
  if(!r)return;
  if(action==='ready'){const p=r.players.find(p=>p.id===r.selfId);act('/'+r.id+'/ready',{ready:!p.ready});}
  else if(action==='start')act('/'+r.id+'/start');
- else if(action==='move')act('/'+r.id+'/move',{x:Number(b.dataset.x),y:Number(b.dataset.y)});
+ else if(action==='move'){
+   const x=Number(b.dataset.x),y=Number(b.dataset.y);
+   if(!Number.isInteger(x)||!Number.isInteger(y)||x<0||y<0||x>=15||y>=15){
+     message('올바르지 않은 교차점입니다.');return;
+   }
+   if(r.phase!=='playing'){message('대국이 진행 중이 아닙니다.');return;}
+   if(r.board[y][x]!==0){message('이미 돌이 놓인 자리입니다.');return;}
+   // Never block an empty intersection using stale client-side myTurn.
+   // The server is authoritative, so an up-to-date valid defence is accepted.
+   act('/'+r.id+'/move',{x,y});
+ }
  else if(action==='rematch')act('/'+r.id+'/rematch');
  else if(action==='resign'){if(window.confirm('기권하면 패배로 기록됩니다. 기권할까요?'))act('/'+r.id+'/resign');}
  else if(action==='leave'){if(r.phase==='playing'&&!window.confirm('지금 나가면 기권패로 기록됩니다. 나갈까요?'))return;act('/'+r.id+'/leave');}
