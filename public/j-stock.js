@@ -11,7 +11,7 @@ const fmt=v=>{let n=num(v),sign=n<0n?'-':'';if(n<0n)n=-n;
 const money=v=>fmt(v)+' G', profit=v=>{const n=num(v);return (n>0n?'+':'')+money(v)};
 const cls=v=>num(v)>0n?'up':num(v)<0n?'down':'flat';
 const qtyLimit=1000000000000000n;
-let snapshot=null,active='A',busy=false,timer=null,refreshTimer=null,offset=0,lastQuantity='1',side='buy';
+let snapshot=null,active='A',busy=false,refreshing=false,lastRefreshAttempt=0,timer=null,refreshTimer=null,offset=0,lastQuantity='1',side='buy';
 function mount(){
  if($('#jstockModal'))return;
  const modal=document.createElement('div');modal.id='jstockModal';modal.className='jstock-modal';modal.setAttribute('role','dialog');modal.setAttribute('aria-modal','true');modal.setAttribute('aria-label','J-STOCK 증권 거래소');
@@ -85,9 +85,11 @@ function estimate(){
  el.innerHTML='<span>예상 '+(side==='buy'?'지급액':'수령액')+'</span><strong>'+money(net)+'</strong><small>주문액 '+money(gross)+' · 수수료 '+money(fee)+'</small>';
 }
 async function refresh(showNotice){
- if(busy||!$('#jstockModal')?.classList.contains('open'))return;
+ if(busy||refreshing||!$('#jstockModal')?.classList.contains('open'))return;
+ if(!showNotice&&Date.now()-lastRefreshAttempt<5000)return;
+ refreshing=true;lastRefreshAttempt=Date.now();
  try{const d=await api('/api/jstock');snapshot=d;offset=Number(d.serverNow)-Date.now();render();if(showNotice)alertText('최신 공통 시세로 업데이트했어.');}
- catch(e){if(showNotice)alertText(e.message,true);}
+ catch(e){if(showNotice)alertText(e.message,true);}finally{refreshing=false;}
 }
 async function trade(){
  if(busy||!snapshot)return;
