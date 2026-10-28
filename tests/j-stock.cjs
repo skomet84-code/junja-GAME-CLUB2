@@ -196,7 +196,7 @@ async function testLobbyProfit(){
   setTimeout:()=>{boundaryTimers++;return boundaryTimers;},clearTimeout(){},setInterval(){return 1;},Date,Intl,BigInt};
  vm.runInNewContext(ui,ctx,{filename:'public/jstock-header.js'});
  await new Promise(resolve=>setImmediate(resolve)); // initial load quote
- assert.equal(amount.textContent,'+1만 2500 G','positive profit uses red + and Korean compact units');
+ assert.equal(amount.textContent,'+1만 2,500 G','positive profit uses red + and Korean compact units');
  assert.ok(profitClasses.has('up')&&!profitClasses.has('down'));
  assert.ok(boundaryTimers>=1,'refresh scheduled at next market session');
  payload={unrealized:'-300000000',nextTickAt:Date.now()+3600000};
@@ -217,7 +217,7 @@ async function testLobbyProfit(){
  payload={unrealized:'-72000',nextTickAt:Date.now()+3600000};
  mainClasses.delete('hidden');observer();
  await new Promise(resolve=>setImmediate(resolve));
- assert.equal(amount.textContent,'-7만 2000 G','next login reloads signed profit for current account');
+ assert.equal(amount.textContent,'-7만 2,000 G','next login reloads signed profit for current account');
  console.log('JSTOCK_HEADER_OK: positive red, negative blue, neutral zero, large BigInt, market countdown, modal sync, safe session change');
 }
 testLobbyProfit().catch(error=>{console.error(error);process.exitCode=1;});
