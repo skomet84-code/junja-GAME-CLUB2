@@ -65,7 +65,7 @@ function home(){
  const d=state.home||{rooms:[],stats:{},aiStats:{},leaders:[]},s=d.stats||{},ai=d.aiStats||{};
  root.innerHTML=`<div class="omk-home-grid">
   <section class="omk-panel omk-create"><span class="omk-badge">ROYAL MATCHMAKING</span><h2>친구를 초대하고<br>첫 수를 놓아보세요.</h2>
-  <p>1:1 공식 대국! 게임머니 소모 없이 승리와 패배가 전적에 남아요. 흑은 3-3·4-4·장목 금수가 적용됩니다.</p>
+  <p>1:1 공식 대국! 게임머니 소모 없이 승리와 패배가 전적에 남아요. 흑·백 모두 3-3 금수입니다. 흑은 4-4·장목도 금수입니다.</p>
   <form id="omkCreateForm" class="omk-form"><input name="name" maxlength="28" placeholder="대국방 이름 (선택)" aria-label="대국방 이름"><button type="submit" class="omk-btn">＋ 대국방 만들기</button></form>
   <div class="omk-rules"><strong>진행 순서</strong> · 방 생성 → 친구 입장 → 2명 모두 준비 → 방장 시작. 재대결할 때는 선후공이 바뀝니다.</div></section>
   <section class="omk-panel omk-ai-challenge"><span class="omk-badge">SOLO · EXTREME AI</span>
@@ -91,7 +91,7 @@ function waiting(r){
  ${btn('ready',mine?.ready?'준비 취소':'✓ 대국 준비하기')}
  ${r.hostId===r.selfId?btn('start','⚔️ 대국 시작','',canStart?'':'disabled'):''}
  ${btn('leave','← 대국방 나가기','omk-ghost')}</div>
- <div class="omk-rules"><strong>정통 오목 규칙</strong> · 흑이 먼저 두고 정확히 5목을 완성해야 승리합니다. 흑의 3-3·4-4·장목은 금수입니다. 백은 5목 이상이면 승리합니다.</div></section>`;
+ <div class="omk-rules"><strong>준자랜드 오목 규칙</strong> · 흑이 먼저 두고 정확히 5목을 완성해야 승리합니다. 흑·백 모두 3-3 금수이며, 흑은 4-4·장목도 금수입니다. 백은 5목 이상이면 승리합니다.</div></section>`;
 }
 function playerRow(r,color){
  const p=r.players.find(p=>p.color===color),turn=r.phase==='playing'&&r.turn===color;
@@ -108,7 +108,7 @@ function board(r){
    ${r.phase!=='playing'||value||(r.moves===0&&(x!==7||y!==7))?'disabled':''}>${value?`<span class="omk-stone ${value===1?'black':'white'}"></span>`:''}</button>`;
  }).join('')).join('');
  return `<div class="omk-board-wrap"><div class="omk-board" role="grid" aria-label="15줄 오목판">${cells}</div>
-  <div class="omk-board-caption"><span>15 × 15 · 렌주룰</span><span>${r.moves}수 진행 · ${r.round}국</span></div></div>`;
+  <div class="omk-board-caption"><span>15 × 15 · 흑·백 3-3 금지</span><span>${r.moves}수 진행 · ${r.round}국</span></div></div>`;
 }
 function status(r){
  if(r.phase!=='complete')return r.myTurn?(r.moves===0?'🎯 첫 수는 중앙(8열 8행)에 놓아주세요.':'🎯 내 차례! 교차점에 돌을 놓아주세요.'):r.aiMode?'🤖 극한 AI가 수를 계산하고 있습니다…':'⏳ 상대방이 착수 중입니다.';
@@ -125,7 +125,7 @@ function match(r){
  <div class="omk-status" role="status">${status(r)}</div><div class="omk-controls">
  ${end?(r.aiMode?btn('rematch','↻ AI와 다시 대결'):r.players.length===2?btn('rematch',mine?.rematch?'상대의 재대결 신청 기다리는 중':'↻ 재대결 신청','',mine?.rematch?'disabled':''):'<small>상대방이 나갔습니다.</small>'):btn('resign','기권하기','omk-danger')}
  ${btn('leave',end?'대국방 나가기':'나가기 (기권)','omk-ghost')}</div>
- <div class="omk-guide"><strong>렌주 금수 규칙</strong><br>⚫ 흑: 정확히 5목 승리, 3-3·4-4·6목 이상 금지<br>⚪ 백: 5목 이상 승리 · 금수 없음<br>첫 수는 중앙 화점 · 사람 턴당 90초 · 서버에서 착수를 검증합니다.<br>${r.aiMode?'극한 AI · 흑백 교대 · 대인전 전적과 별도 관리':'새로고침해도 같은 대국에 복귀합니다.'}</div></div></div>`;
+ <div class="omk-guide"><strong>준자랜드 금수 규칙</strong><br>⚫ 흑: 정확히 5목 승리, 3-3·4-4·6목 이상 금지<br>⚪ 백: 5목 이상 승리 · 3-3 금지<br>첫 수는 중앙 화점 · 사람 턴당 90초 · 서버에서 착수를 검증합니다.<br>${r.aiMode?'극한 AI · 흑백 교대 · 대인전 전적과 별도 관리':'새로고침해도 같은 대국에 복귀합니다.'}</div></div></div>`;
  tick();
 }
 function render(){if(state.room){state.room.phase==='waiting'?waiting(state.room):match(state.room);}else home();}

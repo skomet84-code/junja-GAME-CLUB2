@@ -94,8 +94,8 @@ function ranked(b,c,limit,deadline,preferred,opts={}){
   const out=[];
   for(const m of ms){
     if(time()>deadline)break;
-    // Only legal black moves may enter the search; never search hypothetical Renju fouls.
-    if(c===1){const r=rules.place(b,m.x,m.y,c);if(!r.ok)continue;b[m.y][m.x]=0;}
+    // Both colors must obey the shared 3-3 restriction before entering search.
+    {const r=rules.place(b,m.x,m.y,c);if(!r.ok)continue;b[m.y][m.x]=0;}
     out.push(m);
     if(out.length>=limit)break;
   }

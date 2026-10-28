@@ -22,6 +22,9 @@ assert.ok([2,7].every((v,i)=>[blocked.move.x,blocked.move.y][i]===v)||
 const forbidden=board([[6,7,1],[8,7,1],[7,6,1],[7,8,1],[4,4,2]]);
 const m=checked(forbidden,1,'black double-three avoidance').move;
 assert.notDeepEqual([m.x,m.y],[7,7],'AI does not attempt forbidden 3-3');
+const whiteForbidden=forbidden.map(row=>row.map(v=>v===0?0:3-v));
+const wm=checked(whiteForbidden,2,'white double-three avoidance').move;
+assert.notDeepEqual([wm.x,wm.y],[7,7],'white AI does not attempt forbidden 3-3');
 const forkBoard=board([[4,7,2],[5,7,2],[6,7,2]]);
 const forkStart=Date.now();
 const forkMove=selectMove(forkBoard,2,{timeMs:900});

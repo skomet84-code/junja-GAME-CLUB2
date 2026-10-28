@@ -31,7 +31,8 @@ function checkRules(){
  b=mustBoard([[6,7,1],[8,7,1],[7,6,1],[7,8,1],[5,7,2],[9,7,2],[7,5,2],[7,9,2]]);
  assert.equal(rules.place(b,7,7,1).ok,true,'fully blocked lines do not count as three threats');
  b=mustBoard([[6,7,2],[8,7,2],[7,6,2],[7,8,2],[9,7,1],[7,9,1]]);
- assert.equal(rules.place(b,7,7,2).ok,true,'white 3-3 remains allowed');
+ assert.match(rules.place(b,7,7,2).error,/백돌 3-3/,'white semi-open 3-3 forbidden');
+ assert.equal(b[7][7],0,'white forbidden move does not persist');
 
  b=mustBoard([[5,7,1],[6,7,1],[8,7,1],[7,5,1],[7,6,1],[7,8,1]]);
  assert.match(rules.place(b,7,7,1).error,/4-4/,'double four');
@@ -54,6 +55,21 @@ function checkRules(){
  assert.match(rules.place(b,7,7,1).error,/3-3/,'true open 3-3 remains forbidden while defending');
  b=mustBoard([[2,7,1],[3,7,1],[4,7,1],[5,7,1],[6,7,1],[7,3,1],[7,4,1],[7,5,1],[7,6,1]]);
  assert.equal(rules.place(b,7,7,1).win,true,'exact 5 outranks simultaneous overline');
+}
+function checkBothColors(){
+ const cases=[
+  {name:'open cross',stones:[[6,7],[8,7],[7,6],[7,8]],blocked:[],ok:false},
+  {name:'diagonal cross',stones:[[6,6],[8,8],[6,8],[8,6]],blocked:[],ok:false},
+  {name:'split cross',stones:[[5,7],[8,7],[7,5],[7,8]],blocked:[],ok:false},
+  {name:'single three',stones:[[6,7],[8,7]],blocked:[],ok:true},
+  {name:'blocked cross',stones:[[6,7],[8,7],[7,6],[7,8]],blocked:[[5,7],[9,7],[7,5],[7,9]],ok:true}
+ ];
+ for(const c of [1,2])for(const t of cases){
+  const b=mustBoard([...t.stones.map(([x,y])=>[x,y,c]),...t.blocked.map(([x,y])=>[x,y,3-c])]);
+  const before=JSON.stringify(b),result=rules.place(b,7,7,c);
+  assert.equal(result.ok,t.ok,t.name+' color '+c);
+  if(!t.ok){assert.match(result.error,/3-3/);assert.equal(JSON.stringify(b),before);}
+ }
 }
 async function checkRooms(){
  const values=new Map();let time=1000000;
@@ -84,6 +100,17 @@ async function checkRooms(){
  assert.equal((await call(1,'POST',path+'/move',{x:7,y:7})).data.room.board[7][7],1);
  assert.equal((await call(2,'POST',path+'/move',{x:7,y:7})).status,409,'same square');
  assert.equal((await call(2,'POST',path+'/move',{x:8,y:7})).data.room.board[7][8],2);
+ const actual=game.findUserRoom(1);
+ for(const color of [1,2]){
+  actual.board=mustBoard([[6,7,color],[8,7,color],[7,6,color],[7,8,color]]);
+  actual.turn=color;actual.moves=8;
+  const before=JSON.stringify(actual.board),version=actual.version;
+  const rejected=await call(color,'POST',path+'/move',{x:7,y:7});
+  assert.equal(rejected.status,409,'server rejects 3-3 for color '+color);
+  assert.match(rejected.data.error,/3-3/);
+  assert.equal(JSON.stringify(actual.board),before);
+  assert.equal(actual.turn,color);assert.equal(actual.version,version);assert.equal(actual.moves,8);
+ }
  r=await call(1,'POST',path+'/resign');
  assert.equal(r.data.room.winner,2);
  assert.equal(JSON.parse(values.get('omok:stats:2')).wins,1);
@@ -99,4 +126,4 @@ async function checkRooms(){
  assert.equal(JSON.parse(values.get('omok:stats:1')).wins,1);
  game.close();
 }
-(async()=>{checkRules();await checkRooms();console.log('Omok rules and room smoke tests: PASS');})().catch(e=>{console.error(e);process.exitCode=1;});
+(async()=>{checkRules();checkBothColors();await checkRooms();console.log('Omok rules and room smoke tests: PASS');})().catch(e=>{console.error(e);process.exitCode=1;});
