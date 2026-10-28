@@ -186,7 +186,7 @@ function verdict(s,id,answers){
   const p=s.cases[id];
   if(!p?.solved)return {ok:false,message:'원본 사건을 먼저 해결해야 고난도 재수사를 시작할 수 있어.'};
   if(p.replay?.active)return {ok:true,already:true,message:'진행 중인 고난도 재수사가 있어.'};
-  const r=freshCase();r.active=true;r.attempt=(p.replays||0)+1;r.startedAt=Date.now();r.updatedAt=r.startedAt;
+  const r=freshCase();r.active=true;r.attempt=(p.replays||0)+1;r.startedAt=Math.max(Date.now(),Number(p.lastReplayAt||0)+1);r.updatedAt=r.startedAt;
   p.replay=r;
   return {ok:true,message:'새 고난도 수사를 시작했어. 원본 완료 내역은 보존돼.'};
  }
