@@ -5,9 +5,9 @@
  'use strict';const VERSION=1,lookup=new Map(CASES.map(c=>[c.id,c]));
  const own=(v)=>v&&typeof v==='object'&&!Array.isArray(v);
  const unique=(v,valid)=>Array.isArray(v)?[...new Set(v.filter(x=>typeof x==='string'&&valid.includes(x)))]:[];
- const freshCase=()=>({opened:false,scene:0,clues:[],gates:[],theories:[],interviews:[],solved:false,mastered:false,hints:0,misses:0,verdictFails:0,retryAt:0,linkFails:0,linkRetryAt:0,score:0,log:[]});
+ const freshCase=()=>({opened:false,scene:0,clues:[],gates:[],theories:[],interviews:[],solved:false,mastered:false,hints:0,misses:0,verdictFails:0,retryAt:0,linkFails:0,linkRetryAt:0,score:0,log:[],replays:0,bestReplayScore:0,lastReplayAt:0,replay:null});
  const fresh=()=>({v:VERSION,cases:{},active:2});
- function cleanCase(data,caseId){
+ function cleanCase(data,caseId,forReplay=false){
   const c=lookup.get(caseId),s=freshCase();if(!c||!own(data))return s;
   s.opened=!!data.opened;s.gates=unique(data.gates,['gate1','gate2']);
   if(!s.gates.includes('gate1'))s.gates=[];
@@ -34,6 +34,18 @@
   s.score=s.solved?Math.max(1,Math.min(100,Math.floor(Number(data.score)||1))):0;
   s.scene=Math.max(0,Math.min(Number(data.scene)||0,s.gates.includes('gate2')?2:s.gates.includes('gate1')?1:0));
   s.log=Array.isArray(data.log)?data.log.filter(x=>typeof x==='string').slice(0,16):[];
+  if(!forReplay){
+   s.replays=Math.max(0,Math.min(100000,Math.floor(Number(data.replays)||0)));
+   s.bestReplayScore=Math.max(0,Math.min(100,Math.floor(Number(data.bestReplayScore)||0)));
+   s.lastReplayAt=Math.max(0,Math.floor(Number(data.lastReplayAt)||0));
+   if(s.solved&&own(data.replay)&&data.replay.active===true){
+    const r=cleanCase(data.replay,caseId,true);
+    r.active=true;r.startedAt=Math.max(0,Math.floor(Number(data.replay.startedAt)||0));
+    r.updatedAt=Math.max(r.startedAt,Math.floor(Number(data.replay.updatedAt)||0));
+    r.attempt=Math.max(1,Math.min(100001,Math.floor(Number(data.replay.attempt)||s.replays+1)));
+    if(r.startedAt>s.lastReplayAt)s.replay=r;
+   }
+  }
   return s;
  }
  function hydrate(raw,ep1Cleared){
@@ -54,7 +66,11 @@
  function step(s,id,fn){const c=lookup.get(id);if(!c)return {ok:false,message:'없는 사건 파일입니다.'};
   if(!unlocked(s,id,true))return {ok:false,message:'이전 사건을 먼저 해결해야 해.'};
   if(!s.cases[id])s.cases[id]=freshCase();s.cases[id].opened=true;s.active=id;
-  return fn(c,s.cases[id]);}
+  const main=s.cases[id],current=main.replay?.active?main.replay:main;
+  current.opened=true;
+  const outcome=fn(c,current);
+  if(current!==main)current.updatedAt=Date.now();
+  return outcome;}
  function record(s,txt){s.log.unshift(txt);s.log=s.log.slice(0,16);}
  function inspect(s,id,clue){
   return step(s,id,(c,p)=>{const e=c.clues.find(x=>x.id===clue);
@@ -131,12 +147,12 @@ function masterCase(s,id,answers){
  });
 }
 function verdict(s,id,answers){
-  return step(s,id,(c,p)=>{
+  const result=step(s,id,(c,p)=>{
    if(p.solved)return {ok:true,already:true,message:c.ending,score:p.score};
    if(p.theories.length!==3||p.interviews.length!==2||p.gates.length!==2)
     return {ok:false,message:'세 가지 추론과 두 사람의 진술을 모두 입증해야 최종 판결이 가능해.'};
    if(p.retryAt>Date.now())return {ok:false,message:'연속 추측으로 판결을 잠시 보류했어. 증거를 다시 살펴본 뒤 재시도해.'};
-   if(!validReport(c,answers)){
+   if(!validReport(c,answers)||(p.active&&!validReplayReport(c,p,answers))){
     p.verdictFails++;if(p.verdictFails%3===0)p.retryAt=Date.now()+45000;
     p.misses++;record(p,'판결 재검토 · 증거와 결론의 충돌');return {ok:false,message:'판결의 논리 중 하나가 증거와 충돌해. 단서는 그대로 보존돼.'};
    }
@@ -144,9 +160,18 @@ function verdict(s,id,answers){
    record(p,'사건 해결 · '+p.score+'점');
    return {ok:true,score:p.score,message:c.ending,finished:id===13,next:id<13?id+1:null};
   });
+  if(result.ok&&!result.already&&s.cases[id]?.replay?.active){
+   const main=s.cases[id],completed=main.replay;
+   main.replays=Math.max(0,Number(main.replays)||0)+1;
+   main.bestReplayScore=Math.max(Number(main.bestReplayScore)||0,Number(completed.score)||0);
+   main.lastReplayAt=Date.now();main.replay=null;
+   return {...result,replay:true,message:'고난도 재수사 성공! 원본 사건 기록과 클리어 내역은 그대로 유지돼.'};
+  }
+  return result;
  }
  function hint(s,id){
   return step(s,id,(c,p)=>{
+   if(p.active)return {ok:false,message:'고난도 재수사는 힌트 없이 도전해야 해.'};
    p.hints++;
    const line=!p.gates.includes('gate1')?c.puzzles[0].hint:
     !p.gates.includes('gate2')?c.puzzles[1].hint:
@@ -154,6 +179,27 @@ function verdict(s,id,answers){
     p.interviews.length<2?'심문 시 각각의 인물에게 모순을 입증한 증거를 보여줘.':'최종 판결에서 가해자·조작 내용·은폐 목적을 모두 일치시켜.';
    return {ok:true,message:line};
   });
+ }
+ // A previously solved case can be fully reinvestigated without deleting the original clear.
+ function startReplay(s,id){
+  if(!unlocked(s,id,true))return {ok:false,message:'먼저 이전 사건의 수사 기록을 열어야 해.'};
+  const p=s.cases[id];
+  if(!p?.solved)return {ok:false,message:'원본 사건을 먼저 해결해야 고난도 재수사를 시작할 수 있어.'};
+  if(p.replay?.active)return {ok:true,already:true,message:'진행 중인 고난도 재수사가 있어.'};
+  const r=freshCase();r.active=true;r.attempt=(p.replays||0)+1;r.startedAt=Date.now();r.updatedAt=r.startedAt;
+  p.replay=r;
+  return {ok:true,message:'새 고난도 수사를 시작했어. 원본 완료 내역은 보존돼.'};
+ }
+ function viewCase(s,id){const p=s.cases[id];return p?.replay?.active?p.replay:p;}
+ function replayPrompts(id,attempt){
+  const c=lookup.get(id);if(!c)return [];
+  const turn=Math.max(1,Math.floor(Number(attempt)||1));
+  const indices=[(id+turn)%3,3+(id*2+turn)%3,6+(id+turn)%2];
+  return indices.map((i,n)=>({key:'audit'+n,answer:c.clues[i].id,
+   label:['① 첫 현장 원본의 출처를 확인해. 다음 기록에 일치하는 물증은?','② 중간 현장 조작과 연결되는 원본은?','③ 최종 은폐 정황을 뒷받침하는 기록은?'][n]+' 『'+c.clues[i].description+'』'}));
+ }
+ function validReplayReport(c,p,answers){
+  return replayPrompts(c.id,p.attempt).every(({key,answer})=>answers?.[key]===answer);
  }
  function merge(first,second,cleared){
   const a=hydrate(first,cleared),b=hydrate(second,cleared),out=fresh();
@@ -172,9 +218,14 @@ function verdict(s,id,answers){
    c.verdictFails=Math.max(x?.verdictFails||0,y?.verdictFails||0);c.retryAt=Math.max(x?.retryAt||0,y?.retryAt||0);
    c.linkFails=Math.max(x?.linkFails||0,y?.linkFails||0);c.linkRetryAt=Math.max(x?.linkRetryAt||0,y?.linkRetryAt||0);
    c.score=Math.max(x?.score||0,y?.score||0);c.log=[...new Set([...(y?.log||[]),...(x?.log||[])])].slice(0,16);
+   c.replays=Math.max(Number(x?.replays)||0,Number(y?.replays)||0);
+   c.bestReplayScore=Math.max(Number(x?.bestReplayScore)||0,Number(y?.bestReplayScore)||0);
+   c.lastReplayAt=Math.max(Number(x?.lastReplayAt)||0,Number(y?.lastReplayAt)||0);
+   c.replay=[x?.replay,y?.replay].filter(r=>r?.active&&r.startedAt>c.lastReplayAt)
+     .sort((r,t)=>(t.updatedAt||0)-(r.updatedAt||0))[0]||null;
    out.cases[id]=cleanCase(c,id);
   }
   out.active=highestUnlocked(out,true);return out;
  }
- return Object.freeze({VERSION,CASES,lookup,fresh,freshCase,cleanCase,hydrate,unlocked,highestUnlocked,inspect,unlock,travel,connect,question,options,verdict,masterCase,hint,merge});
+ return Object.freeze({VERSION,CASES,lookup,fresh,freshCase,cleanCase,hydrate,unlocked,highestUnlocked,inspect,unlock,travel,connect,question,options,verdict,masterCase,hint,merge,startReplay,viewCase,replayPrompts});
 });
