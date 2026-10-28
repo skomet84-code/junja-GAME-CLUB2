@@ -6,10 +6,18 @@ const STOCKS=Object.freeze([
  {id:'A',name:'준자반도체',sector:'반도체·AI',base:100000,vol:750,icon:'💻'},
  {id:'B',name:'준자물산',sector:'유통·건설',base:75000,vol:450,icon:'🏢'},
  {id:'C',name:'준자엔터',sector:'문화·엔터',base:35000,vol:1150,icon:'🎤'},
- {id:'D',name:'준자바이오',sector:'신약·바이오',base:58000,vol:1450,icon:'🧬'},
- {id:'E',name:'준자에너지',sector:'친환경·에너지',base:45000,vol:850,icon:'⚡'}
+ {id:'D',name:'준자바이오',sector:'바이오·연구개발',base:58000,vol:1450,icon:'🧬'},
+ {id:'E',name:'준자에너지',sector:'친환경·에너지',base:45000,vol:850,icon:'⚡'},
+ {id:'F',name:'준자오션',sector:'해양·조선·해운',base:68000,vol:700,icon:'🚢'},
+ {id:'G',name:'준자제약',sector:'제약·의약품',base:42000,vol:1300,icon:'💊'},
+ {id:'H',name:'준자항공',sector:'항공·우주',base:86000,vol:850,icon:'✈️'},
+ {id:'I',name:'준자로보틱스',sector:'로봇·자동화',base:112000,vol:1100,icon:'🤖'},
+ {id:'J',name:'준자방산',sector:'방위산업·첨단장비',base:76000,vol:600,icon:'🛡️'}
 ]);
 const MARKET_KEY='jstock:market:v1',FEE_BP=50n,MAX_SHARES=1000000000000000n,MAX_PRICE=100000000n,MIN_PRICE=100n;
+const STOCK_CATALOG_VERSION=2;
+const ORIGINAL_STOCK_IDS=Object.freeze(['A','B','C','D','E']);
+const initialQuote=s=>({price:String(s.base),changeBp:0,history:[s.base],event:null});
 // KST = UTC+09:00. Stock sessions open at 00:00, 06:00, 12:00 and 18:00 KST.
 const MARKET_CADENCE_HOURS=6;
 const hourOf=t=>Math.floor(t/3600000);
@@ -19,12 +27,12 @@ function createJStocks({db,exactWallet,now=Date.now,randomInt=crypto.randomInt})
  const stateKey=id=>'jstock:portfolio:'+id;
  function read(key){const row=db.prepare('SELECT value FROM game_state WHERE key=?').get(key);return row?JSON.parse(row.value):null;}
  function write(key,value){db.prepare('INSERT INTO game_state(key,value,updated_at) VALUES(?,?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value,updated_at=excluded.updated_at').run(key,JSON.stringify(value),now());}
- function initial(h){return {hour:h,cadenceHours:MARKET_CADENCE_HOURS,stocks:Object.fromEntries(STOCKS.map(s=>[s.id,{price:String(s.base),changeBp:0,history:[s.base],event:null}]))};}
- function advance(m,h){
+ function initial(h){return {hour:h,cadenceHours:MARKET_CADENCE_HOURS,catalogVersion:STOCK_CATALOG_VERSION,stocks:Object.fromEntries(STOCKS.map(s=>[s.id,initialQuote(s)]))};}
+ function advance(m,h,activeStocks=STOCKS){
   // Catch up server-side on KST 00:00/06:00/12:00/18:00 boundaries only.
   // The same persisted market is shared by all users. Never derive prices in the browser.
   const skipped=Math.max(0,Math.floor((h-m.hour)/MARKET_CADENCE_HOURS)),steps=Math.min(skipped,56);
-  for(let i=0;i<steps;i++)for(const s of STOCKS){
+  for(let i=0;i<steps;i++)for(const s of activeStocks){
    const p=m.stocks[s.id],old=BigInt(p.price);
    let bp=randomInt(-s.vol,s.vol+1),event=null;
    if(randomInt(0,100)<3){
@@ -46,20 +54,33 @@ function createJStocks({db,exactWallet,now=Date.now,randomInt=crypto.randomInt})
  function insideMarket(){
   const h=sessionHour(now());let m=read(MARKET_KEY),changed=false;
   if(!m){m=initial(h);changed=true;}
-  else if(!Number.isSafeInteger(m.hour)||!m.stocks||STOCKS.some(s=>!m.stocks[s.id]))throw Error('주식시장 저장 정보가 손상되었습니다. 관리자 확인이 필요합니다.');
-  else if(m.cadenceHours!==MARKET_CADENCE_HOURS){
-   // Upgrade existing hourly markets in place. Re-anchor the CURRENT quoted price
-   // to this KST six-hour session without replaying missed hourly ticks.
-   // Never touch jstock:portfolio:* holdings, users' wallets, or trading history.
-   m.hour=h;m.cadenceHours=MARKET_CADENCE_HOURS;changed=true;
+  else {
+   // Existing A-E remain authoritative. Never replace their current price,
+   // history, owned quantities, wallet, or ledger during catalog expansion.
+   if(!Number.isSafeInteger(m.hour)||!m.stocks||typeof m.stocks!=='object'||
+      ORIGINAL_STOCK_IDS.some(id=>!m.stocks[id])||
+      (m.catalogVersion!==undefined&&m.catalogVersion!==STOCK_CATALOG_VERSION)||
+      (m.catalogVersion===STOCK_CATALOG_VERSION&&STOCKS.some(s=>!m.stocks[s.id])))
+    throw Error('주식시장 저장 정보가 손상되었습니다. 관리자 확인이 필요합니다.');
+   if(m.cadenceHours!==MARKET_CADENCE_HOURS){
+    // Legacy hourly markets are re-anchored without extra interim ticks.
+    m.hour=h;m.cadenceHours=MARKET_CADENCE_HOURS;changed=true;
+   }else if(h>m.hour){
+    // Apply missed sessions to previously listed stocks only. New listings
+    // debut at their IPO base price, not an artificial historical price.
+    m=advance(m,h,STOCKS.filter(s=>!!m.stocks[s.id]));changed=true;
+   }
+   if(m.catalogVersion!==STOCK_CATALOG_VERSION){
+    for(const s of STOCKS)if(!m.stocks[s.id])m.stocks[s.id]=initialQuote(s);
+    m.catalogVersion=STOCK_CATALOG_VERSION;changed=true;
+   }
   }
-  else if(h>m.hour){m=advance(m,h);changed=true;}
   if(changed)write(MARKET_KEY,m);
   return {market:m,changed};
  }
  function currentMarket(){
   const h=sessionHour(now()),cached=read(MARKET_KEY);
-  if(cached&&cached.cadenceHours===MARKET_CADENCE_HOURS&&cached.hour>=h)return {market:cached,changed:false};
+  if(cached&&cached.cadenceHours===MARKET_CADENCE_HOURS&&cached.hour>=h&&cached.catalogVersion===STOCK_CATALOG_VERSION&&STOCKS.every(s=>cached.stocks?.[s.id]))return {market:cached,changed:false};
   db.exec('BEGIN IMMEDIATE');
   try{const r=insideMarket();db.exec('COMMIT');return r;}
   catch(e){try{db.exec('ROLLBACK');}catch{}throw e;}
@@ -138,4 +159,4 @@ function createJStocks({db,exactWallet,now=Date.now,randomInt=crypto.randomInt})
  }
  return {status,trade};
 }
-module.exports={createJStocks,STOCKS,MARKET_KEY,FEE_BP,MARKET_CADENCE_HOURS,sessionHour};
+module.exports={createJStocks,STOCKS,MARKET_KEY,FEE_BP,MARKET_CADENCE_HOURS,sessionHour,STOCK_CATALOG_VERSION};
