@@ -32,3 +32,14 @@
 #jstockNotice{min-height:18px;font-size:12px;line-height:1.5;font-weight:700}.jstock-error{color:#ff9292}.jstock-success{color:#a5eabe}
 @media(max-width:650px){.jstock-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.jstock-bottom{grid-template-columns:1fr}.jstock-spark{width:48px}.jstock-value{min-width:100px}.jstock-item{padding:9px;gap:6px}.jstock-name b{font-size:11px}.jstock-selected>b{font-size:13px}}
 @media(max-width:385px){.jstock-spark{display:none}.jstock-value{min-width:98px}.jstock-icon{width:22px;font-size:18px}}
+
+.jstock-owned{color:#e7d5ac!important;font-weight:800}
+.jstock-portfolio{margin:15px 0;padding:12px;border:1px solid #e5c88e66;border-radius:12px;background:#151d2c}
+.jstock-portfolio h3{margin:0 0 10px!important}.jstock-portfolio-scroll{overflow-x:auto}
+.jstock-portfolio table{border-collapse:collapse;width:100%;min-width:510px;font-size:11px}
+.jstock-portfolio th{color:#e0c9a3;font-weight:800;text-align:right;padding:10px 7px;border-bottom:1px solid #ffffff42;white-space:nowrap}
+.jstock-portfolio td{padding:10px 7px;text-align:right;border-bottom:1px solid #ffffff15;white-space:nowrap}
+.jstock-portfolio td:first-child,.jstock-portfolio th:first-child{text-align:left}
+.jstock-portfolio td:nth-child(2){color:#ffe5ad;font-weight:800}
+.jstock-selected p strong{font-size:13px}
+@media(max-width:500px){.jstock-portfolio{padding:9px}.jstock-portfolio table{font-size:10px}.jstock-selected{align-items:flex-start}.jstock-selected>b{flex:none}}
