@@ -56,7 +56,8 @@ function clock(){
 function render(){
  if(!snapshot||!$('#jstockBody'))return;
  const s=snapshot.stocks.find(x=>x.id===active)||snapshot.stocks[0];active=s.id;
- const h=snapshot.holdings.find(x=>x.id===active)||{quantity:'0',cost:'0',value:'0'};
+ const h=snapshot.holdings.find(x=>x.id===active)||{quantity:'0',cost:'0',value:'0',unrealized:'0'};
+ const owned=num(h.quantity),average=owned?num(h.cost)/owned:0n,unitDifference=num(s.price)-average;
  const tradeRows=(snapshot.trades||[]).slice(0,6).map(t=>{
   const item=snapshot.stocks.find(s=>s.id===t.stockId);
   return '<div class="jstock-transaction"><span>'+esc(item?.name||t.stockId)+' <b>'+ (t.side==='buy'?'매수':'매도')+'</b></span><span>'+fmt(t.quantity)+'주 · '+money(t.gross)+'</span></div>';
@@ -65,9 +66,11 @@ function render(){
  '<div class="jstock-stats"><div><small>지갑 잔액</small><b>'+money(snapshot.wallet)+'</b></div><div><small>보유 주식 평가액</small><b>'+money(snapshot.marketValue)+'</b></div><div><small>평가손익</small><b class="'+cls(snapshot.unrealized)+'">'+profit(snapshot.unrealized)+'</b></div><div><small>누적 실현손익</small><b class="'+cls(snapshot.realized)+'">'+profit(snapshot.realized)+'</b></div></div>'+
  '<h3>상장기업 <small>매시 정각 · KST 기준 자동 변동</small></h3><div class="jstock-list">'+snapshot.stocks.map(x=>{
   const sign=x.changeBp>0?'+':'',percent=(x.changeBp/100).toFixed(2),direction=x.changeBp>0?'up':x.changeBp<0?'down':'flat';
-  return '<button type="button" class="jstock-item '+(x.id===active?'selected':'')+'" data-jstock-select="'+esc(x.id)+'" aria-pressed="'+(x.id===active)+'"><span class="jstock-icon">'+x.icon+'</span><span class="jstock-name"><b>'+esc(x.id)+' · '+esc(x.name)+'</b><small>'+esc(x.sector)+'</small></span>'+trend(x.history)+'<span class="jstock-value"><b>'+money(x.price)+'</b><small class="'+direction+'">'+sign+percent+'%</small></span></button>';
+  const holding=snapshot.holdings.find(h=>h.id===x.id)||{quantity:'0',unrealized:'0'};
+  return '<button type="button" class="jstock-item '+(x.id===active?'selected':'')+'" data-jstock-select="'+esc(x.id)+'" aria-pressed="'+(x.id===active)+'"><span class="jstock-icon">'+x.icon+'</span><span class="jstock-name"><b>'+esc(x.id)+' · '+esc(x.name)+'</b><small>'+esc(x.sector)+'</small></span>'+trend(x.history)+'<span class="jstock-value"><b>'+money(x.price)+'</b><small class="'+direction+'">'+sign+percent+'%</small><small class="jstock-owned">보유 '+fmt(holding.quantity)+'주</small><small class="'+cls(holding.unrealized)+'">'+profit(holding.unrealized)+'</small></span></button>';
  }).join('')+'</div>'+
- '<div class="jstock-order"><div class="jstock-selected"><div><small>'+esc(s.sector)+' · '+esc(s.id)+'</small><h3>'+esc(s.icon)+' '+esc(s.name)+'</h3><p>보유 '+fmt(h.quantity)+'주 · 평가액 '+money(h.value)+'</p></div><b class="'+(s.changeBp>0?'up':s.changeBp<0?'down':'flat')+'">'+money(s.price)+'</b></div>'+
+ '<section class="jstock-portfolio"><h3>📊 내 보유 주식 · 매입가 대비 차액</h3><div class="jstock-portfolio-scroll"><table><thead><tr><th>종목</th><th>보유 주식</th><th>매입금액</th><th>현재 평가금액</th><th>차액(수익·손실)</th></tr></thead><tbody>'+snapshot.stocks.map(item=>{const x=snapshot.holdings.find(h=>h.id===item.id)||{quantity:'0',cost:'0',value:'0',unrealized:'0'};return '<tr><td>'+esc(item.name)+'</td><td>'+fmt(x.quantity)+'주</td><td>'+money(x.cost)+'</td><td>'+money(x.value)+'</td><td class="'+cls(x.unrealized)+'">'+profit(x.unrealized)+'</td></tr>';}).join('')+'</tbody></table></div></section>'+
+ '<div class="jstock-order"><div class="jstock-selected"><div><small>'+esc(s.sector)+' · '+esc(s.id)+'</small><h3>'+esc(s.icon)+' '+esc(s.name)+'</h3><p>보유 <b>'+fmt(h.quantity)+'주</b> · 평균 매입가 '+money(average)+'/주</p><p>총 매입금 '+money(h.cost)+' → 현재 '+money(h.value)+'<br><strong class="'+cls(h.unrealized)+'">평가 차액 '+profit(h.unrealized)+'</strong> · 1주당 차액 '+profit(unitDifference)+'</p></div><b class="'+(s.changeBp>0?'up':s.changeBp<0?'down':'flat')+'">'+money(s.price)+'</b></div>'+
  (s.event?'<p class="jstock-event">📰 시장 속보: '+esc(s.name)+' · '+esc(s.event)+'</p>':'')+
  '<div class="jstock-side"><button type="button" data-jstock-side="buy" class="'+(side==='buy'?'selected buy':'')+'">매수</button><button type="button" data-jstock-side="sell" class="'+(side==='sell'?'selected sell':'')+'">매도</button></div>'+
  '<label for="jstockQuantity">주문 수량 (주)</label><input id="jstockQuantity" type="text" inputmode="numeric" value="'+esc(lastQuantity)+'" placeholder="주식 수량 입력" autocomplete="off"/>'+
