@@ -49,8 +49,9 @@ function clock(){
  if(!snapshot)return;
  const el=$('#jstockClock');if(!el)return;
  const remain=Math.max(0,Math.ceil((snapshot.nextTickAt-(Date.now()+offset))/1000));
- const mm=String(Math.floor(remain/60)).padStart(2,'0'),ss=String(remain%60).padStart(2,'0');
- el.textContent='다음 시세 변동 '+mm+':'+ss;
+ const hh=String(Math.floor(remain/3600)).padStart(2,'0'),mm=String(Math.floor(remain%3600/60)).padStart(2,'0'),ss=String(remain%60).padStart(2,'0');
+ const next=new Date(snapshot.nextTickAt).toLocaleTimeString('ko-KR',{timeZone:'Asia/Seoul',hour:'2-digit',minute:'2-digit',hourCycle:'h23'});
+ el.textContent='다음 변동 '+next+' KST · '+hh+':'+mm+':'+ss+' 남음';
  if(remain===0&&!busy)refresh(false);
 }
 function render(){
@@ -64,7 +65,7 @@ function render(){
  }).join('')||'<p class="jstock-empty">아직 거래 기록이 없어.</p>';
  $('#jstockBody').innerHTML='<div class="jstock-market-info"><span class="jstock-live">● LIVE SIMULATION</span><strong id="jstockClock">다음 시세 변동</strong><button type="button" data-jstock-refresh>↻ 새로고침</button></div>'+
  '<div class="jstock-stats"><div><small>지갑 잔액</small><b>'+money(snapshot.wallet)+'</b></div><div><small>보유 주식 평가액</small><b>'+money(snapshot.marketValue)+'</b></div><div><small>평가손익</small><b class="'+cls(snapshot.unrealized)+'">'+profit(snapshot.unrealized)+'</b></div><div><small>누적 실현손익</small><b class="'+cls(snapshot.realized)+'">'+profit(snapshot.realized)+'</b></div></div>'+
- '<h3>상장기업 <small>매시 정각 · KST 기준 자동 변동</small></h3><div class="jstock-list">'+snapshot.stocks.map(x=>{
+ '<h3>상장기업 <small>하루 4회 · 한국시간 00·06·12·18시 변동</small></h3><div class="jstock-list">'+snapshot.stocks.map(x=>{
   const sign=x.changeBp>0?'+':'',percent=(x.changeBp/100).toFixed(2),direction=x.changeBp>0?'up':x.changeBp<0?'down':'flat';
   const holding=snapshot.holdings.find(h=>h.id===x.id)||{quantity:'0',unrealized:'0'};
   return '<button type="button" class="jstock-item '+(x.id===active?'selected':'')+'" data-jstock-select="'+esc(x.id)+'" aria-pressed="'+(x.id===active)+'"><span class="jstock-icon">'+x.icon+'</span><span class="jstock-name"><b>'+esc(x.id)+' · '+esc(x.name)+'</b><small>'+esc(x.sector)+'</small></span>'+trend(x.history)+'<span class="jstock-value"><b>'+money(x.price)+'</b><small class="'+direction+'">'+sign+percent+'%</small><small class="jstock-owned">보유 '+fmt(holding.quantity)+'주</small><small class="'+cls(holding.unrealized)+'">'+profit(holding.unrealized)+'</small></span></button>';
@@ -101,7 +102,7 @@ async function trade(){
  const amount=num(raw),s=snapshot.stocks.find(x=>x.id===active),gross=amount*num(s.price),fee=(gross*50n+9999n)/10000n;
  if(side==='buy'&&gross+fee>num(snapshot.wallet)){alertText('보유머니가 부족해.',true);return;}
  if(side==='sell'&&amount>num(snapshot.holdings.find(x=>x.id===active)?.quantity||'0')){alertText('보유 수량을 확인해 줘.',true);return;}
- if(!confirm(s.name+' '+fmt(amount)+'주를 '+(side==='buy'?'매수':'매도')+'할까?\n현재 1주 '+money(s.price)+'\n거래 수수료 '+money(fee)+'\n시세는 매시 정각에 달라질 수 있어.'))return;
+ if(!confirm(s.name+' '+fmt(amount)+'주를 '+(side==='buy'?'매수':'매도')+'할까?\n현재 1주 '+money(s.price)+'\n거래 수수료 '+money(fee)+'\n시세는 하루 4회(00·06·12·18시 KST) 달라질 수 있어.'))return;
  busy=true;try{
   const d=await api('/api/jstock/trade',{method:'POST',body:JSON.stringify({side,stockId:active,quantity:raw,requestId:crypto.randomUUID()})});
   snapshot=d.status;offset=Number(snapshot.serverNow)-Date.now();lastQuantity='1';render();
