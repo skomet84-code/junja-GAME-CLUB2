@@ -13,7 +13,7 @@
 <link rel="stylesheet" href="/yut-royal-v2.css?v=20261025-final">
 <link rel="stylesheet" href="/rank-system.css?v=god-junja-ultimate-100gyeong-20261025">
 <link rel="stylesheet" href="/j-bank.css?v=20261025-2">
-<link rel="stylesheet" href="/j-stock.css?v=20261029-3">
+<link rel="stylesheet" href="/j-stock.css?v=20261029-4">
 <link rel="stylesheet" href="/treasure-raid.css?v=4">
 <link rel="stylesheet" href="/goldenbell/style.css?v=1">
 <link rel="stylesheet" href="/omok/lobby.css?v=1">
@@ -26,7 +26,8 @@
 <script defer src="/app.js?v=20261025-holdem-funds-1"></script>
 <script defer src="/rank-system.js?v=god-junja-ultimate-100gyeong-20261025"></script>
 <script defer src="/j-bank.js?v=20261025-3"></script>
-<script defer src="/j-stock.js?v=20261029-3"></script>
+<script defer src="/j-stock.js?v=20261029-4"></script>
+<script defer src="/jstock-header.js?v=20261029-1"></script>
 <link rel="stylesheet" href="/godjunja-collection.css?v=1">
 <link rel="stylesheet" href="/royal-plus-shop.css?v=1">
 <link rel="stylesheet" href="/blackroom/lobby.css?v=1">
@@ -51,6 +52,9 @@
       <div class="brand-inline" data-go="lobby"><span class="mini-mark">J</span><strong>JUNJA CLUB</strong></div>
       <button id="helpBtn" class="help-pill" type="button">? 게임방법</button><button id="shopBtn" class="shop-pill" data-go="shop" type="button">🛍️ BOUTIQUE</button><button id="friendsBtn" class="friends-pill" type="button">👥 친구</button><button id="jBankBtn" class="jbank-pill" type="button">🏦 J-BANK</button>
       <button id="adminBtn" class="admin-pill hidden" data-go="admin" type="button">⚙ ADMIN</button>
+      <div id="jstockHeaderProfit" class="jstock-header-profit flat" role="status" aria-live="polite" aria-label="주식 평가손익">
+        <span>📈 주식 수익</span><b id="jstockHeaderProfitAmount">—</b>
+      </div>
       <div class="wallet-pill"><span>보유머니</span><b id="walletBalance">0 G</b></div>
       <button id="profileBtn" class="profile-pill" type="button"><span id="avatarEmoji">😎</span><span><b id="nickName">-</b><small id="onlineCount">ONLINE 0</small></span></button>
     </header>

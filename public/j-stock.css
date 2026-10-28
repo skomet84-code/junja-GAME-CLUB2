@@ -44,3 +44,26 @@
 .jstock-portfolio td:nth-child(2){color:#ffe5ad;font-weight:800}
 .jstock-selected p strong{font-size:13px}
 @media(max-width:500px){.jstock-portfolio{padding:9px}.jstock-portfolio table{font-size:10px}.jstock-selected{align-items:flex-start}.jstock-selected>b{flex:none}}
+
+
+/* J-STOCK topbar profit, next to existing wallet, never alters wallet balance. */
+.topbar .jstock-header-profit{box-sizing:border-box;margin-left:auto;flex:0 1 auto;min-width:114px;max-width:200px;min-height:46px;display:flex;flex-direction:column;justify-content:center;gap:4px;padding:7px 12px;border-radius:16px;border:1px solid #ffffff23;background:linear-gradient(155deg,#121b2a,#0b0f19);box-shadow:inset 0 1px #ffffff08}
+.topbar .wallet-pill{margin-left:0}
+.topbar .jstock-header-profit span{font-size:10px;color:#a6b6cd;letter-spacing:.01em;white-space:nowrap}
+.topbar .jstock-header-profit b{font-size:clamp(12px,1.6vw,17px);font-weight:900;line-height:1.2;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#b6c1d2}
+.topbar .jstock-header-profit.up{border-color:#ff827f55;background:linear-gradient(145deg,#2a1721,#111522)}
+.topbar .jstock-header-profit.up b{color:#ff7777;text-shadow:0 0 12px #ff6c6c24}
+.topbar .jstock-header-profit.down{border-color:#8fb3ff55;background:linear-gradient(145deg,#182342,#0c1425)}
+.topbar .jstock-header-profit.down b{color:#84b5ff;text-shadow:0 0 12px #7baaff24}
+@media(max-width:620px){
+ .topbar .jstock-header-profit{margin-left:0;margin-right:auto;min-width:100px;max-width:145px;min-height:42px;padding:6px 9px;gap:3px;border-radius:13px}
+ .topbar .jstock-header-profit span{font-size:9px}
+ .topbar .jstock-header-profit b{font-size:13px}
+ .topbar .wallet-pill{margin-left:0}
+}
+@media(max-width:385px){
+ .topbar .jstock-header-profit{min-width:88px;max-width:108px;padding:6px 7px}
+ .topbar .jstock-header-profit b{font-size:11px}
+ .topbar .jstock-header-profit span{font-size:8px}
+ .topbar .wallet-pill{min-width:92px}
+}
