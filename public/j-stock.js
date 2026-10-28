@@ -65,7 +65,7 @@ function render(){
  }).join('')||'<p class="jstock-empty">아직 거래 기록이 없어.</p>';
  $('#jstockBody').innerHTML='<div class="jstock-market-info"><span class="jstock-live">● LIVE SIMULATION</span><strong id="jstockClock">다음 시세 변동</strong><button type="button" data-jstock-refresh>↻ 새로고침</button></div>'+
  '<div class="jstock-stats"><div><small>지갑 잔액</small><b>'+money(snapshot.wallet)+'</b></div><div><small>보유 주식 평가액</small><b>'+money(snapshot.marketValue)+'</b></div><div><small>평가손익</small><b class="'+cls(snapshot.unrealized)+'">'+profit(snapshot.unrealized)+'</b></div><div><small>누적 실현손익</small><b class="'+cls(snapshot.realized)+'">'+profit(snapshot.realized)+'</b></div></div>'+
- '<h3>상장기업 <small>하루 4회 · 한국시간 00·06·12·18시 변동</small></h3><div class="jstock-list">'+snapshot.stocks.map(x=>{
+ '<h3>상장기업 <small>총 '+snapshot.stocks.length+'종 · 하루 4회(00·06·12·18시 KST) 변동</small></h3><div class="jstock-list">'+snapshot.stocks.map(x=>{
   const sign=x.changeBp>0?'+':'',percent=(x.changeBp/100).toFixed(2),direction=x.changeBp>0?'up':x.changeBp<0?'down':'flat';
   const holding=snapshot.holdings.find(h=>h.id===x.id)||{quantity:'0',unrealized:'0'};
   return '<button type="button" class="jstock-item '+(x.id===active?'selected':'')+'" data-jstock-select="'+esc(x.id)+'" aria-pressed="'+(x.id===active)+'"><span class="jstock-icon">'+x.icon+'</span><span class="jstock-name"><b>'+esc(x.id)+' · '+esc(x.name)+'</b><small>'+esc(x.sector)+'</small></span>'+trend(x.history)+'<span class="jstock-value"><b>'+money(x.price)+'</b><small class="'+direction+'">'+sign+percent+'%</small><small class="jstock-owned">보유 '+fmt(holding.quantity)+'주</small><small class="'+cls(holding.unrealized)+'">'+profit(holding.unrealized)+'</small></span></button>';
