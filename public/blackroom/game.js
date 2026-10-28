@@ -131,7 +131,7 @@
   '<button type="button" data-travel="'+id+'" class="'+(state.scene===id?'active':'')+'" '+(id!=='hall'&&!state.door?'disabled':'')+'>'+
   (id==='hall'?'⌖ ':id==='room'?'⌑ ':'◫ ')+esc(item.name)+'</button>').join('')+'</div>';
  const sceneChapterNav=()=>state.solved?
-  '<section class="panel-card" style="margin-bottom:15px"><span class="eyebrow">CASE 001 / 013 · CLEARED</span><h3>1화 해결! 다음 사건이 열렸어</h3><p>'+(state.ending==='true'?'숨겨진 진상까지 입증 완료.':'2화를 먼저 진행해도 돼. 남은 추론과 심문은 1화의 선택형 진엔딩 도전이야.')+'</p><a class="primary-action" style="width:100%" href="/blackroom/series.html">🔎 완료한 사건 고난도 재수사 · 13개 사건 보관함 →</a><p style="margin-top:10px;font-size:12px">이미 완료했다면 사건 보관함에서 해결한 사건을 선택해 고난도 재수사를 시작할 수 있어. 기존 수사 기록은 삭제되지 않아.</p></section>':
+  '<section class="panel-card" style="margin-bottom:15px"><span class="eyebrow">CASE 001 / 013 · CLEARED</span><h3>1화 해결! 다음 사건이 열렸어</h3><p>'+(state.ending==='true'?'숨겨진 진상까지 입증 완료.':'2화를 먼저 진행해도 돼. 남은 추론과 심문은 1화의 선택형 진엔딩 도전이야.')+'</p><a class="primary-action" style="width:100%" href="/blackroom/series.html">사건 002 · 사라진 기록 시작 →</a><a class="secondary-action" style="display:inline-flex;margin-top:8px" href="/blackroom/series.html">🔎 고난도 재수사 · 13개 사건 보관함 →</a><p style="margin-top:10px;font-size:12px">이미 완료했다면 사건 보관함에서 해결한 사건을 선택해 고난도 재수사를 시작할 수 있어. 기존 수사 기록은 삭제되지 않아.</p></section>':
   '<section class="panel-card" style="margin-bottom:15px"><span class="eyebrow">CASE 001 / 013 · INVESTIGATION</span><h3>현재 1화 수사 중</h3><p>검증한 추론 3개가 모이면 ‘결론’에서 기본 사건 종결 후 2화로 진행할 수 있어. 장소 이동은 1화 안의 이동이야.</p><a class="secondary-action" style="display:inline-flex" href="/blackroom/series.html">13개 사건 목록 확인 →</a></section>';
  const scene=()=>{
   const loc=E.SCENES[state.scene];
