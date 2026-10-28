@@ -1,0 +1,34 @@
+.jstock-launch{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;margin:14px 0;padding:15px;border-radius:14px;border:1px solid #d9bb7877;background:linear-gradient(120deg,#342a22,#152338);color:#f8eacb;text-align:left;cursor:pointer;box-shadow:0 5px 18px #0003}
+.jstock-launch b{font-size:15px}.jstock-launch small{display:block;color:#d2c2a8;font-size:11px;margin-top:5px}.jstock-launch strong{white-space:nowrap;color:#ffe09a;font-size:13px}
+.jstock-modal{position:fixed;inset:0;z-index:11100;display:none;place-items:center;background:#040711e8;backdrop-filter:blur(11px);padding:max(8px,env(safe-area-inset-top)) 10px max(8px,env(safe-area-inset-bottom))}
+.jstock-modal.open{display:grid}
+.jstock-panel{box-sizing:border-box;width:min(860px,100%);max-height:96dvh;overflow:auto;overscroll-behavior:contain;border:1px solid #e0c28288;border-radius:19px;padding:clamp(13px,3.5vw,25px);background:radial-gradient(ellipse at 95% 0%,#ad85413d,transparent 38%),linear-gradient(137deg,#10192b,#0c101d);color:#e9edf4;box-shadow:0 28px 95px #000d}
+.jstock-header{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:13px}
+.jstock-header small{font-size:9px;font-weight:900;letter-spacing:.22em;color:#cdb37f}.jstock-header h2{margin:3px 0;font:bold clamp(27px,6vw,41px) Georgia,serif;color:#ffe09f}.jstock-header span{font-size:12px;color:#abb8c8}
+.jstock-exit{background:#222c3f;color:#fff;border:1px solid #ffffff4d;border-radius:50%;font-size:24px;min-width:40px;height:40px;cursor:pointer}
+.jstock-market-info{display:flex;justify-content:space-between;align-items:center;gap:7px;flex-wrap:wrap;border-top:1px solid #ffffff20;padding:11px 0;font-size:11px}
+.jstock-live{color:#a2edc9;font-weight:900;letter-spacing:.1em}.jstock-market-info strong{color:#ffe1ac}.jstock-market-info button{background:#26344c;color:#dfeeff;border:1px solid #6477936b;border-radius:7px;padding:7px;cursor:pointer}
+.jstock-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:10px 0 22px}
+.jstock-stats div{min-width:0;background:#ffffff09;border:1px solid #ffffff1e;border-radius:10px;padding:11px;overflow-wrap:anywhere}
+.jstock-stats small{display:block;color:#aab2c3;font-size:10px;margin-bottom:7px}.jstock-stats b{font-size:clamp(11px,2.5vw,16px);line-height:1.5}
+.jstock-panel h3{font-size:15px;color:#fbe6bc;margin:15px 0 8px}.jstock-panel h3 small{font-size:10px;color:#a4b4c6;font-weight:500;margin-left:5px}
+.jstock-list{display:grid;gap:7px}.jstock-item{display:flex;align-items:center;gap:10px;min-width:0;padding:11px;border:1px solid #ffffff24;border-radius:10px;background:#151f31;color:#e8efff;text-align:left;cursor:pointer}
+.jstock-item.selected{border-color:#f1c978;background:#2d2b32;box-shadow:0 0 0 1px #f1c97833}
+.jstock-icon{font-size:22px;width:32px;flex:none;text-align:center}.jstock-name{min-width:0;flex:1}.jstock-name b,.jstock-name small{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.jstock-name b{font-size:12px}.jstock-name small{color:#a5b0c1;font-size:10px;margin-top:4px}
+.jstock-value{min-width:122px;text-align:right}.jstock-value b,.jstock-value small{display:block;white-space:nowrap;font-size:11px}.jstock-value small{margin-top:5px}
+.jstock-spark{width:100px;height:32px;stroke:#edd3a1;fill:none;stroke-width:2;opacity:.85;flex:none}
+.jstock-panel .up{color:#ff827f!important}.jstock-panel .down{color:#8fb3ff!important}.jstock-panel .flat{color:#ced2da!important}
+.jstock-order{margin-top:18px;padding:14px;border:1px solid #ffffff30;border-radius:14px;background:linear-gradient(150deg,#15223a,#111624)}
+.jstock-selected{display:flex;justify-content:space-between;gap:10px;align-items:center}.jstock-selected h3{margin:4px 0;font-size:17px}.jstock-selected small,.jstock-selected p{font-size:11px;color:#b1bcd1}.jstock-selected p{margin:5px 0}.jstock-selected>b{font-size:17px;text-align:right;white-space:nowrap}
+.jstock-event{padding:9px;margin:9px 0;background:#b1823d20;color:#ffe0a1;font-size:11px;border-radius:9px}
+.jstock-side{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:15px 0}.jstock-side button{background:#253047;border:1px solid #ffffff27;border-radius:9px;padding:10px;color:#d7dfed;font-weight:800;cursor:pointer}.jstock-side button.selected.buy{background:#903e46;color:#fff;border-color:#e5888d}.jstock-side button.selected.sell{background:#315991;color:#fff;border-color:#8cadff}
+.jstock-order label{display:block;font-size:11px;color:#c5d0e3;font-weight:800}.jstock-order input{box-sizing:border-box;width:100%;padding:12px;margin:7px 0;border-radius:9px;border:1px solid #caab7866;background:#0c1220;color:#fff3d9;font-size:18px;min-height:43px}
+.jstock-presets{display:flex;flex-wrap:wrap;gap:5px}.jstock-presets button{flex:1;min-width:55px;cursor:pointer;padding:8px;border:1px solid #dbb97850;border-radius:8px;color:#e6d4b4;background:#ffffff0d;font-size:11px}
+.jstock-estimate{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;margin:12px 0;padding:12px;border-radius:9px;background:#ffffff0a;font-size:12px}.jstock-estimate strong{color:#ffecba;overflow-wrap:anywhere}.jstock-estimate small{width:100%;color:#afb4c4}
+.jstock-submit{width:100%;border:0;border-radius:10px;padding:13px;font-weight:900;cursor:pointer;color:white}.jstock-submit.buy{background:linear-gradient(115deg,#cf5765,#9c3342)}.jstock-submit.sell{background:linear-gradient(115deg,#547bd5,#35569d)}.jstock-submit:disabled{opacity:.4;cursor:wait}
+.jstock-disclaimer{font-size:10px;color:#aab3c3;line-height:1.7}
+.jstock-bottom{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:15px;margin:15px 0}.jstock-bottom section{min-width:0}.jstock-transaction{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid #ffffff19;font-size:11px}.jstock-transaction span{overflow-wrap:anywhere}.jstock-transaction b{font-weight:700}.jstock-empty{font-size:11px;color:#a5b1c8}
+.jstock-back{display:block;width:100%;cursor:pointer;border:1px solid #edd59b77;border-radius:9px;background:#4a3d2a;color:#ffe7b7;padding:11px;font-weight:800}
+#jstockNotice{min-height:18px;font-size:12px;line-height:1.5;font-weight:700}.jstock-error{color:#ff9292}.jstock-success{color:#a5eabe}
+@media(max-width:650px){.jstock-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.jstock-bottom{grid-template-columns:1fr}.jstock-spark{width:48px}.jstock-value{min-width:100px}.jstock-item{padding:9px;gap:6px}.jstock-name b{font-size:11px}.jstock-selected>b{font-size:13px}}
+@media(max-width:385px){.jstock-spark{display:none}.jstock-value{min-width:98px}.jstock-icon{width:22px;font-size:18px}}
