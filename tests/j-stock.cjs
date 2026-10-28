@@ -175,8 +175,8 @@ async function testLobbyProfit(){
  assert.ok(html.includes('id="jstockHeaderProfit"')&&html.includes('id="jstockHeaderProfitAmount"'),'profit indicator is in lobby header');
  assert.ok(html.indexOf('id="jstockHeaderProfit"')<html.indexOf('class="wallet-pill"'),'indicator is immediately left of wallet');
  assert.ok(html.includes('/jstock-header.js?v='),'profit controller script linked and versioned');
- assert.ok(css.includes('.topbar .jstock-header-profit.up b{color:#ff7777}'),'gain is red');
- assert.ok(css.includes('.topbar .jstock-header-profit.down b{color:#84b5ff}'),'loss is blue');
+ assert.ok(css.includes('.topbar .jstock-header-profit.up b{color:#ff7777;'),'gain is red');
+ assert.ok(css.includes('.topbar .jstock-header-profit.down b{color:#84b5ff;'),'loss is blue');
  assert.ok(modal.includes("new CustomEvent('jstock:status'"),'trade / modal refresh synchronizes header');
  const profitClasses=new Set(['flat']),mainClasses=new Set();
  const classList=set=>({
