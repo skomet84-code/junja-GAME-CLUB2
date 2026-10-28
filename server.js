@@ -160,6 +160,8 @@ ensureColumn('users','is_archived','INTEGER NOT NULL DEFAULT 0');
 ensureColumn('users','rank_level','INTEGER NOT NULL DEFAULT 0');
 ensureColumn('user_loadout','character','TEXT');
 
+// The stock exchange is isolated from the SOCIAL_RANKS test-evaluated block.
+const jStocks=createJStocks({db,exactWallet,now});
 const SLOT_JACKPOT_BASE = 50000000;
 function gameStateGet(key,fallback=null){
   const row=db.prepare('SELECT value FROM game_state WHERE key=?').get(String(key));
@@ -745,7 +747,6 @@ const SOCIAL_RANKS = [
   {level:13,name:'GOD JUNJA',icon:'G',cost:'1000000000000000000',className:'absolute'}
 ];
 const jBank=createJBank({db,exactWallet,levels:SOCIAL_RANKS,now,kstDate});
-const jStocks=createJStocks({db,exactWallet,now});
 function socialRankPerks(level){
   level=Math.max(0,Math.min(SOCIAL_RANKS.length-1,Number(level)||0));
   const extraDraws=level>=13?9:level>=12?6:level>=11?4:level>=9?3:level>=6?2:level>=3?1:0;
