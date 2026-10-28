@@ -7,6 +7,7 @@ const crypto = require('node:crypto');
 const staticResponse = require('./static-response');
 const exactWallet = require('./exact-wallet');
 const {createJBank}=require('./j-bank-core');
+const {createJStocks}=require('./j-stock-core');
 const { DatabaseSync } = require('./persistent-db');
 const createTreasureRaid = require('./treasure-raid-server');
 const createBlackroomCloud = require('./blackroom-cloud');
@@ -744,6 +745,7 @@ const SOCIAL_RANKS = [
   {level:13,name:'GOD JUNJA',icon:'G',cost:'1000000000000000000',className:'absolute'}
 ];
 const jBank=createJBank({db,exactWallet,levels:SOCIAL_RANKS,now,kstDate});
+const jStocks=createJStocks({db,exactWallet,now});
 function socialRankPerks(level){
   level=Math.max(0,Math.min(SOCIAL_RANKS.length-1,Number(level)||0));
   const extraDraws=level>=13?9:level>=12?6:level>=11?4:level>=9?3:level>=6?2:level>=3?1:0;
@@ -2155,6 +2157,20 @@ const server=http.createServer(async(req,res)=>{
       const token=parseCookies(req).sid;if(token)db.prepare('DELETE FROM sessions WHERE token=?').run(token);return json(res,200,{ok:true},{'Set-Cookie':'sid=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0'});
     }
     if(url.pathname==='/api/me'&&req.method==='GET'){const u=requireAuth(req,res);if(!u)return;const includePresence=url.searchParams.get('presence')==='1';return json(res,200,{user:u,online:onlineCount(),presence:includePresence?presenceSnapshot():[]});}
+    if(url.pathname==='/api/jstock'&&req.method==='GET'){
+      const u=requireAuth(req,res);if(!u)return;
+      try{const status=jStocks.status(u.id);if(status.changed)await db.flush();return json(res,200,status);}
+      catch(e){return json(res,400,{error:e.message});}
+    }
+    if(url.pathname==='/api/jstock/trade'&&req.method==='POST'){
+      const u=requireAuth(req,res);if(!u)return;
+      if(!rateLimit('jstock:'+u.id,20,60000))return json(res,429,{error:'주식 주문을 너무 자주 보내고 있습니다.'});
+      try{
+        const b=await readBody(req),result=jStocks.trade(u.id,b.side,b.stockId,b.quantity,b.requestId);
+        await db.flush();pushRefresh();
+        return json(res,200,{...result,user:userPublic(u.id)});
+      }catch(e){return json(res,400,{error:e.message});}
+    }
     if(url.pathname==='/api/jbank'&&req.method==='GET'){
       const u=requireAuth(req,res);if(!u)return;
       try{return json(res,200,{ok:true,...jBank.status(u.id)});}catch(e){return json(res,400,{error:e.message});}
