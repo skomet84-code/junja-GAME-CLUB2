@@ -7,6 +7,7 @@ const crypto = require('node:crypto');
 const staticResponse = require('./static-response');
 const exactWallet = require('./exact-wallet');
 const {createJBank}=require('./j-bank-core');
+const {createJStocks}=require('./j-stock-core');
 const { DatabaseSync } = require('./persistent-db');
 const createTreasureRaid = require('./treasure-raid-server');
 const createBlackroomCloud = require('./blackroom-cloud');
@@ -159,6 +160,8 @@ ensureColumn('users','is_archived','INTEGER NOT NULL DEFAULT 0');
 ensureColumn('users','rank_level','INTEGER NOT NULL DEFAULT 0');
 ensureColumn('user_loadout','character','TEXT');
 
+// The stock exchange is isolated from the SOCIAL_RANKS test-evaluated block.
+const jStocks=createJStocks({db,exactWallet,now});
 const SLOT_JACKPOT_BASE = 50000000;
 function gameStateGet(key,fallback=null){
   const row=db.prepare('SELECT value FROM game_state WHERE key=?').get(String(key));
@@ -2155,6 +2158,20 @@ const server=http.createServer(async(req,res)=>{
       const token=parseCookies(req).sid;if(token)db.prepare('DELETE FROM sessions WHERE token=?').run(token);return json(res,200,{ok:true},{'Set-Cookie':'sid=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0'});
     }
     if(url.pathname==='/api/me'&&req.method==='GET'){const u=requireAuth(req,res);if(!u)return;const includePresence=url.searchParams.get('presence')==='1';return json(res,200,{user:u,online:onlineCount(),presence:includePresence?presenceSnapshot():[]});}
+    if(url.pathname==='/api/jstock'&&req.method==='GET'){
+      const u=requireAuth(req,res);if(!u)return;
+      try{const status=jStocks.status(u.id);if(status.changed)await db.flush();return json(res,200,status);}
+      catch(e){return json(res,400,{error:e.message});}
+    }
+    if(url.pathname==='/api/jstock/trade'&&req.method==='POST'){
+      const u=requireAuth(req,res);if(!u)return;
+      if(!rateLimit('jstock:'+u.id,20,60000))return json(res,429,{error:'주식 주문을 너무 자주 보내고 있습니다.'});
+      try{
+        const b=await readBody(req),result=jStocks.trade(u.id,b.side,b.stockId,b.quantity,b.requestId);
+        await db.flush();pushRefresh();
+        return json(res,200,{...result,user:userPublic(u.id)});
+      }catch(e){return json(res,400,{error:e.message});}
+    }
     if(url.pathname==='/api/jbank'&&req.method==='GET'){
       const u=requireAuth(req,res);if(!u)return;
       try{return json(res,200,{ok:true,...jBank.status(u.id)});}catch(e){return json(res,400,{error:e.message});}

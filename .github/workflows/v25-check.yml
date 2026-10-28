@@ -54,7 +54,8 @@ jobs:
         run: cat /tmp/junja-v25.log || true
 
   mobile-browser-smoke:
-    runs-on: ubuntu-latest
+    # Playwright 1.55 does not install browser dependencies on ubuntu-26.04 runners.
+    runs-on: ubuntu-22.04
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4

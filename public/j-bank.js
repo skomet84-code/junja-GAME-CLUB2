@@ -7,7 +7,7 @@ let state=null,busy=false;
 function mount(){
  if($('#jbankModal'))return;
  const div=document.createElement('div');div.id='jbankModal';div.className='jbank-modal';div.setAttribute('role','dialog');div.setAttribute('aria-modal','true');div.setAttribute('aria-label','J-BANK 은행');
- div.innerHTML='<div class="jbank-panel"><button id="jbankClose" class="jbank-close" aria-label="닫기" type="button">×</button><small class="jbank-kicker">JUNJA PRIVATE BANKING · VIRTUAL CURRENCY</small><h2>♛ J-BANK</h2><p>신분에 따라 달라지는 대출 한도 · 게임머니 전용 디지털 은행</p><div id="jbankContent">은행 정보 확인 중...</div><div id="jbankNotice" aria-live="polite"></div></div>';
+ div.innerHTML='<div class="jbank-panel"><button id="jbankClose" class="jbank-close" aria-label="닫기" type="button">×</button><small class="jbank-kicker">JUNJA PRIVATE BANKING · VIRTUAL CURRENCY</small><h2>♛ J-BANK</h2><p>신분에 따라 달라지는 대출 한도 · 게임머니 전용 디지털 은행</p><button id="jbankMarketOpen" class="jstock-launch" type="button"><span><b>📈 준자 주식 거래소</b><small>준자반도체 · 물산 · 엔터 · 바이오 · 에너지</small></span><strong>J-STOCK 입장 ›</strong></button><div id="jbankContent">은행 정보 확인 중...</div><div id="jbankNotice" aria-live="polite"></div></div>';
  document.body.appendChild(div);
  div.addEventListener('click',e=>{if(e.target===div||e.target.closest('#jbankClose'))close();
   const choice=e.target.closest('[data-jbank-preset]');if(choice&&state){const type=choice.dataset.jbankType,input=$('#jbank'+(type==='borrow'?'Borrow':'Repay'));if(!input)return;let max=type==='borrow'?BigInt(state.available):BigInt(state.outstanding);if(type==='repay'&&BigInt(state.wallet)<max)max=BigInt(state.wallet);input.value=String(choice.dataset.jbankPreset==='max'?max:max*BigInt(choice.dataset.jbankPreset)/100n);}
