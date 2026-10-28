@@ -30,6 +30,7 @@
 .jstock-bottom{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:15px;margin:15px 0}.jstock-bottom section{min-width:0}.jstock-transaction{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid #ffffff19;font-size:11px}.jstock-transaction span{overflow-wrap:anywhere}.jstock-transaction b{font-weight:700}.jstock-empty{font-size:11px;color:#a5b1c8}
 .jstock-back{display:block;width:100%;cursor:pointer;border:1px solid #edd59b77;border-radius:9px;background:#4a3d2a;color:#ffe7b7;padding:11px;font-weight:800}
 #jstockNotice{min-height:18px;font-size:12px;line-height:1.5;font-weight:700}.jstock-error{color:#ff9292}.jstock-success{color:#a5eabe}
+@media(min-width:840px){.jstock-list{grid-template-columns:repeat(2,minmax(0,1fr))}.jstock-spark{width:64px}.jstock-item{gap:7px}.jstock-value{min-width:106px}}
 @media(max-width:650px){.jstock-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.jstock-bottom{grid-template-columns:1fr}.jstock-spark{width:48px}.jstock-value{min-width:100px}.jstock-item{padding:9px;gap:6px}.jstock-name b{font-size:11px}.jstock-selected>b{font-size:13px}}
 @media(max-width:385px){.jstock-spark{display:none}.jstock-value{min-width:98px}.jstock-icon{width:22px;font-size:18px}}
 
