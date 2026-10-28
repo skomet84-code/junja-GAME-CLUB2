@@ -1,0 +1,33 @@
+name: J-STOCK and Blackroom replay checks
+on:
+  push:
+    branches:
+      - feature/jbank-jstock-exchange-20261029
+  pull_request:
+    paths:
+      - 'j-stock-core.js'
+      - 'public/j-stock.js'
+      - 'public/blackroom/**'
+      - 'tests/j-stock.cjs'
+      - 'tests/blackroom-series.cjs'
+      - 'server.js'
+      - 'package.json'
+      - '.github/workflows/jstock-blackroom.yml'
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+      - run: npm ci --ignore-scripts
+      - run: npm run test:jstock
+      - run: node tests/blackroom-series.cjs
+      - run: node --check public/blackroom/series-ui.js
+      - run: node --check public/blackroom/game.js
+      - run: node --check server.js
