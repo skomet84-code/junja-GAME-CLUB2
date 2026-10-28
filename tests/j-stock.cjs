@@ -167,3 +167,57 @@ db.prepare('UPDATE game_state SET value=? WHERE key=?').run(JSON.stringify(after
 assert.equal(stock.status(2).holdings[6].quantity,'2','portfolio remains after failed corrupt market read');
 function initialQuoteTest(s){return {price:String(s.base),changeBp:0,history:[s.base],event:null};}
 console.log('JSTOCK_OK: ten industries incl ocean/pharma/aviation/robotics/defense, safe live A-E migration, KST four sessions, holdings, wallet, trading and corruption safeguards');
+
+
+// Lobby stock P/L: isolated fake DOM proves signed exact BigInt display and per-user refresh.
+async function testLobbyProfit(){
+ const vm=require('node:vm'),ui=fs.readFileSync('public/jstock-header.js','utf8'),html=fs.readFileSync('public/index.html','utf8'),css=fs.readFileSync('public/j-stock.css','utf8'),modal=fs.readFileSync('public/j-stock.js','utf8');
+ assert.ok(html.includes('id="jstockHeaderProfit"')&&html.includes('id="jstockHeaderProfitAmount"'),'profit indicator is in lobby header');
+ assert.ok(html.indexOf('id="jstockHeaderProfit"')<html.indexOf('class="wallet-pill"'),'indicator is immediately left of wallet');
+ assert.ok(html.includes('/jstock-header.js?v='),'profit controller script linked and versioned');
+ assert.ok(css.includes('.topbar .jstock-header-profit.up b{color:#ff7777}'),'gain is red');
+ assert.ok(css.includes('.topbar .jstock-header-profit.down b{color:#84b5ff}'),'loss is blue');
+ assert.ok(modal.includes("new CustomEvent('jstock:status'"),'trade / modal refresh synchronizes header');
+ const profitClasses=new Set(['flat']),mainClasses=new Set();
+ const classList=set=>({
+  add:(...xs)=>xs.forEach(x=>set.add(x)),remove:(...xs)=>xs.forEach(x=>set.delete(x)),
+  contains:x=>set.has(x),toggle:(x,yes)=>{if(yes)set.add(x);else set.delete(x);}
+ });
+ const pill={classList:classList(profitClasses),title:'',setAttribute(name,val){this[name]=val;}};
+ const amount={textContent:'—'},main={classList:classList(mainClasses)};
+ const elements={'#jstockHeaderProfit':pill,'#jstockHeaderProfitAmount':amount,'#mainApp':main};
+ const listeners={};let observer,requests=0,boundaryTimers=0;
+ let payload={unrealized:'12500',nextTickAt:Date.now()+3600000};
+ const document={hidden:false,readyState:'complete',querySelector:s=>elements[s]||null,
+  addEventListener:(type,fn)=>{(listeners[type]||=[]).push(fn);},
+  dispatchEvent:event=>(listeners[event.type]||[]).forEach(fn=>fn(event))};
+ const ctx={document,window:{addEventListener(){}},MutationObserver:class{constructor(fn){observer=fn;}observe(){}},
+  fetch:async (path,opts)=>{assert.equal(path,'/api/jstock');assert.equal(opts.credentials,'same-origin');requests++;return {ok:true,status:200,json:async()=>payload};},
+  setTimeout:()=>{boundaryTimers++;return boundaryTimers;},clearTimeout(){},setInterval(){return 1;},Date,Intl,BigInt};
+ vm.runInNewContext(ui,ctx,{filename:'public/jstock-header.js'});
+ await new Promise(resolve=>setImmediate(resolve)); // initial load quote
+ assert.equal(amount.textContent,'+1만 2500 G','positive profit uses red + and Korean compact units');
+ assert.ok(profitClasses.has('up')&&!profitClasses.has('down'));
+ assert.ok(boundaryTimers>=1,'refresh scheduled at next market session');
+ payload={unrealized:'-300000000',nextTickAt:Date.now()+3600000};
+ await ctx.window.JStockHeader.refresh(true);
+ assert.equal(amount.textContent,'-3억 G','negative profit has minus sign');
+ assert.ok(profitClasses.has('down')&&!profitClasses.has('up'));
+ payload={unrealized:'0',nextTickAt:Date.now()+3600000};
+ await ctx.window.JStockHeader.refresh(true);
+ assert.equal(amount.textContent,'0 G','zero profit is neutral');
+ assert.ok(profitClasses.has('flat'));
+ document.dispatchEvent({type:'jstock:status',detail:{unrealized:'1000000000000000020',nextTickAt:Date.now()+3600000}});
+ assert.equal(amount.textContent,'+100경 20 G','modal updates correctly display extremely large exact BigInt P/L');
+ mainClasses.add('hidden');observer();
+ assert.equal(amount.textContent,'—','logout removes stale other-user P/L');
+ const before=requests;
+ await ctx.window.JStockHeader.refresh(true);
+ assert.equal(requests,before,'logged-out client does not poll');
+ payload={unrealized:'-72000',nextTickAt:Date.now()+3600000};
+ mainClasses.delete('hidden');observer();
+ await new Promise(resolve=>setImmediate(resolve));
+ assert.equal(amount.textContent,'-7만 2000 G','next login reloads signed profit for current account');
+ console.log('JSTOCK_HEADER_OK: positive red, negative blue, neutral zero, large BigInt, market countdown, modal sync, safe session change');
+}
+testLobbyProfit().catch(error=>{console.error(error);process.exitCode=1;});
