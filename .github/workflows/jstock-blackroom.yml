@@ -24,8 +24,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-          cache: 'npm'
-      - run: npm ci --ignore-scripts
       - run: npm run test:jstock
       - run: node tests/blackroom-series.cjs
       - run: node --check public/blackroom/series-ui.js
