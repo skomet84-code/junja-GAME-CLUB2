@@ -77,4 +77,38 @@ const sellHuge=coin.trade(3,'sell','DOGJ',maxAfterTick.receipt.quantity,'jcoin-m
 assert.equal(sellHuge.status.holdings.find(h=>h.id==='DOGJ').quantity,'0.0000');
 console.log('J-COIN MAX balance, large quantity, fee, quote rollover, duplicate and full sell OK');
 
+
+// Browser-side countdown/price-chart smoke test, using the real UI source.
+// Server quote history and nextTickAt are used directly (no fabricated values).
+const fs=require('node:fs'),vm=require('node:vm');
+const source=fs.readFileSync('public/j-coin.js','utf8');
+assert.match(source,/jcoin-market-clock/);
+assert.match(source,/jcoin-price-svg/);
+assert.match(source,/setInterval\(clock,1000\)/);
+const instrumented=source.replace(/\}\)\(\);\s*$/,'window.__jcoinTest={historyPoints,spark,priceChart,clock,render,setSnapshot:d=>{snapshot=d;serverOffset=Number(d.serverNow)-Date.now();}};})();');
+assert.notEqual(instrumented,source,'test can expose UI functions without rewriting production code');
+const uiElements=new Map();
+uiElements.set('#jcoinModal',{});
+uiElements.set('#jcoinClock',{textContent:''});
+uiElements.set('#jcoinContent',{innerHTML:'',contains:()=>false,querySelector:()=>null});
+uiElements.set('#jcoinNotice',{textContent:''});
+const fakeDocument={head:{appendChild(){}},createElement:()=>({textContent:''}),addEventListener(){},querySelector:key=>uiElements.get(key)||null};
+const context={document:fakeDocument,window:{},Date,Math,BigInt,Number,String,Intl,setInterval:()=>0,clearInterval:()=>{}};
+vm.runInNewContext(instrumented,context);
+const ui=context.window.__jcoinTest;
+const realHistory=coin.status(1).stocks.find(x=>x.id==='JJC').history;
+const measured=ui.historyPoints(realHistory,600,170);
+assert.equal(measured.values.length,realHistory.length);
+assert.ok(measured.points.every(p=>p.every(Number.isFinite)),'server quote history creates valid chart points');
+assert.match(ui.spark([100,110,105]),/<svg/);
+const timestamp=Date.now();
+ui.setSnapshot({serverNow:timestamp,nextTickAt:timestamp+75000,wallet:'1000',marketValue:'0',cost:'0',unrealized:'0',stocks:[{id:'JJC',name:'준자코인',icon:'👑',price:'105',maxBuy:'1.0000',changeBp:250,history:[100,110,105]}],holdings:[],ranking:[],trades:[]});
+ui.render();
+assert.match(uiElements.get('#jcoinContent').innerHTML,/jcoin-price-svg/,'selected coin historical chart visible');
+assert.match(uiElements.get('#jcoinContent').innerHTML,/jcoin-spark/,'coin list sparkline visible');
+assert.match(uiElements.get('#jcoinContent').innerHTML,/jcoinClock/,'countdown located above holdings');
+assert.match(uiElements.get('#jcoinClock').textContent,/01:1[45] 남음/,'server-synchronized 75-second countdown');
+assert.equal(ui.historyPoints([100,100,100],600,170).points.length,3,'flat price history supported');
+console.log('JCOIN_UI_CHART_TIMER_OK: synchronized countdown, 15-minute quote series, mobile sparklines');
+
 console.log('J-COIN 15-minute tick, fractional orders, fees and idempotency OK');
