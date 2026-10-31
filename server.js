@@ -8,6 +8,7 @@ const staticResponse = require('./static-response');
 const exactWallet = require('./exact-wallet');
 const {createJBank}=require('./j-bank-core');
 const {createJStocks}=require('./j-stock-core');
+const {createJCoins}=require('./j-coin-core');
 const { DatabaseSync } = require('./persistent-db');
 const createTreasureRaid = require('./treasure-raid-server');
 const createBlackroomCloud = require('./blackroom-cloud');
@@ -162,6 +163,7 @@ ensureColumn('user_loadout','character','TEXT');
 
 // The stock exchange is isolated from the SOCIAL_RANKS test-evaluated block.
 const jStocks=createJStocks({db,exactWallet,now});
+const jCoins=createJCoins({db,exactWallet,now});
 const SLOT_JACKPOT_BASE = 50000000;
 function gameStateGet(key,fallback=null){
   const row=db.prepare('SELECT value FROM game_state WHERE key=?').get(String(key));
@@ -2175,6 +2177,16 @@ const server=http.createServer(async(req,res)=>{
         await db.flush();pushRefresh();
         return json(res,200,{...result,user:userPublic(u.id)});
       }catch(e){return json(res,400,{error:e.message});}
+    }
+    if(url.pathname==='/api/jcoin'&&req.method==='GET'){
+      const u=requireAuth(req,res);if(!u)return;
+      try{const status=jCoins.status(u.id);if(status.changed)await db.flush();return json(res,200,status);}catch(e){return json(res,400,{error:e.message});}
+    }
+    if(url.pathname==='/api/jcoin/trade'&&req.method==='POST'){
+      const u=requireAuth(req,res);if(!u)return;
+      if(!rateLimit('jcoin:'+u.id,20,60000))return json(res,429,{error:'코인 주문을 너무 자주 보내고 있습니다.'});
+      try{const b=await readBody(req),result=jCoins.trade(u.id,b.side,b.stockId,b.quantity,b.requestId);await db.flush();pushRefresh();return json(res,200,{...result,user:userPublic(u.id)});}
+      catch(e){return json(res,400,{error:e.message});}
     }
     if(url.pathname==='/api/jbank'&&req.method==='GET'){
       const u=requireAuth(req,res);if(!u)return;
