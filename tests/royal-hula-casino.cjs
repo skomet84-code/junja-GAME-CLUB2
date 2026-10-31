@@ -49,3 +49,52 @@ assert.equal(wallet(1),cashBefore,'failed reservation cannot debit first player'
 assert.equal(wallet(4),otherBefore);
 assert.equal(db.prepare('SELECT COUNT(*) AS c FROM room_escrow').get().c,0n);
 console.log('ROYAL_HULA_CASINO_OK: escrow, 2/4/16x multipliers, all-player atomicity, exact G, replay defence, zero-sum payout');
+
+(async()=>{
+ // End-to-end routed multiplayer session: room stakes must debit wallets at start,
+ // settle on a player's departure, and keep balances exactly zero-sum.
+ const createRoyalCards=require('../royal-cards-server');
+ let current={id:1,nickname:'준자'},counter=0;
+ const timers=[];
+ const crypto={
+  randomBytes(){const hex=(++counter).toString(16).padStart(14,'0');return {toString:()=>hex};},
+  randomInt(n){return (++counter)%n;}
+ };
+ const engine=createRoyalCards({db,exactWallet,crypto,
+  requireAuth:()=>current,readBody:async req=>req.body||{},
+  json:(res,status,body)=>{res.status=status;res.body=body;},
+  rateLimit:()=>true,otherBusy:()=>false,notify:()=>{},
+  now:()=>1700000100000,
+  setTimer:fn=>{const t={fn,active:true,unref(){}};timers.push(t);return t;},
+  clearTimer:t=>{t.active=false;}
+ });
+ async function request(id,url,body){
+  current={id,nickname:id===1?'준자':'키드'};const res={};
+  await engine.handle({method:body===undefined?'GET':'POST',body},res,
+   {pathname:'/api/royalcards'+url,searchParams:{get:()=>null}});
+  return res;
+ }
+ const before1=wallet(1),before2=wallet(2);
+ const created=await request(1,'/create',{game:'hula',mode:'multi',max:2,stake:'1000000'});
+ assert.equal(created.status,201,JSON.stringify(created.body));
+ const id=created.body.room.id;
+ assert.equal(created.body.room.stake,'1000000');
+ assert.equal(created.body.room.casino.reserve,'16000000');
+ assert.equal((await request(2,'/'+id+'/join',{})).status,200);
+ await request(1,'/'+id+'/ready',{ready:true});await request(2,'/'+id+'/ready',{ready:true});
+ const started=await request(1,'/'+id+'/start',{});
+ assert.equal(started.status,200,JSON.stringify(started.body));
+ assert.equal(wallet(1),before1-16000000n);
+ assert.equal(wallet(2),before2-16000000n);
+ assert.equal(db.prepare('SELECT COUNT(*) AS c FROM room_escrow').get().c,2n);
+ const resigned=await request(1,'/'+id+'/leave',{});
+ assert.equal(resigned.status,200,JSON.stringify(resigned.body));
+ const winner=await request(2,'/'+id);
+ assert.equal(winner.status,200);
+ assert.equal(winner.body.room.phase,'done');
+ assert.equal(winner.body.room.finalPayouts.length,2);
+ assert.equal(wallet(1)+wallet(2),before1+before2,'finished game preserves G across accounts');
+ assert.equal(db.prepare('SELECT COUNT(*) AS c FROM room_escrow').get().c,0n,'settled game has no pending escrow');
+ console.log('ROYAL_HULA_CASINO_API_OK: authenticated table, entry escrow, player leave, payout and zero-sum G');
+})().catch(e=>{console.error(e);process.exitCode=1;});
+
