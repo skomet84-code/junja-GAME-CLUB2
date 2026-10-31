@@ -12,14 +12,14 @@ function dayNumber(s){const n=Date.parse(String(s)+'T00:00:00Z');if(!Number.isFi
 function positive(raw){if(typeof raw!=='string'||!/^[1-9][0-9]{0,79}$/.test(raw))throw Error('금액은 1G 이상의 정수여야 합니다.');return BigInt(raw);}
 function createJBank({db,exactWallet,levels,now,kstDate}){
  const accountKey=id=>'jbank:account:'+Number(id);
- function empty(day){return {principal:'0',interest:'0',asOf:day,openedAt:0,closedAt:0,number:0,totalBorrowed:'0',totalRepaid:'0',lastRankSale:null,saleCount:0,savingsPrincipal:'0',savingsInterest:'0',savingsEarned:'0',savingsRemainder:'0',savingsAt:now(),installment:null,lastInstallment:null};}
+ function empty(day){return {principal:'0',interest:'0',asOf:day,openedAt:0,closedAt:0,number:0,totalBorrowed:'0',totalRepaid:'0',lastRankSale:null,saleCount:0,savingsPrincipal:'0',savingsInterest:'0',savingsEarned:'0',savingsRemainder:'0',savingsAt:now(),savingsLockedUntil:0,installment:null,lastInstallment:null};}
  function read(id,day=kstDate()){const r=db.prepare('SELECT value FROM game_state WHERE key=?').get(accountKey(id));return r?{...empty(day),...JSON.parse(r.value)}:empty(day);}
  function project(record,day=kstDate()){
   const r={...record},elapsed=Math.max(0,dayNumber(day)-dayNumber(r.asOf)),principal=BigInt(r.principal);
   // Charge only on outstanding principal; interest does not compound.
   if(elapsed&&principal>0n)r.interest=String(BigInt(r.interest)+(principal*RATE_BP*BigInt(elapsed)+9999n)/10000n);
   r.asOf=day;
-  const at=now(),elapsedMs=Math.max(0,at-Number(r.savingsAt??at)),denom=10000n*86400000n;
+  const at=now(),elapsedMs=Math.max(0,at-Math.max(Number(r.savingsAt??at),Number(r.savingsLockedUntil||0))),denom=10000n*86400000n;
   const numerator=BigInt(r.savingsPrincipal||'0')*5n*BigInt(Math.floor(elapsedMs))+BigInt(r.savingsRemainder||'0');
   const earned=numerator/denom;
   r.savingsInterest=String(BigInt(r.savingsInterest||'0')+earned);
@@ -38,7 +38,7 @@ function createJBank({db,exactWallet,levels,now,kstDate}){
   const pay=price<debt?price:debt;
   const rankSale=debt>0n&&level>0?{fromLevel:level,fromName:levels[level].name,toLevel:level-1,toName:levels[level-1].name,
    salePrice:String(price),repayAmount:String(pay),remainingDebt:String(debt-pay),cashBack:String(price-pay),saleRatePct:99}:null;
-  const savings={principal:r.savingsPrincipal,interest:r.savingsInterest,total:String(BigInt(r.savingsPrincipal)+BigInt(r.savingsInterest)),totalEarned:r.savingsEarned,dailyInterestPct:'0.05',canDeposit:debt===0n};
+  const savings={principal:r.savingsPrincipal,interest:r.savingsInterest,total:String(BigInt(r.savingsPrincipal)+BigInt(r.savingsInterest)),totalEarned:r.savingsEarned,dailyInterestPct:'0.05',withdrawAvailableAt:Number(r.savingsLockedUntil||0),canWithdraw:now()>=Number(r.savingsLockedUntil||0),canDeposit:debt===0n};
   return {installment:installment.view(r.installment,now()),installmentProducts:installment.PRODUCTS,lastInstallment:r.lastInstallment,savings,name:'J-BANK',rank:{level,name:levels[level].name},loanLimit:limit,minLoan:String(MIN_LOAN),
    dailyInterestPct:'0.1',interestMethod:'simple',principal:r.principal,interest:r.interest,
    outstanding:String(debt),canBorrow:debt===0n&&!r.installment,canPromote:debt===0n,available:debt===0n&&!r.installment?limit:'0',
@@ -69,8 +69,12 @@ function createJBank({db,exactWallet,levels,now,kstDate}){
     if(debt>0n)throw Error('대출을 완납해야 저축할 수 있습니다.');
     if(amount>before)throw Error('게임머니 잔액이 부족합니다.');
     a.savingsPrincipal=String(BigInt(a.savingsPrincipal)+amount);
+    // Each new deposit begins a 24-hour no-interest/no-withdrawal hold.
+    a.savingsLockedUntil=now()+86400000;
+    a.savingsAt=now();a.savingsRemainder='0';
     delta=-amount;type='jbank_deposit';memo='J-BANK 자유저축 입금';
    }else if(kind==='withdraw'){
+    if(now()<Number(a.savingsLockedUntil||0))throw Error('저축 입금 후 최소 24시간이 지나야 이자와 출금이 가능합니다.');
     const total=BigInt(a.savingsPrincipal)+BigInt(a.savingsInterest),amount=text==='all'?total:BigInt(text);
     if(amount<=0n||amount>total)throw Error('출금 가능한 저축 잔액을 확인하세요.');
     const paidInterest=amount<BigInt(a.savingsInterest)?amount:BigInt(a.savingsInterest);
