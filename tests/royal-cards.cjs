@@ -1,7 +1,7 @@
 'use strict';
 const assert=require('node:assert/strict');
 const factory=require('../royal-cards-server');
-const {meldKind,attachable,findThank,cardDeck,attackValue,combinations}=factory._test;
+const {meldKind,sevenNeighborMeld,attachable,findThank,cardDeck,attackValue,combinations}=factory._test;
 assert.equal(cardDeck(true).length,54);
 assert.equal(cardDeck(false).length,52);
 assert.equal(new Set(cardDeck(true)).size,54);
@@ -16,6 +16,12 @@ assert.equal(meldKind(['C13','D1','C2']),null,'different suits cannot register')
 assert.equal(meldKind(['S13','S2','S3']),null,'missing ace should not form a run');
 assert.equal(meldKind(['C13','C1','C1']),null,'duplicate card invalid');
 assert.equal(meldKind(['S13','S1']),null,'two cards alone cannot register');
+assert.equal(sevenNeighborMeld(['S7','S8']),true,'7 and 8 can be registered together');
+assert.equal(sevenNeighborMeld(['H6','H7']),true,'6 and 7 can be registered together');
+assert.equal(sevenNeighborMeld(['D6','D7','D8']),true,'6,7,8 can be registered at once');
+assert.equal(sevenNeighborMeld(['S7','D8']),false,'different suits never qualify');
+assert.equal(sevenNeighborMeld(['S8','S9']),false,'two-card runs without a 7 stay illegal');
+assert.ok(combinations(['S7','S8','H3']).some(cs=>cs.length===2&&cs.includes('S7')&&cs.includes('S8')),'7+8 is offered as one action');
 assert.equal(meldKind(['C12','C13','C1','C2']),'run','four-card wrapping run');
 assert.equal(meldKind(['C13','C1','C2','C3','C4']),'run','five-card wrapping run');
 assert.equal(meldKind(['H4','H4','C4']),null);
@@ -52,6 +58,24 @@ async function req(who,path,body){
  return res;
 }
 (async()=>{
+ // Deterministic unshuffled deck: the first Hula hand contains C7+C8.
+ let localUser=p1,roomSerial=0;
+ const fixture=factory({db,crypto:{randomInt:n=>n-1,randomBytes:()=>({toString:()=>String(++roomSerial).padStart(14,'0')})},
+  requireAuth:()=>localUser,readBody:async q=>q.body||{},json:(r,status,data)=>{r.status=status;r.data=data},rateLimit:()=>true,otherBusy:()=>false,notify:()=>{},
+  setTimer:()=>({unref(){}}),clearTimer:()=>{}});
+ async function fixtureReq(path,body){const res={};await fixture.handle({method:body===undefined?'GET':'POST',body},res,{pathname:'/api/royalcards'+path,searchParams:{get:()=> 'hula'}});return res;}
+ const pairRoom=(await fixtureReq('/create',{game:'hula',mode:'ai'})).data.room;
+ const drawn=await fixtureReq('/'+pairRoom.id+'/take',{source:'stock'});
+ assert.equal(drawn.status,200);
+ assert.ok(drawn.data.room.allowedMelds.some(cs=>cs.length===2&&cs.includes('C7')&&cs.includes('C8')));
+ const paired=await fixtureReq('/'+pairRoom.id+'/meld',{cards:['C7','C8']});
+ assert.equal(paired.status,200,'7+8 submits as one atomic registration');
+ assert.equal(paired.data.room.melds.length,1,'not two separate registrations');
+ assert.equal(paired.data.room.melds[0].kind,'run');
+ assert.deepEqual(paired.data.room.melds[0].cards,['C7','C8']);
+ assert.equal(paired.data.room.hand.length,6,'both selected cards removed in one request');
+ assert.equal((await fixtureReq('/'+pairRoom.id+'/leave',{})).status,200);
+ assert.equal((await fixtureReq('',undefined)).data.room,null,'leaving clears stale room participation');
  const created=await req(p1,'/create',{game:'onecard',mode:'multi',max:3});
  assert.equal(created.status,201);
  const id=created.data.room.id;
