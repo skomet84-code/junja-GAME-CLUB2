@@ -36,6 +36,10 @@ assert.equal(attachable(['H7','H6'],'H5','run'),true,'7 plus 6 can extend to 5')
 assert.equal(attachable(['C13','C1','C2'],'D3','run'),false,'attachments must be same suit');
 assert.equal(attachable(['S4','H4','C4'],'D4','set'),true);
 assert.deepEqual(findThank(['S3','S4','H6'],'S2'),['S2','S3','S4']);
+assert.deepEqual(findThank(['S7','H4'],'S8'),['S8','S7'],'discard 8 plus held 7 can THANK YOU');
+assert.deepEqual(findThank(['S8','H4'],'S7'),['S7','S8'],'discard 7 plus held 8 can THANK YOU');
+assert.deepEqual(findThank(['S7','S9'],'S8'),['S8','S7','S9'],'three-card run is preferred for THANK YOU');
+assert.equal(findThank(['D7','H4'],'S8'),null,'different suits do not claim 7 and 8');
 assert.equal(attackValue('JOKR'),7);
 assert.equal(attackValue('S1'),5);
 assert.equal(attackValue('H2'),2);
@@ -178,6 +182,44 @@ async function req(who,path,body){
  assert.notEqual(claim.data.room.discard,thankCard,'claimed card removed from discard');
  assert.equal((await reactAs(p2,'/'+hulaRoom.id+'/take',{source:'discard'})).status,400,'discard must be claimed only during reaction window');
  assert.equal((await reactAs(p2,'/'+hulaRoom.id+'/discard',{card:claim.data.room.hand[0]})).status,200);
+ // A participant leaving during the claim window must end the round and
+ // leave no phantom room (test both the discarder and claimant departures).
+ async function checkReactionExit(leaver){
+  let rng=1,count=0,actor=p1;const timers=[];
+  const cr={randomBytes:()=>({toString:()=>String(++count).padStart(14,'0')}),
+   randomInt:n=>{rng=(Math.imul(rng,1664525)+1013904223)>>>0;return rng%n;}};
+  const testGame=factory({db,crypto:cr,requireAuth:()=>actor,readBody:async r=>r.body||{},
+   json:(r,status,data)=>{r.status=status;r.data=data},rateLimit:()=>true,notify:()=>{},otherBusy:()=>{},
+   setTimer:fn=>{const t={fn,active:true,unref(){}};timers.push(t);return t;},clearTimer:t=>t.active=false});
+  async function ask(who,path,body){
+   actor=who;const res={};
+   await testGame.handle({method:body===undefined?'GET':'POST',body},res,
+     {pathname:'/api/royalcards'+path,searchParams:{get:()=>null}});return res;
+  }
+  const r=(await ask(p1,'/create',{game:'hula',mode:'multi',max:2})).data.room;
+  const id=r.id;
+  await ask(p2,'/'+id+'/join',{});
+  await ask(p1,'/'+id+'/ready',{ready:true});
+  await ask(p2,'/'+id+'/ready',{ready:true});
+  const a=(await ask(p1,'/'+id+'/start',{})).data.room;
+  const b=(await ask(p2,'/'+id)).data.room;
+  const claimable=a.hand.find(c=>findThank(b.hand,c));
+  assert.ok(claimable,'deterministic room offers a discard claim');
+  assert.equal((await ask(p1,'/'+id+'/take',{source:'stock'})).status,200);
+  assert.equal((await ask(p1,'/'+id+'/discard',{card:claimable})).data.room.phase,'thank');
+  assert.equal((await ask(leaver,'/'+id+'/leave',{})).status,200);
+  const winner=leaver===p1?p2:p1;
+  const finished=(await ask(winner,'/'+id)).data.room;
+  assert.equal(finished.phase,'done','departing in THANK YOU must complete the game');
+  assert.equal(finished.winner,winner.id,'remaining player wins when opponent quits');
+  assert.equal((await ask(leaver,'',undefined)).data.room,null);
+  for(const t of timers.filter(t=>t.active)){t.active=false;t.fn();}
+  assert.equal((await ask(winner,'/'+id)).data.room.phase,'done','old timer must not revive game');
+  await ask(winner,'/'+id+'/leave',{});
+  assert.equal((await ask(winner,'',undefined)).data.room,null);
+ }
+ await checkReactionExit(p1);
+ await checkReactionExit(p2);
  // The game NEVER needs to update users, sessions, wallet or historical ledger.
  const forbiddenUpdates=['UPDATE users','INSERT INTO users','UPDATE room_escrow','DELETE FROM users','walletChange'];
  const src=require('node:fs').readFileSync(require('node:path').join(__dirname,'../royal-cards-server.js'),'utf8');
