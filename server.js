@@ -10,6 +10,7 @@ const {createJBank}=require('./j-bank-core');
 const {createJStocks}=require('./j-stock-core');
 const {createKospiReference}=require('./j-stock-kospi-reference');
 const {createJCoins}=require('./j-coin-core');
+const {BASE:SLOT_POOL_BASE,output:slotPoolOutput,readPool:readSlotJackpotPool}=require('./slot-jackpot-pool');
 const {combinedInvestmentRanking}=require('./j-investment-ranking');
 const { DatabaseSync } = require('./persistent-db');
 const createTreasureRaid = require('./treasure-raid-server');
@@ -180,7 +181,7 @@ function withInvestmentRanking(response,userId,market){
  const status={...result,ranking,rankingType:'combined',changed:Boolean(result.changed||other.changed)};
  return response.status?{...response,status}:status;
 }
-const SLOT_JACKPOT_BASE = 50000000;
+const SLOT_JACKPOT_BASE = Number(SLOT_POOL_BASE);
 function gameStateGet(key,fallback=null){
   const row=db.prepare('SELECT value FROM game_state WHERE key=?').get(String(key));
   if(!row)return fallback;
@@ -192,10 +193,12 @@ function gameStateSet(key,value){
   return value;
 }
 function slotJackpotPool(){
-  const n=Number(gameStateGet('slot_jackpot_pool',SLOT_JACKPOT_BASE));
-  return Number.isSafeInteger(n)&&n>=SLOT_JACKPOT_BASE?n:SLOT_JACKPOT_BASE;
+  return slotPoolOutput(readSlotJackpotPool(db));
 }
+// Preserve the existing pool when it is already above 1 trillion G;
+// raise legacy lower balances to the new minimum without erasing history.
 if(gameStateGet('slot_jackpot_pool',null)==null)gameStateSet('slot_jackpot_pool',SLOT_JACKPOT_BASE);
+else if(BigInt(gameStateGet('slot_jackpot_pool',SLOT_JACKPOT_BASE))<SLOT_POOL_BASE)gameStateSet('slot_jackpot_pool',SLOT_JACKPOT_BASE);
 const SLOT_777_EVENT_CHANCE = 0.10;
 function slot777EventActive(){return gameStateGet('slot_777_event_active',false)===true;}
 
@@ -219,8 +222,8 @@ function recordSlot777Jackpot(user,{jackpotAward,regularPayout,bet}){
   const awardedAt=now();
   const entry={
     round,winnerUserId:Number(user?.id)||null,nickname:String(user?.nickname||'알 수 없음').slice(0,40),
-    jackpotAmount:Number(jackpotAward)||0,regularPayout:Number(regularPayout)||0,
-    totalPayout:(Number(jackpotAward)||0)+(Number(regularPayout)||0),bet:Number(bet)||0,
+    jackpotAmount:slotPoolOutput(jackpotAward),regularPayout:Number(regularPayout)||0,
+    totalPayout:slotPoolOutput(BigInt(jackpotAward)+BigInt(regularPayout)),bet:Number(bet)||0,
     awardedAt,awardedDate:kstDate(),source:'live'
   };
   rows.push(entry);
@@ -2463,21 +2466,28 @@ const server=http.createServer(async(req,res)=>{
       const regularPayout=Math.floor(bet*totalMultiplier);
       const sevenJackpot=winLines.some(w=>!w.scatter&&w.symbols?.[0]==='7️⃣');
       const jJackpot=winLines.some(w=>!w.scatter&&w.symbols?.[0]==='J');
-      let jackpotAward=0,jackpotContribution=0,pool=slotJackpotPool(),jackpotHistoryEntry=null;
+      let jackpotAward=0n,jackpotContribution=0,pool=slotJackpotPool(),jackpotHistoryEntry=null;
       if(regularPayout>0)walletChange(u.id,regularPayout,'slot_win',`슬롯 당첨 x${totalMultiplier}`);
       if(sevenJackpot){
-        jackpotAward=pool;if(jackpotAward>0)walletChange(u.id,jackpotAward,'slot_jackpot_pool',`777 누적 JACKPOT ${formatMoney(jackpotAward)}G`);
+        jackpotAward=readSlotJackpotPool(db);
+        // Exact wallet credit: a pool funded by enormous trading fees must
+        // never be rounded to Number or overflow the SQLite balance mirror.
+        if(jackpotAward>0n)exactWallet.change(db,u.id,jackpotAward,'slot_jackpot_pool',`777 누적 JACKPOT ${formatMoney(jackpotAward)}G`,now);
         jackpotHistoryEntry=recordSlot777Jackpot(u,{jackpotAward,regularPayout,bet});
         pool=gameStateSet('slot_jackpot_pool',SLOT_JACKPOT_BASE);
         if(slot777EventActive())gameStateSet('slot_777_event_active',false);
       }else{
         const actualLoss=freePlay.free?0:Math.max(0,bet-regularPayout);jackpotContribution=Math.floor(actualLoss*.13);
-        if(jackpotContribution>0)pool=gameStateSet('slot_jackpot_pool',pool+jackpotContribution);
+        if(jackpotContribution>0)pool=gameStateSet('slot_jackpot_pool',slotPoolOutput(readSlotJackpotPool(db)+BigInt(jackpotContribution)));
       }
-      const payout=regularPayout+jackpotAward,profit=payout-(freePlay.free?0:bet);
-      db.prepare('UPDATE stats SET slot_spins=slot_spins+1, slot_wins=slot_wins+?, slot_profit=slot_profit+? WHERE user_id=?').run(payout>(freePlay.free?0:bet)?1:0,profit,u.id);if(sevenJackpot||slot777EventTriggered)pushRefresh();
+      const payoutExact=BigInt(regularPayout)+jackpotAward;
+      const profitExact=payoutExact-BigInt(freePlay.free?0:bet);
+      const payout=exactWallet.output(payoutExact),profit=exactWallet.output(profitExact);
+      db.prepare('UPDATE stats SET slot_spins=slot_spins+1, slot_wins=slot_wins+?, slot_profit=slot_profit+? WHERE user_id=?')
+        .run(payoutExact>BigInt(freePlay.free?0:bet)?1:0,exactWallet.mirror(profitExact),u.id);
+      if(sevenJackpot||slot777EventTriggered)pushRefresh();
       const jackpotLine=winLines.find(w=>!w.scatter&&(w.symbols?.[0]==='7️⃣'||w.symbols?.[0]==='J'));
-      return json(res,200,{grid,bet,payout,regularPayout,profit,totalMultiplier,winLines,user:userPublic(u.id),jackpot:!!jackpotLine,jackpotSymbol:jackpotLine?.symbols?.[0]||null,poolJackpot:sevenJackpot,jackpotAward,jackpotContribution,jackpotPool:pool,jackpotBase:SLOT_JACKPOT_BASE,jackpotHistoryEntry,slotLuckPct:slotLuck,jackpotBoostPct,rankFreePlay:freePlay});
+      return json(res,200,{grid,bet,payout,regularPayout,profit,totalMultiplier,winLines,user:userPublic(u.id),jackpot:!!jackpotLine,jackpotSymbol:jackpotLine?.symbols?.[0]||null,poolJackpot:sevenJackpot,jackpotAward:slotPoolOutput(jackpotAward),jackpotContribution,jackpotPool:pool,jackpotBase:SLOT_JACKPOT_BASE,jackpotHistoryEntry,slotLuckPct:slotLuck,jackpotBoostPct,rankFreePlay:freePlay});
     }
 
     if(url.pathname==='/api/roulette/spin'&&req.method==='POST'){
