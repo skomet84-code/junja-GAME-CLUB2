@@ -98,3 +98,37 @@ console.log('ROYAL_HULA_CASINO_OK: escrow, 2/4/16x multipliers, all-player atomi
  console.log('ROYAL_HULA_CASINO_API_OK: authenticated table, entry escrow, player leave, payout and zero-sum G');
 })().catch(e=>{console.error(e);process.exitCode=1;});
 
+
+
+// Regression: a conflicting replay key from a previously refunded room must
+// neither block boot nor mint new chips. Preserve the disputed escrow for audit.
+const fs=require('node:fs');
+const startup=fs.readFileSync('server.js','utf8');
+const start=startup.indexOf('const staleEscrows = ');
+const end=startup.indexOf("db.exec('DELETE FROM sessions",start);
+assert.ok(start>0&&end>start,'startup stale-escrow recovery located');
+const recoveryCode=startup.slice(start,end);
+assert.ok(!recoveryCode.includes("db.exec('DELETE FROM room_escrow')"),'never wholesale-delete unresolved escrows');
+const toRecover=[
+ {room_id:'ROOM_OK',user_id:1,amount:'100',game:'hula'},
+ {room_id:'ROOM_CONFLICT',user_id:2,amount:'250',game:'hula'},
+ {room_id:'ROOM_ZERO',user_id:3,amount:'0',game:'hula'}
+];
+const removed=[],paid=[],warnings=[];
+const recoverDb={prepare:sql=>{
+ if(sql.startsWith('SELECT room_id,user_id'))return {all:()=>toRecover};
+ if(sql.startsWith('DELETE FROM room_escrow WHERE room_id'))return {run:(id,userId)=>removed.push([id,userId])};
+ throw Error('Unexpected startup escrow SQL: '+sql);
+}};
+const recoveryWallet={
+ integer:v=>BigInt(v),
+ change:(_db,id,amount,type,memo,_now,options)=>{
+  if(options.requestKey==='escrow_recovery_ROOM_CONFLICT')throw Error('이미 사용한 요청 번호입니다.');
+  paid.push({id,amount,type,memo,requestKey:options.requestKey});
+ }
+};
+new Function('db','exactWallet','now','console',recoveryCode)(recoverDb,recoveryWallet,Date.now,{error:(...args)=>warnings.push(args.join(' '))});
+assert.deepEqual(removed,[['ROOM_OK',1],['ROOM_ZERO',3]],'conflicting escrow cannot be erased automatically');
+assert.equal(paid.length,1,'conflicting refund never credits a wallet twice');
+assert.equal(warnings.length,1,'quarantined conflicts are logged for reconciliation');
+console.log('ESCROW_STARTUP_RECOVERY_OK: replay conflict preserved, wallet not double-credited, server can boot');
