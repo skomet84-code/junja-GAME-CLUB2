@@ -198,7 +198,7 @@ function slotJackpotPool(){
 // Preserve the existing pool when it is already above 1 trillion G;
 // raise legacy lower balances to the new minimum without erasing history.
 if(gameStateGet('slot_jackpot_pool',null)==null)gameStateSet('slot_jackpot_pool',SLOT_JACKPOT_BASE);
-else if(BigInt(gameStateGet('slot_jackpot_pool',SLOT_JACKPOT_BASE))<SLOT_POOL_BASE)gameStateSet('slot_jackpot_pool',SLOT_JACKPOT_BASE);
+if(BigInt(gameStateGet('slot_jackpot_pool',SLOT_JACKPOT_BASE))<SLOT_POOL_BASE)gameStateSet('slot_jackpot_pool',SLOT_JACKPOT_BASE);
 const SLOT_777_EVENT_CHANCE = 0.10;
 function slot777EventActive(){return gameStateGet('slot_777_event_active',false)===true;}
 
