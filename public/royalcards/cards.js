@@ -10,6 +10,7 @@ const ESC={'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'};
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>ESC[c]);
 function message(s){$('#notice').textContent=s||'';if(s){clearTimeout(message.timer);message.timer=setTimeout(()=>$('#notice').textContent='',6500);}}
 function n(c){if(c.startsWith('JOK'))return 'JOKER';let x=Number(c.slice(1));return ({1:'A',11:'J',12:'Q',13:'K'})[x]||String(x);}
+const money=v=>{try{const n=BigInt(v);return (n>=1000000000000n?(n/1000000000000n)+'조':n>=100000000n?(n/100000000n)+'억':n>=10000n?(n/10000n)+'만':n.toString())+' G';}catch{return String(v)+' G';}};
 function glyph(c){return c?.startsWith('JOK')?'♛':SUIT[c?.[0]]||'♠';}
 function cardHtml(c,{hand=false,active=false,select=false,hint=''}={}){
  if(!c)return '<div class="card face">–</div>';
@@ -42,7 +43,7 @@ async function refresh(){
 function showStats(s){score=s;$('#record').textContent=s.wins+' WIN · '+s.games+' PLAYED';$('#streak').textContent='연승 '+s.streak+'회 · 최고 '+s.bestStreak+'연승';}
 function showLanding(rooms){
  $('#landing').classList.remove('hidden');$('#match').classList.add('hidden');
- $('#rooms').innerHTML=rooms.length?rooms.map(r=>'<div class="room"><div><strong>'+esc(r.name)+'</strong><p>'+esc(r.host)+' · '+r.players+'/'+r.max+'명</p></div><button data-join="'+esc(r.id)+'">입장 →</button></div>').join(''):'<div class="empty">지금 대기 중인 테이블이 없어. 네가 첫 방장이 되어줘!</div>';
+ $('#rooms').innerHTML=rooms.length?rooms.map(r=>'<div class="room"><div><strong>'+esc(r.name)+'</strong><p>' +esc(r.host)+' · '+r.players+'/'+r.max+'명 · '+(BigInt(r.stake||'0')>0n?'판돈 '+money(r.stake):'친선전')+'</p></div><button data-join="'+esc(r.id)+'">입장 →</button></div>').join(''):'<div class="empty">지금 대기 중인 테이블이 없어. 네가 첫 방장이 되어줘!</div>';
  $$('[data-join]').forEach(btn=>btn.onclick=()=>command('/'+btn.dataset.join+'/join'));
 }
 function showThankCelebration(r){
@@ -68,7 +69,7 @@ function showRoom(r){
  room=r;localDeadline=Date.now()+Math.max(0,((r.phase==='thank'?r.thankDeadline:r.deadline)||0)-(r.serverNow||Date.now()));$('#landing').classList.add('hidden');$('#match').classList.remove('hidden');
  if(!next)return;
  const mine=r.players.find(p=>p.id===r.selfId);
- $('#roomName').textContent=r.name;$('#matchSub').textContent=(r.mode==='ai'?'J-BOT 대전':'실시간 멀티플레이')+' · '+(r.game==='onecard'?'원카드':'훌라')+' · '+r.round+'판';
+ $('#roomName').textContent=r.name;$('#matchSub').textContent=(r.mode==='ai'?'J-BOT 대전':'실시간 멀티플레이')+' · '+(r.game==='onecard'?'원카드':'훌라')+' · '+r.round+'판'+(r.game==='hula'?' · '+(BigInt(r.stake||'0')>0n?'판돈 '+money(r.stake):'친선전'):'');
  $('#waiting').classList.toggle('hidden',r.phase!=='waiting');
  $('#table').classList.toggle('hidden',r.phase!=='playing'&&r.phase!=='thank');
  $('#finalPanel').classList.toggle('hidden',r.phase!=='done');
@@ -98,7 +99,7 @@ function renderPlaying(r,mine){
  $('#topDiscard').outerHTML=cardHtml(r.discard).replace('class="card','id="topDiscard" class="card');
  const justThank=r.lastThank&&Number(r.serverNow||Date.now())-Number(r.lastThank.at)<6000;
  $('#discardCaption').textContent=justThank?'땡큐 카드 등록됨 · 이전 버림패':'DISCARD PILE';
- $('#playInfo').textContent=r.game==='onecard'?'현재 무늬 '+(SUIT[r.suit]||'')+(r.pending?' · 공격 누적 +'+r.pending:'')+' · 방향 '+(r.direction===1?'↻':'↺'):'등록 '+r.melds.length+'개 · 더미 '+r.deckCount+'장'+(r.drew?' · 내려놓거나 버려줘':' · 먼저 카드를 받아줘');
+ $('#playInfo').textContent=r.game==='onecard'?'현재 무늬 '+(SUIT[r.suit]||'')+(r.pending?' · 공격 누적 +'+r.pending:'')+' · 방향 '+(r.direction===1?'↻':'↺'):'등록 '+r.melds.length+'개 · 더미 '+r.deckCount+'장'+(r.drew?' · 내려놓거나 버려줘':' · 먼저 카드를 받아줘')+' · '+(BigInt(r.stake||'0')>0n?'판돈 '+money(r.stake):'친선전');
  selected=new Set([...selected].filter(id=>r.hand.includes(id)));
  
  const groups=Array.isArray(r.allowedMelds)?r.allowedMelds:[];
@@ -263,13 +264,18 @@ function renderDone(r){
  const who=r.players.find(p=>p.id===r.winner),meWins=r.winner===r.selfId;
  $('#winnerName').textContent=(meWins?'👑 내가 승리!':esc(who?.name||'승자'))+' · '+(meWins?'VICTORY':'WINNER');
  $('#winReason').textContent=r.reason;
- $('#finalScores').innerHTML=r.finalScores?r.finalScores.map(p=>'<div class="score-row">'+esc(r.players.find(x=>x.id===p.id)?.name)+' · '+p.score+'점</div>').join(''):'';
+ $('#finalScores').innerHTML=r.finalScores?r.finalScores.map(p=>{
+ const settled=(r.finalPayouts||[]).find(x=>String(x.userId)===String(p.id));
+ const n=settled?BigInt(settled.net):0n;
+ return '<div class="score-row"><strong>'+esc(r.players.find(x=>x.id===p.id)?.name)+'</strong> · '+p.score+'점'+
+  (settled?'<br><b class="'+(n>=0n?'casino-win':'casino-loss')+'">'+(n>=0n?'+':'')+money(n)+'</b><small> '+esc(settled.reason)+'</small>':'')+'</div>';
+ }).join(''):'';
  $('#againBtn').textContent=r.mode==='ai'?'J-BOT과 재대결':'다시 준비하기';
  $('#againBtn').onclick=()=>{selected.clear();command('/'+r.id+'/rematch');};
 }
 const RULES={
  onecard:['<b>기본</b> · 조커 2장을 포함한 54장. 각자 7장으로 시작하고 손패를 먼저 비우면 승리야.','<b>내기</b> · 위 카드와 같은 무늬 또는 같은 숫자를 내. 맞는 패가 없다면 더미에서 1장 받고 턴 종료.','<b>공격</b> · 2 = +2장, A = +3장(♠A는 +5장), 검정 조커 = +5장, 빨강 조커 = +7장. 공격 중에는 같은 등급 이상 공격만 쌓을 수 있고 아니면 누적 장수만큼 받아.','<b>특수</b> · 7은 무늬 변경, J는 다음 사람 건너뛰기, Q는 진행 방향 반전, K는 내 추가 턴. 1:1의 J는 곧바로 내 턴이야.','<b>원카드 선언</b> · 카드를 내고 한 장이 남게 되면 「원카드 선언」을 함께 눌러줘. 선언하지 않으면 벌칙 2장을 받아.','<b>승부</b> · 50초 턴 제한, 타임아웃 시 자동 한 장 받기. 서버가 비밀 덱·판정·턴 순서를 관리해.'],
- hula:['<b>기본</b> · 52장, 조커 없음. 2~4명이 각자 7장씩 받고 손패를 먼저 다 비우는 사람이 이겨.','<b>받기</b> · 내 차례 시작에는 더미에서 1장 받기. 누군가 카드를 버렸을 때 즉시 등록이 가능하면 모든 참가자에게 15초간 「땡큐」 기회가 열려.','<b>등록</b> · 같은 숫자 3~4장(땡), 같은 무늬로 이어지는 3장 이상(연속), 또는 7 카드 한 장도 등록 가능. A는 K 다음에 이어질 수 있어 (Q-K-A, K-A-2 모두 가능).','<b>붙이기</b> · 내 등록이 하나 이상 있으면 누구의 등록 조합에든 카드 한 장씩 붙일 수 있어. 7 단독 등록에는 같은 무늬의 6 또는 8을 붙일 수 있어.','<b>버리기</b> · 받기 → 등록·붙이기 → 버리기. 손패를 모두 털면 즉시 승리, 미등록 상태에서 한 번에 털면 「훌라!」','<b>스톱</b> · 카드를 받기 전 손패가 10점 이하면 스톱 선언 가능. 다른 사람의 점수가 같거나 낮으면 스톱 실패야. 점수는 A=1, J=11, Q=12, K=13.','<b>안전한 친선 대전</b> · 이번 모드는 카드 전적만 기록하며 기존 회원·게임머니 잔액을 직접 건드리지 않아.']
+ hula:['<b>기본</b> · 52장, 조커 없음. 2~4명이 각자 7장씩 받고 손패를 먼저 다 비우는 사람이 이겨.','<b>받기</b> · 내 차례 시작에는 더미에서 1장 받기. 누군가 카드를 버렸을 때 즉시 등록이 가능하면 모든 참가자에게 15초간 「땡큐」 기회가 열려.','<b>등록</b> · 같은 숫자 3~4장(땡), 같은 무늬로 이어지는 3장 이상(연속), 또는 7 카드 한 장도 등록 가능. A는 K 다음에 이어질 수 있어 (Q-K-A, K-A-2 모두 가능).','<b>붙이기</b> · 내 등록이 하나 이상 있으면 누구의 등록 조합에든 카드 한 장씩 붙일 수 있어. 7 단독 등록에는 같은 무늬의 6 또는 8을 붙일 수 있어.','<b>버리기</b> · 받기 → 등록·붙이기 → 버리기. 손패를 모두 털면 즉시 승리, 미등록 상태에서 한 번에 털면 「훌라!」','<b>스톱</b> · 카드를 받기 전 손패가 10점 이하면 스톱 선언 가능. 다른 사람의 점수가 같거나 낮으면 스톱 실패야. 점수는 A=1, J=11, Q=12, K=13.','<b>게임머니 카지노</b> · 친구방에서 판돈을 선택해. 미등록 x2, 손에 남은 7 한 장마다 x2, 훌라 x4, 기본 순위 배당(2위 x1·3위 x2·4위 x4)이 적용되고 최대 x16으로 제한돼. 시작할 때 최대 부담금 16배를 맡기며 판 종료 즉시 남은 금액을 돌려줘. 친선전(0 G)도 가능해.']
 };
 function showRules(){
  $('#rulesHeading').textContent=(game==='onecard'?'원카드':'훌라')+' · HOUSE RULES';
@@ -281,7 +287,7 @@ $('#rulesModal').onclick=e=>{if(e.target.id==='rulesModal')$('#rulesModal').clas
 $('#rulesBtn').onclick=showRules;
 $('#refreshBtn').onclick=refresh;
 $('#aiBtn').onclick=()=>command('/create',{game,mode:'ai'});
-$('#multiBtn').onclick=()=>command('/create',{game,mode:'multi',max:4});
+$('#multiBtn').onclick=()=>command('/create',{game,mode:'multi',max:4,stake:game==='hula'?$('#hulaStake').value:'0'});
 $('#leaveBtn').onclick=()=>{if(!room)return;if(room.phase==='playing'&&!confirm('진행 중인 대결에서 나가면 패배로 처리돼. 나갈까?'))return;command('/'+room.id+'/leave');};
 $('#lobbyBtn').onclick=()=>room&&command('/'+room.id+'/leave');
 document.querySelector('#nav-'+game).classList.add('active');

@@ -106,3 +106,10 @@ body[data-game="hula"] .hula-ledger summary:after{content:'▾';color:#ffdb91;fo
 body[data-game="hula"] .hula-ledger[open] summary:after{content:'▴'}
 body[data-game="hula"] .game-actions:has(#thankNow){position:fixed;z-index:90;bottom:max(8px,env(safe-area-inset-bottom));left:max(10px,calc(50% - 270px));right:max(10px,calc(50% - 270px));padding:10px;background:#101c2af7;border:2px solid #f1c481;border-radius:14px;box-shadow:0 8px 35px #000c}
 body[data-game="hula"] #thankNow{width:100%;min-height:64px;font-size:20px}
+
+body:not([data-game="hula"]) #hulaStakes{display:none}
+.hula-stakes{margin:14px 0 21px;padding:15px;border:1px solid #d1a9658a;border-radius:14px;background:#172732;color:#ffe3ac;display:grid;gap:9px}
+.hula-stakes label{font-size:14px;font-weight:800}
+.hula-stakes select{width:100%;padding:12px;border-radius:10px;border:1px solid #d4bd80;background:#1b2931;color:#fff2c6;font-size:15px;font-weight:800;min-height:48px}
+.hula-stakes small{font-size:11px;color:#d9d8c9;line-height:1.6}
+.casino-win{color:#ffb0ae}.casino-loss{color:#9bc8ff}
