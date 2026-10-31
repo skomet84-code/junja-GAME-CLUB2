@@ -33,6 +33,12 @@ function meldKind(cards){
  if(orderedRun(cards))return 'run';
  return null;
 }
+// A 7 and the adjacent same-suit 6/8 may be registered together.
+function sevenNeighborMeld(cards){
+ if(!Array.isArray(cards)||cards.length<2||cards.length>3||!sameCards(cards))return false;
+ const seven=cards.find(c=>rank(c)===7);
+ return !!seven&&cards.every(c=>suit(c)===suit(seven)&&[6,7,8].includes(rank(c)));
+}
 function attachable(cards,card,kind){
  if(cards.includes(card)||suit(card)==='J')return false;
  if(kind==='set')return cards.length<4&&rank(card)===rank(cards[0])&&!cards.some(c=>suit(c)===suit(card));
@@ -51,8 +57,11 @@ function findThank(hand,discard){
 }
 function combinations(arr){
  const out=[],seen=new Set();
- const add=cs=>{const kind=meldKind(cs);if(!kind)return;const key=cs.slice().sort().join('|');if(seen.has(key))return;seen.add(key);out.push(kind==='run'?orderedRun(cs):cs);};
- for(let i=0;i<arr.length;i++)if(rank(arr[i])===7)add([arr[i]]);
+ const add=cs=>{const kind=meldKind(cs)||(sevenNeighborMeld(cs)?'run':null);if(!kind)return;const key=cs.slice().sort().join('|');if(seen.has(key))return;seen.add(key);out.push(kind==='run'?orderedRun(cs):cs);};
+ for(let i=0;i<arr.length;i++)if(rank(arr[i])===7){
+   add([arr[i]]);
+   for(const c of arr)if(c!==arr[i]&&suit(c)===suit(arr[i])&&[6,8].includes(rank(c)))add([arr[i],c]);
+  }
  for(let i=0;i<arr.length;i++)for(let j=i+1;j<arr.length;j++)for(let k=j+1;k<arr.length;k++)
   add([arr[i],arr[j],arr[k]]);
  // Four-of-a-kind is valid, and a run can contain more than three cards.
@@ -175,7 +184,7 @@ module.exports=function createRoyalCards({db,crypto,requireAuth,readBody,json,ra
  }
  function hulaMeld(r,p,cards,logIt=true){
   if(!Array.isArray(cards)||!cards.length||!sameCards(cards)||cards.some(c=>!p.hand.includes(c)))throw Error('내 손패에서 등록할 카드를 선택해줘.');
-  const kind=meldKind(cards);
+  const kind=meldKind(cards)||(sevenNeighborMeld(cards)?'run':null);
   if(!kind)throw Error('등록은 동일 숫자 3장, 같은 무늬 연속 3장, 또는 7 한 장만 가능해.');
   const priorRegistration=p.registered;
   cards.forEach(c=>p.hand.splice(p.hand.indexOf(c),1));
@@ -377,4 +386,4 @@ module.exports=function createRoyalCards({db,crypto,requireAuth,readBody,json,ra
  }
  return {handle,hasUser:id=>!!mine(id),findUserRoom:id=>{const r=mine(id);return r?{id:r.id,game:r.game,name:r.name}:null;},roomCount:()=>rooms.size,helpers:{meldKind,attachable,findThank,cardDeck,combinations}};
 };
-module.exports._test={meldKind,attachable,findThank,cardDeck,attackValue,attackLevel,combinations};
+module.exports._test={meldKind,sevenNeighborMeld,attachable,findThank,cardDeck,attackValue,attackLevel,combinations};
