@@ -84,7 +84,11 @@ function render(){
  '<div class="jstock-presets">'+['1','10','100','1000','max'].map(x=>'<button type="button" data-jstock-qty="'+x+'">'+(x==='max'?'최대':fmt(x)+'주')+'</button>').join('')+'</div>'+
  '<div id="jstockEstimate" class="jstock-estimate"></div><button type="button" class="jstock-submit '+side+'" data-jstock-submit '+(busy?'disabled':'')+'>'+ (side==='buy'?'선택 종목 매수하기':'보유 주식 매도하기')+'</button>'+
  '<p class="jstock-disclaimer">가상 주식 · 실제 투자 및 현금 거래가 아닙니다. 매수·매도 수수료 각 0.5%. 공매도·빚 자동청산 없음. 주식 가치는 오르거나 내릴 수 있습니다.</p></div>'+
- '<div class="jstock-bottom"><section><h3>최근 거래내역</h3>'+tradeRows+'</section><section><h3>🏆 투자 수익 랭킹</h3>'+(snapshot.ranking||[]).slice(0,5).map((r,i)=>'<div class="jstock-transaction"><span>'+(i+1)+'위 '+esc(r.nickname)+'</span><b class="'+cls(r.profit)+'">'+profit(r.profit)+'</b></div>').join('')+'</section></div><button type="button" class="jstock-back" data-jstock-back>← J-BANK로 돌아가기</button>';
+ '<div class="jstock-bottom"><section><h3>최근 거래내역</h3>'+tradeRows+'</section><section><h3>🏆 주식 + 코인 통합 투자랭킹</h3><p class="jstock-disclaimer">실현손익 + 현재 평가손익 기준 · 회원 전체 합산 순위</p>'+
+ ((snapshot.ranking||[]).length?(snapshot.ranking||[]).slice(0,10).map((r,i)=>
+  '<div class="jstock-rank-card"><div class="jstock-rank-head"><span class="jstock-rank-name">'+(i+1)+'위 · '+esc(r.nickname)+'</span><b class="'+cls(r.profit)+'">'+profit(r.profit)+'</b></div>'+
+  '<div class="jstock-rank-split"><span>📈 주식 <b class="'+cls(r.stockProfit)+'">'+profit(r.stockProfit)+'</b></span><span>🪙 코인 <b class="'+cls(r.coinProfit)+'">'+profit(r.coinProfit)+'</b></span></div></div>').join(''):'<p class="jstock-empty">아직 투자한 회원이 없어.</p>')+
+ '</section></div><button type="button" class="jstock-back" data-jstock-back>← J-BANK로 돌아가기</button>';
  clock();estimate();
  // Publish the same server-authoritative P/L for the lobby header (no extra request).
  document.dispatchEvent(new CustomEvent('jstock:status',{detail:snapshot}));
