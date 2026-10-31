@@ -12,7 +12,9 @@ const fs=require('node:fs'),os=require('node:os'),path=require('node:path'),net=
   const before=(await api('/api/jbank')).d;
   const deposit=await api('/api/jbank/deposit',{amount:'100',requestId:'deposit_http_123'});assert.equal(deposit.r.status,200);assert.equal(deposit.d.status.savings.principal,'100');assert.equal(BigInt(deposit.d.status.wallet),BigInt(before.wallet)-100n);
   assert.equal((await api('/api/jbank/deposit',{amount:'100',requestId:'deposit_http_123'})).d.duplicate,true);
-  const withdrawal=await api('/api/jbank/withdraw',{amount:'all',requestId:'withdraw_http_123'});assert.equal(withdrawal.r.status,400);assert.match(withdrawal.d.error,/24시간/);assert.equal((await api('/api/jbank')).d.savings.canWithdraw,false);
+  const withdrawal=await api('/api/jbank/withdraw',{amount:'all',requestId:'withdraw_http_123'});assert.equal(withdrawal.r.status,200);assert.equal(withdrawal.d.status.savings.total,'0');assert.equal(withdrawal.d.status.wallet,before.wallet,'instant full withdrawal refunds exact original wallet');
+  assert.equal((await api('/api/jbank/withdraw',{amount:'all',requestId:'withdraw_http_123'})).d.duplicate,true,'replayed withdrawal cannot credit money twice');
+  assert.equal((await api('/api/jbank')).d.savings.canWithdraw,false);
   const opened=await api('/api/jbank/installmentOpen',{amount:{days:7,amount:'1000'},requestId:'installment_http_open'});assert.equal(opened.r.status,200);assert.equal(opened.d.status.installment.paidCount,1);
   const repeated=await api('/api/jbank/installmentPay',{amount:'installment_http_open',requestId:'installment_http_pay'});assert.equal(repeated.r.status,400);
   const early=await api('/api/jbank/installmentClaim',{amount:'installment_http_open',requestId:'installment_http_claim'});assert.equal(early.r.status,400);

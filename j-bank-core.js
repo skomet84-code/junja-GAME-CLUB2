@@ -41,7 +41,8 @@ function createJBank({db,exactWallet,levels,now,kstDate}){
   const pay=price<debt?price:debt;
   const rankSale=debt>0n&&level>0?{fromLevel:level,fromName:levels[level].name,toLevel:level-1,toName:levels[level-1].name,
    salePrice:String(price),repayAmount:String(pay),remainingDebt:String(debt-pay),cashBack:String(price-pay),saleRatePct:99}:null;
-  const savings={principal:r.savingsPrincipal,interest:r.savingsInterest,total:String(BigInt(r.savingsPrincipal)+BigInt(r.savingsInterest)),totalEarned:r.savingsEarned,dailyInterestPct:'0.05',withdrawAvailableAt:Number(r.savingsLockedUntil||0),canWithdraw:now()>=Number(r.savingsLockedUntil||0),canDeposit:debt===0n};
+  const savingsTotal=BigInt(r.savingsPrincipal)+BigInt(r.savingsInterest);
+  const savings={principal:r.savingsPrincipal,interest:r.savingsInterest,total:String(savingsTotal),totalEarned:r.savingsEarned,dailyInterestPct:'0.05',withdrawAvailableAt:0,canWithdraw:savingsTotal>0n,canDeposit:debt===0n};
   return {installment:installment.view(r.installment,now()),installmentProducts:installment.PRODUCTS,lastInstallment:r.lastInstallment,savings,name:'J-BANK',rank:{level,name:levels[level].name},loanLimit:limit,minLoan:String(MIN_LOAN),
    dailyInterestPct:'0.1',interestMethod:'simple',principal:r.principal,interest:r.interest,
    outstanding:String(debt),canBorrow:debt===0n&&!r.installment,canPromote:debt===0n,available:debt===0n&&!r.installment?limit:'0',
@@ -72,12 +73,11 @@ function createJBank({db,exactWallet,levels,now,kstDate}){
     if(debt>0n)throw Error('대출을 완납해야 저축할 수 있습니다.');
     if(amount>before)throw Error('게임머니 잔액이 부족합니다.');
     a.savingsPrincipal=String(BigInt(a.savingsPrincipal)+amount);
-    // Each new deposit begins a 24-hour no-interest/no-withdrawal hold.
+    // The first day's interest requires 24 hours, but principal is withdrawable immediately.
     a.savingsLockedUntil=now()+86400000;
     a.savingsAt=now(); // Preserve fractional interest already accrued before this top-up.
     delta=-amount;type='jbank_deposit';memo='J-BANK 자유저축 입금';
    }else if(kind==='withdraw'){
-    if(now()<Number(a.savingsLockedUntil||0))throw Error('저축 입금 후 최소 24시간이 지나야 이자와 출금이 가능합니다.');
     const total=BigInt(a.savingsPrincipal)+BigInt(a.savingsInterest),amount=text==='all'?total:BigInt(text);
     if(amount<=0n||amount>total)throw Error('출금 가능한 저축 잔액을 확인하세요.');
     const paidInterest=amount<BigInt(a.savingsInterest)?amount:BigInt(a.savingsInterest);
