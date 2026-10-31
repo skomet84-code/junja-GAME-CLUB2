@@ -489,7 +489,9 @@ function resetSlotSession(){slotSession={spins:0,wins:0,net:0,best:0,recent:[]};
 function closeSlotJackpot(){$('#slotJackpotOverlay')?.classList.add('hidden');document.body.classList.remove('jackpot-open')}
 function jackpotConfetti(){for(let wave=0;wave<3;wave++)setTimeout(()=>{for(let i=0;i<60;i++){const x=document.createElement('i');x.className='jackpot-confetti';const fromLeft=Math.random()<.5;x.style.left=(fromLeft?-2:102)+'vw';x.style.top=(10+Math.random()*55)+'vh';x.style.setProperty('--tx',`${(fromLeft?1:-1)*(35+Math.random()*75)}vw`);x.style.setProperty('--ty',`${(-20+Math.random()*95)}vh`);x.style.setProperty('--rot',`${360+Math.random()*1080}deg`);x.style.setProperty('--delay',`${Math.random()*.18}s`);document.body.appendChild(x);setTimeout(()=>x.remove(),2600)}},wave*320)}
 function showSlotJackpot(d){
-  if(!rankFreeSlotAutoRunning)autoSpinStop=true;
+  // Every autoplay path must stop on a real 777/JJJ payline.
+  // Keep the celebration visible until the player explicitly closes it.
+  autoSpinStop=true;
   const isSeven=d.jackpotSymbol==='7️⃣',overlay=$('#slotJackpotOverlay');if(!overlay)return;
   overlay.classList.remove('hidden','j-jackpot','seven-jackpot');overlay.classList.add(isSeven?'seven-jackpot':'j-jackpot');
   $('#jackpotTitle').textContent=isSeven?'RED 777 JACKPOT':'JUNJA J JACKPOT';
@@ -551,7 +553,7 @@ function setAutoSpinUi(active,status='수동 모드'){
   if($('#spinBtn'))$('#spinBtn').disabled=active||!!slotSpinState
 }
 async function spin({manual=false,fast=false}={}){
-  const btn=$('#spinBtn');if(slotSpinState||(manual&&(autoSpinRunning||rankFreeSlotAutoRunning)))return false;
+  const btn=$('#spinBtn');if(document.body.classList.contains('jackpot-open')||slotSpinState||(manual&&(autoSpinRunning||rankFreeSlotAutoRunning)))return false;
   selectedBet=normalizeSlotBet($('#slotBetInput')?.value||selectedBet);if($('#slotBetInput'))$('#slotBetInput').value=selectedBet;updateCurrentBetLabel();
   if(manual){btn.disabled=true;btn.textContent='SPINNING'}
   $('#slotResult').textContent='릴 회전 중...';startSlotSpin(fast);
@@ -1094,7 +1096,11 @@ async function runRankFreeSlotAuto(){
       done++;
       const serverLeft=Number(result.rankFreePlay?.left);
       left=Number.isFinite(serverLeft)?Math.max(0,serverLeft):Math.max(0,left-1);
-      if(result.jackpot){await sleep(900);closeSlotJackpot()}
+      if(result.jackpot){
+        autoSpinStop=true;
+        if(status)status.textContent=`🏆 777 / JJJ JACKPOT · ${done}회에서 자동 종료`;
+        break;
+      }
       if(left>0&&!autoSpinStop)await sleep(350);
     }
   }finally{

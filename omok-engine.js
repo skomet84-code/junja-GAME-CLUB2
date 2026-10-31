@@ -1,5 +1,5 @@
 'use strict';
-// Server-authoritative 15x15 omok. Renju: black 3-3, 4-4 and overline are forbidden.
+// JUNJA LAND: both colors forbid 3-3; black also forbids 4-4 and overline.
 const SIZE=15,DIRS=[[1,0],[0,1],[1,1],[1,-1]];
 const inside=(x,y)=>Number.isInteger(x)&&Number.isInteger(y)&&x>=0&&x<SIZE&&y>=0&&y<SIZE;
 const fresh=()=>Array.from({length:SIZE},()=>Array(SIZE).fill(0));
@@ -80,6 +80,16 @@ function threeThreatDirections(b,x,y){
   }
   return count;
 }
+// Preserve strict house 3-3 for attacks, but do not punish a black defence
+// that blocks an adjacent white line of three or more unless true Renju 3-3.
+function blocksWhiteRun(b,x,y){
+  for(const [dx,dy] of DIRS)for(const sign of [-1,1]){
+    let n=0;
+    while(cell(b,x+(n+1)*dx*sign,y+(n+1)*dy*sign)===2)n++;
+    if(n>=3)return true;
+  }
+  return false;
+}
 function place(b,x,y,color){
   if(!inside(x,y)||![1,2].includes(color))return {ok:false,error:'착수 위치가 올바르지 않습니다.'};
   if(b[y][x]!==0)return {ok:false,error:'이미 돌이 놓인 자리입니다.'};
@@ -90,8 +100,12 @@ function place(b,x,y,color){
   if(color===1&&overline(b,x,y)){b[y][x]=0;return {ok:false,error:'흑돌 장목(6목 이상)은 금수입니다.'};}
   if(color===1){
     if(fourGroups(b,x,y)>=2){b[y][x]=0;return {ok:false,error:'흑돌 4-4 금수입니다.'};}
-    if(openThreeGroups(b,x,y)>=2||threeThreatDirections(b,x,y)>=2){b[y][x]=0;return {ok:false,error:'흑돌 3-3 금수입니다.'};}
+  }
+  // Normalize the moving side to black so both colors use identical 3-3 rules.
+  const threeBoard=color===1?b:b.map(row=>row.map(v=>v===0?0:3-v));
+  if(openThreeGroups(threeBoard,x,y)>=2||(threeThreatDirections(threeBoard,x,y)>=2&&!blocksWhiteRun(threeBoard,x,y))){
+    b[y][x]=0;return {ok:false,error:(color===1?'흑돌':'백돌')+' 3-3 금수입니다.'};
   }
   return {ok:true,win:false,draw:b.every(row=>row.every(v=>v!==0))};
 }
-module.exports={SIZE,DIRS,inside,fresh,segment,winningLine,place,overline,fourGroups,openThreeGroups,threeThreatDirections};
+module.exports={SIZE,DIRS,inside,fresh,segment,winningLine,place,overline,fourGroups,openThreeGroups,threeThreatDirections,blocksWhiteRun};

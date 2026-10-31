@@ -7,6 +7,11 @@ const crypto = require('node:crypto');
 const staticResponse = require('./static-response');
 const exactWallet = require('./exact-wallet');
 const {createJBank}=require('./j-bank-core');
+const {createJStocks}=require('./j-stock-core');
+const {createKospiReference}=require('./j-stock-kospi-reference');
+const {createJCoins}=require('./j-coin-core');
+const {BASE:SLOT_POOL_BASE,output:slotPoolOutput,readPool:readSlotJackpotPool}=require('./slot-jackpot-pool');
+const {combinedInvestmentRanking}=require('./j-investment-ranking');
 const { DatabaseSync } = require('./persistent-db');
 const createTreasureRaid = require('./treasure-raid-server');
 const createBlackroomCloud = require('./blackroom-cloud');
@@ -159,7 +164,24 @@ ensureColumn('users','is_archived','INTEGER NOT NULL DEFAULT 0');
 ensureColumn('users','rank_level','INTEGER NOT NULL DEFAULT 0');
 ensureColumn('user_loadout','character','TEXT');
 
-const SLOT_JACKPOT_BASE = 50000000;
+// The stock exchange is isolated from the SOCIAL_RANKS test-evaluated block.
+const kospiReference=createKospiReference({now});
+// Public market quotes are optional; the server and users' funds work without them.
+kospiReference.start();
+const jStocks=createJStocks({db,exactWallet,now,getReference:kospiReference.get,marketMode:'kospi'});
+const jCoins=createJCoins({db,exactWallet,now});
+// Attach the same authoritative stock + coin leaderboard to GET and trade
+// responses. Keep the original portfolios, exact balances and ledgers intact.
+function withInvestmentRanking(response,userId,market){
+ const result=response.status||response;
+ const other=market==='stock'?jCoins.status(userId):jStocks.status(userId);
+ const stocks=market==='stock'?result:other;
+ const coins=market==='coin'?result:other;
+ const ranking=combinedInvestmentRanking({db,stockQuotes:stocks.stocks,coinQuotes:coins.stocks});
+ const status={...result,ranking,rankingType:'combined',changed:Boolean(result.changed||other.changed)};
+ return response.status?{...response,status}:status;
+}
+const SLOT_JACKPOT_BASE = Number(SLOT_POOL_BASE);
 function gameStateGet(key,fallback=null){
   const row=db.prepare('SELECT value FROM game_state WHERE key=?').get(String(key));
   if(!row)return fallback;
@@ -171,10 +193,12 @@ function gameStateSet(key,value){
   return value;
 }
 function slotJackpotPool(){
-  const n=Number(gameStateGet('slot_jackpot_pool',SLOT_JACKPOT_BASE));
-  return Number.isSafeInteger(n)&&n>=SLOT_JACKPOT_BASE?n:SLOT_JACKPOT_BASE;
+  return slotPoolOutput(readSlotJackpotPool(db));
 }
+// Preserve the existing pool when it is already above 1 trillion G;
+// raise legacy lower balances to the new minimum without erasing history.
 if(gameStateGet('slot_jackpot_pool',null)==null)gameStateSet('slot_jackpot_pool',SLOT_JACKPOT_BASE);
+if(BigInt(gameStateGet('slot_jackpot_pool',SLOT_JACKPOT_BASE))<SLOT_POOL_BASE)gameStateSet('slot_jackpot_pool',SLOT_JACKPOT_BASE);
 const SLOT_777_EVENT_CHANCE = 0.10;
 function slot777EventActive(){return gameStateGet('slot_777_event_active',false)===true;}
 
@@ -198,8 +222,8 @@ function recordSlot777Jackpot(user,{jackpotAward,regularPayout,bet}){
   const awardedAt=now();
   const entry={
     round,winnerUserId:Number(user?.id)||null,nickname:String(user?.nickname||'알 수 없음').slice(0,40),
-    jackpotAmount:Number(jackpotAward)||0,regularPayout:Number(regularPayout)||0,
-    totalPayout:(Number(jackpotAward)||0)+(Number(regularPayout)||0),bet:Number(bet)||0,
+    jackpotAmount:slotPoolOutput(jackpotAward),regularPayout:Number(regularPayout)||0,
+    totalPayout:slotPoolOutput(BigInt(jackpotAward)+BigInt(regularPayout)),bet:Number(bet)||0,
     awardedAt,awardedDate:kstDate(),source:'live'
   };
   rows.push(entry);
@@ -1234,6 +1258,10 @@ function yutAdvance(piece,move,routeChoice='shortcut'){
   let p=yutClonePiece(piece);const trace=[];
   if(move<0){
     if(p.node==='READY'||p.node==='FINISH'||!p.path.length)return {piece:p,trace,legal:false};
+    if(p.node==='O1'&&p.path[p.path.length-1].node==='READY'){
+      p={node:'START',route:'outer',path:[{node:'READY',route:'outer'},...Array.from({length:20},(_,i)=>({node:'O'+(i+1),route:'outer'}))]};
+      trace.push('START');return {piece:p,trace,legal:true};
+    }
     const prev=p.path.pop();p={node:prev.node,route:prev.route||'outer',path:p.path};trace.push(yutPhysical(p));return {piece:p,trace,legal:true};
   }
   for(let i=0;i<move;i++){const history={node:p.node,route:p.route||'outer'};const next=yutNextStep(p,i===0,routeChoice);p={...next,path:[...p.path,history]};trace.push(yutPhysical(p));if(p.node==='FINISH')break;}
@@ -2155,15 +2183,39 @@ const server=http.createServer(async(req,res)=>{
       const token=parseCookies(req).sid;if(token)db.prepare('DELETE FROM sessions WHERE token=?').run(token);return json(res,200,{ok:true},{'Set-Cookie':'sid=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0'});
     }
     if(url.pathname==='/api/me'&&req.method==='GET'){const u=requireAuth(req,res);if(!u)return;const includePresence=url.searchParams.get('presence')==='1';return json(res,200,{user:u,online:onlineCount(),presence:includePresence?presenceSnapshot():[]});}
+    if(url.pathname==='/api/jstock'&&req.method==='GET'){
+      const u=requireAuth(req,res);if(!u)return;
+      try{const status=withInvestmentRanking(jStocks.status(u.id),u.id,'stock');if(status.changed)await db.flush();return json(res,200,status);}
+      catch(e){return json(res,400,{error:e.message});}
+    }
+    if(url.pathname==='/api/jstock/trade'&&req.method==='POST'){
+      const u=requireAuth(req,res);if(!u)return;
+      if(!rateLimit('jstock:'+u.id,20,60000))return json(res,429,{error:'주식 주문을 너무 자주 보내고 있습니다.'});
+      try{
+        const b=await readBody(req),result=withInvestmentRanking(jStocks.trade(u.id,b.side,b.stockId,b.quantity,b.requestId),u.id,'stock');
+        await db.flush();pushRefresh();
+        return json(res,200,{...result,user:userPublic(u.id)});
+      }catch(e){return json(res,400,{error:e.message});}
+    }
+    if(url.pathname==='/api/jcoin'&&req.method==='GET'){
+      const u=requireAuth(req,res);if(!u)return;
+      try{const status=withInvestmentRanking(jCoins.status(u.id),u.id,'coin');if(status.changed)await db.flush();return json(res,200,status);}catch(e){return json(res,400,{error:e.message});}
+    }
+    if(url.pathname==='/api/jcoin/trade'&&req.method==='POST'){
+      const u=requireAuth(req,res);if(!u)return;
+      if(!rateLimit('jcoin:'+u.id,20,60000))return json(res,429,{error:'코인 주문을 너무 자주 보내고 있습니다.'});
+      try{const b=await readBody(req),result=withInvestmentRanking(jCoins.trade(u.id,b.side,b.stockId,b.quantity,b.requestId),u.id,'coin');await db.flush();pushRefresh();return json(res,200,{...result,user:userPublic(u.id)});}
+      catch(e){return json(res,400,{error:e.message});}
+    }
     if(url.pathname==='/api/jbank'&&req.method==='GET'){
       const u=requireAuth(req,res);if(!u)return;
       try{return json(res,200,{ok:true,...jBank.status(u.id)});}catch(e){return json(res,400,{error:e.message});}
     }
-    if((url.pathname==='/api/jbank/borrow'||url.pathname==='/api/jbank/repay'||url.pathname==='/api/jbank/sell-rank')&&req.method==='POST'){
+    if((['installmentOpen','installmentPay','installmentClaim','installmentCancel'].some(action=>url.pathname==='/api/jbank/'+action)||url.pathname==='/api/jbank/deposit'||url.pathname==='/api/jbank/withdraw'||url.pathname==='/api/jbank/borrow'||url.pathname==='/api/jbank/repay'||url.pathname==='/api/jbank/sell-rank')&&req.method==='POST'){
       const u=requireAuth(req,res);if(!u)return;
       if(!rateLimit('jbank:'+u.id,12,60000))return json(res,429,{error:'은행 거래 요청이 너무 빠릅니다. 잠시 후 다시 시도하세요.'});
       try{
-        const b=await readBody(req),action=url.pathname.endsWith('/borrow')?'borrow':url.pathname.endsWith('/sell-rank')?'sellRank':'repay';
+        const b=await readBody(req),action=url.pathname.endsWith('/sell-rank')?'sellRank':url.pathname.split('/').pop();
         const result=action==='sellRank'?jBank.sellRank(u.id,b.confirmation,b.requestId):jBank[action](u.id,b.amount,b.requestId);
         await db.flush();pushRefresh();
         return json(res,200,{...result,user:userPublic(u.id)});
@@ -2414,21 +2466,28 @@ const server=http.createServer(async(req,res)=>{
       const regularPayout=Math.floor(bet*totalMultiplier);
       const sevenJackpot=winLines.some(w=>!w.scatter&&w.symbols?.[0]==='7️⃣');
       const jJackpot=winLines.some(w=>!w.scatter&&w.symbols?.[0]==='J');
-      let jackpotAward=0,jackpotContribution=0,pool=slotJackpotPool(),jackpotHistoryEntry=null;
+      let jackpotAward=0n,jackpotContribution=0,pool=slotJackpotPool(),jackpotHistoryEntry=null;
       if(regularPayout>0)walletChange(u.id,regularPayout,'slot_win',`슬롯 당첨 x${totalMultiplier}`);
       if(sevenJackpot){
-        jackpotAward=pool;if(jackpotAward>0)walletChange(u.id,jackpotAward,'slot_jackpot_pool',`777 누적 JACKPOT ${formatMoney(jackpotAward)}G`);
+        jackpotAward=readSlotJackpotPool(db);
+        // Exact wallet credit: a pool funded by enormous trading fees must
+        // never be rounded to Number or overflow the SQLite balance mirror.
+        if(jackpotAward>0n)exactWallet.change(db,u.id,jackpotAward,'slot_jackpot_pool',`777 누적 JACKPOT ${formatMoney(jackpotAward)}G`,now);
         jackpotHistoryEntry=recordSlot777Jackpot(u,{jackpotAward,regularPayout,bet});
         pool=gameStateSet('slot_jackpot_pool',SLOT_JACKPOT_BASE);
         if(slot777EventActive())gameStateSet('slot_777_event_active',false);
       }else{
         const actualLoss=freePlay.free?0:Math.max(0,bet-regularPayout);jackpotContribution=Math.floor(actualLoss*.13);
-        if(jackpotContribution>0)pool=gameStateSet('slot_jackpot_pool',pool+jackpotContribution);
+        if(jackpotContribution>0)pool=gameStateSet('slot_jackpot_pool',slotPoolOutput(readSlotJackpotPool(db)+BigInt(jackpotContribution)));
       }
-      const payout=regularPayout+jackpotAward,profit=payout-(freePlay.free?0:bet);
-      db.prepare('UPDATE stats SET slot_spins=slot_spins+1, slot_wins=slot_wins+?, slot_profit=slot_profit+? WHERE user_id=?').run(payout>(freePlay.free?0:bet)?1:0,profit,u.id);if(sevenJackpot||slot777EventTriggered)pushRefresh();
+      const payoutExact=BigInt(regularPayout)+jackpotAward;
+      const profitExact=payoutExact-BigInt(freePlay.free?0:bet);
+      const payout=exactWallet.output(payoutExact),profit=exactWallet.output(profitExact);
+      db.prepare('UPDATE stats SET slot_spins=slot_spins+1, slot_wins=slot_wins+?, slot_profit=slot_profit+? WHERE user_id=?')
+        .run(payoutExact>BigInt(freePlay.free?0:bet)?1:0,exactWallet.mirror(profitExact),u.id);
+      if(sevenJackpot||slot777EventTriggered)pushRefresh();
       const jackpotLine=winLines.find(w=>!w.scatter&&(w.symbols?.[0]==='7️⃣'||w.symbols?.[0]==='J'));
-      return json(res,200,{grid,bet,payout,regularPayout,profit,totalMultiplier,winLines,user:userPublic(u.id),jackpot:!!jackpotLine,jackpotSymbol:jackpotLine?.symbols?.[0]||null,poolJackpot:sevenJackpot,jackpotAward,jackpotContribution,jackpotPool:pool,jackpotBase:SLOT_JACKPOT_BASE,jackpotHistoryEntry,slotLuckPct:slotLuck,jackpotBoostPct,rankFreePlay:freePlay});
+      return json(res,200,{grid,bet,payout,regularPayout,profit,totalMultiplier,winLines,user:userPublic(u.id),jackpot:!!jackpotLine,jackpotSymbol:jackpotLine?.symbols?.[0]||null,poolJackpot:sevenJackpot,jackpotAward:slotPoolOutput(jackpotAward),jackpotContribution,jackpotPool:pool,jackpotBase:SLOT_JACKPOT_BASE,jackpotHistoryEntry,slotLuckPct:slotLuck,jackpotBoostPct,rankFreePlay:freePlay});
     }
 
     if(url.pathname==='/api/roulette/spin'&&req.method==='POST'){

@@ -13,6 +13,7 @@
 <link rel="stylesheet" href="/yut-royal-v2.css?v=20261025-final">
 <link rel="stylesheet" href="/rank-system.css?v=god-junja-ultimate-100gyeong-20261025">
 <link rel="stylesheet" href="/j-bank.css?v=20261025-2">
+<link rel="stylesheet" href="/j-stock.css?v=20261031-unified-invest-1">
 <link rel="stylesheet" href="/treasure-raid.css?v=4">
 <link rel="stylesheet" href="/goldenbell/style.css?v=1">
 <link rel="stylesheet" href="/omok/lobby.css?v=1">
@@ -22,12 +23,16 @@
 <script defer src="/goldenbell/game.js?v=20261004-hof1"></script>
 <script defer src="/network-client.js?v=20260925"></script>
 <script defer src="/treasure-raid.js?v=6"></script>
-<script defer src="/app.js?v=20261025-holdem-funds-1"></script>
+<script defer src="/app.js?v=20261101-slot-jackpot-celebration-1"></script>
 <script defer src="/rank-system.js?v=god-junja-ultimate-100gyeong-20261025"></script>
-<script defer src="/j-bank.js?v=20261025-3"></script>
+<script defer src="/j-bank.js?v=20261031-installment"></script>
+<script defer src="/j-stock.js?v=20261031-unified-invest-1"></script>
+<script defer src="/j-coin.js?v=20261031-unified-invest-1"></script>
+<script defer src="/jstock-header.js?v=20261029-1"></script>
 <link rel="stylesheet" href="/godjunja-collection.css?v=1">
 <link rel="stylesheet" href="/royal-plus-shop.css?v=1">
 <link rel="stylesheet" href="/blackroom/lobby.css?v=1">
+<link rel="stylesheet" href="/holdem-mobile-fit.css?v=20261031-1">
 </head>
 <body>
 <div id="app">
@@ -49,6 +54,9 @@
       <div class="brand-inline" data-go="lobby"><span class="mini-mark">J</span><strong>JUNJA CLUB</strong></div>
       <button id="helpBtn" class="help-pill" type="button">? 게임방법</button><button id="shopBtn" class="shop-pill" data-go="shop" type="button">🛍️ BOUTIQUE</button><button id="friendsBtn" class="friends-pill" type="button">👥 친구</button><button id="jBankBtn" class="jbank-pill" type="button">🏦 J-BANK</button>
       <button id="adminBtn" class="admin-pill hidden" data-go="admin" type="button">⚙ ADMIN</button>
+      <div id="jstockHeaderProfit" class="jstock-header-profit flat" role="status" aria-live="polite" aria-label="주식 평가손익">
+        <span>📈 주식 수익</span><b id="jstockHeaderProfitAmount">—</b>
+      </div>
       <div class="wallet-pill"><span>보유머니</span><b id="walletBalance">0 G</b></div>
       <button id="profileBtn" class="profile-pill" type="button"><span id="avatarEmoji">😎</span><span><b id="nickName">-</b><small id="onlineCount">ONLINE 0</small></span></button>
     </header>
@@ -61,7 +69,7 @@
           <div class="hero-character"><img loading="lazy" decoding="async" src="/art/v26/games/host.webp" alt="게임 클럽 호스트"><div class="character-caption"><b>CLUB HOST J</b><span>오늘의 게임을 선택하세요</span></div></div>
         </div>
         <div class="lobby-live-now panel"><div class="live-orb"><i></i></div><div><small>CLUB LIVE NOW</small><b id="lobbyOnlineNow">ONLINE 0</b><span>현재 접속 중인 회원 · 닉네임, 플레이 위치, 게임중/대기중 상태를 실시간 표시</span></div><div id="lobbyLiveFaces" class="lobby-live-faces"></div></div>
-        <div class="lobby-jackpot-vault panel"><div class="jackpot-live-dot"></div><div><small>ROYAL REELS · GLOBAL 777 JACKPOT</small><b id="lobbyJackpotAmount">50,000,000 G</b><span>모든 유저의 슬롯 순손실 중 13%가 실시간 적립 · 777 적중 시 누적금 전액 지급</span></div><strong>777</strong></div>
+        <div class="lobby-jackpot-vault panel"><div class="jackpot-live-dot"></div><div><small>ROYAL REELS · GLOBAL 777 JACKPOT</small><b id="lobbyJackpotAmount">1,000,000,000,000 G</b><span>슬롯 순손실의 13% + 주식·코인 거래 수수료 100% 적립 · 777 적중 시 전액 지급</span></div><strong>777</strong></div>
 
         <div class="game-grid game-grid-eight">
           <a class="game-card blackroom-tile" href="/blackroom/index.html" aria-label="준자랜드 대표 추리게임 블랙룸 제13호실 시작하기">
@@ -104,9 +112,9 @@
         <div class="slot-stage panel">
           <div class="slot-machine deluxe-machine">
             <div class="marquee"><span>LAS VEGAS</span><strong>JUNJA ROYALE</strong><span>RED 777 ×1000</span></div>
-            <div class="slot-top"><div class="slot-stat-pill"><span>현재 베팅</span><b id="currentBetLabel">10,000 G</b></div><div class="slot-stat-pill jackpot-pool-pill"><span>누적 777 JACKPOT</span><b id="slotJackpotAmount">50,000,000 G</b></div><div class="slot-stat-pill"><span>페이라인</span><b>5 LINES</b></div><div class="slot-stat-pill"><span>777 기본</span><b>x1000 + POOL</b></div></div>
+            <div class="slot-top"><div class="slot-stat-pill"><span>현재 베팅</span><b id="currentBetLabel">10,000 G</b></div><div class="slot-stat-pill jackpot-pool-pill"><span>누적 777 JACKPOT</span><b id="slotJackpotAmount">1,000,000,000,000 G</b></div><div class="slot-stat-pill"><span>페이라인</span><b>5 LINES</b></div><div class="slot-stat-pill"><span>777 기본</span><b>x1000 + POOL</b></div></div>
             <div class="slot-cabinet"><div class="slot-side-light left"></div><div id="slotGrid" class="slot-grid"><div class="slot-column" data-col="0"><div class="slot-column-inner"></div></div><div class="slot-column" data-col="1"><div class="slot-column-inner"></div></div><div class="slot-column" data-col="2"><div class="slot-column-inner"></div></div><div class="payline payline-top"></div><div class="payline payline-mid"></div><div class="payline payline-bot"></div><div class="payline payline-diag1"></div><div class="payline payline-diag2"></div></div><div class="slot-side-light right"></div></div>
-            <div id="slotResult" class="slot-result">베팅 금액을 고르고 SPIN</div><div id="slotWins" class="slot-wins"></div><div class="bet-row" id="betRow"></div><div class="custom-wager"><span>직접 입력</span><input id="slotBetInput" type="number" min="1000" max="1000000000" step="1000" value="10000"><b>G</b><small>MAX 1,000,000,000 G</small></div><div class="slot-jackpot-boost">🔥 고액 베팅 JACKPOT BOOST</div><button id="spinBtn" class="spin-btn" type="button">SPIN</button><button id="slotRankFreeBtn" class="secondary full rank-free-btn" type="button">🎟 신분 무료권</button><small id="slotRankFreeStatus" class="rank-free-status">무료권 확인 중...</small><div class="auto-spin-panel"><div class="auto-spin-head"><span>AUTO SPIN</span><b id="autoSpinStatus">수동 모드</b></div><div class="auto-spin-note"><span>🛑 777 / JJJ JACKPOT 즉시 자동중지</span><span>📱 화면을 벗어나도 자동중지</span></div><div class="auto-spin-buttons"><button class="secondary" data-auto-spin="10" type="button">10회</button><button class="secondary" data-auto-spin="50" type="button">50회</button><button class="secondary" data-auto-spin="100" type="button">100회</button><button class="secondary" data-auto-spin="1000" type="button">1,000회</button><button id="autoStopBtn" class="danger" type="button" disabled>자동 중지</button></div></div><div class="slot-session-panel"><div><small>SESSION SPINS</small><b id="slotSessionSpins">0</b></div><div><small>WINS</small><b id="slotSessionWins">0</b></div><div><small>NET</small><b id="slotSessionNet">0 G</b></div><div><small>BEST WIN</small><b id="slotSessionBest">0 G</b></div><button id="slotSessionReset" class="ghost" type="button">세션 기록 초기화</button></div><div id="slotRecent" class="slot-recent"><span>최근 결과</span><div id="slotRecentItems"></div></div>
+            <div id="slotResult" class="slot-result">베팅 금액을 고르고 SPIN</div><div id="slotWins" class="slot-wins"></div><div class="bet-row" id="betRow"></div><div class="custom-wager"><span>직접 입력</span><input id="slotBetInput" type="number" min="1000" max="1000000000" step="1000" value="10000"><b>G</b><small>MAX 1,000,000,000 G</small></div><div class="slot-jackpot-boost">🔥 고액 베팅 JACKPOT BOOST</div><button id="spinBtn" class="spin-btn" type="button">SPIN</button><button id="slotRankFreeBtn" class="secondary full rank-free-btn" type="button">🎟 신분 무료권</button><small id="slotRankFreeStatus" class="rank-free-status">무료권 확인 중...</small><div class="auto-spin-panel"><div class="auto-spin-head"><span>AUTO SPIN</span><b id="autoSpinStatus">수동 모드</b></div><div class="auto-spin-note"><span>🛑 777 / JJJ 당첨 시 자동회전 즉시 종료 · 직접 재개</span><span>📱 화면을 벗어나도 자동중지</span></div><div class="auto-spin-buttons"><button class="secondary" data-auto-spin="10" type="button">10회</button><button class="secondary" data-auto-spin="50" type="button">50회</button><button class="secondary" data-auto-spin="100" type="button">100회</button><button class="secondary" data-auto-spin="1000" type="button">1,000회</button><button id="autoStopBtn" class="danger" type="button" disabled>자동 중지</button></div></div><div class="slot-session-panel"><div><small>SESSION SPINS</small><b id="slotSessionSpins">0</b></div><div><small>WINS</small><b id="slotSessionWins">0</b></div><div><small>NET</small><b id="slotSessionNet">0 G</b></div><div><small>BEST WIN</small><b id="slotSessionBest">0 G</b></div><button id="slotSessionReset" class="ghost" type="button">세션 기록 초기화</button></div><div id="slotRecent" class="slot-recent"><span>최근 결과</span><div id="slotRecentItems"></div></div>
           </div>
           <div class="slot-info-stack"><div class="paytable premium-panel"><h3>PAY TABLE · v2.3 ROYAL</h3><div><span class="pay-red-seven">7 7 7</span><b>x1000 + POOL</b></div><div><span class="pay-j">J J J</span><b>x800</b></div><div><span class="pay-j">J SCATTER</span><b>1개당 x2</b></div><div><span>💎 💎 💎</span><b>x20</b></div><div><span>⭐ ⭐ ⭐</span><b>x10</b></div><div><span>🔔 🔔 🔔</span><b>x8</b></div><div><span>🍊 🍊 🍊</span><b>x5</b></div><div><span>🍋 🍋 🍋</span><b>x3</b></div><div><span>🍒 🍒 🍒</span><b>x1</b></div><p class="pay-balance-note">777은 누적 잭팟 전액까지 추가 지급. 상점의 일부 최상위 아이템은 희귀 심볼 가중치를 최대 +1%까지만 올려.</p></div><div class="paytable premium-panel lines-card"><h3>PAYLINES</h3><div><span>TOP ROW</span><b>1</b></div><div><span>MIDDLE ROW</span><b>2</b></div><div><span>BOTTOM ROW</span><b>3</b></div><div><span>DIAGONAL ↘</span><b>4</b></div><div><span>DIAGONAL ↗</span><b>5</b></div></div><div class="premium-panel slot-hof-card"><div class="slot-hof-head"><div><small>ROYAL REELS RECORD</small><h3>🏆 777 명예의 전당</h3></div><span>확인된 기록 기준</span></div><div id="slotJackpotHistory" class="slot-hof-list"><div class="empty">777 기록 불러오는 중...</div></div></div></div>
         </div>
@@ -277,7 +285,7 @@
     </div><button id="helpDone" class="primary full help-done" type="button">확인했어</button></div></div>
 
     <div id="profileSheet" class="sheet hidden"><div class="sheet-card panel"><button id="closeProfile" class="sheet-close" type="button">×</button><div id="profileContent"></div><button id="logoutBtn" class="danger full" type="button">로그아웃</button></div></div>
-    <div id="slotJackpotOverlay" class="slot-jackpot-overlay hidden" role="dialog" aria-modal="true" aria-label="슬롯 잭팟"><div class="jackpot-rays"></div><div class="jackpot-stage"><div id="jackpotCrown" class="jackpot-crown">♛</div><small>JUNJA ROYALE</small><h2 id="jackpotTitle">JACKPOT</h2><div id="jackpotSymbol" class="jackpot-symbol">777</div><p id="jackpotPayout">0 G</p><b>AUTO SPIN STOPPED</b><button id="jackpotContinueBtn" class="primary" type="button">확인 · 계속하기</button></div></div>
+    <div id="slotJackpotOverlay" class="slot-jackpot-overlay hidden" role="dialog" aria-modal="true" aria-label="슬롯 잭팟"><div class="jackpot-rays"></div><div class="jackpot-stage"><div id="jackpotCrown" class="jackpot-crown">♛</div><small>JUNJA ROYALE</small><h2 id="jackpotTitle">JACKPOT</h2><div id="jackpotSymbol" class="jackpot-symbol">777</div><p id="jackpotPayout">0 G</p><b>AUTO SPIN STOPPED</b><button id="jackpotContinueBtn" class="primary" type="button">축하 확인 · 다시 돌리기</button></div></div>
     <div id="toast" class="toast"></div>
   </div>
 </div>

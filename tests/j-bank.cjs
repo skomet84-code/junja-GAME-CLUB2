@@ -184,3 +184,103 @@ console.log('JBANK_TRANSFER_LOCK_OK: indebted sender blocked, accrued interest b
 console.log('JBANK_RANK_SALE_OK: 99% sale proceeds, interest-first debt, exact refunds, one-tier downgrade, idempotency, re-borrow only after full repayment, no implicit forfeiture');
 
 console.log('JBANK_OK: exact 10경, rank limits, daily simple interest, partial/full repayment, no-double-credit, account isolation, 100경 promotion guard, persistence');
+
+// Savings use elapsed time, exact integers and atomic idempotent wallet transfers.
+let savingsNow=Date.parse('2026-10-31T00:00:00Z');
+const savingsBank=createJBank({db,exactWallet,levels:ranks,now:()=>savingsNow,kstDate:()=>day});
+add(20,12,100000000000000000n);
+const deposited=100000000000000000n;
+savingsBank.deposit(20,String(deposited),req('save'));
+assert.equal(wallet(20),0n);
+assert.equal(savingsBank.deposit(20,String(deposited),req('save')).duplicate,true);
+assert.equal(savingsBank.status(20).savings.interest,'0');
+savingsNow+=86400000;
+assert.equal(savingsBank.status(20).savings.interest,'50000000000000');
+assert.equal(savingsBank.status(20).savings.interest,'50000000000000','reading never double credits');
+savingsBank.withdraw(20,'50000000000000',req('interest'));
+assert.equal(savingsBank.status(20).savings.principal,String(deposited),'interest withdrawn first');
+savingsNow+=86400000;
+assert.equal(savingsBank.status(20).savings.interest,'50000000000000','simple, not compound');
+const restartSavings=createJBank({db,exactWallet,levels:ranks,now:()=>savingsNow,kstDate:()=>day});
+restartSavings.withdraw(20,'all',req('withdraw_all'));
+assert.equal(wallet(20),deposited+100000000000000n);
+assert.equal(restartSavings.withdraw(20,'all',req('withdraw_all')).duplicate,true);
+assert.equal(restartSavings.status(20).savings.total,'0');
+assert.throws(()=>restartSavings.withdraw(20,'1',req('overdraft')),/잔액/);
+restartSavings.deposit(20,'1000',req('instant_deposit'));
+assert.equal(restartSavings.status(20).savings.canWithdraw,false,'new deposit locks savings for 24 hours');
+assert.throws(()=>restartSavings.withdraw(20,'all',req('instant_withdraw')),/24시간/,'instant cycling is blocked');
+assert.equal(restartSavings.status(20).savings.interest,'0','interest starts only after 24 hours');
+savingsNow+=86400000;
+restartSavings.withdraw(20,'all',req('after_lock_withdraw'));
+assert.equal(wallet(20),deposited+100000000000000n,'first-day fractional interest cannot be withdrawn twice');
+restartSavings.borrow(20,'1000000',req('savings_loan'));
+assert.throws(()=>restartSavings.deposit(20,'1',req('debt_deposit')),/완납/);
+add(21,0,1001n);
+restartSavings.deposit(21,'1000',req('fraction'));
+savingsNow+=86400000;
+assert.equal(restartSavings.status(21).savings.interest,'0');
+restartSavings.deposit(21,'1',req('fraction_add'));
+savingsNow+=86400000;
+assert.equal(restartSavings.status(21).savings.interest,'1','fractional G retained through transactions');
+console.log('JBANK_SAVINGS_OK: exact money, elapsed interest, fractional carry, restart, debt guard, idempotency, withdrawals');
+
+// Fixed installment schedules: elapsed-time interest per payment, never total-principal x full term.
+let installmentNow=Date.parse('2026-11-01T00:00:00Z');
+const dailyMs=86400000;
+const installmentBank=createJBank({db,exactWallet,levels:ranks,now:()=>installmentNow,kstDate:()=>day});
+for(const [id,days,rate] of [[30,7,8n],[31,14,10n],[32,30,15n]]){
+ const amount=10000000000000000n,initial=amount*100n;add(id,12,initial);
+ const key=req('installment_'+days);
+ installmentBank.installmentOpen(id,{days,amount:String(amount)},key);
+ const opened=installmentBank.status(id).installment;
+ assert.equal(opened.paidCount,1);assert.equal(installmentBank.status(id).canBorrow,false);
+ assert.equal(installmentBank.installmentOpen(id,{days,amount:String(amount)},key).duplicate,true);
+ assert.throws(()=>installmentBank.installmentPay(id,key,req('early_'+days)),/이미 납입/);
+ assert.throws(()=>installmentBank.borrow(id,'1000000',req('loan_'+days)),/적금/);
+ assert.throws(()=>installmentBank.installmentClaim(id,key,req('early_claim_'+days)),/만기/);
+ for(let i=1;i<days;i++){
+  installmentNow=opened.openedAt+i*dailyMs;
+  installmentBank.installmentPay(id,key,req('pay_'+days+'_'+i));
+ }
+ installmentNow=opened.maturesAt;
+ const expected=amount*BigInt(days*(days+1)/2)*rate/10000n;
+ assert.equal(installmentBank.status(id).installment.maturityInterestOnPaid,String(expected));
+ const restart=createJBank({db,exactWallet,levels:ranks,now:()=>installmentNow,kstDate:()=>day});
+ assert.throws(()=>restart.installmentPay(id,key,req('late_'+days)),/만기/);
+ assert.throws(()=>restart.installmentCancel(id,key,req('cancel_mature_'+days)),/만기/);
+ restart.installmentClaim(id,key,req('claim_'+days));
+ assert.equal(wallet(id),initial+expected,'exact large amount principal + per-payment interest');
+ assert.equal(restart.installmentClaim(id,key,req('claim_'+days)).duplicate,true);
+ assert.equal(restart.status(id).installment,null);
+ assert.equal(restart.status(id).canBorrow,true);
+}
+add(33,0,1000000n);
+const missedKey=req('missed');
+installmentBank.installmentOpen(33,{days:7,amount:'10000'},missedKey);
+const began=installmentNow;
+installmentNow+=2*dailyMs+dailyMs/2;
+installmentBank.installmentPay(33,missedKey,req('late_second'));
+assert.equal(installmentBank.status(33).installment.missedCount,1);
+assert.equal(installmentBank.status(33).installment.effectiveDailyInterestPct,'0.05');
+installmentNow=began+7*dailyMs;
+assert.equal(installmentBank.status(33).installment.maturityInterestOnPaid,'57','7 + 4.5 days at reduced rate, rounded down');
+installmentNow+=100*dailyMs;
+assert.equal(installmentBank.status(33).installment.maturityInterestOnPaid,'57','interest stops at maturity');
+installmentBank.installmentClaim(33,missedKey,req('missed_claim'));
+assert.equal(wallet(33),1000057n);
+const cancelKey=req('cancel_plan');
+installmentBank.installmentOpen(33,{days:14,amount:'10000'},cancelKey);
+installmentNow+=dailyMs;
+installmentBank.installmentCancel(33,cancelKey,req('cancel_receipt'));
+assert.equal(wallet(33),1000057n,'early cancellation returns principal only');
+installmentBank.installmentOpen(33,{days:7,amount:'10000'},req('new_plan'));
+assert.throws(()=>installmentBank.installmentCancel(33,cancelKey,req('stale_cancel')),/변경/);
+assert.throws(()=>installmentBank.installmentOpen(33,{days:7,amount:'10000'},req('two_plans')),/진행 중/);
+assert.throws(()=>installmentBank.installmentOpen(33,{days:8,amount:'10000'},req('bad_product')),/기간/);
+add(34,0,100n);
+assert.throws(()=>installmentBank.installmentOpen(34,{days:7,amount:'1000'},req('poor')),/잔액/);
+assert.equal(installmentBank.status(34).installment,null);
+installmentBank.borrow(34,'1000000',req('debt_first'));
+assert.throws(()=>installmentBank.installmentOpen(34,{days:7,amount:'1000'},req('debt_plan')),/완납/);
+console.log('JBANK_INSTALLMENT_OK: 7/14/30-day terms, exact per-payment interest, missed days, maturity cap, cancellation, restart, replay, stale contract, debt guard');

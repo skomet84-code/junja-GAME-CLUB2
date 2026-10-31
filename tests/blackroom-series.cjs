@@ -83,6 +83,46 @@ assert.equal(Object.values(run.series.cases).filter(x=>x.solved).length,12);
 assert.equal(S.highestUnlocked(run.series,true),13);
 assert.equal(original.hydrate({...run,solved:false,ending:'pending'}).series.cases[2],undefined,
  'linked campaign must not unlock if episode 001 progress invalid');
+// Returning investigators must be able to play again without losing any first-clear or expert achievements.
+for(const chapter of S.CASES){
+ const id=chapter.id,p=run.series.cases[id],previousScore=p.score;
+ assert.ok(p.solved&&p.mastered,'baseline solved/mastered chapter '+id);
+ const replay=S.startReplay(run.series,id);
+ assert.equal(replay.ok,true,'solved case opens new hard replay '+id);
+ assert.equal(S.startReplay(run.series,id).already,true,'double click never silently resets replay '+id);
+ assert.equal(p.solved,true,'original clear preserved at replay start '+id);
+ const fresh=S.viewCase(run.series,id);
+ assert.equal(fresh.solved,false,'replay is a new investigation with empty progress '+id);
+ assert.equal(fresh.clues.length,0);
+ assert.equal(S.hint(run.series,id).ok,false,'hard replay has no hints');
+ assert.equal(S.unlock(run.series,id,'gate1',chapter.puzzles[0].answer).ok,false,'must find evidence again');
+ for(const e of ['e0','e1','e2'])S.inspect(run.series,id,e);
+ assert.equal(S.unlock(run.series,id,'gate1',chapter.puzzles[0].answer).ok,true);
+ for(const e of ['e3','e4','e5'])S.inspect(run.series,id,e);
+ assert.equal(S.unlock(run.series,id,'gate2',chapter.puzzles[1].answer).ok,true);
+ for(const e of ['e6','e7'])S.inspect(run.series,id,e);
+ for(const t of chapter.theories)assert.equal(S.connect(run.series,id,...t.pair).ok,true);
+ for(const w of chapter.witnesses)assert.equal(S.question(run.series,id,w.id).reveal,true);
+ const report={...chapter.verdict,contradiction:chapter.forensic.trail[0],mechanism:chapter.forensic.trail[1],outcome:chapter.forensic.trail[2]};
+ assert.equal(S.verdict(run.series,id,report).ok,false,'old known answers cannot skip hard replay '+id);
+ for(const question of S.replayPrompts(id,fresh.attempt))report[question.key]=question.answer;
+ const completed=S.verdict(run.series,id,report);
+ assert.equal(completed.ok,true,'nine-proof replay verdict accepted '+id);
+ assert.equal(completed.replay,true);
+ assert.equal(p.solved,true,'replay did not reset original clear '+id);
+ assert.equal(p.mastered,true,'replay did not reset original master '+id);
+ assert.equal(p.score,previousScore,'replay did not overwrite first-clear score '+id);
+ assert.equal(p.replays,1,'first replay counted exactly once '+id);
+ assert.equal(p.replay,null,'completed replay closes session');
+}
+const replayRestored=original.hydrate(JSON.parse(JSON.stringify(run)));
+assert.equal(Object.values(replayRestored.series.cases).filter(p=>p.replays===1).length,12,'all replay achievements survive cloud save');
+assert.equal(S.startReplay(replayRestored.series,13).ok,true);
+const resumed=original.hydrate(JSON.parse(JSON.stringify(replayRestored)));
+assert.equal(!!resumed.series.cases[13].replay?.active,true,'unfinished hard replay survives re-login');
+assert.equal(!!S.merge(replayRestored.series,resumed.series,true).cases[13].replay?.active,true,'cloud conflict merge retains unfinished replay');
+assert.ok(fs.readFileSync(path.join(__dirname,'../public/blackroom/series-ui.js'),'utf8').includes('data-replay'),'completed cases offer replay entrypoint');
+
 const historic=original.hydrate(raw);
 assert.equal(historic.v,1);assert.equal(historic.started,false);
 assert.equal(historic.series.v,1,'legacy EP01 save upgrade remains compatible');

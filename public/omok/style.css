@@ -11,3 +11,8 @@
 .omk-ai-stats b{color:#f6d58b}
 .omk-ai-pill{display:inline-flex;align-items:center;border:1px solid #f2d08377;border-radius:999px;padding:9px 13px;color:#ffdc98;background:#a9762628;font-size:12px;font-weight:900;letter-spacing:.06em}
 @media(max-width:480px){.omk-ai-stats{font-size:11px}.omk-ai-challenge h2{font-size:19px}}
+
+/* Mobile feedback: make a defensive board tap visibly acknowledged. */
+.omk-point:not(:disabled):active{background:#fff3a34d}
+.omk-point:not(:disabled):focus-visible{z-index:3;outline:2px solid #fff1ad;outline-offset:-2px}
+.omk-status.omk-status-error{background:#613039;border-color:#ed8890;color:#ffe6e9;font-weight:700}

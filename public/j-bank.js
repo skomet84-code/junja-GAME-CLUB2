@@ -7,7 +7,7 @@ let state=null,busy=false;
 function mount(){
  if($('#jbankModal'))return;
  const div=document.createElement('div');div.id='jbankModal';div.className='jbank-modal';div.setAttribute('role','dialog');div.setAttribute('aria-modal','true');div.setAttribute('aria-label','J-BANK 은행');
- div.innerHTML='<div class="jbank-panel"><button id="jbankClose" class="jbank-close" aria-label="닫기" type="button">×</button><small class="jbank-kicker">JUNJA PRIVATE BANKING · VIRTUAL CURRENCY</small><h2>♛ J-BANK</h2><p>신분에 따라 달라지는 대출 한도 · 게임머니 전용 디지털 은행</p><div id="jbankContent">은행 정보 확인 중...</div><div id="jbankNotice" aria-live="polite"></div></div>';
+ div.innerHTML='<div class="jbank-panel"><button id="jbankClose" class="jbank-close" aria-label="닫기" type="button">×</button><small class="jbank-kicker">JUNJA PRIVATE BANKING · VIRTUAL CURRENCY</small><h2>♛ J-BANK</h2><p>신분에 따라 달라지는 대출 한도 · 게임머니 전용 디지털 은행</p><button id="jbankMarketOpen" class="jstock-launch" type="button"><span><b>📈 준자 주식 거래소</b><small>준자반도체 · 물산 · 엔터 · 바이오 · 에너지</small></span><strong>J-STOCK 입장 ›</strong></button><button id="jbankCoinOpen" class="jstock-launch" type="button"><span><b>🪙 J-COIN 거래소</b><small>8종 코인 · 15분 변동 · 24시간 거래</small></span><strong>J-COIN 입장 ›</strong></button><div id="jbankContent">은행 정보 확인 중...</div><div id="jbankNotice" aria-live="polite"></div></div>';
  document.body.appendChild(div);
  div.addEventListener('click',e=>{if(e.target===div||e.target.closest('#jbankClose'))close();
   const choice=e.target.closest('[data-jbank-preset]');if(choice&&state){const type=choice.dataset.jbankType,input=$('#jbank'+(type==='borrow'?'Borrow':'Repay'));if(!input)return;let max=type==='borrow'?BigInt(state.available):BigInt(state.outstanding);if(type==='repay'&&BigInt(state.wallet)<max)max=BigInt(state.wallet);input.value=String(choice.dataset.jbankPreset==='max'?max:max*BigInt(choice.dataset.jbankPreset)/100n);}
@@ -18,7 +18,7 @@ function mount(){
 function notice(text,error=false){const n=$('#jbankNotice');if(n){n.textContent=text;n.className=error?'jbank-error':'jbank-success';}}
 async function request(path,options){const r=await fetch(path,{credentials:'same-origin',headers:{'Content-Type':'application/json'},...options});const d=await r.json().catch(()=>({}));if(!r.ok)throw Error(d.error||'은행 요청에 실패했습니다.');return d;}
 function render(d){
- state=d;const debt=BigInt(d.outstanding),cash=BigInt(d.wallet),hasLoan=debt>0n;
+ state=d;const debt=BigInt(d.outstanding),cash=BigInt(d.wallet),hasLoan=debt>0n,loanLocked=hasLoan||!!d.installment;
  const q=d.rankSale;
  const saleHtml=q?'<section class="jbank-rank-sale"><div class="jbank-sale-heading">⚖️ <b>신분 매각 · 빚 상환</b><small>매각은 본인 선택이며 취소할 수 없습니다.</small></div>'+
  '<p>현재 <b>'+esc(q.fromName)+'</b> → <b>'+esc(q.toName)+'</b> · 승급비용의 <b>99%</b> 매입</p>'+
@@ -29,9 +29,47 @@ function render(d){
  $('#jbankContent').innerHTML='<div class="jbank-member">♛ '+esc(d.rank.name)+' 신분 · 한도 '+fmt(d.loanLimit)+' G</div>'+
  '<div class="jbank-grid"><div><small>신규 대출 가능</small><strong>'+fmt(d.available)+' G</strong></div><div><small>총 상환 잔액</small><strong>'+fmt(debt)+' G</strong></div><div><small>남은 원금</small><strong>'+fmt(d.principal)+' G</strong></div><div><small>누적 이자</small><strong>'+fmt(d.interest)+' G</strong></div></div>'+
  '<p class="jbank-terms">📖 <b>대출 안내</b> — 게임머니 G 전용 · 원금 기준 일 0.1% 단리 · 한국시간 날짜가 바뀌면 이자 발생 · 이자부터 상환 · 복리/별도 연체료 없음.<br><b>미상환 시 추가 대출 및 신분 승급 불가</b>. 원금과 이자를 모두 갚으면 즉시 신분 승급 가능합니다.</p>'+
- '<div class="jbank-forms"><section><h3>🏦 대출 신청</h3><label>대출금 G<input id="jbankBorrow" class="jbank-input" inputmode="numeric" type="text" placeholder="최소 '+fmt(d.minLoan)+' G" '+(hasLoan?'disabled':'')+'></label><div class="jbank-presets"><button type="button" data-jbank-type="borrow" data-jbank-preset="25" '+(hasLoan?'disabled':'')+'>25%</button><button type="button" data-jbank-type="borrow" data-jbank-preset="50" '+(hasLoan?'disabled':'')+'>50%</button><button type="button" data-jbank-type="borrow" data-jbank-preset="max" '+(hasLoan?'disabled':'')+'>최대한도</button></div><button class="jbank-submit" data-jbank-action="borrow" '+(hasLoan?'disabled':'')+'>게임머니 대출받기</button></section>'+
+ '<div class="jbank-forms"><section><h3>🏦 대출 신청</h3><label>대출금 G<input id="jbankBorrow" class="jbank-input" inputmode="numeric" type="text" placeholder="최소 '+fmt(d.minLoan)+' G" '+(loanLocked?'disabled':'')+'></label><div class="jbank-presets"><button type="button" data-jbank-type="borrow" data-jbank-preset="25" '+(loanLocked?'disabled':'')+'>25%</button><button type="button" data-jbank-type="borrow" data-jbank-preset="50" '+(loanLocked?'disabled':'')+'>50%</button><button type="button" data-jbank-type="borrow" data-jbank-preset="max" '+(loanLocked?'disabled':'')+'>최대한도</button></div><button class="jbank-submit" data-jbank-action="borrow" '+(loanLocked?'disabled':'')+'>게임머니 대출받기</button></section>'+
  '<section><h3>💳 원금·이자 상환</h3><label>상환금 G<input id="jbankRepay" class="jbank-input" inputmode="numeric" type="text" placeholder="보유 '+fmt(cash)+' G" '+(!hasLoan?'disabled':'')+'></label><div class="jbank-presets"><button type="button" data-jbank-type="repay" data-jbank-preset="25" '+(!hasLoan?'disabled':'')+'>25%</button><button type="button" data-jbank-type="repay" data-jbank-preset="50" '+(!hasLoan?'disabled':'')+'>50%</button><button type="button" data-jbank-type="repay" data-jbank-preset="max" '+(!hasLoan?'disabled':'')+'>상환 가능 최대</button></div><button class="jbank-submit repay" data-jbank-action="repay" '+(!hasLoan?'disabled':'')+'>입력 금액 상환</button><button class="jbank-submit repay" data-jbank-action="all" '+(!hasLoan||cash<debt?'disabled':'')+'>원금+이자 전액 완납</button></section></div>'+
- saleHtml+'<details class="jbank-tiers"><summary>신분별 J-BANK 대출 한도 확인</summary><table><tbody>'+TIERS.map((tier,i)=>'<tr class="'+(d.rank.level===i?'current':'')+'"><td>'+esc(tier)+'</td><td>'+fmt(LIMITS[i])+' G</td></tr>').join('')+'</tbody></table></details>';
+ savingsHtml(d)+installmentHtml(d)+saleHtml+'<details class="jbank-tiers"><summary>신분별 J-BANK 대출 한도 확인</summary><table><tbody>'+TIERS.map((tier,i)=>'<tr class="'+(d.rank.level===i?'current':'')+'"><td>'+esc(tier)+'</td><td>'+fmt(LIMITS[i])+' G</td></tr>').join('')+'</tbody></table></details>';
+}
+function savingsHtml(d){
+ const s=d.savings;if(!s)return '';
+ return '<section class="jbank-rank-sale"><h3>💰 자유저축 · 하루 '+esc(s.dailyInterestPct)+'%</h3><div class="jbank-grid"><div><small>저축 원금</small><strong>'+fmt(s.principal)+' G</strong></div><div><small>출금 가능 총액</small><strong>'+fmt(s.total)+' G</strong></div><div><small>미출금 이자</small><strong>'+fmt(s.interest)+' G</strong></div><div><small>지금까지 받은 이자</small><strong>'+fmt(s.totalEarned)+' G</strong></div></div><p class="jbank-terms">원금 기준 일 0.05% 단리 · 실제 예치 시간만큼 계산 · 접속하지 않아도 적립 · 이자는 출금할 때 지갑에 지급됩니다. 대출 완납 후 입금 가능.</p><div class="jbank-forms"><section><label>입금액 G<input id="jbankDeposit" class="jbank-input" inputmode="numeric" placeholder="보유 '+fmt(d.wallet)+' G"></label><button class="jbank-submit" data-jbank-action="deposit" '+(s.canDeposit?'':'disabled')+'>저축하기</button></section><section><label>출금액 G<input id="jbankWithdraw" class="jbank-input" inputmode="numeric" placeholder="최대 '+fmt(s.total)+' G"></label><button class="jbank-submit repay" data-jbank-action="withdraw">입력 금액 출금</button><button class="jbank-submit repay" data-jbank-action="withdrawAll">원금 + 이자 전액 출금</button></section></div></section>';
+}
+async function savingsSubmit(action){
+ if(busy||!state)return;
+ const deposit=action==='deposit',amount=action==='withdrawAll'?'all':$('#jbank'+(deposit?'Deposit':'Withdraw')).value.trim();
+ if(amount!=='all'&&!/^[1-9][0-9]*$/.test(amount)){notice('금액을 정확히 입력해 주세요.',true);return;}
+ busy=true;document.querySelectorAll('#jbankModal [data-jbank-action]').forEach(b=>b.disabled=true);
+ try{
+  const d=await request('/api/jbank/'+(deposit?'deposit':'withdraw'),{method:'POST',body:JSON.stringify({amount,requestId:crypto.randomUUID()})});
+  render(d.status);document.dispatchEvent(new CustomEvent('jbank:wallet-change',{detail:{balance:d.status.wallet,user:d.user}}));
+  notice(deposit?'저축 입금 완료! 예치한 시간만큼 이자가 쌓여요.':'저축 출금 완료! 지갑에 반영되었습니다.');
+ }catch(e){try{render(await request('/api/jbank'))}catch{render(state)}notice(e.message,true)}finally{busy=false;}
+}
+function installmentHtml(d){
+ const a=d.installment,dates=t=>new Date(t).toLocaleString('ko-KR',{timeZone:'Asia/Seoul'});
+ const terms='<p class="jbank-terms">가입 즉시 첫 회차 납입 · 가입 시각 기준 24시간마다 한 회차 · 직접 납입(자동이체 없음) · 회차별 실제 예치 시간에 따른 단리입니다. 놓친 회차는 추가 납입할 수 없으며 만기 금리는 일 0.05%로 낮아져요. 중도해지 시 원금만 반환됩니다. 적금과 대출은 동시에 이용할 수 없습니다.</p>';
+ if(!a)return '<section class="jbank-rank-sale"><h3>📅 차곡차곡 적금</h3>'+terms+'<div class="jbank-grid">'+(d.installmentProducts||[]).map(p=>'<div><b>'+p.days+'일 적금</b><strong>하루 '+esc(p.dailyInterestPct)+'%</strong></div>').join('')+'</div><label>기간<select id="jbankInstallmentDays" class="jbank-input">'+(d.installmentProducts||[]).map(p=>'<option value="'+p.days+'">'+p.days+'일 · 일 '+esc(p.dailyInterestPct)+'%</option>').join('')+'</select></label><label>매일 납입할 금액 G<input id="jbankInstallmentAmount" class="jbank-input" inputmode="numeric" placeholder="회차당 최소 1,000 G"></label><button class="jbank-submit" data-jbank-action="installmentOpen" '+(BigInt(d.outstanding)>0n?'disabled':'')+'>적금 가입 · 첫 회차 납입</button></section>';
+ return '<section class="jbank-rank-sale"><h3>📅 '+a.days+'일 적금 · '+a.paidCount+'/'+a.days+'회 납입</h3><div class="jbank-grid"><div><small>회차 납입액</small><strong>'+fmt(a.amount)+' G</strong></div><div><small>쌓인 원금</small><strong>'+fmt(a.principal)+' G</strong></div><div><small>현재 누적 이자</small><strong>'+fmt(a.accruedInterest)+' G</strong></div><div><small>적용 일 금리</small><strong>'+esc(a.effectiveDailyInterestPct)+'%</strong></div></div><p>만기: '+esc(dates(a.maturesAt))+' (한국시간)<br>미납 '+a.missedCount+'회 · '+(a.matured?'만기 수령 가능':a.canPay?'오늘 회차 납입 가능':'다음 회차: '+esc(dates(a.nextPaymentAt)))+'</p>'+terms+(a.matured?'<p>수령액: <b>'+fmt(BigInt(a.principal)+BigInt(a.maturityInterestOnPaid))+' G</b></p><button class="jbank-submit" data-jbank-action="installmentClaim">원금 + 이자 만기 수령</button>':'<button class="jbank-submit" data-jbank-action="installmentPay" '+(a.canPay?'':'disabled')+'>오늘 회차 '+fmt(a.amount)+' G 납입</button><button class="jbank-submit repay" data-jbank-action="installmentCancel">중도해지 · 원금만 반환</button>')+'</section>';
+}
+async function installmentSubmit(action){
+ if(busy||!state)return;
+ let amount=state.installment?.id;
+ if(action==='installmentOpen'){
+  const raw=$('#jbankInstallmentAmount').value.trim(),days=Number($('#jbankInstallmentDays').value);
+  if(!/^[1-9][0-9]*$/.test(raw)||BigInt(raw)<1000n){notice('회차당 1,000 G 이상 입력해 주세요.',true);return;}
+  amount={days,amount:raw};
+  if(!confirm(days+'일 동안 매일 '+fmt(raw)+' G씩 납입합니다. 총 납입 예정 원금은 '+fmt(BigInt(raw)*BigInt(days))+' G입니다. 지금 첫 회차를 납입할까요?'))return;
+ }
+ if(action==='installmentCancel'&&!confirm('중도해지하면 이자는 지급되지 않고 원금 '+fmt(state.installment.principal)+' G만 반환됩니다. 해지할까요?'))return;
+ busy=true;document.querySelectorAll('#jbankModal [data-jbank-action]').forEach(b=>b.disabled=true);
+ try{
+  const d=await request('/api/jbank/'+action,{method:'POST',body:JSON.stringify({amount,requestId:crypto.randomUUID()})});
+  render(d.status);document.dispatchEvent(new CustomEvent('jbank:wallet-change',{detail:{balance:d.status.wallet,user:d.user}}));
+  notice(({installmentOpen:'적금 가입과 첫 회차 납입 완료!',installmentPay:'오늘 회차 납입 완료!',installmentClaim:'만기 원금과 이자가 지갑에 지급됐어요.',installmentCancel:'적금 해지 완료. 원금을 지갑에 반환했어요.'})[action]);
+ }catch(e){try{render(await request('/api/jbank'))}catch{render(state)}notice(e.message,true)}finally{busy=false;}
 }
 async function open(){mount();$('#jbankModal').classList.add('open');notice('');try{render(await request('/api/jbank'))}catch(e){$('#jbankContent').textContent=e.message;notice('다시 열어 주세요.',true);}}
 function close(){$('#jbankModal')?.classList.remove('open');}
@@ -52,7 +90,7 @@ async function sellRank(){
  }catch(e){try{render(await request('/api/jbank'))}catch{}notice(e.message,true)}
  finally{busy=false;}
 }
-async function submit(action){if(action==='sellRank')return sellRank();
+async function submit(action){if(action.startsWith('installment'))return installmentSubmit(action);if(['deposit','withdraw','withdrawAll'].includes(action))return savingsSubmit(action);if(action==='sellRank')return sellRank();
  if(busy||!state)return;const borrow=action==='borrow';
  const raw=action==='all'?'all':$('#jbank'+(borrow?'Borrow':'Repay'))?.value?.trim();
  if(raw!=='all'&&!/^[1-9][0-9]*$/.test(String(raw||''))){notice('금액을 정확히 입력해 주세요.',true);return;}
