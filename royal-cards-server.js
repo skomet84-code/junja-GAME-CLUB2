@@ -48,12 +48,17 @@ function attachable(cards,card,kind){
 }
 function findThank(hand,discard){
  if(!discard)return null;
- if(rank(discard)===7)return [discard];
+ // Prefer full three-card melds; claim matching 7+6/8 together too.
  for(let a=0;a<hand.length;a++)for(let b=a+1;b<hand.length;b++){
   const pair=[discard,hand[a],hand[b]];
   if(meldKind(pair))return pair;
  }
- return null;
+ if([6,7,8].includes(rank(discard))){
+  const neighbor=hand.find(c=>suit(c)===suit(discard)&&
+   (rank(discard)===7?[6,8].includes(rank(c)):rank(c)===7));
+  if(neighbor)return [discard,neighbor];
+ }
+ return rank(discard)===7?[discard]:null;
 }
 function combinations(arr){
  const out=[],seen=new Set();
@@ -341,11 +346,11 @@ module.exports=function createRoyalCards({db,crypto,requireAuth,readBody,json,ra
    if(req.method!=='POST')return reply(405,{error:'허용되지 않은 요청이야.'});
    if(op==='leave'){
     const idx=r.players.indexOf(exists);
-    if(r.phase==='playing'){
+    // THANK YOU is part of the live round: settle casino escrow before exit.
+    if(r.phase==='playing'||r.phase==='thank'){
      const remaining=r.players.filter(p=>p!==exists);
-     if(remaining.length){finish(r,remaining[0],exists.name+' 퇴장');}
+     if(remaining.length)finish(r,remaining[0],exists.name+' 퇴장');
     }
-    if(r.phase==='thank'&&r.thankWindow){r.thankWindow.eligible=r.thankWindow.eligible.filter(id=>id!==exists.id);if(!r.thankWindow.eligible.length)resumeThank(r);}
     r.players.splice(idx,1);
     if(!r.players.length||r.mode==='ai'){clear(r);rooms.delete(r.id);}
     else {if(r.hostId===u.id)r.hostId=r.players[0].id;publish(r);}
