@@ -55,7 +55,7 @@ function createJCoins({db,exactWallet,now=Date.now,randomInt=crypto.randomInt}){
   else {
    // Existing A-E remain authoritative. Never replace their current price,
    // history, owned quantities, wallet, or ledger during catalog expansion.
-   if(!Number.isSafeInteger(m.hour)||!m.stocks||typeof m.stocks!=='object'||
+   if((!Number.isFinite(m.hour)||!Number.isSafeInteger(m.hour*4))||!m.stocks||typeof m.stocks!=='object'||
       ORIGINAL_STOCK_IDS.some(id=>!m.stocks[id])||
       (m.catalogVersion!==undefined&&m.catalogVersion!==STOCK_CATALOG_VERSION)||
       (m.catalogVersion===STOCK_CATALOG_VERSION&&STOCKS.some(s=>!m.stocks[s.id])))
@@ -91,7 +91,7 @@ function createJCoins({db,exactWallet,now=Date.now,randomInt=crypto.randomInt}){
  function valuation(p,m){
   let value=0n,cost=0n;
   const holdings=STOCKS.map(s=>{
-   const h=p.holdings[s.id]||{},qty=BigInt(h.qty||'0'),spent=BigInt(h.cost||'0'),current=qty*BigInt(m.stocks[s.id].price);
+   const h=p.holdings[s.id]||{},qty=BigInt(h.qty||'0'),spent=BigInt(h.cost||'0'),current=qty*BigInt(m.stocks[s.id].price)/10000n;
    value+=current;cost+=spent;
    return {id:s.id,quantity:formatQty(qty),cost:String(spent),value:String(current),unrealized:String(current-spent)};
   });
@@ -125,7 +125,7 @@ function createJCoins({db,exactWallet,now=Date.now,randomInt=crypto.randomInt}){
     db.exec('COMMIT');
     return {ok:true,duplicate:true,receipt:previous,status:status(uId)};
    }
-   const u=user(uId),m=insideMarket().market,p=portfolio(uId),price=BigInt(m.stocks[stockId].price),gross=price*qty,fee=(gross*FEE_BP+9999n)/10000n;
+   const u=user(uId),m=insideMarket().market,p=portfolio(uId),price=BigInt(m.stocks[stockId].price),gross=price*qty/10000n,fee=(gross*FEE_BP+9999n)/10000n;
    if(gross<1n)throw Error('최소 거래금액은 1G입니다. 거래 수량을 늘려 주세요.');
    const balance=exactWallet.read(u),h=p.holdings[stockId]||{qty:'0',cost:'0'},owned=BigInt(h.qty),oldCost=BigInt(h.cost);
    let delta,realized=0n;
@@ -149,7 +149,7 @@ function createJCoins({db,exactWallet,now=Date.now,randomInt=crypto.randomInt}){
    db.prepare('UPDATE users SET balance=?,balance_exact=?,balance_base=? WHERE id=?').run(mirror,String(newBalance),String(mirror),uId);
    write(stateKey(uId),{...p,trades:[{at:t,side,stockId,quantity:formatQty(qty),price:String(price),gross:String(gross),fee:String(fee),net:String(delta),realized:String(realized)},...(p.trades||[])].slice(0,30)});
    db.prepare('INSERT INTO ledger(user_id,amount,balance_after,amount_exact,balance_after_exact,type,memo,created_at) VALUES(?,?,?,?,?,?,?,?)')
-    .run(uId,exactWallet.mirror(delta),mirror,String(delta),String(newBalance),side==='buy'?'jstock_buy':'jstock_sell','J-COIN '+s.name+' '+(side==='buy'?'매수':'매도')+' '+qty+'개 · 수수료 '+fee+' G',t);
+    .run(uId,exactWallet.mirror(delta),mirror,String(delta),String(newBalance),side==='buy'?'jcoin_buy':'jcoin_sell','J-COIN '+s.name+' '+(side==='buy'?'매수':'매도')+' '+formatQty(qty)+'개 · 수수료 '+fee+' G',t);
    const receipt={side,stockId,quantity:formatQty(qty),price:String(price),gross:String(gross),fee:String(fee),net:String(delta),realized:String(realized),at:t};
    write(receiptKey,receipt);
    db.exec('COMMIT');
