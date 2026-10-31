@@ -126,6 +126,7 @@ function createJCoins({db,exactWallet,now=Date.now,randomInt=crypto.randomInt}){
     return {ok:true,duplicate:true,receipt:previous,status:status(uId)};
    }
    const u=user(uId),m=insideMarket().market,p=portfolio(uId),price=BigInt(m.stocks[stockId].price),gross=price*qty,fee=(gross*FEE_BP+9999n)/10000n;
+   if(gross<1n)throw Error('최소 거래금액은 1G입니다. 거래 수량을 늘려 주세요.');
    const balance=exactWallet.read(u),h=p.holdings[stockId]||{qty:'0',cost:'0'},owned=BigInt(h.qty),oldCost=BigInt(h.cost);
    let delta,realized=0n;
    if(side==='buy'){
