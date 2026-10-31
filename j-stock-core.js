@@ -2,6 +2,7 @@
 // J-STOCK: fictional, game-money-only shares. All prices/holdings are authoritative on the server.
 // Integer G prices and BigInt wallet math avoid losing large JUNJA LAND balances.
 const crypto=require('node:crypto');
+const {addTradingFee}=require('./slot-jackpot-pool');
 const {isReferenceFresh}=require('./j-stock-kospi-reference');
 const STOCKS=Object.freeze([
  {id:'A',name:'준자반도체',sector:'반도체·AI',base:100000,vol:750,icon:'💻'},
@@ -174,6 +175,8 @@ function createJStocks({db,exactWallet,now=Date.now,randomInt=crypto.randomInt,g
    write(stateKey(uId),{...p,trades:[{at:t,side,stockId,quantity:String(qty),price:String(price),gross:String(gross),fee:String(fee),net:String(delta),realized:String(realized)},...(p.trades||[])].slice(0,30)});
    db.prepare('INSERT INTO ledger(user_id,amount,balance_after,amount_exact,balance_after_exact,type,memo,created_at) VALUES(?,?,?,?,?,?,?,?)')
     .run(uId,exactWallet.mirror(delta),mirror,String(delta),String(newBalance),side==='buy'?'jstock_buy':'jstock_sell','J-STOCK '+s.name+' '+(side==='buy'?'매수':'매도')+' '+qty+'주 · 수수료 '+fee+' G',t);
+   // Same transaction as wallet, holdings and receipt: never double-credit retries.
+   addTradingFee(db,fee,t);
    const receipt={side,stockId,quantity:String(qty),price:String(price),gross:String(gross),fee:String(fee),net:String(delta),realized:String(realized),at:t};
    write(receiptKey,receipt);
    db.exec('COMMIT');
