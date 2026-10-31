@@ -19,12 +19,15 @@ function createJBank({db,exactWallet,levels,now,kstDate}){
   // Charge only on outstanding principal; interest does not compound.
   if(elapsed&&principal>0n)r.interest=String(BigInt(r.interest)+(principal*RATE_BP*BigInt(elapsed)+9999n)/10000n);
   r.asOf=day;
-  const at=now(),elapsedMs=Math.max(0,at-Math.max(Number(r.savingsAt??at),Number(r.savingsLockedUntil||0))),denom=10000n*86400000n;
+  const at=now(),lockUntil=Number(r.savingsLockedUntil||0),lastAt=Number(r.savingsAt??at);
+  // Credit the full first day only after the 24-hour hold has actually elapsed.
+  // Do not advance savingsAt while locked or the first day's interest is lost.
+  const elapsedMs=at>=lockUntil?Math.max(0,at-lastAt):0,denom=10000n*86400000n;
   const numerator=BigInt(r.savingsPrincipal||'0')*5n*BigInt(Math.floor(elapsedMs))+BigInt(r.savingsRemainder||'0');
   const earned=numerator/denom;
   r.savingsInterest=String(BigInt(r.savingsInterest||'0')+earned);
   r.savingsEarned=String(BigInt(r.savingsEarned||'0')+earned);
-  r.savingsRemainder=String(numerator%denom);r.savingsAt=Math.max(at,Number(r.savingsAt??at));
+  r.savingsRemainder=String(numerator%denom);r.savingsAt=at>=lockUntil?Math.max(at,lastAt):lastAt;
   return r;
  }
  function owed(id,day=kstDate()){const x=project(read(id,day),day);return BigInt(x.principal)+BigInt(x.interest);}
@@ -71,7 +74,7 @@ function createJBank({db,exactWallet,levels,now,kstDate}){
     a.savingsPrincipal=String(BigInt(a.savingsPrincipal)+amount);
     // Each new deposit begins a 24-hour no-interest/no-withdrawal hold.
     a.savingsLockedUntil=now()+86400000;
-    a.savingsAt=now();a.savingsRemainder='0';
+    a.savingsAt=now(); // Preserve fractional interest already accrued before this top-up.
     delta=-amount;type='jbank_deposit';memo='J-BANK 자유저축 입금';
    }else if(kind==='withdraw'){
     if(now()<Number(a.savingsLockedUntil||0))throw Error('저축 입금 후 최소 24시간이 지나야 이자와 출금이 가능합니다.');
