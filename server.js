@@ -8,6 +8,7 @@ const staticResponse = require('./static-response');
 const exactWallet = require('./exact-wallet');
 const {createJBank}=require('./j-bank-core');
 const {createJStocks}=require('./j-stock-core');
+const {createKospiReference}=require('./j-stock-kospi-reference');
 const {createJCoins}=require('./j-coin-core');
 const { DatabaseSync } = require('./persistent-db');
 const createTreasureRaid = require('./treasure-raid-server');
@@ -162,7 +163,10 @@ ensureColumn('users','rank_level','INTEGER NOT NULL DEFAULT 0');
 ensureColumn('user_loadout','character','TEXT');
 
 // The stock exchange is isolated from the SOCIAL_RANKS test-evaluated block.
-const jStocks=createJStocks({db,exactWallet,now});
+const kospiReference=createKospiReference({now});
+// Public market quotes are optional; the server and users' funds work without them.
+kospiReference.start();
+const jStocks=createJStocks({db,exactWallet,now,getReference:kospiReference.get,marketMode:'kospi'});
 const jCoins=createJCoins({db,exactWallet,now});
 const SLOT_JACKPOT_BASE = 50000000;
 function gameStateGet(key,fallback=null){
