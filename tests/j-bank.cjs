@@ -208,8 +208,12 @@ assert.equal(restartSavings.withdraw(20,'all',req('withdraw_all')).duplicate,tru
 assert.equal(restartSavings.status(20).savings.total,'0');
 assert.throws(()=>restartSavings.withdraw(20,'1',req('overdraft')),/잔액/);
 restartSavings.deposit(20,'1000',req('instant_deposit'));
-restartSavings.withdraw(20,'all',req('instant_withdraw'));
-assert.equal(wallet(20),deposited+100000000000000n,'instant cycling earns no interest');
+assert.equal(restartSavings.status(20).savings.canWithdraw,false,'new deposit locks savings for 24 hours');
+assert.throws(()=>restartSavings.withdraw(20,'all',req('instant_withdraw')),/24시간/,'instant cycling is blocked');
+assert.equal(restartSavings.status(20).savings.interest,'0','interest starts only after 24 hours');
+savingsNow+=86400000;
+restartSavings.withdraw(20,'all',req('after_lock_withdraw'));
+assert.equal(wallet(20),deposited+100000000000000n,'first-day fractional interest cannot be withdrawn twice');
 restartSavings.borrow(20,'1000000',req('savings_loan'));
 assert.throws(()=>restartSavings.deposit(20,'1',req('debt_deposit')),/완납/);
 add(21,0,1001n);
