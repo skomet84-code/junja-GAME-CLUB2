@@ -31,17 +31,18 @@ async function api(path,body){
 }
 async function command(path,body){
  if(busy)return;busy=true;
- try{const data=await api(path,body||{});if(data.room)showRoom(data.room);else await refresh();}catch(e){message(e.message);}finally{busy=false;}
+ try{const data=await api(path,body||{});if(data.room)showRoom(data.room);else await refresh(true);}catch(e){message(e.message);}finally{busy=false;}
 }
-async function refresh(){
- if(busy||stopping)return;
- try{const data=await api('?game='+game);if(data.stats)showStats(data.stats);
+async function refresh(force=false){
+ if(!force&&(busy||stopping))return;
+ try{const data=await api('?game='+game);if(stopping&&!force)return;if(data.stats)showStats(data.stats);
  if(data.room)showRoom(data.room);else {room=null;showLanding(data.rooms||[]);const target=new URLSearchParams(location.search).get('room');if(target&&!inviteAttempted&&/^RC[a-f0-9]{14}$/.test(target)){inviteAttempted=true;command('/'+target+'/join');}}
  $('#account').textContent='● CONNECTED';
  }catch(e){if(e.message.includes('로그인')){$('#account').textContent='로그인 필요';message('준자랜드에서 먼저 로그인해줘.');}else message(e.message);}
 }
 function showStats(s){score=s;$('#record').textContent=s.wins+' WIN · '+s.games+' PLAYED';$('#streak').textContent='연승 '+s.streak+'회 · 최고 '+s.bestStreak+'연승';}
 function showLanding(rooms){
+ document.body.classList?.remove('hula-active');
  $('#landing').classList.remove('hidden');$('#match').classList.add('hidden');
  $('#rooms').innerHTML=rooms.length?rooms.map(r=>'<div class="room"><div><strong>'+esc(r.name)+'</strong><p>' +esc(r.host)+' · '+r.players+'/'+r.max+'명 · '+(BigInt(r.stake||'0')>0n?'판돈 '+money(r.stake):'친선전')+'</p></div><button data-join="'+esc(r.id)+'">입장 →</button></div>').join(''):'<div class="empty">지금 대기 중인 테이블이 없어. 네가 첫 방장이 되어줘!</div>';
  $$('[data-join]').forEach(btn=>btn.onclick=()=>command('/'+btn.dataset.join+'/join'));
@@ -66,7 +67,7 @@ function showRoom(r){
  if(room&&room.id===r.id&&Number(r.version)<Number(room.version))return; // A late GET cannot undo a newer turn.
  const next=room?.id!==r.id||room?.version!==r.version||room?.phase!==r.phase;
  if(room?.id!==r.id||room?.round!==r.round){selected.clear();callOne=false;}
- room=r;localDeadline=Date.now()+Math.max(0,((r.phase==='thank'?r.thankDeadline:r.deadline)||0)-(r.serverNow||Date.now()));$('#landing').classList.add('hidden');$('#match').classList.remove('hidden');
+ room=r;document.body.classList?.toggle('hula-active',game==='hula');localDeadline=Date.now()+Math.max(0,((r.phase==='thank'?r.thankDeadline:r.deadline)||0)-(r.serverNow||Date.now()));$('#landing').classList.add('hidden');$('#match').classList.remove('hidden');
  if(!next)return;
  const mine=r.players.find(p=>p.id===r.selfId);
  $('#roomName').textContent=r.name;$('#matchSub').textContent=(r.mode==='ai'?'J-BOT 대전':'실시간 멀티플레이')+' · '+(r.game==='onecard'?'원카드':'훌라')+' · '+r.round+'판'+(r.game==='hula'?' · '+(BigInt(r.stake||'0')>0n?'판돈 '+money(r.stake):'친선전'):'');
@@ -137,7 +138,7 @@ function renderPlaying(r,mine){
   else if(!myTurn)guide.innerHTML='<span>⏳ 상대 차례야. 내 차례에 가능한 카드가 표시돼.</span>';
   else if(r.game==='onecard')guide.innerHTML=r.legal.length?'<strong>🟢 낼 수 있는 카드 '+r.legal.length+'장</strong><span>초록색 테두리 카드를 눌러서 내면 돼.</span>':'<strong>낼 수 있는 카드 없음</strong><span>한 장을 받거나 누적 공격을 받아줘.</span>';
   else if(!r.drew)guide.innerHTML='<strong>🂠 먼저 카드 받기</strong><span>받은 뒤 등록 가능한 카드를 찾아줄게.</span>';
-  else guide.innerHTML='<span class="hand-legend">🟢 등록 가능 · 🔵 붙이기 가능 · 🟡 선택됨</span>'+
+  else guide.innerHTML='<span class="hand-legend">🟢 등록 가능 · 🔵 붙이기 가능 · 🟡 선택됨 · 같은 무늬 7·8 동시 등록</span>'+
    (groups.length?'<strong>♛ 등록 가능한 조합 '+groups.length+'개</strong><div class="suggestion-list">'+
      groups.slice(0,8).map((cs,i)=>'<button class="suggestion-btn" type="button" data-suggest="'+i+'">♛ '+labelCards(cs)+' · 즉시 등록</button>').join('')+'</div><span>조합을 누르면 즉시 등록되고 아래 등록 현황에 표시돼.</span>':
      '<strong>지금은 등록할 새 조합이 없어.</strong><span>카드 한 장을 버리거나 파란색 카드라면 붙여줘.</span>');
@@ -188,7 +189,8 @@ function renderHulaLedger(r,myTurn,attachments){
   panel=document.createElement('details');
   panel.id='hulaLedger';panel.className='hula-ledger';
   panel.setAttribute('aria-label','훌라 등록 패 현황');
-  board.insertBefore(panel,$('#quickTake'));
+  // Registration history belongs after the hand and action buttons.
+   board.appendChild(panel);
   const style=document.createElement('style');style.id='hula-ledger-style';
   style.textContent=[
    'body[data-game="hula"] .hula-ledger{margin:2px 0 14px;padding:12px;border:1px solid #d9b973b0;border-radius:15px;background:linear-gradient(140deg,#102f2d,#111e30);color:#f6e8c7;box-shadow:inset 0 1px #ffffff19,0 6px 15px #0005}',
@@ -258,9 +260,10 @@ function renderActions(r,myTurn){
  }else{
   $('#suitPicker').classList.add('hidden');
   const canMeld=sel.length>0&&(r.allowedMelds||[]).some(cs=>cs.length===sel.length&&cs.every(c=>sel.includes(c)));
-  const quickGroup=!sel.length&&(r.allowedMelds||[]).length?r.allowedMelds[0]:null;
-  el.innerHTML=!r.drew?'<button id="takeStock" class="take-card-button" '+(!myTurn?'disabled':'')+'>🂠 카드 한 장 받기</button><button id="stopBtn" class="secondary" '+(!myTurn?'disabled':'')+'>✋ 스톱 선언</button>':
-   '<button id="meldBtn" '+(!myTurn||!(canMeld||quickGroup)?'disabled':'')+'>♛ '+(canMeld?'선택 조합 등록':quickGroup?'추천 조합 바로 등록':'등록할 조합 선택')+'</button><button class="secondary" id="discardBtn" '+(!myTurn||sel.length!==1?'disabled':'')+'>↗ 선택 카드 버리기</button><span class="muted">붙이려면 한 장 선택 후 바닥 조합의 +버튼</span>';
+  const quickGroup=!sel.length&&r.allowedMelds?.length?(r.allowedMelds.find(cs=>cs.length===2&&cs.some(c=>Number(c.slice(1))===7)&&cs.some(c=>Number(c.slice(1))===8))||r.allowedMelds[0]):null;
+  const sevenWithEight=canMeld&&sel.length===2&&sel.some(c=>Number(c.slice(1))===7)&&sel.some(c=>Number(c.slice(1))===8);
+   el.innerHTML=!r.drew?'<button id="takeStock" class="take-card-button" '+(!myTurn?'disabled':'')+'>🂠 카드 한 장 받기</button><button id="stopBtn" class="secondary" '+(!myTurn?'disabled':'')+'>✋ 스톱 선언</button>':
+   '<button id="meldBtn" '+(!myTurn||!(canMeld||quickGroup)?'disabled':'')+'>♛ '+(sevenWithEight?'7·8 함께 등록':canMeld?'선택 조합 등록':quickGroup?'추천 조합 바로 등록':'등록할 조합 선택')+'</button><button class="secondary" id="discardBtn" '+(!myTurn||sel.length!==1?'disabled':'')+'>↗ 선택 카드 버리기</button><span class="muted">붙이려면 한 장 선택 후 바닥 조합의 +버튼</span>';
   if($('#takeStock'))$('#takeStock').onclick=()=>command('/'+r.id+'/take',{source:'stock'});
   if($('#stopBtn'))$('#stopBtn').onclick=()=>command('/'+r.id+'/stop');
   if($('#meldBtn'))$('#meldBtn').onclick=()=>{if(!(canMeld||quickGroup)||busy)return;selected.clear();command('/'+r.id+'/meld',{cards:canMeld?sel:quickGroup.slice()});};
@@ -299,8 +302,24 @@ $('#multiBtn').onclick=()=>{
  if(BigInt(stake)>0n&&!confirm('친구 훌라 판돈 '+money(stake)+' · 한 사람당 최대 예치 '+money(BigInt(stake)*16n)+'입니다. 카지노 방을 만들까요?'))return;
  command('/create',{game,mode:'multi',max:4,stake});
 };
-$('#leaveBtn').onclick=()=>{if(!room)return;if(room.phase==='playing'&&!confirm('진행 중인 대결에서 나가면 패배로 처리돼. 나갈까?'))return;command('/'+room.id+'/leave');};
-$('#lobbyBtn').onclick=()=>room&&command('/'+room.id+'/leave');
+async function leaveRoom(destination=''){
+ if(!room||busy||stopping)return;
+ if((room.phase==='playing'||room.phase==='thank')&&!confirm('진행 중에 나가면 패배로 처리되고, 카지노 판돈도 정산돼. 나갈까?'))return;
+ const id=room.id;stopping=true;
+ try{
+  await api('/'+id+'/leave',{});
+  selected.clear();room=null;showLanding([]);
+  if(destination){location.assign(destination);return;}
+  stopping=false;await refresh(true);
+ }catch(e){message('방 나가기에 실패했어: '+e.message);}
+ finally{stopping=false;}
+}
+$('#leaveBtn').onclick=()=>leaveRoom();
+$('#lobbyBtn').onclick=()=>leaveRoom();
+for(const [selector,destination] of [['.backlink','/'],['#nav-onecard','?game=onecard'],['#nav-hula','?game=hula']]){
+ const link=$(selector);
+ link?.addEventListener?.('click',event=>{if(!room)return;event.preventDefault();leaveRoom(destination);});
+}
 document.querySelector('#nav-'+game).classList.add('active');
 $('#heroTitle').textContent=NAME[game];$('#heroSub').textContent=game==='onecard'?'한 장의 반전. 단 한 사람의 왕좌.':'땡·연속·세븐. 한국 카드 승부의 진짜 재미.';
 $('#ruleHeadline').textContent=game==='onecard'?'공격과 역전의 심리전 · 원카드':'정통 한국 카드 게임 · 훌라';
