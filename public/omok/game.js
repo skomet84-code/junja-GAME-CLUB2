@@ -55,7 +55,10 @@ async function act(path,body={}){
  try{
   const data=await api(path,body);accept(data);
   if(!data.room)await homeRefresh();
- }catch(e){render();message(e.message||'요청에 실패했습니다.');}
+ }catch(e){
+   try{if(state.room){const latest=await api('/'+state.room.id);if(latest.room)accept(latest);}}catch{}
+   render();message(e.message||'요청에 실패했습니다.');
+  }
  finally{state.busy=false;}
 }
 function btn(action,text,variant='',extra=''){

@@ -88,6 +88,17 @@ function blocksWhiteRun(b,x,y){
     while(cell(b,x+(n+1)*dx*sign,y+(n+1)*dy*sign)===2)n++;
     if(n>=3)return true;
   }
+  // Split three/four defence: a legal block can fill the missing stone in an opponent threat.
+  for(const [dx,dy] of DIRS)for(let offset=-4;offset<=0;offset++){
+    const cells=Array.from({length:5},(_,i)=>[x+(offset+i)*dx,y+(offset+i)*dy]);
+    if(!cells.some(([xx,yy])=>xx===x&&yy===y))continue;
+    let enemies=0,blocked=false;
+    for(const [xx,yy] of cells){
+      const c=xx===x&&yy===y?0:cell(b,xx,yy);
+      if(c===2)enemies++;else if(c!==0)blocked=true;
+    }
+    if(!blocked&&enemies>=3)return true;
+  }
   return false;
 }
 function place(b,x,y,color){

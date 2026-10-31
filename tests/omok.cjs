@@ -49,7 +49,13 @@ function checkRules(){
   assert.equal(rules.place(copy,x,y,1).ok,true,'black defensive block accepted at '+x+','+y);
   assert.equal(copy[y][x],1,'defence persisted on board');
  }
- // An actual open double three remains forbidden, even when a nearby white
+ // Blocking the gap of an opposing split three is a defence, for both colors.
+  for(const defending of [1,2]){
+    const attacking=3-defending;
+    const setup=mustBoard([[5,7,attacking],[6,7,attacking],[8,7,attacking],[6,8,defending],[8,8,defending],[7,6,defending],[7,8,defending]]);
+    assert.equal(rules.place(setup,7,7,defending).ok,true,'split-three blocking is legal color '+defending);
+  }
+  // An actual open double three remains forbidden, even when a nearby white
  // diagonal run of three is also adjacent to the move.
  b=mustBoard([[6,7,1],[8,7,1],[7,6,1],[7,8,1],[8,8,2],[9,9,2],[10,10,2]]);
  assert.match(rules.place(b,7,7,1).error,/3-3/,'true open 3-3 remains forbidden while defending');
