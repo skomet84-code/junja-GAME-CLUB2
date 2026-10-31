@@ -19,7 +19,8 @@ const initialQuote=s=>({price:String(s.base),changeBp:0,history:[s.base],event:n
 // KST = UTC+09:00. Stock sessions open at 00:00, 06:00, 12:00 and 18:00 KST.
 const MARKET_CADENCE_HOURS=0.25;
 const sessionHour=t=>Math.floor(t/900000)*0.25;
-function amount(value){if(typeof value!=='string'||!/^(?:[1-9][0-9]{0,10}(?:\\.[0-9]{1,4})?|0\\.[0-9]{1,4})$/.test(value))throw Error('수량은 1개 이상의 정수로 입력해 개세요.');const n=BigInt(value.replace('.','').padEnd(4,'0'));if(n>MAX_SHARES)throw Error('1회 거래 한도를 초과했습니다.');if(n<=0n)throw Error('수량은 0보다 커야 합니다.');return n;}
+function amount(value){if(typeof value!=='string'||!/^(?:[1-9][0-9]{0,10}(?:\.[0-9]{1,4})?|0\.[0-9]{1,4})$/.test(value))throw Error('코인 수량은 소수점 4자리까지 입력하세요.');const [whole,fraction='']=value.split('.');const n=BigInt(whole)*10000n+BigInt(fraction.padEnd(4,'0'));if(n>MAX_SHARES)throw Error('1회 거래 한도를 초과했습니다.');if(n<=0n)throw Error('수량은 0보다 커야 합니다.');return n;}
+const formatQty=n=>(n/10000n).toString()+'.'+(n%10000n).toString().padStart(4,'0');
 function createJCoins({db,exactWallet,now=Date.now,randomInt=crypto.randomInt}){
  const stateKey=id=>'jcoin:portfolio:'+id;
  function read(key){const row=db.prepare('SELECT value FROM game_state WHERE key=?').get(key);return row?JSON.parse(row.value):null;}
@@ -92,7 +93,7 @@ function createJCoins({db,exactWallet,now=Date.now,randomInt=crypto.randomInt}){
   const holdings=STOCKS.map(s=>{
    const h=p.holdings[s.id]||{},qty=BigInt(h.qty||'0'),spent=BigInt(h.cost||'0'),current=qty*BigInt(m.stocks[s.id].price);
    value+=current;cost+=spent;
-   return {id:s.id,quantity:(Number(qty)/10000).toFixed(4),cost:String(spent),value:String(current),unrealized:String(current-spent)};
+   return {id:s.id,quantity:formatQty(qty),cost:String(spent),value:String(current),unrealized:String(current-spent)};
   });
   return {holdings,marketValue:String(value),cost:String(cost),unrealized:String(value-cost),realized:String(p.realized||'0')};
  }
@@ -120,7 +121,7 @@ function createJCoins({db,exactWallet,now=Date.now,randomInt=crypto.randomInt}){
   try{
    const previous=read(receiptKey);
    if(previous){
-    if(previous.side!==side||previous.stockId!==stockId||previous.quantity!==(Number(qty)/10000).toFixed(4))throw Error('이미 다른 거래에 사용된 요청번호입니다.');
+    if(previous.side!==side||previous.stockId!==stockId||previous.quantity!==formatQty(qty))throw Error('이미 다른 거래에 사용된 요청번호입니다.');
     db.exec('COMMIT');
     return {ok:true,duplicate:true,receipt:previous,status:status(uId)};
    }
@@ -145,10 +146,10 @@ function createJCoins({db,exactWallet,now=Date.now,randomInt=crypto.randomInt}){
    p.holdings[stockId]=h;
    const t=now(),newBalance=balance+delta,mirror=exactWallet.mirror(newBalance);
    db.prepare('UPDATE users SET balance=?,balance_exact=?,balance_base=? WHERE id=?').run(mirror,String(newBalance),String(mirror),uId);
-   write(stateKey(uId),{...p,trades:[{at:t,side,stockId,quantity:(Number(qty)/10000).toFixed(4),price:String(price),gross:String(gross),fee:String(fee),net:String(delta),realized:String(realized)},...(p.trades||[])].slice(0,30)});
+   write(stateKey(uId),{...p,trades:[{at:t,side,stockId,quantity:formatQty(qty),price:String(price),gross:String(gross),fee:String(fee),net:String(delta),realized:String(realized)},...(p.trades||[])].slice(0,30)});
    db.prepare('INSERT INTO ledger(user_id,amount,balance_after,amount_exact,balance_after_exact,type,memo,created_at) VALUES(?,?,?,?,?,?,?,?)')
     .run(uId,exactWallet.mirror(delta),mirror,String(delta),String(newBalance),side==='buy'?'jstock_buy':'jstock_sell','J-COIN '+s.name+' '+(side==='buy'?'매수':'매도')+' '+qty+'개 · 수수료 '+fee+' G',t);
-   const receipt={side,stockId,quantity:(Number(qty)/10000).toFixed(4),price:String(price),gross:String(gross),fee:String(fee),net:String(delta),realized:String(realized),at:t};
+   const receipt={side,stockId,quantity:formatQty(qty),price:String(price),gross:String(gross),fee:String(fee),net:String(delta),realized:String(realized),at:t};
    write(receiptKey,receipt);
    db.exec('COMMIT');
    return {ok:true,duplicate:false,receipt,status:status(uId)};
