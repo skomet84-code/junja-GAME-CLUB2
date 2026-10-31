@@ -257,6 +257,9 @@ function renderLobbyPresence(rows=[]){
 async function refreshMe(includePresence=currentView==='lobby'){const d=await api('/api/me'+(includePresence?'?presence=1':''));me=d.user;updateHeader();$('#onlineCount').textContent='ONLINE '+d.online;if($('#lobbyOnlineNow'))$('#lobbyOnlineNow').textContent='ONLINE '+d.online;if(includePresence)renderLobbyPresence(d.presence||[]);return d}
 async function go(view){
   if(view==='admin'&&!me?.is_admin){toast('관리자 권한이 필요합니다.');return}
+  if(currentRoomId&&['hula','onecard'].includes(currentGame)){
+    window.location.assign('/royalcards/index.html?game='+currentGame);return;
+  }
   if(currentRoomId&&view!==currentGame){toast('먼저 멀티 게임방에서 나가기를 눌러줘.');return}
   if(currentView==='sichuan'&&view!=='sichuan')document.getElementById('sichuanFrame')?.contentWindow?.postMessage({type:'junja-sichuan-pause'},location.origin);
   if(view==='sichuan'){const frame=document.getElementById('sichuanFrame');const src='/sichuan/index.html?v=5&player='+encodeURIComponent(String(me?.id||'guest'));if(frame&&frame.getAttribute('src')!==src)frame.setAttribute('src',src);}
@@ -603,6 +606,12 @@ async function resumeMyRoom(){
     if(room.game==='omok'){window.location.assign('/omok/index.html');return;}
     if(room.game==='janggi'){window.location.assign('/janggi/online.html');return;}
     if(room.game==='liar'){window.location.assign('/liar/index.html');return;}
+    // Royal Cards has its own page; the main SPA has no #view-hula / #view-onecard.
+    // Restoring it as a generic multiplayer room leaves a blank page and traps navigation.
+    if(room.game==='hula'||room.game==='onecard'){
+      currentRoomId=null;currentGame=null;lastRoomVersion=-1;stopRoomPolling();
+      window.location.assign('/royalcards/index.html?game='+room.game);return;
+    }
     // Treasure Raid owns its room state and settlement UI separately.
     if(room.game==='goldenbell'){
       currentRoomId=null;currentGame=null;lastRoomVersion=-1;stopRoomPolling();await go('goldenbell');
