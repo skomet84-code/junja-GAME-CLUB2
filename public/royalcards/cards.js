@@ -81,11 +81,18 @@ function showRoom(r){
 }
 function renderWaiting(r,mine){
  $('#readyList').innerHTML=r.players.map(p=>'<div class="ready-person"><span>'+esc(p.name)+(p.id===r.hostId?' ♛':'')+'</span><b>'+(p.ready?'READY':'WAITING')+'</b></div>').join('');
- $('#readyBtn').textContent=mine?.ready?'준비 취소':'준비 완료';$('#readyBtn').onclick=()=>command('/'+r.id+'/ready',{ready:!mine?.ready});
+ $('#readyBtn').textContent=mine?.ready?'준비 취소':'준비 완료';
+ $('#readyBtn').onclick=()=>{
+  if(!mine?.ready&&BigInt(r.stake||'0')>0n&&!confirm('훌라 판돈 '+money(r.stake)+' · 이 판 최대 손실 대비 '+money(BigInt(r.stake)*16n)+'를 시작할 때 예치합니다. 진행할까요?'))return;
+  command('/'+r.id+'/ready',{ready:!mine?.ready});
+ };
  $('#startBtn').classList.toggle('hidden',r.hostId!==r.selfId);
  $('#startBtn').disabled=r.players.length<2||r.players.some(p=>!p.ready);
- $('#startBtn').onclick=()=>command('/'+r.id+'/start');
- $('#roomCode').innerHTML='<span>친구에게 초대 링크를 공유해. · '+esc(r.id)+'</span> <button id="shareRoom" class="outline-btn">초대 링크 복사 ↗</button>';
+ $('#startBtn').onclick=()=>{
+  if(BigInt(r.stake||'0')>0n&&!confirm('참가자 전원이 '+money(BigInt(r.stake)*16n)+'씩 예치한 뒤 훌라 카지노를 시작합니다. 시작할까요?'))return;
+  command('/'+r.id+'/start');
+ };
+ $('#roomCode').innerHTML='<span>친구에게 초대 링크를 공유해. · '+esc(r.id)+(BigInt(r.stake||'0')>0n?' · 판돈 '+money(r.stake)+' / 최대 예치 '+money(BigInt(r.stake)*16n):' · 친선전')+'</span> <button id="shareRoom" class="outline-btn">초대 링크 복사 ↗</button>';
  $('#shareRoom').onclick=async()=>{const link=location.origin+'/royalcards/index.html?game='+r.game+'&room='+r.id;try{await navigator.clipboard.writeText(link);message('친구 초대 링크를 복사했어!');}catch{prompt('이 링크를 친구에게 보내줘',link);}};
 }
 function renderPlaying(r,mine){
@@ -287,7 +294,11 @@ $('#rulesModal').onclick=e=>{if(e.target.id==='rulesModal')$('#rulesModal').clas
 $('#rulesBtn').onclick=showRules;
 $('#refreshBtn').onclick=refresh;
 $('#aiBtn').onclick=()=>command('/create',{game,mode:'ai'});
-$('#multiBtn').onclick=()=>command('/create',{game,mode:'multi',max:4,stake:game==='hula'?$('#hulaStake').value:'0'});
+$('#multiBtn').onclick=()=>{
+ const stake=game==='hula'?$('#hulaStake').value:'0';
+ if(BigInt(stake)>0n&&!confirm('친구 훌라 판돈 '+money(stake)+' · 한 사람당 최대 예치 '+money(BigInt(stake)*16n)+'입니다. 카지노 방을 만들까요?'))return;
+ command('/create',{game,mode:'multi',max:4,stake});
+};
 $('#leaveBtn').onclick=()=>{if(!room)return;if(room.phase==='playing'&&!confirm('진행 중인 대결에서 나가면 패배로 처리돼. 나갈까?'))return;command('/'+room.id+'/leave');};
 $('#lobbyBtn').onclick=()=>room&&command('/'+room.id+'/leave');
 document.querySelector('#nav-'+game).classList.add('active');
