@@ -132,4 +132,66 @@ async function checkRooms(){
  assert.equal(JSON.parse(values.get('omok:stats:1')).wins,1);
  game.close();
 }
-(async()=>{checkRules();checkBothColors();await checkRooms();console.log('Omok rules and room smoke tests: PASS');})().catch(e=>{console.error(e);process.exitCode=1;});
+
+async function checkClientRequestRaces(){
+ const vm=require('node:vm'),fs=require('node:fs');
+ const original=fs.readFileSync('public/omok/game.js','utf8');
+ const tail="refresh(true);\n})();";
+ assert.ok(original.includes(tail),'omok script has a known harness injection point');
+ const instrumented=original.replace(tail,"window.__omokTest={state,accept,refresh,act};\nrefresh(true);\n})();");
+ const pending=[],listeners={};
+ const root={innerHTML:'',addEventListener(){},querySelectorAll:()=>[],querySelector:()=>null};
+ const notice={textContent:''},back={addEventListener:(ev,fn)=>{listeners[ev]=fn;}};
+ const doc={hidden:false,readyState:'complete',getElementById:id=>id==='omokRoot'?root:id==='omokMessage'?notice:null,
+  querySelector:q=>q==='.omk-back'?back:null,addEventListener(){}};
+ const location={href:'https://example.test/omok/index.html',origin:'https://example.test',
+  redirected:null,assign(path){this.redirected=path;}};
+ const window={confirm:()=>true,addEventListener(){},prompt:()=>''};
+ const fetch=(url,opts)=>new Promise(resolve=>pending.push({url,opts,resolve}));
+ const ctx={document:doc,window,location,fetch,URL,history:{replaceState(){}},
+  navigator:{},console,setTimeout,clearTimeout,setInterval:()=>0,clearInterval:()=>{}};
+ vm.runInNewContext(instrumented,ctx);
+ const flush=()=>new Promise(resolve=>setImmediate(resolve));
+ const respond=(item,data,status=200)=>{
+  assert.ok(item,'expected an outstanding HTTP response');
+  item.resolve({ok:status<400,status,json:async()=>data});
+ };
+ assert.equal(pending.length,1,'initial lobby load requested');
+ respond(pending.shift(),{room:null,rooms:[],stats:{},aiStats:{},leaders:[]});await flush();
+ const t=window.__omokTest,board=rules.fresh();board[7][7]=1;
+ const live={id:'OM123456789abcde',version:5,phase:'playing',round:1,moves:1,board,last:[7,7],line:[],
+  name:'경합 테스트',selfId:1,hostId:1,players:[
+   {id:1,nickname:'준자',color:1,ready:true},{id:2,nickname:'친구',color:2,ready:true}],
+  turn:2,myTurn:false,deadline:Date.now()+90000,serverNow:Date.now(),winner:null,reason:'',aiMode:false};
+ t.accept({room:live});
+ const oldPoll=t.refresh(true);
+ assert.equal(pending.length,1,'a poll is in flight');
+ const move=t.act('/'+live.id+'/move',{x:8,y:7});
+ assert.equal(pending.length,2,'a player action overlaps the older poll');
+ const newer={...live,version:6,turn:1,myTurn:true,moves:2,board:live.board.map(row=>row.slice())};
+ newer.board[7][8]=2;
+ respond(pending.pop(),{room:newer});await move;
+ respond(pending.shift(),{room:live});await oldPoll;
+ assert.equal(t.state.room.version,6,'out-of-order GET cannot erase a newer turn');
+ assert.equal(t.state.room.board[7][8],2,'the newest stone remains displayed');
+ const late=t.refresh(true);
+ const leave=t.act('/'+live.id+'/leave',{});
+ respond(pending.pop(),{room:null});await flush();
+ // The action loads the lobby after leaving.
+ assert.ok(pending.some(x=>x.url==='/api/omok'));
+ const home=pending.findIndex(x=>x.url==='/api/omok');
+ respond(pending.splice(home,1)[0],{room:null,rooms:[],stats:{},aiStats:{},leaders:[]});
+ await leave;
+ respond(pending.shift(),{room:live});await late;
+ assert.equal(t.state.room,null,'old poll cannot resurrect a room after exit');
+ t.accept({room:live});
+ let prevented=false;
+ const backClick=listeners.click({preventDefault(){prevented=true;}});
+ assert.equal(prevented,true,'lobby link waits for server leave');
+ assert.ok(pending.at(-1).url.endsWith('/leave'),'lobby navigation calls room leave');
+ respond(pending.pop(),{room:null});await backClick;
+ assert.equal(location.redirected,'/','lobby opens after successful room departure');
+ console.log('OMOK_CLIENT_RACES_OK: stale GET, action overlap, room exit and lobby navigation');
+}
+
+(async()=>{checkRules();checkBothColors();await checkRooms();await checkClientRequestRaces();console.log('Omok rules and room smoke tests: PASS');})().catch(e=>{console.error(e);process.exitCode=1;});
