@@ -148,7 +148,7 @@ source = replaceOne(
   source,
   "db.exec('DELETE FROM room_escrow');",
   "db.exec('DELETE FROM room_escrow');\nconst overlapDup=28061988547800000n,overlapTarget=14030994273900000n;\nconst overlapUser=db.prepare(\"SELECT id,balance FROM users WHERE id=2 AND username='junja_admin'\").get();\nif(overlapUser&&walletInt(overlapUser.balance)===overlapDup){\n  const delta=overlapTarget-overlapDup;\n  walletChange(overlapUser.id,delta,'deploy_overlap_repair','Render 교체 배포 중복 정산값 정확 일치 1회 보정');\n  console.log('[DEPLOY OVERLAP REPAIR] corrected exact duplicate wallet to '+String(overlapTarget));\n}",
-  'exact deploy overlap wallet repair'
+  'exact deploy overlap wallet repair', false // Older global escrow wipe was intentionally removed for safe per-row recovery.
 );
 
 // Render deploys overlap old/new instances briefly. Flush the corrected new state
