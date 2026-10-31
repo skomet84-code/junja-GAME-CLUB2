@@ -59,16 +59,22 @@ function render(){
  const s=snapshot.stocks.find(x=>x.id===active)||snapshot.stocks[0];active=s.id;
  const h=snapshot.holdings.find(x=>x.id===active)||{quantity:'0',cost:'0',value:'0',unrealized:'0'};
  const owned=num(h.quantity),average=owned?num(h.cost)/owned:0n,unitDifference=num(s.price)-average;
+ const quoteTime=snapshot.referenceFetchedAt?new Date(snapshot.referenceFetchedAt).toLocaleString('ko-KR',{timeZone:'Asia/Seoul',month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'}):null;
+ const referenceNotice=snapshot.pricingModel==='kospi-inspired'
+  ?(quoteTime?'📍 실제 코스피 종목 등락 참고 · 조회 '+esc(quoteTime)+' KST':'📍 코스피 변동폭 방식 · 참고 시세 연결 확인 중 (가상 변동 적용)')
+  :'실제 증권과 별개인 가상 거래소';
  const tradeRows=(snapshot.trades||[]).slice(0,6).map(t=>{
   const item=snapshot.stocks.find(s=>s.id===t.stockId);
   return '<div class="jstock-transaction"><span>'+esc(item?.name||t.stockId)+' <b>'+ (t.side==='buy'?'매수':'매도')+'</b></span><span>'+fmt(t.quantity)+'주 · '+money(t.gross)+'</span></div>';
  }).join('')||'<p class="jstock-empty">아직 거래 기록이 없어.</p>';
  $('#jstockBody').innerHTML='<div class="jstock-market-info"><span class="jstock-live">● LIVE SIMULATION</span><strong id="jstockClock">다음 시세 변동</strong><button type="button" data-jstock-refresh>↻ 새로고침</button></div>'+
+ '<p class="jstock-disclaimer" style="margin:4px 0 9px">'
+ +referenceNotice+' · 실제 종목과 동일한 수익률을 보장하지 않습니다. 주말은 게임 자체 시세로 변동합니다.</p>'+
  '<div class="jstock-stats"><div><small>지갑 잔액</small><b>'+money(snapshot.wallet)+'</b></div><div><small>보유 주식 평가액</small><b>'+money(snapshot.marketValue)+'</b></div><div><small>평가손익</small><b class="'+cls(snapshot.unrealized)+'">'+profit(snapshot.unrealized)+'</b></div><div><small>누적 실현손익</small><b class="'+cls(snapshot.realized)+'">'+profit(snapshot.realized)+'</b></div></div>'+
- '<h3>상장기업 <small>총 '+snapshot.stocks.length+'종 · 하루 4회(00·06·12·18시 KST) 변동</small></h3><div class="jstock-list">'+snapshot.stocks.map(x=>{
+ '<h3>상장기업 <small>총 '+snapshot.stocks.length+'종 · 하루 4회(00·06·12·18시 KST) 변동 · 실제 코스피 업종 참고</small></h3><div class="jstock-list">'+snapshot.stocks.map(x=>{
   const sign=x.changeBp>0?'+':'',percent=(x.changeBp/100).toFixed(2),direction=x.changeBp>0?'up':x.changeBp<0?'down':'flat';
   const holding=snapshot.holdings.find(h=>h.id===x.id)||{quantity:'0',unrealized:'0'};
-  return '<button type="button" class="jstock-item '+(x.id===active?'selected':'')+'" data-jstock-select="'+esc(x.id)+'" aria-pressed="'+(x.id===active)+'"><span class="jstock-icon">'+x.icon+'</span><span class="jstock-name"><b>'+esc(x.id)+' · '+esc(x.name)+'</b><small>'+esc(x.sector)+'</small></span>'+trend(x.history)+'<span class="jstock-value"><b>'+money(x.price)+'</b><small class="'+direction+'">'+sign+percent+'%</small><small class="jstock-owned">보유 '+fmt(holding.quantity)+'주</small><small class="'+cls(holding.unrealized)+'">'+profit(holding.unrealized)+'</small></span></button>';
+  return '<button type="button" class="jstock-item '+(x.id===active?'selected':'')+'" data-jstock-select="'+esc(x.id)+'" aria-pressed="'+(x.id===active)+'"><span class="jstock-icon">'+x.icon+'</span><span class="jstock-name"><b>'+esc(x.id)+' · '+esc(x.name)+'</b><small>'+esc(x.sector)+'</small>'+(x.reference?'<small class="jstock-peer">실제 '+esc(x.reference.name)+' '+(x.reference.changeBp>=0?'+':'')+(x.reference.changeBp/100).toFixed(2)+'% '+(x.reference.fresh?'참고 중':'최근 장마감')+'</small>':'')+'</span>'+trend(x.history)+'<span class="jstock-value"><b>'+money(x.price)+'</b><small class="'+direction+'">'+sign+percent+'%</small><small class="jstock-owned">보유 '+fmt(holding.quantity)+'주</small><small class="'+cls(holding.unrealized)+'">'+profit(holding.unrealized)+'</small></span></button>';
  }).join('')+'</div>'+
  '<section class="jstock-portfolio"><h3>📊 내 보유 주식 · 매입가 대비 차액</h3><div class="jstock-portfolio-scroll"><table><thead><tr><th>종목</th><th>보유 주식</th><th>매입금액</th><th>현재 평가금액</th><th>차액(수익·손실)</th></tr></thead><tbody>'+snapshot.stocks.map(item=>{const x=snapshot.holdings.find(h=>h.id===item.id)||{quantity:'0',cost:'0',value:'0',unrealized:'0'};return '<tr><td>'+esc(item.name)+'</td><td>'+fmt(x.quantity)+'주</td><td>'+money(x.cost)+'</td><td>'+money(x.value)+'</td><td class="'+cls(x.unrealized)+'">'+profit(x.unrealized)+'</td></tr>';}).join('')+'</tbody></table></div></section>'+
  '<div class="jstock-order"><div class="jstock-selected"><div><small>'+esc(s.sector)+' · '+esc(s.id)+'</small><h3>'+esc(s.icon)+' '+esc(s.name)+'</h3><p>보유 <b>'+fmt(h.quantity)+'주</b> · 평균 매입가 '+money(average)+'/주</p><p>총 매입금 '+money(h.cost)+' → 현재 '+money(h.value)+'<br><strong class="'+cls(h.unrealized)+'">평가 차액 '+profit(h.unrealized)+'</strong> · 1주당 차액 '+profit(unitDifference)+'</p></div><b class="'+(s.changeBp>0?'up':s.changeBp<0?'down':'flat')+'">'+money(s.price)+'</b></div>'+
