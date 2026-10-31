@@ -2,7 +2,7 @@
 (()=>{
 'use strict';
 const root=document.getElementById('omokRoot'),notice=document.getElementById('omokMessage');
-const state={room:null,home:null,busy:false,loading:false,offset:0,inviteChecked:false};
+const state={room:null,home:null,busy:false,loading:false,offset:0,inviteChecked:false,actionEpoch:0};
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const label=c=>c===1?'흑':c===2?'백':'없음';
 function message(t=''){
@@ -26,12 +26,15 @@ function accept(data){
  if(state.room)state.offset=state.room.serverNow-Date.now();
  render();
 }
-async function homeRefresh(){try{accept(await api(''));}catch(e){message(e.message);}}
+async function homeRefresh(){const epoch=state.actionEpoch;try{const d=await api('');if(epoch===state.actionEpoch)accept(d);}catch(e){if(epoch===state.actionEpoch)message(e.message);}}
 async function refresh(force=false){
  if(state.loading||state.busy||document.hidden)return;
  state.loading=true;
+ const epoch=state.actionEpoch;
  try{
   const old=state.room,ret=await api(old?'/'+old.id:'');
+  if(epoch!==state.actionEpoch)return;
+  if(old&&ret.room&&ret.room.id===old.id&&ret.room.version<old.version)return;
   if(!force&&old&&ret.room&&ret.room.version===old.version)return;
   accept(ret);
   if(!state.room&&!state.inviteChecked){
@@ -43,6 +46,7 @@ async function refresh(force=false){
    }
   }
  }catch(e){
+  if(epoch!==state.actionEpoch)return;
   if(e.status===404){state.room=null;await homeRefresh();}
   else if(e.status===401)root.innerHTML='<section class="omk-panel omk-loading">로그인이 필요합니다. <a class="omk-btn" href="/">준자랜드 로그인</a></section>';
   else message(e.message||'서버 연결이 원활하지 않습니다.');
@@ -50,7 +54,7 @@ async function refresh(force=false){
 }
 async function act(path,body={}){
  if(state.busy)return;
- state.busy=true;message('');
+ state.busy=true;state.actionEpoch++;message('');
  root.querySelectorAll('button[data-action]').forEach(b=>b.disabled=true);
  try{
   const data=await api(path,body);accept(data);
@@ -180,6 +184,17 @@ if(typeof EventSource==='function'){
  });
  window.addEventListener('pagehide',()=>events.close(),{once:true});
 }
+const lobbyLink=document.querySelector('.omk-back');
+lobbyLink?.addEventListener('click',async e=>{
+ if(!state.room)return;
+ e.preventDefault();
+ if(state.busy)return;
+ if(state.room.phase==='playing'&&!window.confirm('대국 중에 로비로 나가면 기권패로 기록됩니다. 나갈까요?'))return;
+ const id=state.room.id;state.busy=true;state.actionEpoch++;
+ try{await api('/'+id+'/leave',{});state.room=null;location.assign('/');}
+ catch(error){message('퇴장 실패: '+error.message);}
+ finally{state.busy=false;}
+});
 setInterval(tick,250);
 setInterval(()=>{if(!document.hidden)refresh();},5000);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)refresh(true);});
