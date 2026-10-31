@@ -10,6 +10,7 @@ const {createJBank}=require('./j-bank-core');
 const {createJStocks}=require('./j-stock-core');
 const {createKospiReference}=require('./j-stock-kospi-reference');
 const {createJCoins}=require('./j-coin-core');
+const {combinedInvestmentRanking}=require('./j-investment-ranking');
 const { DatabaseSync } = require('./persistent-db');
 const createTreasureRaid = require('./treasure-raid-server');
 const createBlackroomCloud = require('./blackroom-cloud');
@@ -168,6 +169,17 @@ const kospiReference=createKospiReference({now});
 kospiReference.start();
 const jStocks=createJStocks({db,exactWallet,now,getReference:kospiReference.get,marketMode:'kospi'});
 const jCoins=createJCoins({db,exactWallet,now});
+// Attach the same authoritative stock + coin leaderboard to GET and trade
+// responses. Keep the original portfolios, exact balances and ledgers intact.
+function withInvestmentRanking(response,userId,market){
+ const result=response.status||response;
+ const other=market==='stock'?jCoins.status(userId):jStocks.status(userId);
+ const stocks=market==='stock'?result:other;
+ const coins=market==='coin'?result:other;
+ const ranking=combinedInvestmentRanking({db,stockQuotes:stocks.stocks,coinQuotes:coins.stocks});
+ const status={...result,ranking,rankingType:'combined',changed:Boolean(result.changed||other.changed)};
+ return response.status?{...response,status}:status;
+}
 const SLOT_JACKPOT_BASE = 50000000;
 function gameStateGet(key,fallback=null){
   const row=db.prepare('SELECT value FROM game_state WHERE key=?').get(String(key));
@@ -2170,26 +2182,26 @@ const server=http.createServer(async(req,res)=>{
     if(url.pathname==='/api/me'&&req.method==='GET'){const u=requireAuth(req,res);if(!u)return;const includePresence=url.searchParams.get('presence')==='1';return json(res,200,{user:u,online:onlineCount(),presence:includePresence?presenceSnapshot():[]});}
     if(url.pathname==='/api/jstock'&&req.method==='GET'){
       const u=requireAuth(req,res);if(!u)return;
-      try{const status=jStocks.status(u.id);if(status.changed)await db.flush();return json(res,200,status);}
+      try{const status=withInvestmentRanking(jStocks.status(u.id),u.id,'stock');if(status.changed)await db.flush();return json(res,200,status);}
       catch(e){return json(res,400,{error:e.message});}
     }
     if(url.pathname==='/api/jstock/trade'&&req.method==='POST'){
       const u=requireAuth(req,res);if(!u)return;
       if(!rateLimit('jstock:'+u.id,20,60000))return json(res,429,{error:'주식 주문을 너무 자주 보내고 있습니다.'});
       try{
-        const b=await readBody(req),result=jStocks.trade(u.id,b.side,b.stockId,b.quantity,b.requestId);
+        const b=await readBody(req),result=withInvestmentRanking(jStocks.trade(u.id,b.side,b.stockId,b.quantity,b.requestId),u.id,'stock');
         await db.flush();pushRefresh();
         return json(res,200,{...result,user:userPublic(u.id)});
       }catch(e){return json(res,400,{error:e.message});}
     }
     if(url.pathname==='/api/jcoin'&&req.method==='GET'){
       const u=requireAuth(req,res);if(!u)return;
-      try{const status=jCoins.status(u.id);if(status.changed)await db.flush();return json(res,200,status);}catch(e){return json(res,400,{error:e.message});}
+      try{const status=withInvestmentRanking(jCoins.status(u.id),u.id,'coin');if(status.changed)await db.flush();return json(res,200,status);}catch(e){return json(res,400,{error:e.message});}
     }
     if(url.pathname==='/api/jcoin/trade'&&req.method==='POST'){
       const u=requireAuth(req,res);if(!u)return;
       if(!rateLimit('jcoin:'+u.id,20,60000))return json(res,429,{error:'코인 주문을 너무 자주 보내고 있습니다.'});
-      try{const b=await readBody(req),result=jCoins.trade(u.id,b.side,b.stockId,b.quantity,b.requestId);await db.flush();pushRefresh();return json(res,200,{...result,user:userPublic(u.id)});}
+      try{const b=await readBody(req),result=withInvestmentRanking(jCoins.trade(u.id,b.side,b.stockId,b.quantity,b.requestId),u.id,'coin');await db.flush();pushRefresh();return json(res,200,{...result,user:userPublic(u.id)});}
       catch(e){return json(res,400,{error:e.message});}
     }
     if(url.pathname==='/api/jbank'&&req.method==='GET'){
