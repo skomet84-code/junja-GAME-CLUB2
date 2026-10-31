@@ -148,7 +148,7 @@ async function checkClientRequestRaces(){
   redirected:null,assign(path){this.redirected=path;}};
  const window={confirm:()=>true,addEventListener(){},prompt:()=>''};
  const fetch=(url,opts)=>new Promise(resolve=>pending.push({url,opts,resolve}));
- const ctx={document:doc,window,location,fetch,URL,history:{replaceState(){}},
+ const ctx={document:doc,window,location,fetch,URL,AbortController,history:{replaceState(){}},
   navigator:{},console,setTimeout,clearTimeout,setInterval:()=>0,clearInterval:()=>{}};
  vm.runInNewContext(instrumented,ctx);
  const flush=()=>new Promise(resolve=>setImmediate(resolve));
