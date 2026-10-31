@@ -42,6 +42,7 @@ function transact(record,kind,text,requestId,at,debt,balance){
  if(kind!=='installmentClaim'&&kind!=='installmentCancel')throw Error('알 수 없는 적금 거래입니다.');
  if(kind==='installmentClaim'&&!v.matured)throw Error('아직 적금 만기일이 아닙니다.');
  if(kind==='installmentCancel'&&v.matured)throw Error('만기된 적금입니다. 만기 수령 버튼을 이용하세요.');
+ if(kind==='installmentCancel'&&at<a.openedAt+DAY)throw Error('적금은 최초 가입 후 최소 24시간이 지나야 중도해지 및 출금할 수 있습니다.');
  const earned=kind==='installmentClaim'?BigInt(v.maturityInterestOnPaid):0n;
  record.lastInstallment={...v,closedAt:at,paidInterest:String(earned),cancelled:kind==='installmentCancel'};
  record.installment=null;
