@@ -3,7 +3,7 @@ const game=new URLSearchParams(location.search).get('game')==='hula'?'hula':'one
 document.body.dataset.game=game;
 const $=sel=>document.querySelector(sel);
 const $$=sel=>[...document.querySelectorAll(sel)];
-let room=null,selected=new Set(),hulaSort='rank',changedVersion=-1,busy=false,stopping=false,callOne=false,inviteAttempted=false,localDeadline=0,score={games:0,wins:0,bestStreak:0,streak:0};
+let room=null,selected=new Set(),hulaSort='rank',changedVersion=-1,busy=false,stopping=false,callOne=false,inviteAttempted=false,localDeadline=0,actionEpoch=0,score={games:0,wins:0,bestStreak:0,streak:0};
 const SUIT={S:'♠',H:'♥',D:'♦',C:'♣'};
 const NAME={onecard:'ROYAL ONE CARD',hula:'ROYAL HULA'};
 const ESC={'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'};
@@ -30,12 +30,13 @@ async function api(path,body){
  return data;
 }
 async function command(path,body){
- if(busy)return;busy=true;
+ if(busy)return;busy=true;actionEpoch++;
  try{const data=await api(path,body||{});if(data.room)showRoom(data.room);else await refresh(true);}catch(e){message(e.message);}finally{busy=false;}
 }
 async function refresh(force=false){
  if(!force&&(busy||stopping))return;
- try{const data=await api('?game='+game);if(stopping&&!force)return;if(data.stats)showStats(data.stats);
+ const epoch=actionEpoch;
+ try{const data=await api('?game='+game);if(epoch!==actionEpoch||stopping&&!force)return;if(data.stats)showStats(data.stats);
  if(data.room)showRoom(data.room);else {room=null;showLanding(data.rooms||[]);const target=new URLSearchParams(location.search).get('room');if(target&&!inviteAttempted&&/^RC[a-f0-9]{14}$/.test(target)){inviteAttempted=true;command('/'+target+'/join');}}
  $('#account').textContent='● CONNECTED';
  }catch(e){if(e.message.includes('로그인')){$('#account').textContent='로그인 필요';message('준자랜드에서 먼저 로그인해줘.');}else message(e.message);}
@@ -305,7 +306,7 @@ $('#multiBtn').onclick=()=>{
 async function leaveRoom(destination=''){
  if(!room||busy||stopping)return;
  if((room.phase==='playing'||room.phase==='thank')&&!confirm('진행 중에 나가면 패배로 처리되고, 카지노 판돈도 정산돼. 나갈까?'))return;
- const id=room.id;stopping=true;
+ const id=room.id;stopping=true;actionEpoch++;
  try{
   await api('/'+id+'/leave',{});
   selected.clear();room=null;showLanding([]);
@@ -324,7 +325,7 @@ document.querySelector('#nav-'+game).classList.add('active');
 $('#heroTitle').textContent=NAME[game];$('#heroSub').textContent=game==='onecard'?'한 장의 반전. 단 한 사람의 왕좌.':'땡·연속·세븐. 한국 카드 승부의 진짜 재미.';
 $('#ruleHeadline').textContent=game==='onecard'?'공격과 역전의 심리전 · 원카드':'정통 한국 카드 게임 · 훌라';
 $('#ruleSummary').textContent=game==='onecard'?'2·A·조커 공격 누적, 7 무늬 전환, J 건너뛰기, Q 역방향, K 추가 턴. 단 한 장을 남기는 순간 원카드 선언을 잊지 마.':'7장으로 시작해 땡·연속·7 단독 등록. ♣K-A-2 같은 연속도 가능! 등록하고 서로의 조합에 붙여봐. 스톱은 10점 이하.';
-refresh();setInterval(()=>{if(document.visibilityState==='visible')refresh();},game==='hula'?1100:2600);
+refresh();setInterval(()=>{if(document.visibilityState==='visible')refresh();},game==='hula'?2500:3000);
 if(typeof EventSource==='function'){
  const events=new EventSource('/api/events');events.addEventListener('refresh',ev=>{
   try{const d=JSON.parse(ev.data);if(d.royalcards&&(!room||!d.roomId||room.id===d.roomId))refresh();}catch{}
