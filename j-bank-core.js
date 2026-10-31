@@ -11,13 +11,20 @@ function dayNumber(s){const n=Date.parse(String(s)+'T00:00:00Z');if(!Number.isFi
 function positive(raw){if(typeof raw!=='string'||!/^[1-9][0-9]{0,79}$/.test(raw))throw Error('금액은 1G 이상의 정수여야 합니다.');return BigInt(raw);}
 function createJBank({db,exactWallet,levels,now,kstDate}){
  const accountKey=id=>'jbank:account:'+Number(id);
- function empty(day){return {principal:'0',interest:'0',asOf:day,openedAt:0,closedAt:0,number:0,totalBorrowed:'0',totalRepaid:'0',lastRankSale:null,saleCount:0};}
+ function empty(day){return {principal:'0',interest:'0',asOf:day,openedAt:0,closedAt:0,number:0,totalBorrowed:'0',totalRepaid:'0',lastRankSale:null,saleCount:0,savingsPrincipal:'0',savingsInterest:'0',savingsEarned:'0',savingsRemainder:'0',savingsAt:now()};}
  function read(id,day=kstDate()){const r=db.prepare('SELECT value FROM game_state WHERE key=?').get(accountKey(id));return r?{...empty(day),...JSON.parse(r.value)}:empty(day);}
  function project(record,day=kstDate()){
   const r={...record},elapsed=Math.max(0,dayNumber(day)-dayNumber(r.asOf)),principal=BigInt(r.principal);
   // Charge only on outstanding principal; interest does not compound.
   if(elapsed&&principal>0n)r.interest=String(BigInt(r.interest)+(principal*RATE_BP*BigInt(elapsed)+9999n)/10000n);
-  r.asOf=day;return r;
+  r.asOf=day;
+  const at=now(),elapsedMs=Math.max(0,at-Number(r.savingsAt??at)),denom=10000n*86400000n;
+  const numerator=BigInt(r.savingsPrincipal||'0')*5n*BigInt(Math.floor(elapsedMs))+BigInt(r.savingsRemainder||'0');
+  const earned=numerator/denom;
+  r.savingsInterest=String(BigInt(r.savingsInterest||'0')+earned);
+  r.savingsEarned=String(BigInt(r.savingsEarned||'0')+earned);
+  r.savingsRemainder=String(numerator%denom);r.savingsAt=Math.max(at,Number(r.savingsAt??at));
+  return r;
  }
  function owed(id,day=kstDate()){const x=project(read(id,day),day);return BigInt(x.principal)+BigInt(x.interest);}
  function store(id,record){db.prepare('INSERT INTO game_state(key,value,updated_at) VALUES(?,?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value,updated_at=excluded.updated_at').run(accountKey(id),JSON.stringify(record),now());}
@@ -30,7 +37,8 @@ function createJBank({db,exactWallet,levels,now,kstDate}){
   const pay=price<debt?price:debt;
   const rankSale=debt>0n&&level>0?{fromLevel:level,fromName:levels[level].name,toLevel:level-1,toName:levels[level-1].name,
    salePrice:String(price),repayAmount:String(pay),remainingDebt:String(debt-pay),cashBack:String(price-pay),saleRatePct:99}:null;
-  return {name:'J-BANK',rank:{level,name:levels[level].name},loanLimit:limit,minLoan:String(MIN_LOAN),
+  const savings={principal:r.savingsPrincipal,interest:r.savingsInterest,total:String(BigInt(r.savingsPrincipal)+BigInt(r.savingsInterest)),totalEarned:r.savingsEarned,dailyInterestPct:'0.05',canDeposit:debt===0n};
+  return {savings,name:'J-BANK',rank:{level,name:levels[level].name},loanLimit:limit,minLoan:String(MIN_LOAN),
    dailyInterestPct:'0.1',interestMethod:'simple',principal:r.principal,interest:r.interest,
    outstanding:String(debt),canBorrow:debt===0n,canPromote:debt===0n,available:debt===0n?limit:'0',
    wallet:exactWallet.output(exactWallet.read(u)),openedAt:r.openedAt,closedAt:r.closedAt,
@@ -40,7 +48,7 @@ function createJBank({db,exactWallet,levels,now,kstDate}){
   id=Number(id);
   if(!Number.isSafeInteger(id)||id<1)throw Error('잘못된 계정입니다.');
   if(typeof requestId!=='string'||!/^[a-zA-Z0-9_-]{12,80}$/.test(requestId))throw Error('은행 요청 번호 오류');
-  const text=kind==='repay'&&raw==='all'?'all':String(positive(raw));
+  const text=['repay','withdraw'].includes(kind)&&raw==='all'?'all':String(positive(raw));
   db.exec('BEGIN IMMEDIATE');
   try{
    const receiptKey='jbank:receipt:'+id+':'+kind+':'+requestId;
@@ -53,7 +61,20 @@ function createJBank({db,exactWallet,levels,now,kstDate}){
    if(!u||u.is_disabled)throw Error('현재 계정은 은행을 이용할 수 없습니다.');
    const a=project(read(id,day),day),debt=BigInt(a.principal)+BigInt(a.interest),before=exactWallet.read(u);
    let delta=0n,type='',memo='';
-   if(kind==='borrow'){
+   if(kind==='deposit'){
+    const amount=BigInt(text);
+    if(debt>0n)throw Error('대출을 완납해야 저축할 수 있습니다.');
+    if(amount>before)throw Error('게임머니 잔액이 부족합니다.');
+    a.savingsPrincipal=String(BigInt(a.savingsPrincipal)+amount);
+    delta=-amount;type='jbank_deposit';memo='J-BANK 자유저축 입금';
+   }else if(kind==='withdraw'){
+    const total=BigInt(a.savingsPrincipal)+BigInt(a.savingsInterest),amount=text==='all'?total:BigInt(text);
+    if(amount<=0n||amount>total)throw Error('출금 가능한 저축 잔액을 확인하세요.');
+    const paidInterest=amount<BigInt(a.savingsInterest)?amount:BigInt(a.savingsInterest);
+    a.savingsInterest=String(BigInt(a.savingsInterest)-paidInterest);
+    a.savingsPrincipal=String(BigInt(a.savingsPrincipal)-(amount-paidInterest));
+    delta=amount;type='jbank_withdraw';memo='J-BANK 저축 출금 · 이자 '+paidInterest+' G';
+   }else if(kind==='borrow'){
     const amount=BigInt(text),level=Math.max(0,Math.min(levels.length-1,Number(u.rank_level||0)));
     if(debt>0n)throw Error('진행 중인 대출을 전액 상환해야 추가 대출이 가능합니다.');
     if(amount<MIN_LOAN)throw Error('최소 대출금은 100만 G입니다.');
@@ -133,6 +154,6 @@ function createJBank({db,exactWallet,levels,now,kstDate}){
   }catch(e){try{db.exec('ROLLBACK');}catch{}throw e;}
  }
 
- return {status,owed,limits:LIMITS,borrow:(id,amount,key)=>change(id,'borrow',amount,key),repay:(id,amount,key)=>change(id,'repay',amount,key),sellRank};
+ return {status,owed,limits:LIMITS,deposit:(id,amount,key)=>change(id,'deposit',amount,key),withdraw:(id,amount,key)=>change(id,'withdraw',amount,key),borrow:(id,amount,key)=>change(id,'borrow',amount,key),repay:(id,amount,key)=>change(id,'repay',amount,key),sellRank};
 }
 module.exports={createJBank,LIMITS,RATE_BP,SELL_RATE_BP};

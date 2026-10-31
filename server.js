@@ -1237,6 +1237,10 @@ function yutAdvance(piece,move,routeChoice='shortcut'){
   let p=yutClonePiece(piece);const trace=[];
   if(move<0){
     if(p.node==='READY'||p.node==='FINISH'||!p.path.length)return {piece:p,trace,legal:false};
+    if(p.node==='O1'&&p.path[p.path.length-1].node==='READY'){
+      p={node:'START',route:'outer',path:[{node:'READY',route:'outer'},...Array.from({length:20},(_,i)=>({node:'O'+(i+1),route:'outer'}))]};
+      trace.push('START');return {piece:p,trace,legal:true};
+    }
     const prev=p.path.pop();p={node:prev.node,route:prev.route||'outer',path:p.path};trace.push(yutPhysical(p));return {piece:p,trace,legal:true};
   }
   for(let i=0;i<move;i++){const history={node:p.node,route:p.route||'outer'};const next=yutNextStep(p,i===0,routeChoice);p={...next,path:[...p.path,history]};trace.push(yutPhysical(p));if(p.node==='FINISH')break;}
@@ -2176,11 +2180,11 @@ const server=http.createServer(async(req,res)=>{
       const u=requireAuth(req,res);if(!u)return;
       try{return json(res,200,{ok:true,...jBank.status(u.id)});}catch(e){return json(res,400,{error:e.message});}
     }
-    if((url.pathname==='/api/jbank/borrow'||url.pathname==='/api/jbank/repay'||url.pathname==='/api/jbank/sell-rank')&&req.method==='POST'){
+    if((url.pathname==='/api/jbank/deposit'||url.pathname==='/api/jbank/withdraw'||url.pathname==='/api/jbank/borrow'||url.pathname==='/api/jbank/repay'||url.pathname==='/api/jbank/sell-rank')&&req.method==='POST'){
       const u=requireAuth(req,res);if(!u)return;
       if(!rateLimit('jbank:'+u.id,12,60000))return json(res,429,{error:'은행 거래 요청이 너무 빠릅니다. 잠시 후 다시 시도하세요.'});
       try{
-        const b=await readBody(req),action=url.pathname.endsWith('/borrow')?'borrow':url.pathname.endsWith('/sell-rank')?'sellRank':'repay';
+        const b=await readBody(req),action=url.pathname.endsWith('/sell-rank')?'sellRank':url.pathname.split('/').pop();
         const result=action==='sellRank'?jBank.sellRank(u.id,b.confirmation,b.requestId):jBank[action](u.id,b.amount,b.requestId);
         await db.flush();pushRefresh();
         return json(res,200,{...result,user:userPublic(u.id)});

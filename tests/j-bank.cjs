@@ -184,3 +184,39 @@ console.log('JBANK_TRANSFER_LOCK_OK: indebted sender blocked, accrued interest b
 console.log('JBANK_RANK_SALE_OK: 99% sale proceeds, interest-first debt, exact refunds, one-tier downgrade, idempotency, re-borrow only after full repayment, no implicit forfeiture');
 
 console.log('JBANK_OK: exact 10경, rank limits, daily simple interest, partial/full repayment, no-double-credit, account isolation, 100경 promotion guard, persistence');
+
+// Savings use elapsed time, exact integers and atomic idempotent wallet transfers.
+let savingsNow=Date.parse('2026-10-31T00:00:00Z');
+const savingsBank=createJBank({db,exactWallet,levels:ranks,now:()=>savingsNow,kstDate:()=>day});
+add(20,12,100000000000000000n);
+const deposited=100000000000000000n;
+savingsBank.deposit(20,String(deposited),req('save'));
+assert.equal(wallet(20),0n);
+assert.equal(savingsBank.deposit(20,String(deposited),req('save')).duplicate,true);
+assert.equal(savingsBank.status(20).savings.interest,'0');
+savingsNow+=86400000;
+assert.equal(savingsBank.status(20).savings.interest,'50000000000000');
+assert.equal(savingsBank.status(20).savings.interest,'50000000000000','reading never double credits');
+savingsBank.withdraw(20,'50000000000000',req('interest'));
+assert.equal(savingsBank.status(20).savings.principal,String(deposited),'interest withdrawn first');
+savingsNow+=86400000;
+assert.equal(savingsBank.status(20).savings.interest,'50000000000000','simple, not compound');
+const restartSavings=createJBank({db,exactWallet,levels:ranks,now:()=>savingsNow,kstDate:()=>day});
+restartSavings.withdraw(20,'all',req('withdraw_all'));
+assert.equal(wallet(20),deposited+100000000000000n);
+assert.equal(restartSavings.withdraw(20,'all',req('withdraw_all')).duplicate,true);
+assert.equal(restartSavings.status(20).savings.total,'0');
+assert.throws(()=>restartSavings.withdraw(20,'1',req('overdraft')),/잔액/);
+restartSavings.deposit(20,'1000',req('instant_deposit'));
+restartSavings.withdraw(20,'all',req('instant_withdraw'));
+assert.equal(wallet(20),deposited+100000000000000n,'instant cycling earns no interest');
+restartSavings.borrow(20,'1000000',req('savings_loan'));
+assert.throws(()=>restartSavings.deposit(20,'1',req('debt_deposit')),/완납/);
+add(21,0,1001n);
+restartSavings.deposit(21,'1000',req('fraction'));
+savingsNow+=86400000;
+assert.equal(restartSavings.status(21).savings.interest,'0');
+restartSavings.deposit(21,'1',req('fraction_add'));
+savingsNow+=86400000;
+assert.equal(restartSavings.status(21).savings.interest,'1','fractional G retained through transactions');
+console.log('JBANK_SAVINGS_OK: exact money, elapsed interest, fractional carry, restart, debt guard, idempotency, withdrawals');
