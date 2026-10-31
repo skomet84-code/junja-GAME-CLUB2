@@ -1,6 +1,7 @@
 'use strict';
 // JUNJA ROYAL CARDS · authoritative multiplayer + bot game server.
-// Game money/accounts never manipulated; only optional win/loss statistics in game_state.
+// Friendly rounds remain free; multiplayer Hula may use virtual G stakes with durable escrow.
+const {createRoyalHulaCasino,stakeValue,quote}=require('./royal-hula-casino');
 const SUITS=['S','H','D','C'];
 const LABEL={S:'♠',H:'♥',D:'♦',C:'♣'};
 const isBot=p=>!!p.bot;
@@ -74,8 +75,9 @@ function combinations(arr){
 }
 const attackValue=c=>c==='JOKR'?7:c==='JOKB'?5:rank(c)===2?2:rank(c)===1?(suit(c)==='S'?5:3):0;
 const attackLevel=c=>c==='JOKR'?5:c==='JOKB'?4:rank(c)===1?3:rank(c)===2?2:0;
-module.exports=function createRoyalCards({db,crypto,requireAuth,readBody,json,rateLimit=()=>true,otherBusy=()=>false,notify=()=>{},now=Date.now,setTimer=setTimeout,clearTimer=clearTimeout}){
+module.exports=function createRoyalCards({db,crypto,requireAuth,readBody,json,rateLimit=()=>true,otherBusy=()=>false,notify=()=>{},exactWallet=null,now=Date.now,setTimer=setTimeout,clearTimer=clearTimeout}){
  const rooms=new Map(),timers=new Map();
+ const casino=exactWallet?createRoyalHulaCasino({db,exactWallet,now}):null;
  const shuffle=a=>{for(let i=a.length-1;i>0;i--){let j=crypto.randomInt(i+1);[a[i],a[j]]=[a[j],a[i]];}return a;};
  const player=(r,id)=>r.players.find(p=>String(p.id)===String(id));
  const current=r=>r.players[r.turn];
@@ -93,6 +95,7 @@ module.exports=function createRoyalCards({db,crypto,requireAuth,readBody,json,ra
  function clear(r){let t=timers.get(r.id);if(t)clearTimer(t);timers.delete(r.id);r.deadline=0;}
  function finish(r,p,why){
   if(r.phase==='done')return;
+  if(r.game==='hula'&&r.stake!=='0'){if(!casino)throw Error('훌라 카지노 연결 오류');casino.settle(r,p,why);}
   clear(r);r.phase='done';r.winner=p.id;r.reason=why;r.finishedAt=now();
   log(r,p.name+' 승리 · '+why);
   if(!r.recorded){r.recorded=true;for(const who of r.players)if(!who.bot)saveStat(who.id,r.game,who.id===p.id);}
@@ -131,6 +134,7 @@ module.exports=function createRoyalCards({db,crypto,requireAuth,readBody,json,ra
   const allowedMelds=r.game==='hula'&&r.phase==='playing'&&p.id===active.id&&r.drew?combinations(p.hand):[];
   const allowedAttachments=r.game==='hula'&&r.phase==='playing'&&p.id===active.id&&r.drew&&p.registered?p.hand.flatMap(card=>r.melds.flatMap((m,index)=>attachable(m.cards,card,m.kind)?[{card,index}]:[])):[];
   return {id:r.id,name:r.name,game:r.game,mode:r.mode,round:r.round,phase:r.phase,version:r.version,selfId:id,hostId:r.hostId,
+   stake:r.stake||'0',casino:r.game==='hula'?quote(r.stake||'0'):null,finalPayouts:r.phase==='done'?r.finalPayouts||null:null,
    players:r.players.map(x=>({id:x.id,name:x.name,bot:x.bot||false,ready:x.ready,cardCount:x.hand.length,score:r.game==='hula'?null:undefined})),
    max:r.max,turnId:active?.id,direction:r.direction,deadline:r.deadline,serverNow:now(),
    hand:p.hand.slice(),deckCount:r.deck.length,discard:last,suit:r.suit,pending:r.pending,attackRank:r.attackRank,
@@ -281,14 +285,15 @@ module.exports=function createRoyalCards({db,crypto,requireAuth,readBody,json,ra
   })[0];
   if(preferred)hulaDiscard(r,p,preferred);
  }
- function create(game,host,mode,max,name){
+ function create(game,host,mode,max,name,stake){
   const r={id:'RC'+crypto.randomBytes(7).toString('hex'),game,mode,hostId:host.id,name:String(name|| (game==='onecard'?'로얄 원카드':'로얄 훌라')).trim().slice(0,36)||'ROYAL CARDS',
-   phase:'waiting',version:0,round:0,max,players:[{id:host.id,name:host.nickname,ready:false,hand:[],registered:false,meldBefore:false}],direction:1,turn:0,
+   stake:game==='hula'&&mode==='multi'?stakeValue(stake):'0',phase:'waiting',version:0,round:0,max,players:[{id:host.id,name:host.nickname,ready:false,hand:[],registered:false,meldBefore:false}],direction:1,turn:0,
    updated:now(),events:[],deck:[],discard:[],melds:[],deadline:0};
   if(mode==='ai'){r.players.push({id:'ai:'+r.id,name:game==='onecard'?'J-BOT · 에이스':'J-BOT · 타짜',bot:true,ready:true,hand:[],registered:false});}
   rooms.set(r.id,r);if(mode==='ai')fresh(r);else publish(r);return r;
  }
  function newRound(r){
+  if(r.stake!=='0'){if(!casino)throw Error('훌라 카지노 지갑 연결 오류');casino.reserve(r);}
   r.players.forEach(p=>{p.registered=false;p.meldBefore=false;});
   fresh(r);
  }
@@ -302,12 +307,12 @@ module.exports=function createRoyalCards({db,crypto,requireAuth,readBody,json,ra
    const b=req.method==='POST'?await readBody(req):{};
    if(url.pathname==='/api/royalcards'&&req.method==='GET'){
     const game=url.searchParams.get('game')==='hula'?'hula':'onecard',m=mine(u.id);
-    return reply(200,{room:m?view(m,u.id):null,rooms:[...rooms.values()].filter(r=>r.game===game&&r.mode==='multi'&&r.phase==='waiting'&&r.players.length<r.max).map(r=>({id:r.id,name:r.name,players:r.players.length,max:r.max,host:r.players[0]?.name})),stats:publicStats(u.id,game)});
+    return reply(200,{room:m?view(m,u.id):null,rooms:[...rooms.values()].filter(r=>r.game===game&&r.mode==='multi'&&r.phase==='waiting'&&r.players.length<r.max).map(r=>({id:r.id,name:r.name,players:r.players.length,max:r.max,host:r.players[0]?.name,stake:r.stake||'0'})),stats:publicStats(u.id,game)});
    }
    if(url.pathname==='/api/royalcards/create'&&req.method==='POST'){
     if(mine(u.id)||otherBusy(u.id))throw Error('다른 게임을 종료하고 다시 입장해줘.');
     const game=b.game==='hula'?'hula':'onecard',mode=b.mode==='ai'?'ai':'multi';
-    const r=create(game,u,mode,Math.max(2,Math.min(4,Math.trunc(Number(b.max)||4))),b.name);return reply(201,{room:view(r,u.id)});
+    const r=create(game,u,mode,Math.max(2,Math.min(4,Math.trunc(Number(b.max)||4))),b.name,b.stake);return reply(201,{room:view(r,u.id)});
    }
    const m=url.pathname.match(/^\/api\/royalcards\/(RC[a-f0-9]{14})(?:\/(join|ready|start|play|draw|take|meld|attach|discard|thank|stop|rematch|leave))?$/);
    if(!m)return reply(404,{error:'존재하지 않는 카드 게임 요청이야.'});

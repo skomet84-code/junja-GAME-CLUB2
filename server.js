@@ -2092,7 +2092,7 @@ const treasureRaid=createTreasureRaid({
 });
 
 
-const royalCards=require('./royal-cards-server')({db,crypto,readBody,requireAuth,json,rateLimit,
+const royalCards=require('./royal-cards-server')({db,crypto,exactWallet,readBody,requireAuth,json,rateLimit,
   otherBusy:id=>!!findUserRoom(id)||!!baccaratFindUser(id)||treasureRaid.hasUser(id)||goldenbell.hasUser(id)||omok.hasUser(id)||liar.hasUser(id)||janggi.hasUser(id)||sichuanBattle.hasUser(id),
   notify:(ids,roomId)=>{for(const [,client] of sseClients)if(ids.includes(Number(client.userId))){try{client.res.write('event: refresh\n'+'data: '+JSON.stringify({royalcards:true,roomId})+'\n\n');}catch{}}}
 });
