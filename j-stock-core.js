@@ -2,6 +2,7 @@
 // J-STOCK: fictional, game-money-only shares. All prices/holdings are authoritative on the server.
 // Integer G prices and BigInt wallet math avoid losing large JUNJA LAND balances.
 const crypto=require('node:crypto');
+const {isReferenceFresh}=require('./j-stock-kospi-reference');
 const STOCKS=Object.freeze([
  {id:'A',name:'준자반도체',sector:'반도체·AI',base:100000,vol:750,icon:'💻'},
  {id:'B',name:'준자물산',sector:'유통·건설',base:75000,vol:450,icon:'🏢'},
@@ -23,7 +24,7 @@ const MARKET_CADENCE_HOURS=6;
 const hourOf=t=>Math.floor(t/3600000);
 const sessionHour=t=>Math.floor((hourOf(t)+9)/MARKET_CADENCE_HOURS)*MARKET_CADENCE_HOURS-9;
 function amount(value){if(typeof value!=='string'||!/^[1-9][0-9]{0,15}$/.test(value))throw Error('수량은 1주 이상의 정수로 입력해 주세요.');const n=BigInt(value);if(n>MAX_SHARES)throw Error('1회 거래 한도를 초과했습니다.');return n;}
-function createJStocks({db,exactWallet,now=Date.now,randomInt=crypto.randomInt}){
+function createJStocks({db,exactWallet,now=Date.now,randomInt=crypto.randomInt,getReference=()=>null,marketMode='legacy'}){
  const stateKey=id=>'jstock:portfolio:'+id;
  function read(key){const row=db.prepare('SELECT value FROM game_state WHERE key=?').get(key);return row?JSON.parse(row.value):null;}
  function write(key,value){db.prepare('INSERT INTO game_state(key,value,updated_at) VALUES(?,?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value,updated_at=excluded.updated_at').run(key,JSON.stringify(value),now());}
@@ -35,7 +36,26 @@ function createJStocks({db,exactWallet,now=Date.now,randomInt=crypto.randomInt})
   for(let i=0;i<steps;i++)for(const s of activeStocks){
    const p=m.stocks[s.id],old=BigInt(p.price);
    let bp=randomInt(-s.vol,s.vol+1),event=null;
-   if(randomInt(0,100)<3){
+   if(marketMode==='kospi'){
+    // Fictional game pricing: four shared server-side sessions per day. Real
+    // KOSPI comparisons guide each sector's direction/amplitude but never
+    // directly replace game shares, cost basis or wallets.
+    const ref=(i===steps-1)?getReference()?.stocks?.[s.id]:null;
+    const fresh=ref&&isReferenceFresh(ref,now());
+    if(fresh){
+     // One quarter of an actual trading day's percentage per game session,
+     // with small variation so it is not misrepresented as the real security.
+     bp=Math.round(ref.changeBp/4)+randomInt(-40,41);
+     event='코스피 '+ref.name+' 등락 참고';
+    }else{
+     const range=Math.max(60,Math.round(s.vol/8));
+     bp=randomInt(-range,range+1);
+     event=null;
+    }
+    // Ordinary fictional sessions are capped to 6.5% per step. Even four
+    // same-direction moves remain below the KRX +/-30% daily range.
+    bp=Math.max(-650,Math.min(650,bp));
+   }else if(randomInt(0,100)<3){
     const shock=randomInt(400,1101)*(randomInt(0,2)?1:-1);
     bp=Math.max(-2000,Math.min(2000,bp+shock));
     event=bp>=0?'호재 발표':'악재 발생';
@@ -107,8 +127,11 @@ function createJStocks({db,exactWallet,now=Date.now,randomInt=crypto.randomInt})
  }
  function status(id){
   const u=user(id),r=currentMarket(),m=r.market,p=portfolio(id),v=valuation(p,m);
+  const ref=marketMode==='kospi'?getReference():null;
   return {ok:true,changed:r.changed,serverNow:now(),nextTickAt:(m.hour+MARKET_CADENCE_HOURS)*3600000,feeBp:Number(FEE_BP),wallet:String(exactWallet.read(u)),
-   stocks:STOCKS.map(s=>({...s,price:m.stocks[s.id].price,changeBp:m.stocks[s.id].changeBp,history:m.stocks[s.id].history,event:m.stocks[s.id].event})),
+   pricingModel:marketMode==='kospi'?'kospi-inspired':'fictional',referenceSource:ref?.source||null,referenceFetchedAt:ref?.fetchedAt||null,
+   stocks:STOCKS.map(s=>({...s,price:m.stocks[s.id].price,changeBp:m.stocks[s.id].changeBp,history:m.stocks[s.id].history,event:m.stocks[s.id].event,
+    reference:ref?.stocks?.[s.id]?{name:ref.stocks[s.id].name,changeBp:ref.stocks[s.id].changeBp,tradedAt:ref.stocks[s.id].tradedAt,fresh:isReferenceFresh(ref.stocks[s.id],now())}:null})),
    ...v,trades:p.trades.slice(0,12),ranking:ranking(m)};
  }
  function trade(id,side,stockId,rawQty,requestId){
