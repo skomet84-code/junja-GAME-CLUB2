@@ -253,14 +253,26 @@ const janggi=require('./janggi-server')({db,crypto,readBody,requireAuth,json,rat
 // If the server restarted while rooms were active, return virtual chips safely.
 const staleEscrows = db.prepare('SELECT room_id,user_id,COALESCE(amount_exact,CAST(amount AS TEXT)) AS amount,game FROM room_escrow').all();
 for (const e of staleEscrows) {
-  // Exact decimal wallet balances must be restored atomically, including bets
-  // larger than JavaScript's safe integer range. The escrow row is deleted in
-  // the same transaction as the refund so restarts cannot double-credit it.
+  // A restarted room can have a stale escrow row alongside an already-used
+  // recovery request key. Never generate a new key or double-credit a wallet.
+  // A conflicting previous recovery is quarantined for manual reconciliation
+  // instead of preventing the entire production server from starting.
   const amount=exactWallet.integer(e.amount);
-  if(amount>0n)exactWallet.change(db,Number(e.user_id),amount,'recovery',`${e.game} 방 서버 재시작 자동 환급`,now,
-    {escrowRoomId:e.room_id,requestKey:'escrow_recovery_'+e.room_id});
+  if(amount<=0n){
+    db.prepare('DELETE FROM room_escrow WHERE room_id=? AND user_id=?').run(e.room_id,e.user_id);
+    continue;
+  }
+  try{
+    exactWallet.change(db,Number(e.user_id),amount,'recovery',`${e.game} 방 서버 재시작 자동 환급`,now,
+      {escrowRoomId:e.room_id,requestKey:'escrow_recovery_'+e.room_id});
+    // change() removes rows on a new refund. For an idempotent replay it
+    // returns early; only then do we remove that already-refunded stale row.
+    db.prepare('DELETE FROM room_escrow WHERE room_id=? AND user_id=?').run(e.room_id,e.user_id);
+  }catch(err){
+    if(err?.message!=='이미 사용한 요청 번호입니다.')throw err;
+    console.error('[ESCROW RECOVERY CONFLICT] Keeping escrow pending for audit:',String(e.room_id),String(e.user_id));
+  }
 }
-db.exec('DELETE FROM room_escrow');
 
 db.exec('DELETE FROM sessions WHERE expires_at < ' + Date.now());
 // A missing statistics row must never make an existing account disappear.
