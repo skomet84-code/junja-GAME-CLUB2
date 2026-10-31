@@ -41,6 +41,7 @@ casino.reserve(b);
 const records=casino.settle(b,b.players[0],'최저 점수');
 assert.equal(records.reduce((n,r)=>n+BigInt(r.net),0n),0n,'three-player settlement is zero sum');
 assert.equal(db.prepare('SELECT COUNT(*) AS c FROM room_escrow').get().c,0n);
+db.prepare('UPDATE users SET balance=?,balance_exact=?,balance_base=? WHERE id=4').run(100n,'100','100');
 const tooMuch=room('RC-casino-test-3',[who(1,true),who(4,true)],'1000000000000');
 const cashBefore=wallet(1),otherBefore=wallet(4);
 assert.throws(()=>casino.reserve(tooMuch),/부족/);
