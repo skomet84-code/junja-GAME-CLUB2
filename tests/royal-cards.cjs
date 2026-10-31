@@ -140,6 +140,7 @@ async function req(who,path,body){
  assert.equal(discarded.data.room.phase,'thank');
  const offer=(await reactAs(p2,'/'+hulaRoom.id)).data.room;
  assert.equal(offer.canThank,true);
+  assert.equal(offer.thankDeadline-clock,15000);
  assert.equal((await reactAs(p1,'/'+hulaRoom.id+'/thank',{})).status,400,'discarder cannot steal own discard');
  const claim=await reactAs(p2,'/'+hulaRoom.id+'/thank',{});
  assert.equal(claim.status,200);

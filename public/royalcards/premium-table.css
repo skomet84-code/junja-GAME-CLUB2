@@ -78,3 +78,31 @@ body[data-game="hula"] .hula-assist.hidden{display:none!important}
 .hula-assist-actions button.active{background:#c5edac;border-color:#e2ffbc;color:#163525}
 .hula-assist-actions button:disabled{opacity:.45;cursor:default}
 @media(max-width:650px){body[data-game="hula"] .hula-assist{padding:9px 8px;gap:7px}.hula-assist-actions button{min-height:39px;flex:1}.hula-assist-actions{width:100%}}
+
+/* Compact Hula layout: all hands visible and registered groups collapsed by default. */
+body[data-game="hula"] .table-frame{min-height:215px!important;border-radius:30px!important}
+body[data-game="hula"] .table-center{min-height:140px!important;gap:4px;padding:3px}
+body[data-game="hula"] .opponents{padding:8px 5px 2px;gap:3px}
+body[data-game="hula"] .opponent{min-width:0;max-width:none;flex:1;padding:5px}
+body[data-game="hula"] .opponent .avatar{font-size:16px}
+body[data-game="hula"] .opponent strong{font-size:10px}
+body[data-game="hula"] .opponent small{font-size:9px}
+body[data-game="hula"] .table-badge{padding:4px 10px;font-size:11px}
+body[data-game="hula"] .table-decks{gap:12px}
+body[data-game="hula"] .table-decks .card,body[data-game="hula"] .card-back.deck{width:49px;height:70px}
+body[data-game="hula"] .melds{max-height:75px;overflow-y:auto;overscroll-behavior:contain;margin:0;padding:3px}
+body[data-game="hula"] .meld-row{padding:3px;gap:3px;min-height:26px}
+body[data-game="hula"] .meld-row span{font-size:12px;padding:2px}
+body[data-game="hula"] .bottom-board{padding:10px}
+body[data-game="hula"] .self-header{padding-bottom:8px}
+body[data-game="hula"] .hand{display:grid!important;grid-template-columns:repeat(8,minmax(0,1fr));gap:3px;min-height:0!important;padding:7px 0!important;overflow:visible}
+body[data-game="hula"] .hand .card{width:100%;min-width:0;height:82px;padding:3px}
+body[data-game="hula"] .hand .card .middle{font-size:clamp(17px,4.4vw,27px)}
+body[data-game="hula"] .hand .card .corner{font-size:9px}
+body[data-game="hula"] .hula-ledger:not([open]){padding:6px 10px}
+body[data-game="hula"] .hula-ledger summary{cursor:pointer;list-style:none;margin:0}
+body[data-game="hula"] .hula-ledger summary::-webkit-details-marker{display:none}
+body[data-game="hula"] .hula-ledger summary:after{content:'▾';color:#ffdb91;font-size:17px}
+body[data-game="hula"] .hula-ledger[open] summary:after{content:'▴'}
+body[data-game="hula"] .game-actions:has(#thankNow){position:fixed;z-index:90;bottom:max(8px,env(safe-area-inset-bottom));left:max(10px,calc(50% - 270px));right:max(10px,calc(50% - 270px));padding:10px;background:#101c2af7;border:2px solid #f1c481;border-radius:14px;box-shadow:0 8px 35px #000c}
+body[data-game="hula"] #thankNow{width:100%;min-height:64px;font-size:20px}

@@ -199,10 +199,10 @@ module.exports=function createRoyalCards({db,crypto,requireAuth,readBody,json,ra
  function startThank(r,p){
   const possible=r.players.filter(x=>x!==p&&findThank(x.hand,r.discard.at(-1)));
   if(!possible.length){advance(r);return;}
-  clear(r);r.phase='thank';r.thankWindow={eligible:possible.map(x=>x.id),until:now()+6200,discardedBy:p.id};
-  log(r,'땡큐! 마지막 버림패로 등록할 수 있는 참가자에게 6초 기회');publish(r);
+  clear(r);r.phase='thank';r.thankWindow={eligible:possible.map(x=>x.id),until:now()+15000,discardedBy:p.id};
+  log(r,'땡큐! 마지막 버림패로 등록할 수 있는 참가자에게 15초 기회');publish(r);
   const stamp=r.version;
-  const bot=possible.find(x=>x.bot),human=possible.some(x=>!x.bot),delay=bot?(human?5900:1100):6200;
+  const bot=possible.find(x=>x.bot),human=possible.some(x=>!x.bot),delay=bot?(human?14000:1100):15000;
   const timer=setTimer(()=>{
    if(rooms.get(r.id)!==r||r.phase!=='thank'||r.version!==stamp)return;
    if(bot){try{thank(r,bot);}catch(e){console.warn('[CARDS] bot thank:',e.message);resumeThank(r);}}
