@@ -1,5 +1,5 @@
 (()=>{'use strict';
-let snapshot=null,selected='JJC',busy=false;
+let snapshot=null,selected='JJC',busy=false,refreshing=false,clockTimer=null,refreshTimer=null,serverOffset=0,lastRefreshAttempt=0;
 const $=s=>document.querySelector(s),esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])),fmt=s=>{try{return BigInt(s).toLocaleString('ko-KR')}catch{return String(s)}};
 const signed=v=>{const n=BigInt(v||0);return (n>0n?'+':'')+fmt(n)+' G'},tone=v=>BigInt(v||0)>=0n?'jcoin-positive':'jcoin-negative';
 const money=v=>fmt(v)+' G';
@@ -15,9 +15,28 @@ css.textContent+=`
 .jcoin-rank-split{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-top:7px;font-size:11px;color:#aebbd1}
 .jcoin-rank-split b{margin-left:3px}
 `;
+css.textContent+=`
+/* Server-synchronized coin countdown and historical quote charts. */
+.jcoin-market-clock{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:9px;margin:10px 0 14px;padding:12px 14px;border:1px solid #ba985b;border-radius:13px;background:linear-gradient(110deg,#273553,#162940);color:#ffe1a3}
+.jcoin-market-clock strong{font-size:15px;letter-spacing:.03em;font-variant-numeric:tabular-nums}
+.jcoin-market-clock small{font-size:11px;color:#cedbf0}
+.jcoin-price-chart{padding:12px;margin:12px 0 16px;border:1px solid #526785;border-radius:14px;background:linear-gradient(145deg,#13243c,#0d152a)}
+.jcoin-price-head{display:flex;justify-content:space-between;align-items:flex-start;gap:7px;margin-bottom:7px;flex-wrap:wrap}
+.jcoin-price-head h3{margin:0;color:#f4d393;font-size:16px}
+.jcoin-price-head small{color:#b8c6dc;font-size:11px}
+.jcoin-price-head b{font-size:14px}
+.jcoin-price-svg{display:block;width:100%;height:156px;overflow:visible}
+.jcoin-price-svg .gridline{stroke:#89a0bc;stroke-opacity:.2;stroke-width:1}
+.jcoin-price-svg .price-path{fill:none;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
+.jcoin-price-axis{display:flex;justify-content:space-between;gap:8px;color:#acbfd5;font-size:11px;margin-top:6px}
+.jcoin-price-axis b{color:#e6cf9a;font-weight:700}
+.jcoin-spark{display:block;width:100%;height:30px;margin:5px 0 2px}
+.jcoin-spark polyline{fill:none;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}
+@media(max-width:650px){.jcoin-market-clock{padding:10px;gap:4px}.jcoin-market-clock strong{font-size:13px}.jcoin-price-svg{height:128px}.jcoin-price-head h3{font-size:14px}.jcoin-spark{height:24px}}
+`;
 document.head.appendChild(css);
 function ensure(){if($('#jcoinModal'))return;const m=document.createElement('div');m.id='jcoinModal';m.className='jcoin-modal';m.innerHTML='<div class="jcoin-panel" role="dialog" aria-modal="true" aria-label="J-COIN 거래소"><div class="jcoin-top"><h2>🪙 J-COIN EXCHANGE</h2><button class="jcoin-close" data-jcoin-close>×</button></div><p class="jcoin-note">준자랜드 전용 가상 코인 · 15분 공통 시세 · 게임머니 전용</p><div id="jcoinContent">시장 정보 연결 중...</div><p id="jcoinNotice" aria-live="polite"></p></div>';document.body.appendChild(m);m.addEventListener('click',onModalClick);}
-function onModalClick(e){const button=e.target?.closest?.('button');if(!button)return;if(button.matches('[data-jcoin-close]')){e.preventDefault();$('#jcoinModal')?.remove();return}if(button.matches('[data-coin]')){e.preventDefault();selected=button.dataset.coin;render();return}if(button.matches('[data-jcoin-qty]')){e.preventDefault();const i=$('#jcoinQty');if(i)i.value=button.dataset.jcoinQty;return}if(button.matches('[data-jcoin-buy-max]')){e.preventDefault();if(window.confirm('현재 잔액으로 구매 가능한 최대 코인을 수수료 포함하여 매수합니다. 진행할까요?'))trade('buy','MAX');return}if(button.matches('[data-jcoin-fill-max]')){e.preventDefault();const input=$('#jcoinQty'),coin=snapshot?.stocks?.find(x=>x.id===selected);if(input)input.value=coin?.maxBuy||'0.0000';return}if(button.matches('[data-jcoin-max]')){e.preventDefault();const i=$('#jcoinQty'),h=snapshot?.holdings?.find(x=>x.id===selected);if(i)i.value=h?.quantity||'0.0000';return}if(button.matches('[data-jcoin-refresh]')){e.preventDefault();fetchStatus().catch(err=>{const n=$('#jcoinNotice');if(n)n.textContent='새로고침 실패: '+err.message});return}if(button.matches('[data-jcoin-trade]')){e.preventDefault();trade(button.dataset.jcoinTrade);}}
+function onModalClick(e){const button=e.target?.closest?.('button');if(!button)return;if(button.matches('[data-jcoin-close]')){e.preventDefault();closeJCoin();return}if(button.matches('[data-coin]')){e.preventDefault();selected=button.dataset.coin;render();return}if(button.matches('[data-jcoin-qty]')){e.preventDefault();const i=$('#jcoinQty');if(i)i.value=button.dataset.jcoinQty;return}if(button.matches('[data-jcoin-buy-max]')){e.preventDefault();if(window.confirm('현재 잔액으로 구매 가능한 최대 코인을 수수료 포함하여 매수합니다. 진행할까요?'))trade('buy','MAX');return}if(button.matches('[data-jcoin-fill-max]')){e.preventDefault();const input=$('#jcoinQty'),coin=snapshot?.stocks?.find(x=>x.id===selected);if(input)input.value=coin?.maxBuy||'0.0000';return}if(button.matches('[data-jcoin-max]')){e.preventDefault();const i=$('#jcoinQty'),h=snapshot?.holdings?.find(x=>x.id===selected);if(i)i.value=h?.quantity||'0.0000';return}if(button.matches('[data-jcoin-refresh]')){e.preventDefault();fetchStatus().catch(err=>{const n=$('#jcoinNotice');if(n)n.textContent='새로고침 실패: '+err.message});return}if(button.matches('[data-jcoin-trade]')){e.preventDefault();trade(button.dataset.jcoinTrade);}}
 
 const raw=v=>{try{return BigInt(v??'0')}catch{return 0n}};
 function shortMoney(v){
@@ -29,6 +48,63 @@ function shortMoney(v){
 const pnl=v=>(raw(v)>0n?'+':'')+shortMoney(v);
 const profitClass=v=>raw(v)>0n?'jcoin-positive':raw(v)<0n?'jcoin-negative':'';
 const pct=(gain,cost)=>{let d=raw(cost);if(d<=0n)return '0.00%';const bp=raw(gain)*10000n/d;const abs=bp<0n?-bp:bp;return (bp>0n?'+':bp<0n?'-':'')+(abs/100n).toString()+'.'+(abs%100n).toString().padStart(2,'0')+'%';};
+// History is the common 15-minute server quote sequence (up to 49 samples).
+// Coordinates are derived from server values, never from fake/generated prices.
+function historyPoints(history,width,height,pad=7){
+ const values=Array.isArray(history)?history.map(Number).filter(v=>Number.isFinite(v)&&v>0).slice(-49):[];
+ if(!values.length)return {values,points:[],min:0,max:0};
+ const min=Math.min(...values),max=Math.max(...values),span=Math.max(1,max-min);
+ const points=values.map((v,i)=>{
+  const x=pad+(width-2*pad)*(values.length===1?.5:i/(values.length-1));
+  const y=pad+(height-2*pad)*(1-(max===min?.5:(v-min)/span));
+  return [Number(x.toFixed(2)),Number(y.toFixed(2))];
+ });
+ return {values,points,min,max};
+}
+function spark(history){
+ const {points,values}=historyPoints(history,120,34,4);
+ if(!points.length)return '';
+ const rising=values.at(-1)>=values[0],color=rising?'#ff9295':'#8dbdff';
+ return '<svg class="jcoin-spark" viewBox="0 0 120 34" preserveAspectRatio="none" aria-hidden="true"><polyline stroke="'+color+'" points="'+points.map(p=>p.join(',')).join(' ')+'"/></svg>';
+}
+function priceChart(coin){
+ const {values,points,min,max}=historyPoints(coin.history,600,170,14);
+ const growth=values.length>1?(values.at(-1)-values[0])/values[0]*100:0;
+ const rising=growth>=0,color=growth>0?'#ff969a':growth<0?'#8cbcff':'#e6c582';
+ const polyline=points.map(p=>p.join(',')).join(' '),last=points.at(-1);
+ const area=points.length?'M '+points[0][0]+' 160 L '+points.map(p=>p.join(' ')).join(' L ')+' L '+last[0]+' 160 Z':'';
+ const currentSlot=Number(snapshot?.nextTickAt)||0;
+ const lastTick=currentSlot-15*60000;
+ const firstTick=lastTick-Math.max(0,values.length-1)*15*60000;
+ const timeLabel=at=>new Date(at).toLocaleTimeString('ko-KR',{timeZone:'Asia/Seoul',hour:'2-digit',minute:'2-digit',hourCycle:'h23'});
+ return '<section class="jcoin-price-chart" aria-label="'+esc(coin.name)+' 최근 시세 그래프">'+
+  '<div class="jcoin-price-head"><div><h3>📈 '+esc(coin.icon)+' '+esc(coin.name)+' 시세 추이</h3><small>15분 간격 공통 시세 · 최근 '+values.length+'개 기록</small></div>'+
+  '<b class="'+(growth>=0?'jcoin-positive':'jcoin-negative')+'">'+(growth>0?'+':'')+growth.toFixed(2)+'%</b></div>'+
+  (points.length?'<svg class="jcoin-price-svg" viewBox="0 0 600 170" preserveAspectRatio="none" role="img" aria-label="가격이 '+Math.round(min).toLocaleString('ko-KR')+'G에서 '+Math.round(max).toLocaleString('ko-KR')+'G 범위로 변동한 그래프">'+
+    '<defs><linearGradient id="jcoinChartFill" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="'+color+'" stop-opacity=".28"/><stop offset="1" stop-color="'+color+'" stop-opacity=".01"/></linearGradient></defs>'+
+    '<path class="gridline" d="M14 14 H586 M14 85 H586 M14 156 H586"/>'+
+    '<path d="'+area+'" fill="url(#jcoinChartFill)"/><polyline class="price-path" points="'+polyline+'" stroke="'+color+'"/>'+
+    '<circle cx="'+last[0]+'" cy="'+last[1]+'" r="5" fill="'+color+'" stroke="#18263b" stroke-width="2"/></svg>':
+    '<p class="jcoin-note">시세 기록이 쌓이면 그래프가 표시돼.</p>')+
+  '<div class="jcoin-price-axis"><span>'+timeLabel(firstTick)+' KST</span><b>'+shortMoney(coin.price)+'</b><span>'+timeLabel(lastTick)+' KST</span></div>'+
+  '<div class="jcoin-price-axis"><span>최저 '+shortMoney(min)+'</span><span>최고 '+shortMoney(max)+'</span></div></section>';
+}
+function clock(){
+ if(!snapshot||!$('#jcoinModal'))return;
+ const el=$('#jcoinClock');if(!el)return;
+ const next=Number(snapshot.nextTickAt),serverNow=Date.now()+serverOffset;
+ if(!Number.isFinite(next)||next<=0){el.textContent='다음 시세 확인 중';return;}
+ const remain=Math.max(0,Math.ceil((next-serverNow)/1000));
+ const mm=String(Math.floor(remain/60)).padStart(2,'0'),ss=String(remain%60).padStart(2,'0');
+ const nextTime=new Date(next).toLocaleTimeString('ko-KR',{timeZone:'Asia/Seoul',hour:'2-digit',minute:'2-digit',hourCycle:'h23'});
+ el.textContent='다음 변동 '+nextTime+' KST · '+mm+':'+ss+' 남음';
+ // At the boundary the server, not the browser, computes the new common quote.
+ if(remain===0&&!busy&&!refreshing)fetchStatus(true).catch(()=>{});
+}
+function closeJCoin(){
+ clearInterval(clockTimer);clearInterval(refreshTimer);clockTimer=null;refreshTimer=null;
+ $('#jcoinModal')?.remove();
+}
 function render(){
  if(!snapshot)return;const c=$('#jcoinContent');if(!c)return;
  const oldNotice=$('#jcoinNotice');if(oldNotice&&c.contains(oldNotice))c.parentElement.appendChild(oldNotice);
@@ -46,12 +122,14 @@ function render(){
    </div>
   </div>`).join('');
  c.innerHTML=`
+ <div class="jcoin-market-clock"><div><strong>⏱️ <span id="jcoinClock">다음 시세 확인 중</span></strong></div><small>15분마다 전 종목 공동 갱신</small></div>
  <div class="jcoin-wallet" aria-label="내 코인 자산 현황">
   <div><small>내 지갑</small><b title="${fmt(snapshot.wallet)} G">${shortMoney(snapshot.wallet)}</b></div>
   <div><small>코인 총 평가액</small><b title="${fmt(snapshot.marketValue)} G">${shortMoney(snapshot.marketValue)}</b></div>
   <div><small>전체 매입원금·수수료 포함</small><b>${shortMoney(snapshot.cost||'0')}</b></div>
   <div><small>총 평가손익 / 수익률</small><b class="${profitClass(snapshot.unrealized)}">${pnl(snapshot.unrealized)} <small class="${profitClass(snapshot.unrealized)}">${pct(snapshot.unrealized,snapshot.cost)}</small></b></div>
  </div>
+ ${priceChart(chosen)}
  <div class="jcoin-holdings-head"><h3>💼 내 보유 코인 (${owned.length}종)</h3><small>수익 빨강(+) · 손실 파랑(-)</small></div>
  <div class="jcoin-holdings" aria-label="보유 종목별 자산과 차액">
  ${owned.length?owned.map(h=>{
@@ -66,7 +144,7 @@ function render(){
  }).join(''):'<div class="jcoin-asset-empty">아직 보유한 코인이 없어. 아래에서 코인을 선택해 구매할 수 있어.</div>'}
  </div>
  <div class="jcoin-holdings-head"><h3>📈 코인 시세</h3><button type="button" class="jcoin-refresh" data-jcoin-refresh>↻ 새로고침</button></div>
- <div class="jcoin-grid">${snapshot.stocks.map(s=>`<button type="button" class="jcoin-card ${s.id===selected?'active':''}" data-coin="${esc(s.id)}"><b>${esc(s.icon)} ${esc(s.name)}</b><div>${shortMoney(s.price)}</div><small class="${s.changeBp>=0?'jcoin-positive':'jcoin-negative'}">${s.changeBp>=0?'+':''}${(s.changeBp/100).toFixed(2)}%</small><small style="display:block;color:#cbd6e9">보유 ${esc(getHolding(s.id).quantity)}개</small></button>`).join('')}</div>
+ <div class="jcoin-grid">${snapshot.stocks.map(s=>`<button type="button" class="jcoin-card ${s.id===selected?'active':''}" data-coin="${esc(s.id)}"><b>${esc(s.icon)} ${esc(s.name)}</b><div>${shortMoney(s.price)}</div><small class="${s.changeBp>=0?'jcoin-positive':'jcoin-negative'}">${s.changeBp>=0?'+':''}${(s.changeBp/100).toFixed(2)}%</small>${spark(s.history)}<small style="display:block;color:#cbd6e9">보유 ${esc(getHolding(s.id).quantity)}개</small></button>`).join('')}</div>
  <section class="jcoin-focus">
   <h3>${esc(chosen.icon)} ${esc(chosen.name)} · ${shortMoney(chosen.price)}</h3>
   <div class="jcoin-focus-grid">
@@ -92,9 +170,24 @@ function render(){
  <section class="jcoin-trades"><details><summary>최근 내 거래 ${snapshot.trades?.length||0}건 보기</summary>${snapshot.trades?.length?snapshot.trades.map(t=>`<p>${new Date(t.at).toLocaleString('ko-KR')} · ${esc(t.stockId)} ${t.side==='buy'?'매수':'매도'} ${esc(t.quantity)}개</p>`).join(''):'<p>거래 내역 없음</p>'}</details></section>`;
  const slot=c.querySelector('[data-jcoin-message]'),notice=$('#jcoinNotice');
  if(slot&&notice)slot.appendChild(notice);
+ clock();
 }
-async function fetchStatus(){const r=await fetch('/api/jcoin',{credentials:'same-origin',cache:'no-store'}),d=await r.json();if(!r.ok)throw Error(d.error||'시세 조회 실패');snapshot=d;render();}
-async function trade(side,quantityOverride){if(busy)return;const notice=$('#jcoinNotice');if(!notice)return;busy=true;notice.textContent='주문 처리 중...';document.querySelectorAll('#jcoinModal [data-jcoin-trade],#jcoinModal [data-jcoin-buy-max]').forEach(b=>b.disabled=true);try{const quantity=quantityOverride==='MAX'?'MAX':$('#jcoinQty').value.trim();if(quantity!=='MAX'&&!/^(?:[1-9][0-9]{0,39}(?:\.[0-9]{1,4})?|0\.[0-9]{1,4})$/.test(quantity))throw Error('수량을 소수점 4자리까지 입력하세요.');const r=await fetch('/api/jcoin/trade',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({side,stockId:selected,quantity,requestId:crypto.randomUUID()})});const d=await r.json();if(!r.ok)throw Error(d.error||'거래 실패');snapshot=d.status;render();const message=$('#jcoinNotice');if(message)message.textContent=(side==='buy'?'매수':'매도')+' 완료! '+(d.receipt?.quantity||quantity)+'개 · 게임머니 잔액과 보유 코인에 반영했습니다.';document.dispatchEvent(new Event('jbank:wallet-change'));}catch(e){notice.textContent='거래 실패: '+(e?.message||'네트워크 연결을 확인해 주세요.')}finally{busy=false;document.querySelectorAll('#jcoinModal [data-jcoin-trade],#jcoinModal [data-jcoin-buy-max]').forEach(b=>b.disabled=false);}}
-window.openJCoin=async()=>{ensure();$('#jcoinModal').style.display='flex';$('#jcoinNotice').textContent='';try{await fetchStatus()}catch(e){$('#jcoinNotice').textContent='시세 조회 실패: '+e.message}};
+async function fetchStatus(silent=false){
+ if(busy||refreshing||!$('#jcoinModal'))return;
+ if(silent&&Date.now()-lastRefreshAttempt<4000)return;
+ refreshing=true;lastRefreshAttempt=Date.now();
+ try{
+  const r=await fetch('/api/jcoin',{credentials:'same-origin',cache:'no-store'});
+  const d=await r.json();if(!r.ok)throw Error(d.error||'시세 조회 실패');
+  if(!$('#jcoinModal'))return; // Ignore responses after the dialog closed.
+  const panel=$('#jcoinModal .jcoin-panel'),scroll=panel?.scrollTop||0,quantity=$('#jcoinQty')?.value;
+  snapshot=d;serverOffset=Number(d.serverNow)-Date.now();render();
+  if(quantity!==undefined&&$('#jcoinQty'))$('#jcoinQty').value=quantity;
+  if(panel)panel.scrollTop=scroll;
+ }catch(e){if(!silent)throw e;const message=$('#jcoinNotice');if(message)message.textContent='시세 연결 확인 중 · '+e.message;}
+ finally{refreshing=false;}
+}
+async function trade(side,quantityOverride){if(busy)return;const notice=$('#jcoinNotice');if(!notice)return;busy=true;notice.textContent='주문 처리 중...';document.querySelectorAll('#jcoinModal [data-jcoin-trade],#jcoinModal [data-jcoin-buy-max]').forEach(b=>b.disabled=true);try{const quantity=quantityOverride==='MAX'?'MAX':$('#jcoinQty').value.trim();if(quantity!=='MAX'&&!/^(?:[1-9][0-9]{0,39}(?:\.[0-9]{1,4})?|0\.[0-9]{1,4})$/.test(quantity))throw Error('수량을 소수점 4자리까지 입력하세요.');const r=await fetch('/api/jcoin/trade',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({side,stockId:selected,quantity,requestId:crypto.randomUUID()})});const d=await r.json();if(!r.ok)throw Error(d.error||'거래 실패');snapshot=d.status;serverOffset=Number(d.status.serverNow)-Date.now();render();const message=$('#jcoinNotice');if(message)message.textContent=(side==='buy'?'매수':'매도')+' 완료! '+(d.receipt?.quantity||quantity)+'개 · 게임머니 잔액과 보유 코인에 반영했습니다.';document.dispatchEvent(new Event('jbank:wallet-change'));}catch(e){notice.textContent='거래 실패: '+(e?.message||'네트워크 연결을 확인해 주세요.')}finally{busy=false;document.querySelectorAll('#jcoinModal [data-jcoin-trade],#jcoinModal [data-jcoin-buy-max]').forEach(b=>b.disabled=false);}}
+window.openJCoin=async()=>{ensure();$('#jcoinModal').style.display='flex';$('#jcoinNotice').textContent='';try{await fetchStatus()}catch(e){$('#jcoinNotice').textContent='시세 조회 실패: '+e.message}clearInterval(clockTimer);clearInterval(refreshTimer);clockTimer=setInterval(clock,1000);refreshTimer=setInterval(()=>fetchStatus(true).catch(()=>{}),30000);clock();};
 document.addEventListener('click',e=>{if(e.target?.closest?.('#jbankCoinOpen')){e.preventDefault();window.openJCoin();}});
 })();
