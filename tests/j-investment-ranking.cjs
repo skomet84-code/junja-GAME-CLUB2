@@ -58,7 +58,7 @@ assert.equal(rows.find(x=>x.nickname==='초대형투자').coinProfit,'617');
 assert.equal(read().length,66);
 const top4=combinedInvestmentRanking({db,stockQuotes:stocks,coinQuotes:coins,limit:4});
 assert.deepEqual(top4.map(x=>x.nickname),['초대형투자','분산투자','코인전문','합산추월']);
-assert.equal(portfolioProfit({holdings:{JJC:{qty:'25000',cost:'2000'}},realized:'50'},new Map([['JJC',1000n]]),10000n),'550');
+assert.equal(portfolioProfit({holdings:{JJC:{qty:'25000',cost:'2000'}},realized:'50'},new Map([['JJC',1000n]]),10000n),550n);
 const before=sql.prepare('SELECT count(*) AS n FROM game_state').get().n;
 read();read();
 assert.equal(sql.prepare('SELECT count(*) AS n FROM game_state').get().n,before,'rankings must remain read-only');
