@@ -67,3 +67,13 @@
  .topbar .jstock-header-profit span{font-size:8px}
  .topbar .wallet-pill{min-width:92px}
 }
+
+/* Combined J-BANK investor leaderboard; ranking is computed server-side. */
+.jstock-rank-card{background:linear-gradient(130deg,#19243a,#121c2e);border:1px solid #ffffff25;border-radius:10px;padding:11px;margin:8px 0;min-width:0}
+.jstock-rank-head{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.jstock-rank-name{font-size:13px;font-weight:800;color:#f9dfb3;overflow-wrap:anywhere}
+.jstock-rank-head>b{font-size:14px;overflow-wrap:anywhere}
+.jstock-rank-split{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-top:8px;color:#c4cede;font-size:11px}
+.jstock-rank-split span{display:flex;align-items:center;gap:5px}
+.jstock-rank-split b{font-size:11px;overflow-wrap:anywhere}
+@media(max-width:650px){.jstock-rank-card{padding:10px}.jstock-rank-split{row-gap:5px}}
