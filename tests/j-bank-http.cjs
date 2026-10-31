@@ -13,7 +13,11 @@ const fs=require('node:fs'),os=require('node:os'),path=require('node:path'),net=
   const deposit=await api('/api/jbank/deposit',{amount:'100',requestId:'deposit_http_123'});assert.equal(deposit.r.status,200);assert.equal(deposit.d.status.savings.principal,'100');assert.equal(BigInt(deposit.d.status.wallet),BigInt(before.wallet)-100n);
   assert.equal((await api('/api/jbank/deposit',{amount:'100',requestId:'deposit_http_123'})).d.duplicate,true);
   const withdrawal=await api('/api/jbank/withdraw',{amount:'all',requestId:'withdraw_http_123'});assert.equal(withdrawal.r.status,200);assert.equal(withdrawal.d.status.wallet,before.wallet);assert.equal(withdrawal.d.status.savings.total,'0');
-  const js=await (await fetch(base+'/j-bank.js')).text();assert.ok(js.includes('자유저축'));assert.ok(js.includes('jbankMarketOpen'),'existing stock access preserved');
+  const opened=await api('/api/jbank/installmentOpen',{amount:{days:7,amount:'1000'},requestId:'installment_http_open'});assert.equal(opened.r.status,200);assert.equal(opened.d.status.installment.paidCount,1);
+  const repeated=await api('/api/jbank/installmentPay',{amount:'installment_http_open',requestId:'installment_http_pay'});assert.equal(repeated.r.status,400);
+  const early=await api('/api/jbank/installmentClaim',{amount:'installment_http_open',requestId:'installment_http_claim'});assert.equal(early.r.status,400);
+  const cancelled=await api('/api/jbank/installmentCancel',{amount:'installment_http_open',requestId:'installment_http_cancel'});assert.equal(cancelled.r.status,200);assert.equal(cancelled.d.status.wallet,before.wallet);
+  const js=await (await fetch(base+'/j-bank.js')).text();assert.ok(js.includes('자유저축'));assert.ok(js.includes('차곡차곡 적금'));assert.ok(js.includes('jbankMarketOpen'),'existing stock access preserved');
   console.log('JBANK_HTTP_OK: production launcher, auth, deposit/withdraw, replay, exact balance, savings UI and stock entry');
  }finally{child.kill();await new Promise(r=>child.once('exit',r));fs.rmSync(dir,{recursive:true,force:true});}
 })().catch(e=>{console.error(e);process.exitCode=1;});

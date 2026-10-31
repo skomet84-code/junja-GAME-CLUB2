@@ -2180,7 +2180,7 @@ const server=http.createServer(async(req,res)=>{
       const u=requireAuth(req,res);if(!u)return;
       try{return json(res,200,{ok:true,...jBank.status(u.id)});}catch(e){return json(res,400,{error:e.message});}
     }
-    if((url.pathname==='/api/jbank/deposit'||url.pathname==='/api/jbank/withdraw'||url.pathname==='/api/jbank/borrow'||url.pathname==='/api/jbank/repay'||url.pathname==='/api/jbank/sell-rank')&&req.method==='POST'){
+    if((['installmentOpen','installmentPay','installmentClaim','installmentCancel'].some(action=>url.pathname==='/api/jbank/'+action)||url.pathname==='/api/jbank/deposit'||url.pathname==='/api/jbank/withdraw'||url.pathname==='/api/jbank/borrow'||url.pathname==='/api/jbank/repay'||url.pathname==='/api/jbank/sell-rank')&&req.method==='POST'){
       const u=requireAuth(req,res);if(!u)return;
       if(!rateLimit('jbank:'+u.id,12,60000))return json(res,429,{error:'은행 거래 요청이 너무 빠릅니다. 잠시 후 다시 시도하세요.'});
       try{
