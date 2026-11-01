@@ -11,7 +11,7 @@ assert.ok(css.includes('body:has(#view-horse.active) .topbar'),'compact top navi
 assert.ok(css.includes('#view-horse #horsePickGrid{display:none!important}'),'mobile uses lane selection instead of duplicate cards');
 // Execute only the isolated race scheduler with test stubs; no user database is opened.
 const source=server.slice(server.indexOf('function horseStartIfReady('),server.indexOf('function horseMeetPublic('));
-assert.ok(source.includes('t<deadline'),'race deadline should trigger a spectator race');
+assert.ok(source.includes('if(t<deadline)return r;'),'race must not start until everyone has had the full 14-second betting window');
 let tick=0,settled=0;
 const ctx={now:()=>tick,horseMeet:null,HORSE_BET_MS:14000,HORSE_RUN_MS:6500,HORSE_RESULT_MS:4200,horseRun:()=>[{id:1}],settleRace:()=>{settled++;return {payout:0}},escrowDelete:()=>{},newHorseMeet(){return {id:'NEXT',phase:'betting',openedAt:tick,bets:new Map(),ready:new Set(),results:new Map(),card:{}}}};
 vm.createContext(ctx);vm.runInContext(source,ctx);
@@ -19,6 +19,6 @@ const fresh=()=>({phase:'betting',openedAt:0,card:{},bets:new Map(),ready:new Se
 let r=fresh();tick=13999;ctx.horseStartIfReady(r);assert.equal(r.phase,'betting');
 tick=14000;ctx.horseStartIfReady(r);assert.equal(r.phase,'running','spectator round starts at deadline without bets');
 r=fresh();tick=1000;r.bets.set(42,{bet:1000,type:'win',picks:[1]});ctx.horseStartIfReady(r);assert.equal(r.phase,'betting');
-r.ready.add(42);ctx.horseStartIfReady(r);assert.equal(r.phase,'running','ready bettor starts without waiting');assert.equal(settled,1);
+r.ready.add(42);ctx.horseStartIfReady(r);assert.equal(r.phase,'betting','early readiness must never start shared race');assert.equal(settled,0);tick=14000;ctx.horseStartIfReady(r);assert.equal(r.phase,'running','shared deadline starts ready bettor');assert.equal(settled,1);
 r=fresh();tick=14000;r.bets.set(42,{bet:1000,type:'win',picks:[1]});ctx.horseStartIfReady(r);assert.equal(r.phase,'running','unready bettor cannot block for ever');assert.equal(settled,2);
-console.log('HORSE_V4_OK: spectator autoplay, ready early launch, stale ready fallback, 7 selectable lanes and compact mobile layout');
+console.log('HORSE_V4_OK: shared 14-second bet close, no early ready start, spectators, final settlement and compact mobile layout');
