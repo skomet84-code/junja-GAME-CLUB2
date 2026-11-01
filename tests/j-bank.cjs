@@ -13,7 +13,7 @@ assert.equal(LIMITS[13],'300000000000000000','30경 G for GOD JUNJA');
 assert.equal(RATE_BP,10n,'simple interest 0.1% daily');
 assert.equal(SELL_RATE_BP,9900n,'sale proceeds are 99 percent');
 const sqlite=new DatabaseSync(':memory:');
-sqlite.exec('CREATE TABLE users(id INTEGER PRIMARY KEY,rank_level INTEGER,is_disabled INTEGER DEFAULT 0,balance INTEGER,balance_exact TEXT,balance_base TEXT);CREATE TABLE game_state(key TEXT PRIMARY KEY,value TEXT,updated_at INTEGER);CREATE TABLE ledger(id INTEGER PRIMARY KEY AUTOINCREMENT,user_id INTEGER,amount INTEGER,balance_after INTEGER,amount_exact TEXT,balance_after_exact TEXT,type TEXT,memo TEXT,created_at INTEGER);');
+sqlite.exec('CREATE TABLE users(id INTEGER PRIMARY KEY,rank_level INTEGER,is_disabled INTEGER DEFAULT 0,balance INTEGER,balance_exact TEXT,balance_base TEXT);CREATE TABLE game_state(key TEXT PRIMARY KEY,value TEXT,updated_at INTEGER);CREATE TABLE room_escrow(room_id TEXT NOT NULL,user_id INTEGER NOT NULL,amount INTEGER NOT NULL,amount_exact TEXT,game TEXT NOT NULL,created_at INTEGER NOT NULL,PRIMARY KEY(room_id,user_id));CREATE TABLE ledger(id INTEGER PRIMARY KEY AUTOINCREMENT,user_id INTEGER,amount INTEGER,balance_after INTEGER,amount_exact TEXT,balance_after_exact TEXT,type TEXT,memo TEXT,created_at INTEGER);');
 const db={exec:s=>sqlite.exec(s),prepare:s=>{const st=sqlite.prepare(s);st.setReadBigInts(true);return st;}};
 function add(id,rank,money=0n){db.prepare('INSERT INTO users(id,rank_level,balance,balance_exact,balance_base) VALUES(?,?,?,?,?)').run(id,rank,exactWallet.mirror(money),String(money),String(exactWallet.mirror(money)));}
 function wallet(id){return exactWallet.read(db.prepare('SELECT balance,balance_exact,balance_base FROM users WHERE id=?').get(id));}
