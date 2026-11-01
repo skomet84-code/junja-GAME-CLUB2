@@ -73,3 +73,39 @@
 }
 @media(max-width:380px){#view-horse #horseTrack .race-lane.horizontal{height:39px!important;max-height:39px!important}#view-horse #horseTrack .race-runner{width:50px!important;height:35px!important}#view-horse .horse-v3-quick button{font-size:10px!important}}
 @media(max-height:700px) and (max-width:820px){#view-horse #horseTrack .race-lane.horizontal{height:37px!important;max-height:37px!important}#view-horse #horseTrack .race-runner{height:34px!important}#view-horse .horse-stand{height:26px!important}#view-horse .horse-v3-live-status{height:19px!important}}
+
+/* Final viewport fit: seven lanes + a wager CTA in the first screen. */
+@media(max-width:820px){
+#view-horse #horseTrack .race-lane.horizontal{height:37px!important;min-height:37px!important;max-height:37px!important}
+#view-horse #horseTrack .race-runner{height:34px!important}
+}
+@media(max-width:820px) and (max-height:760px){
+body:has(#view-horse.active) .topbar{display:none!important}
+body:has(#view-horse.active) main{padding-top:0!important}
+#view-horse .horse-stand{display:none!important}
+#view-horse .horse-v3-live-status{display:none!important}
+#view-horse .view-head{height:31px!important;min-height:31px!important}
+#view-horse .view-head .back{width:29px!important;height:29px!important}
+#view-horse #horseTrack.vertical-race-track.horse-track{padding:1px!important}
+#view-horse #horseTrack .race-lane.horizontal{height:26px!important;min-height:26px!important;max-height:26px!important}
+#view-horse #horseTrack .race-runner{width:42px!important;height:25px!important}
+#view-horse #horseTrack .race-lane.horizontal .lane-head{grid-template-rows:15px 9px!important;align-content:center!important}
+#view-horse #horseTrack .lane-head b{width:17px!important;height:17px!important}
+#view-horse #horseTrack .lane-head span{font-size:10px!important}
+#view-horse #horseTrack .lane-head small{font-size:7px!important}
+#view-horse .horse-bet-panel{padding:3px 5px!important}
+#view-horse .horse-type-row select,#view-horse .horse-type-row input{height:31px!important;min-height:31px!important}
+#view-horse .horse-v3-quick button{min-height:25px!important;height:25px!important}
+#view-horse #horsePickSummary{display:none!important}
+#view-horse #horseOdds{margin-bottom:2px!important}
+#view-horse #horseStartBtn{height:35px!important;min-height:35px!important}
+#view-horse .horse-result-panel{display:none!important}
+}
+@media(max-width:820px) and (max-height:620px){
+#view-horse .view-head{height:27px!important;min-height:27px!important}
+#view-horse .horse-arena.horse-v22{padding:2px!important}
+#view-horse #horseTrack .race-lane.horizontal{height:23px!important;min-height:23px!important;max-height:23px!important}
+#view-horse #horseTrack .race-runner{height:22px!important;width:38px!important}
+#view-horse .horse-type-row select,#view-horse .horse-type-row input{height:29px!important;min-height:29px!important}
+#view-horse .horse-v3-quick button{min-height:23px!important;height:23px!important}
+}
