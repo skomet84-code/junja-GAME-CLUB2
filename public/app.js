@@ -1031,7 +1031,7 @@ function paintHorseCountdown(){
   }
   const hint=$('#horseWaitingCountdown');
   if(hint){
-    const text=r.phase==='betting'?'함께 베팅할 친구를 기다리는 중 · '+seconds+'초 후 자동 출발':r.phase==='running'?'🏇 경주 진행 중 · 함께 관전':'🏁 경주 종료 · '+seconds+'초 후 다음 경주';
+    const text=r.phase==='betting'?(r.participants?.length?seconds+'초 후 전체 동시 출발':'함께 베팅할 친구를 기다리는 중 · '+seconds+'초 후 자동 출발'):r.phase==='running'?'🏇 경주 진행 중 · 함께 관전':'🏁 경주 종료 · '+seconds+'초 후 다음 경주';
     if(hint.textContent!==text)hint.textContent=text;
   }
   // A local timer provides smooth visual seconds; only the server starts
@@ -1044,11 +1044,11 @@ function paintHorseCountdown(){
 function renderHorseParticipants(r){
   const root=$('#horseLiveBettors');if(!root)return;
   const ps=r.participants||[],finished=r.phase==='result';
-  root.innerHTML='<b>👥 '+ps.length+'명 참가</b>'+(ps.length?ps.map(p=>{
+  root.innerHTML='<b>👥 '+ps.length+'명 참가</b><span id="horseWaitingCountdown" aria-live="off"></span>'+(ps.length?ps.map(p=>{
     const pick=(p.picks||[]).map(id=>id+'번').join('·'),betMode=p.type==='win'?'단승':p.type==='quinella'?'복승':'쌍승';
     const result=finished?(p.won?'🏆 적중':p.placeBonus?'🥈 2위':'미적중'):'';
     return `<span class="horse-friend-ticket"><em>${html(p.nickname)}</em><small>${betMode} ${pick}</small>${result?`<strong class="${p.won?'paid':'unpaid'}">${result} · ${money(p.payout||0)}</strong>`:''}</span>`;
-  }).join(''):'<span id="horseWaitingCountdown" aria-live="off"></span>');
+  }).join(''):'');
   paintHorseCountdown();
 }
 function renderHorseMeet(r){if(!r?.card)return;const changed=!horseMeetData||horseMeetData.id!==r.id;horseMeetData=r;horseCardData=r.card;if(changed)horseLiveText='';if(changed||!$('#horseTrack .race-lane'))horseTrackBuild(r.card);else if($('#horseTrack').querySelectorAll('.race-lane').length!==7)horseTrackBuild(r.card);renderHorsePickGrid();syncHorseTrackSelection();renderHorseOdds();renderHorseOddsBoard();renderHorseParticipants(r);paintHorseCountdown();const ov=$('#raceOverlay');if(ov){ov.classList.toggle('hidden',r.phase!=='result');ov.innerHTML=r.phase==='betting'?'<b>BETTING</b><span>14초 동안 함께 베팅합니다.</span>':r.phase==='result'?'<b>OFFICIAL RESULT</b><span>전체 경주 결과 · 다음 경기 자동 준비</span>':'<b>RACE</b>'}if(r.phase==='running'&&r.order){horseRaceMessage(`🏇 LIVE · 참가자 ${(r.participants||[]).length}명 함께 관전!`);animateHorseMeet(r)}else if(r.phase==='result'&&r.order){horseRaceMessage('🏆 전원 동시 결과 · 개인별 당첨금 지급');setHorseFinalPositions(r);horseLastResult={round:r};renderHorseMeetResult(r)}else if(r.phase==='betting'){horseRaceMessage(r.myBet?'✅ 베팅 확정 · 14초 마감 후 모두 동시 출발':'👥 14초 공동 접수 · 경주판에서 말을 터치해 선택');resetHorsePositions();if(r.myBet)renderHorseBetReceipt(r);else if(horseLastResult?.round)renderHorseMeetResult(horseLastResult.round);else $('#horseResult').innerHTML='<div class="race-result-empty"><b>COMING UP</b><p>14초 동안 함께 베팅 · 전원 동시 출발</p></div>'}updateHorseStartState();updateHorseAutoUi()}
