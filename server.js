@@ -1287,11 +1287,14 @@ function yutNextStep(p,firstStep,routeChoice='shortcut'){
 function yutAdvance(piece,move,routeChoice='shortcut'){
   let p=yutClonePiece(piece);const trace=[];
   if(move<0){
-    if(p.node==='READY'||p.node==='FINISH'||!p.path.length)return {piece:p,trace,legal:false};
-    if(p.node==='O1'&&p.path[p.path.length-1].node==='READY'){
+    if(p.node==='READY'||p.node==='FINISH')return {piece:p,trace,legal:false};
+    // First 도 -> first O1 -> 빽도 reaches HOME, not O20/READY.
+    // Accept a missing history on legacy O1 pieces as well as a fresh READY origin.
+    if(p.node==='O1'&&(!p.path.length||p.path[p.path.length-1].node==='READY')){
       p={node:'START',route:'outer',path:[{node:'READY',route:'outer'},...Array.from({length:20},(_,i)=>({node:'O'+(i+1),route:'outer'}))]};
-      trace.push('START');return {piece:p,trace,legal:true};
+      trace.push('START');return {piece:p,trace,legal:true,luckyHome:true};
     }
+    if(!p.path.length)return {piece:p,trace,legal:false};
     const prev=p.path.pop();p={node:prev.node,route:prev.route||'outer',path:p.path};trace.push(yutPhysical(p));return {piece:p,trace,legal:true};
   }
   for(let i=0;i<move;i++){const history={node:p.node,route:p.route||'outer'};const next=yutNextStep(p,i===0,routeChoice);p={...next,path:[...p.path,history]};trace.push(yutPhysical(p));if(p.node==='FINISH')break;}
@@ -1322,7 +1325,7 @@ function yutCurrentPlayer(r,y){return orderedPlayers(r)[y.turnIndex%orderedPlaye
 function yutStart(r){
   if(r.players.length<2)throw new Error('2명 이상 필요합니다.');
   if((r.yutMode==='2v2'||r.yutMode==='3v3')&&r.players.length!==r.maxPlayers)throw new Error(`${yutModeLabel(r.yutMode)}은 ${r.maxPlayers}명이 모두 입장해야 시작할 수 있습니다.`);
-  r.yut={phase:'playing',turnIndex:0,sides:yutMakeSides(r),pending:[],awaitingThrow:true,captureBonus:0,last:null,winnerSideId:null,startedAt:now(),ruleSet:'club-standard-v09-home-exit-finish'};
+  r.yut={phase:'playing',turnIndex:0,sides:yutMakeSides(r),pending:[],awaitingThrow:true,captureBonus:0,last:null,winnerSideId:null,startedAt:now(),ruleSet:'club-standard-v10-first-do-backdo-home'};
 }
 function yutThrow(r,userId){
   const y=r.yut;if(!y||y.phase!=='playing')throw new Error('게임이 진행 중이 아닙니다.');
@@ -1370,7 +1373,7 @@ function yutMove(r,userId,pieceIndex,moveIndex=0,routeChoice='shortcut'){
   y.pending.splice(moveIndex,1);
   if(captured.length)y.captureBonus++;
   const stacked=destPhysical!=='READY'&&destPhysical!=='FINISH'?side.pieces.filter(p=>yutPhysical(p)===destPhysical).length:stackIndexes.length;
-  const message=captured.length?`상대 말 ${captured.length}개를 잡았다! 한 번 더!`:stacked>stackIndexes.length?`우리 말 ${stacked}개가 업혔다! 함께 이동!`:moveResult.backdo?'빽도! 한 칸 뒤로 이동!':`${moveResult.name} · ${Math.abs(moveResult.move)}칸 이동`;
+  const message=captured.length?`상대 말 ${captured.length}개를 잡았다! 한 번 더!`:advanced.luckyHome?'🍀 행운의 빽도! 출발점 HOME 도착 · 다음 전진 이동이면 바로 완주!':fromPhysical==='START'&&destPhysical==='FINISH'?'🏁 HOME에서 출발해 즉시 완주!':stacked>stackIndexes.length?`우리 말 ${stacked}개가 업혔다! 함께 이동!`:moveResult.backdo?'빽도! 한 칸 뒤로 이동!':`${moveResult.name} · ${Math.abs(moveResult.move)}칸 이동`;
   y.last={type:'move',userId,sideId:side.id,name:moveResult.name,move:moveResult.move,sticks:moveResult.sticks,backdo:!!moveResult.backdo,from:fromPhysical,to:destPhysical,trace:advanced.trace,captured,stacked,message,at:now()};
   if(side.pieces.every(yutFinished)){yutSettle(r,y,side);return;}
   if(y.pending.length){y.awaitingThrow=false;return;}
@@ -1451,7 +1454,7 @@ function soloYutMoveSide(s,side,pieceIndex,moveIndex=0,routeChoice='shortcut'){
   if(to!=='READY'&&to!=='FINISH')s.sides[other].forEach((p,i)=>{if(yutPhysical(p)===to){s.sides[other][i]=yutNewPiece();captured.push(i)}});
   s.pending.splice(moveIndex,1);if(captured.length)s.captureBonus++;
   const stacked=to!=='READY'&&to!=='FINISH'?soloYutPhysicalPieces(s,side,to).length:stack.length;
-  const message=captured.length?`상대 말을 잡았다! 한 번 더!`:stacked>stack.length?`우리 말 ${stacked}개가 업혔다!`:moveResult.backdo?'빽도! 한 칸 뒤로 이동!':`${moveResult.name} · ${Math.abs(moveResult.move)}칸 이동`;
+  const message=captured.length?'상대 말을 잡았다! 한 번 더!':adv.luckyHome?'🍀 행운의 빽도! 출발점 HOME 도착 · 다음 전진 이동이면 바로 완주!':from==='START'&&to==='FINISH'?'🏁 HOME에서 출발해 즉시 완주!':stacked>stack.length?`우리 말 ${stacked}개가 업혔다!`:moveResult.backdo?'빽도! 한 칸 뒤로 이동!':`${moveResult.name} · ${Math.abs(moveResult.move)}칸 이동`;
   s.last={type:'move',side,name:moveResult.name,move:moveResult.move,sticks:moveResult.sticks,backdo:!!moveResult.backdo,from,to,trace:adv.trace,captured,stacked,message,at:now()};if(side==='bot')s.replay.push({...s.last});
   if(s.sides[side].every(yutFinished)){s.phase='complete';s.winner=side;s.pending=[];s.awaitingThrow=false;return;}
   if(s.pending.length){s.awaitingThrow=false;return;}

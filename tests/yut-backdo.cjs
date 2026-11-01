@@ -16,8 +16,38 @@ for(const [node,prev,target] of [['O1','READY','START'],['O3','O2','O2'],['A4','
  ctx.yutMove(r,1,0);
  assert.equal(r.yut.last.captured.length,2);assert.equal(r.yut.turnIndex,0);assert.equal(r.yut.awaitingThrow,true);
 }
+// Actual first-turn regressions: 도 from reserve, later 빽도 to HOME,
+// then one positive move finishes. Both multiplayer and solo must agree.
+for(const mode of ['solo','multi']){
+ const resultDo={move:1,name:'도',extra:false};
+ if(mode==='solo'){
+  const s={phase:'playing',pending:[resultDo],awaitingThrow:false,captureBonus:0,sides:{user:[fresh(),fresh(),fresh(),fresh()],bot:[fresh(),fresh(),fresh(),fresh()]},turn:'user',replay:[]};
+  ctx.soloYutMoveSide(s,'user',0);
+  assert.equal(s.sides.user[0].node,'O1','first 도 enters first square');
+  s.turn='user';s.pending=[back];s.awaitingThrow=false;
+  ctx.soloYutMoveSide(s,'user',0);
+  assert.equal(s.sides.user[0].node,'START','first 도 + 빽도 returns to HOME, not forward');
+  assert.match(s.last.message,/HOME/);
+  assert.equal(s.sides.user[0].node==='FINISH',false,'HOME itself does not finish yet');
+  s.turn='user';s.pending=[resultDo];s.awaitingThrow=false;
+  ctx.soloYutMoveSide(s,'user',0);
+  assert.equal(s.sides.user[0].node,'FINISH','positive move from lucky HOME finishes');
+ }else{
+  const r={players:[{userId:1},{userId:2}],yut:{phase:'playing',turnIndex:0,pending:[resultDo],awaitingThrow:false,captureBonus:0,sides:[{id:'a',playerIds:[1],pieces:[fresh(),fresh(),fresh(),fresh()]},{id:'b',playerIds:[2],pieces:[fresh(),fresh(),fresh(),fresh()]}]}};
+  ctx.yutMove(r,1,0);
+  assert.equal(r.yut.sides[0].pieces[0].node,'O1');
+  r.yut.turnIndex=0;r.yut.pending=[back];r.yut.awaitingThrow=false;
+  ctx.yutMove(r,1,0);
+  assert.equal(r.yut.sides[0].pieces[0].node,'START','multiplayer first 도+빽도 must reach HOME');
+  assert.match(r.yut.last.message,/HOME/);
+  r.yut.turnIndex=0;r.yut.pending=[resultDo];r.yut.awaitingThrow=false;
+  ctx.yutMove(r,1,0);
+  assert.equal(r.yut.sides[0].pieces[0].node,'FINISH','multiplayer HOME next move finishes');
+ }
+}
+assert.equal(ctx.yutAdvance({node:'O1',route:'outer',path:[]},-1).piece.node,'START','legacy first-step piece with missing history also returns HOME');
 const home=ctx.yutAdvance(piece('O1','READY'),-1).piece;
 assert.equal(home.node,'START');assert.equal(ctx.yutAdvance(home,-1).piece.node,'O20');
 assert.equal(ctx.yutAdvance(home,1).piece.node,'FINISH');
 assert.equal(ctx.yutAdvance(fresh(),-1).legal,false);
-console.log('YUT_BACKDO_OK: solo/multiplayer HOME, ordinary, center, stacks, extra throw, HOME exit');
+console.log('YUT_BACKDO_OK: first DO -> BACKDO HOME -> next move FINISH in solo/multiplayer; legacy paths, stacks, captures, center');
