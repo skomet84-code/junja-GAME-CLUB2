@@ -67,7 +67,7 @@ function createRoyalHulaCasino({db,exactWallet,now,collateral=null}){
    try{
     const escrow=getEscrow.get(room.id,human.id);
     if(!escrow||(!collateral&&BigInt(escrow.amount)!==reserved))throw Error('AI 훌라 예치금 검증 실패');
-    if(collateral)collateral.settle(room.id,human.id,net<0n?-net:0n,net>0n?net:0n);
+    if(collateral){const receipt=collateral.settle(room.id,human.id,net<0n?-net:0n,net>0n?net:0n);result.payout=String(BigInt(receipt.cashRefund)+(net>0n?net:0n));if(receipt.liquidation)result.rankSales=receipt.liquidation.sales;}
     else {credit(human.id,reserved+net,'hula_ai_settlement','AI 훌라 '+room.round+'판 · '+result.reason);
     dropEscrow.run(room.id,human.id);}
     saveResult.run('royalcards:casino:result:'+room.id+':'+room.round,JSON.stringify({stake:room.stake,winner:winner.id,results:[result],at:now()}),now());
@@ -100,7 +100,7 @@ function createRoyalHulaCasino({db,exactWallet,now,collateral=null}){
    }
    for(const p of room.players){
     const result=results.get(p.id);
-    if(collateral){const net=BigInt(result.net);collateral.settle(room.id,p.id,net<0n?-net:0n,net>0n?net:0n);}
+    if(collateral){const net=BigInt(result.net),receipt=collateral.settle(room.id,p.id,net<0n?-net:0n,net>0n?net:0n);result.payout=String(BigInt(receipt.cashRefund)+(net>0n?net:0n));if(receipt.liquidation)result.rankSales=receipt.liquidation.sales;}
     else {credit(p.id,BigInt(result.payout),'hula_settlement','훌라 '+room.round+'판 · '+result.reason);
     dropEscrow.run(room.id,p.id);}
    }
