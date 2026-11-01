@@ -79,7 +79,8 @@ for (const [name,engine] of engines) {
     soloArea:document.querySelector('#yutSoloArea')?.className,
     soloStart:document.querySelector('#yutSoloStart')?.className,
     soloRoom:document.querySelector('#yutSoloRoom')?.className,
-    yutMode:[...document.querySelectorAll('[data-mode-game="yut"]')].map(b=>({mode:b.dataset.mode,className:b.className}))
+    yutMode:[...document.querySelectorAll('[data-mode-game="yut"]')].map(b=>({mode:b.dataset.mode,className:b.className})),
+    ancestors:(()=>{let e=document.querySelector('#soloYutBet');const out=[];while(e&&out.length<10){const q=e.getBoundingClientRect(),s=getComputedStyle(e);out.push({tag:e.tagName,id:e.id,className:e.className,display:s.display,visibility:s.visibility,opacity:s.opacity,width:q.width,height:q.height,top:q.top});e=e.parentElement}return out})()
   })));
   await page.waitForSelector('#yutSoloArea:not(.hidden) #soloYutStart:not(.hidden) #soloYutBet',{state:'visible',timeout:8000});
   await page.fill('#soloYutBet','200000');
