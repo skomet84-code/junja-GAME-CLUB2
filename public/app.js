@@ -881,19 +881,27 @@ function yutPieceButtons(side,move,attr){
 }
 function yutRouteDialog(piece){const node=yutPhysicalClient(piece);if(!['O5','O10'].includes(node))return Promise.resolve(null);return new Promise(resolve=>{const wrap=document.createElement('div');wrap.className='yut-route-modal';wrap.innerHTML=`<div class="yut-route-card"><small>ROUTE SELECT · ${node}</small><h3>어느 길로 갈까?</h3><p>코너에 정확히 도착했어. 이번 이동에서 지름길 또는 외곽길을 직접 선택해.</p><div class="yut-route-options"><button data-route="shortcut"><b>↘ 지름길</b><span>중앙 대각선으로 빠르게</span></button><button data-route="outer"><b>↪ 외곽길</b><span>바깥 칸을 계속 이동</span></button></div></div>`;document.body.appendChild(wrap);$$('[data-route]',wrap).forEach(b=>b.onclick=()=>{const v=b.dataset.route;wrap.remove();fx();resolve(v)});wrap.onclick=e=>{if(e.target===wrap){wrap.remove();resolve(null)}}})}
 function yutSticksHtml(sticks,throwing=false){
-  const vals=Array.isArray(sticks)&&sticks.length===4?sticks:[1,0,1,0];
-  // The real roll is authoritative on the server: both visible faces are
-  // rendered on a 3-D shell, and the ending angle only reflects its result.
-  return `<div class="yut-toss-scene yut-real-toss ${throwing?'throwing':''}" aria-label="윷가락 네 개">
+  // Each physical result is from the server. Never fabricate placeholder faces:
+  // a fake result can be mistaken for the roll that controls the next move.
+  const valid=Array.isArray(sticks)&&sticks.length===4&&sticks.every(v=>v===0||v===1);
+  const vals=valid?sticks:null;
+  const backs=valid?vals.filter(value=>value===0).length:0;
+  const backdo=valid&&backs===1&&vals[0]===0;
+  const name=valid?(backdo?'빽도':['모','도','개','걸','윷'][backs]):'';
+  const steps=backdo?'1칸 뒤로':(backs||5)+'칸 앞으로';
+  return `<div class="yut-toss-scene yut-real-toss ${throwing?'throwing':''} ${backdo?'backdo-roll':''}" aria-label="${valid?'윷가락 결과 '+name:'윷가락 결과 대기'}">
     <div class="yut-mat-grain" aria-hidden="true"></div><div class="yut-shadow" aria-hidden="true"></div>
-    <div class="yut-sticks">${vals.map((value,i)=>{
+    <div class="yut-sticks">${valid?vals.map((value,i)=>{
       const back=Number(value)===0;
       return `<div class="yut-stick ${back?'back-face':'flat-face'} ${i===0?'marked-stick':''}" data-yut-face="${back?'back':'flat'}" style="--i:${i};--rest-face:${back?'180deg':'0deg'};--landing-tilt:${[-9,4,-3,10][i]}deg">
         <div class="yut-stick-body" aria-hidden="true">
           <div class="yut-stick-face yut-face-flat"><img src="/art/v28/yut/stick-marked.webp" alt="" draggable="false"></div>
           <div class="yut-stick-face yut-face-back"><img src="/art/v28/yut/stick-back.webp" alt="" draggable="false">${i===0?'<i class="yut-backdo-dot" aria-hidden="true">●</i>':''}</div>
         </div></div>`;
-    }).join('')}</div><div class="yut-toss-caption" aria-live="off">${throwing?'윷가락을 던지는 중…':'점 표시 윷가락은 빽도 판정 기준'}</div></div>`;
+    }).join(''):'<div class="yut-toss-empty">윷가락을 던지면 결과가 표시돼</div>'}</div>
+    <div class="yut-toss-caption" aria-live="${throwing?'off':'polite'}">${throwing?'윷가락을 던지는 중…':valid?
+      `<strong class="yut-roll-result">${name} · ${steps}</strong><span class="yut-roll-rule">무늬 면 ${backs}개 · ${backdo?'표식 윷 하나만 뒤집힘':'검은 점 하나만으로 빽도는 아님'}</span>`:
+      '무늬 면 개수로 도·개·걸·윷·모를 판정'}</div></div>`;
 }
 async function playYutServerToss(root,sticks,ms){
   // Only animate the final four faces confirmed by the authoritative server roll.

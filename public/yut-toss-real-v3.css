@@ -110,3 +110,16 @@
  #view-yut .yut-toss-scene.yut-real-toss.throwing .yut-stick-body,
  #view-yut .yut-toss-scene.yut-real-toss.throwing .yut-shadow{animation:none!important;will-change:auto!important}
 }
+
+/* Verified throw verdict, readable on mobile; a flat-side black dot is not BACK DO. */
+#view-yut .yut-toss-scene.yut-real-toss .yut-toss-caption .yut-roll-result{
+  display:block;font-size:15px;line-height:1.45;color:#ffde94;letter-spacing:.035em;
+}
+#view-yut .yut-toss-scene.yut-real-toss .yut-toss-caption .yut-roll-rule{
+  display:block;font-size:10px;line-height:1.45;color:#e5cca0;
+}
+#view-yut .yut-toss-scene.yut-real-toss .yut-toss-empty{
+  display:grid;place-items:center;min-height:115px;padding:12px;
+  color:#e6cda4;font-size:12px;text-align:center;
+}
+#view-yut .yut-toss-scene.yut-real-toss.backdo-roll:not(.throwing) .yut-roll-result{color:#ffb4a4}

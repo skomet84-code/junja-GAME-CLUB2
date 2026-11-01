@@ -5,6 +5,7 @@ const ctx={now:()=>1,clampInt:(n,a,b)=>Math.max(a,Math.min(b,n)),orderedPlayers:
 vm.createContext(ctx);
 vm.runInContext(source.slice(source.indexOf('const YUT_SIDE_COLORS='),source.indexOf('// ---------- Solo Hold'))+'\n'+source.slice(source.indexOf('function soloYutPhysicalPieces'),source.indexOf('function soloYutThrowFor')),ctx);
 const fresh=()=>ctx.yutNewPiece(),piece=(node,prev)=>({node,route:'outer',path:[{node:prev,route:'outer'}]});
+assert.match(source,/name:result\.name,move:result\.move,sticks:result\.sticks,backdo:!!result\.backdo,at:now\(\)/,'multiplayer forwards BACK DO to the displayed throw result');
 const back={move:-1,name:'빽도',backdo:true};
 for(const [node,prev,target] of [['O1','READY','START'],['O3','O2','O2'],['A4','CA','CB'],['B4','CB','CA'],['O16','O15','O15']]){
  const own=[piece(node,prev),piece(node,prev),fresh(),fresh()],enemy=[piece(target,'O1'),piece(target,'O1'),fresh(),fresh()];

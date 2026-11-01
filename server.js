@@ -1355,7 +1355,7 @@ function yutThrow(r,userId){
     y.last={type:'throw',userId,sideId:side?.id,name:result.name,move:result.move,sticks:result.sticks,backdo:true,skipped:true,message:'빽도! 이동할 말이 없어 이번 차례는 쉬어갑니다.',at:now()};return result;
   }
   y.pending.push(result);y.awaitingThrow=!!result.extra;
-  y.last={type:'throw',userId,sideId:yutSideForUser(y,userId)?.id,name:result.name,move:result.move,sticks:result.sticks,at:now()};
+  y.last={type:'throw',userId,sideId:yutSideForUser(y,userId)?.id,name:result.name,move:result.move,sticks:result.sticks,backdo:!!result.backdo,at:now()};
   return result;
 }
 function yutSettle(r,y,winnerSide){
