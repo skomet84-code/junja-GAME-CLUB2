@@ -28,7 +28,9 @@ function render(d){
  '<div class="jbank-sale-muted">미상환 대출이 있고 평민보다 높은 등급일 때 신분 매각을 사용할 수 있습니다.</div>';
  $('#jbankContent').innerHTML='<div class="jbank-member">♛ '+esc(d.rank.name)+' 신분 · 한도 '+fmt(d.loanLimit)+' G</div>'+
  '<div class="jbank-grid"><div><small>신규 대출 가능</small><strong>'+fmt(d.available)+' G</strong></div><div><small>총 상환 잔액</small><strong>'+fmt(debt)+' G</strong></div><div><small>남은 원금</small><strong>'+fmt(d.principal)+' G</strong></div><div><small>누적 이자</small><strong>'+fmt(d.interest)+' G</strong></div></div>'+
- '<p class="jbank-terms">📖 <b>대출 안내</b> — 게임머니 G 전용 · 원금 기준 일 0.1% 단리 · 한국시간 날짜가 바뀌면 이자 발생 · 이자부터 상환 · 복리/별도 연체료 없음.<br><b>미상환 시 추가 대출 및 신분 승급 불가</b>. 원금과 이자를 모두 갚으면 즉시 신분 승급 가능합니다.</p>'+
+ '<p class="jbank-terms">📖 <b>대출 안내</b> — 게임머니 G 전용 · 원금 기준 일 0.1% 단리 · 이자 포함 7일 내 완납. 7일 초과 연체 시 현금·자유저축·적금·주식·코인·신분(99% 매각가) 순으로 자동 회수됩니다. 연체료는 없습니다.</p>'+
+ (d.dueAt&&hasLoan?'<p class="jbank-terms">⏰ 상환 마감: '+new Date(d.dueAt).toLocaleString('ko-KR')+(d.overdue?' · <b>연체/강제 회수 대상</b>':'')+'</p>':'')+
+ (d.canRehabilitate?'<section class="jbank-rank-sale"><h3>🛟 개인회생 · 다시 시작</h3><p>연체 강제 회수 후 남은 빚이 있을 때 계정당 1회 신청 가능. 모든 신분·주식·코인·예적금 초기화, 대출 전액 탕감, 새 출발금 1,000억 G를 지급합니다. 취소할 수 없습니다.</p><button class="jbank-submit" data-jbank-action="rehabilitation" type="button">개인회생 신청 · 전체 자산 초기화</button></section>':'')+
  '<div class="jbank-forms"><section><h3>🏦 대출 신청</h3><label>대출금 G<input id="jbankBorrow" class="jbank-input" inputmode="numeric" type="text" placeholder="최소 '+fmt(d.minLoan)+' G" '+(loanLocked?'disabled':'')+'></label><div class="jbank-presets"><button type="button" data-jbank-type="borrow" data-jbank-preset="25" '+(loanLocked?'disabled':'')+'>25%</button><button type="button" data-jbank-type="borrow" data-jbank-preset="50" '+(loanLocked?'disabled':'')+'>50%</button><button type="button" data-jbank-type="borrow" data-jbank-preset="max" '+(loanLocked?'disabled':'')+'>최대한도</button></div><button class="jbank-submit" data-jbank-action="borrow" '+(loanLocked?'disabled':'')+'>게임머니 대출받기</button></section>'+
  '<section><h3>💳 원금·이자 상환</h3><label>상환금 G<input id="jbankRepay" class="jbank-input" inputmode="numeric" type="text" placeholder="보유 '+fmt(cash)+' G" '+(!hasLoan?'disabled':'')+'></label><div class="jbank-presets"><button type="button" data-jbank-type="repay" data-jbank-preset="25" '+(!hasLoan?'disabled':'')+'>25%</button><button type="button" data-jbank-type="repay" data-jbank-preset="50" '+(!hasLoan?'disabled':'')+'>50%</button><button type="button" data-jbank-type="repay" data-jbank-preset="max" '+(!hasLoan?'disabled':'')+'>상환 가능 최대</button></div><button class="jbank-submit repay" data-jbank-action="repay" '+(!hasLoan?'disabled':'')+'>입력 금액 상환</button><button class="jbank-submit repay" data-jbank-action="all" '+(!hasLoan||cash<debt?'disabled':'')+'>원금+이자 전액 완납</button></section></div>'+
  savingsHtml(d)+installmentHtml(d)+saleHtml+'<details class="jbank-tiers"><summary>신분별 J-BANK 대출 한도 확인</summary><table><tbody>'+TIERS.map((tier,i)=>'<tr class="'+(d.rank.level===i?'current':'')+'"><td>'+esc(tier)+'</td><td>'+fmt(LIMITS[i])+' G</td></tr>').join('')+'</tbody></table></details>';
@@ -90,7 +92,19 @@ async function sellRank(){
  }catch(e){try{render(await request('/api/jbank'))}catch{}notice(e.message,true)}
  finally{busy=false;}
 }
-async function submit(action){if(action.startsWith('installment'))return installmentSubmit(action);if(['deposit','withdraw','withdrawAll'].includes(action))return savingsSubmit(action);if(action==='sellRank')return sellRank();
+async function rehabilitation(){
+ if(busy||!state?.canRehabilitate)return;
+ if(!confirm('개인회생을 신청하면 모든 신분/예적금/주식/코인과 기존 지갑 자산이 사라지고 남은 빚을 탕감한 뒤 1,000억 G로 다시 시작합니다. 계정당 한 번이며 취소할 수 없습니다.'))return;
+ const typed=prompt('확인하려면 개인회생 이라고 정확히 입력해줘.');
+ if(typed!=='개인회생'){notice('확인 문구가 일치하지 않습니다.',true);return}
+ busy=true;
+ try{
+  const d=await request('/api/jbank/rehabilitation',{method:'POST',body:JSON.stringify({confirmation:typed,requestId:crypto.randomUUID()})});
+  render(d.status);document.dispatchEvent(new CustomEvent('jbank:wallet-change',{detail:{balance:d.status.wallet,user:d.user}}));
+  notice('개인회생 완료 · 채무 '+fmt(d.result.forgiven)+' G 탕감, 새 출발금 1,000억 G');
+ }catch(e){notice(e.message,true)}finally{busy=false;}
+}
+async function submit(action){if(action==='rehabilitation')return rehabilitation();if(action.startsWith('installment'))return installmentSubmit(action);if(['deposit','withdraw','withdrawAll'].includes(action))return savingsSubmit(action);if(action==='sellRank')return sellRank();
  if(busy||!state)return;const borrow=action==='borrow';
  const raw=action==='all'?'all':$('#jbank'+(borrow?'Borrow':'Repay'))?.value?.trim();
  if(raw!=='all'&&!/^[1-9][0-9]*$/.test(String(raw||''))){notice('금액을 정확히 입력해 주세요.',true);return;}

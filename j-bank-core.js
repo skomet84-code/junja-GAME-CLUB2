@@ -1,5 +1,6 @@
 'use strict';
 const installment=require('./j-bank-installment');
+const {createOverdue}=require('./j-bank-overdue');
 // J-BANK uses existing persisted game_state, exact-wallet and atomic SQLite transactions.
 const LIMITS=Object.freeze([
  '5000000','30000000','100000000','500000000','1000000000',
@@ -32,6 +33,7 @@ function createJBank({db,exactWallet,levels,now,kstDate}){
  }
  function owed(id,day=kstDate()){const x=project(read(id,day),day);return BigInt(x.principal)+BigInt(x.interest);}
  function store(id,record){db.prepare('INSERT INTO game_state(key,value,updated_at) VALUES(?,?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value,updated_at=excluded.updated_at').run(accountKey(id),JSON.stringify(record),now());}
+ const overdue=createOverdue({db,exactWallet,now,kstDate,levels,read,project,store,empty,installment});
  function status(id,day=kstDate()){
   const u=db.prepare('SELECT id,rank_level,balance,balance_exact,balance_base FROM users WHERE id=?').get(id);
   if(!u)throw Error('은행 회원을 찾을 수 없습니다.');
@@ -47,7 +49,10 @@ function createJBank({db,exactWallet,levels,now,kstDate}){
    dailyInterestPct:'0.1',interestMethod:'simple',principal:r.principal,interest:r.interest,
    outstanding:String(debt),canBorrow:debt===0n&&!r.installment,canPromote:debt===0n,available:debt===0n&&!r.installment?limit:'0',
    wallet:exactWallet.output(exactWallet.read(u)),openedAt:r.openedAt,closedAt:r.closedAt,
-   totalBorrowed:r.totalBorrowed,totalRepaid:r.totalRepaid,canSellRank:!!rankSale,rankSale,lastRankSale:r.lastRankSale,saleCount:r.saleCount||0};
+   totalBorrowed:r.totalBorrowed,totalRepaid:r.totalRepaid,canSellRank:!!rankSale,rankSale,lastRankSale:r.lastRankSale,saleCount:r.saleCount||0,
+   dueAt:r.openedAt?Number(r.openedAt)+7*86400000:null,overdue:debt>0n&&r.openedAt>0&&now()>Number(r.openedAt)+7*86400000,
+   canRehabilitate:debt>0n&&!!db.prepare('SELECT 1 FROM game_state WHERE key=?').get('jbank:overdue:v1:'+id+':'+Number(r.number||0))&&!db.prepare('SELECT 1 FROM game_state WHERE key=?').get('jbank:rehabilitation:once:'+id),
+   lastRehabilitation:r.rehabilitation||null};
  }
  function change(id,kind,raw,requestId){
   id=Number(id);
@@ -204,6 +209,6 @@ function createJBank({db,exactWallet,levels,now,kstDate}){
   }catch(e){try{db.exec('ROLLBACK');}catch{}throw e;}
  }
 
- return {status,owed,limits:LIMITS,...Object.fromEntries(['installmentOpen','installmentPay','installmentClaim','installmentCancel'].map(kind=>[kind,(id,raw,key)=>change(id,kind,raw,key)])),deposit:(id,amount,key)=>change(id,'deposit',amount,key),withdraw:(id,amount,key)=>change(id,'withdraw',amount,key),borrow:(id,amount,key)=>change(id,'borrow',amount,key),repay:(id,amount,key)=>change(id,'repay',amount,key),sellRank,forceCasinoSale};
+ return {status,owed,limits:LIMITS,...Object.fromEntries(['installmentOpen','installmentPay','installmentClaim','installmentCancel'].map(kind=>[kind,(id,raw,key)=>change(id,kind,raw,key)])),deposit:(id,amount,key)=>change(id,'deposit',amount,key),withdraw:(id,amount,key)=>change(id,'withdraw',amount,key),borrow:(id,amount,key)=>change(id,'borrow',amount,key),repay:(id,amount,key)=>change(id,'repay',amount,key),sellRank,forceCasinoSale,enforceOverdue:overdue.enforce,rehabilitation:overdue.rehabilitation};
 }
 module.exports={createJBank,LIMITS,RATE_BP,SELL_RATE_BP};

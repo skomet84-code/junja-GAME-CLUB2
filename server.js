@@ -791,6 +791,20 @@ const SOCIAL_RANKS = [
 ];
 const jBank=createJBank({db,exactWallet,levels:SOCIAL_RANKS,now,kstDate});
 const casinoCollateral=createCasinoCollateral({db,exactWallet,jBank,levels:SOCIAL_RANKS,now});
+let bankCollectionsBusy=false;
+async function checkOverdueBanks(){
+  if(bankCollectionsBusy)return;bankCollectionsBusy=true;let changed=false;
+  try{
+    const rows=db.prepare("SELECT key FROM game_state WHERE key LIKE 'jbank:account:%'").all();
+    for(const row of rows){
+      const id=Number(String(row.key).split(':').pop());
+      try{if(jBank.enforceOverdue(id).processed)changed=true;}
+      catch(e){console.error('[J-BANK] overdue liquidation deferred',id,e.message);}
+    }
+    if(changed){await db.flush();pushRefresh();}
+  }finally{bankCollectionsBusy=false;}
+}
+setInterval(()=>checkOverdueBanks().catch(e=>console.error('[J-BANK] scheduled collection',e.message)),3600000).unref();
 function socialRankPerks(level){
   level=Math.max(0,Math.min(SOCIAL_RANKS.length-1,Number(level)||0));
   const extraDraws=level>=13?9:level>=12?6:level>=11?4:level>=9?3:level>=6?2:level>=3?1:0;
@@ -2301,13 +2315,27 @@ const server=http.createServer(async(req,res)=>{
     }
     if(url.pathname==='/api/jbank'&&req.method==='GET'){
       const u=requireAuth(req,res);if(!u)return;
-      try{return json(res,200,{ok:true,...jBank.status(u.id)});}catch(e){return json(res,400,{error:e.message});}
+      try{
+        const recovered=jBank.enforceOverdue(u.id);
+        if(recovered.processed){await db.flush();pushRefresh();}
+        return json(res,200,{ok:true,...jBank.status(u.id)});
+      }catch(e){return json(res,400,{error:e.message});}
+    }
+    if(url.pathname==='/api/jbank/rehabilitation'&&req.method==='POST'){
+      const u=requireAuth(req,res);if(!u)return;
+      if(!rateLimit('jbank:rehab:'+u.id,3,3600000))return json(res,429,{error:'개인회생 신청 횟수를 초과했어.'});
+      try{
+       const b=await readBody(req),result=jBank.rehabilitation(u.id,b.confirmation,b.requestId);
+       await db.flush();pushRefresh();
+       return json(res,200,{ok:true,result,status:jBank.status(u.id),user:userPublic(u.id)});
+      }catch(e){return json(res,400,{error:e.message});}
     }
     if((['installmentOpen','installmentPay','installmentClaim','installmentCancel'].some(action=>url.pathname==='/api/jbank/'+action)||url.pathname==='/api/jbank/deposit'||url.pathname==='/api/jbank/withdraw'||url.pathname==='/api/jbank/borrow'||url.pathname==='/api/jbank/repay'||url.pathname==='/api/jbank/sell-rank')&&req.method==='POST'){
       const u=requireAuth(req,res);if(!u)return;
       if(!rateLimit('jbank:'+u.id,12,60000))return json(res,429,{error:'은행 거래 요청이 너무 빠릅니다. 잠시 후 다시 시도하세요.'});
       try{
         const b=await readBody(req),action=url.pathname.endsWith('/sell-rank')?'sellRank':url.pathname.split('/').pop();
+        jBank.enforceOverdue(u.id);
         const result=action==='sellRank'?jBank.sellRank(u.id,b.confirmation,b.requestId):jBank[action](u.id,b.amount,b.requestId);
         await db.flush();pushRefresh();
         return json(res,200,{...result,user:userPublic(u.id)});
