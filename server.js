@@ -1570,16 +1570,30 @@ function horseStartIfReady(r){
   // can still join until this exact server-side deadline.
   if(t<deadline)return r;
   r.order=horseRun(r.card);r.phase='running';r.startedAt=t;r.finishAt=t+HORSE_RUN_MS;
-  for(const [uid,b] of r.bets){
-    try{const result=settleRace(uid,b.bet,b.type,b.picks,r.card,r.order);r.results.set(uid,result);}catch(e){console.error('[HORSE] settle failed',uid,e.message);}
-    escrowDelete(`HORSE_${r.id}`,uid);
-  }
+  // No payout is credited until the horses actually cross the finish line.
   return r;
+}
+function horseSettleFinished(r){
+  for(const [uid,b] of r.bets){
+    if(r.results.has(uid))continue; // network polling may advance the same race repeatedly
+    try{
+      const result=settleRace(uid,b.bet,b.type,b.picks,r.card,r.order);
+      r.results.set(uid,result);
+      escrowDelete(`HORSE_${r.id}`,uid);
+    }catch(e){
+      console.error('[HORSE] settle failed, keeping escrow for audit',uid,e.message);
+    }
+  }
 }
 function horseAdvanceMeet(){
   let r=horseMeet||newHorseMeet(),t=now();horseStartIfReady(r);
-  if(r.phase==='running'&&t>=r.finishAt){r.phase='result';r.resultUntil=t+HORSE_RESULT_MS;}
-  if(r.phase==='result'&&t>=r.resultUntil){r=newHorseMeet();}
+  if(r.phase==='running'&&t>=r.finishAt){
+    horseSettleFinished(r);r.phase='result';r.resultUntil=t+HORSE_RESULT_MS;
+  }
+  if(r.phase==='result'){
+    if(r.results.size<r.bets.size)horseSettleFinished(r);
+    if(t>=r.resultUntil&&r.results.size===r.bets.size)r=newHorseMeet();
+  }
   return r;
 }
 function horseMeetPublic(userId){
@@ -1594,8 +1608,12 @@ function horsePlaceBet(user,body){
   if(picks.length!==need||picks.some(x=>!r.card.horses.some(h=>h.id===x))||(need===2&&picks[0]===picks[1]))throw new Error('선택한 말을 확인해줘.');
   const bet=gameWager(body.bet,1000,10000000,1000);if(user.balance<bet)throw new Error('게임머니가 부족합니다.');
   const mult=raceMultiplier(type,picks,r.card);if(!mult)throw new Error('배당 정보를 확인할 수 없어.');
-  walletChange(user.id,-bet,'horse_bet',`경마 ${type} ${picks.join('/')} · x${mult} · ${formatMoney(bet)}G`);
-  r.bets.set(user.id,{userId:user.id,type,picks,bet,mult,placedAt:now()});escrowSet(`HORSE_${r.id}`,user.id,bet,'horse');return horseMeetPublic(user.id);
+  // Keep a per-round exact-integer receipt: the wager is debited immediately,
+  // while a winner's payout is only credited when the race finishes.
+  const prior=exactWallet.read(db.prepare('SELECT balance,balance_exact,balance_base FROM users WHERE id=?').get(user.id));
+  const next=walletChange(user.id,-bet,'horse_bet',`경마 ${type} ${picks.join('/')} · x${mult} · ${formatMoney(bet)}G`);
+  r.bets.set(user.id,{userId:user.id,type,picks,bet,mult,placedAt:now(),balanceBefore:String(prior),balanceAfter:String(next)});
+  escrowSet(`HORSE_${r.id}`,user.id,bet,'horse');return horseMeetPublic(user.id);
 }
 function horseReady(user){
   const r=horseAdvanceMeet();if(r.phase!=='betting')throw new Error('이미 경주가 시작됐어.');

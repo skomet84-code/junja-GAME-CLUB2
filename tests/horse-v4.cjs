@@ -17,8 +17,8 @@ const ctx={now:()=>tick,horseMeet:null,HORSE_BET_MS:14000,HORSE_RUN_MS:6500,HORS
 vm.createContext(ctx);vm.runInContext(source,ctx);
 const fresh=()=>({phase:'betting',openedAt:0,card:{},bets:new Map(),ready:new Set(),results:new Map()});
 let r=fresh();tick=13999;ctx.horseStartIfReady(r);assert.equal(r.phase,'betting');
-tick=14000;ctx.horseStartIfReady(r);assert.equal(r.phase,'running','spectator round starts at deadline without bets');
+tick=14000;ctx.horseStartIfReady(r);assert.equal(r.phase,'running','spectator round starts at deadline without bets');assert.equal(settled,0,'no settlement before finish');
 r=fresh();tick=1000;r.bets.set(42,{bet:1000,type:'win',picks:[1]});ctx.horseStartIfReady(r);assert.equal(r.phase,'betting');
-r.ready.add(42);ctx.horseStartIfReady(r);assert.equal(r.phase,'betting','early readiness must never start shared race');assert.equal(settled,0);tick=14000;ctx.horseStartIfReady(r);assert.equal(r.phase,'running','shared deadline starts ready bettor');assert.equal(settled,1);
-r=fresh();tick=14000;r.bets.set(42,{bet:1000,type:'win',picks:[1]});ctx.horseStartIfReady(r);assert.equal(r.phase,'running','unready bettor cannot block for ever');assert.equal(settled,2);
+r.ready.add(42);ctx.horseStartIfReady(r);assert.equal(r.phase,'betting','early readiness must never start shared race');assert.equal(settled,0);tick=14000;ctx.horseStartIfReady(r);assert.equal(r.phase,'running','shared deadline starts ready bettor');assert.equal(settled,0,'winner payout awaits finish');tick=20500;ctx.horseMeet=r;ctx.horseAdvanceMeet();assert.equal(settled,1,'race settles exactly at finish');
+r=fresh();tick=14000;r.bets.set(42,{bet:1000,type:'win',picks:[1]});ctx.horseStartIfReady(r);assert.equal(r.phase,'running','unready bettor cannot block for ever');tick=20500;ctx.horseMeet=r;ctx.horseAdvanceMeet();assert.equal(settled,2);
 console.log('HORSE_V4_OK: shared 14-second bet close, no early ready start, spectators, final settlement and compact mobile layout');
