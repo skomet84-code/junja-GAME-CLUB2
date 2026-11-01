@@ -1062,13 +1062,43 @@ function renderHorseParticipants(r){
   }).join(''):'');
   paintHorseCountdown();
 }
-function renderHorseMeet(r){if(!r?.card)return;const changed=!horseMeetData||horseMeetData.id!==r.id;horseMeetData=r;horseCardData=r.card;if(changed)horseLiveText='';if(changed||!$('#horseTrack .race-lane'))horseTrackBuild(r.card);else if($('#horseTrack').querySelectorAll('.race-lane').length!==7)horseTrackBuild(r.card);renderHorsePickGrid();syncHorseTrackSelection();renderHorseOdds();renderHorseOddsBoard();renderHorseParticipants(r);paintHorseCountdown();const ov=$('#raceOverlay');if(ov){ov.classList.toggle('hidden',r.phase!=='result');ov.innerHTML=r.phase==='betting'?'<b>BETTING</b><span>14초 동안 함께 베팅합니다.</span>':r.phase==='result'?'<b>OFFICIAL RESULT</b><span>전체 경주 결과 · 다음 경기 자동 준비</span>':'<b>RACE</b>'}if(r.phase==='running'&&r.order){horseRaceMessage(r.myBet?`🏇 LIVE · ${(r.participants||[]).length}명 관전 · 베팅 -${money(r.myBet.bet)} G`:`🏇 LIVE · 참가자 ${(r.participants||[]).length}명 함께 관전!`);animateHorseMeet(r)}else if(r.phase==='result'&&r.order){const bet=r.myBet,settlement=r.myResult,net=settlement&&bet?Number(settlement.payout||0)-Number(bet.bet||0):null;horseRaceMessage(net==null?'🏆 경주 결과 · 정산 확인':net<0?`❌ 미적중 · 판돈 손실 ${money(-net)} G`:`🏆 적중 · 이번 경주 손익 +${money(net)} G`);setHorseFinalPositions(r);horseLastResult={round:r};renderHorseMeetResult(r)}else if(r.phase==='betting'){horseRaceMessage(r.myBet?`✅ 판돈 -${money(r.myBet.bet)} G 차감 · 함께 출발 대기`:'👥 14초 공동 접수 · 경주판에서 말을 터치해 선택');resetHorsePositions();if(r.myBet)renderHorseBetReceipt(r);else if(horseLastResult?.round)renderHorseMeetResult(horseLastResult.round);else $('#horseResult').innerHTML='<div class="race-result-empty"><b>COMING UP</b><p>14초 동안 함께 베팅 · 전원 동시 출발</p></div>'}updateHorseStartState();updateHorseAutoUi()}
-function resetHorsePositions(){if(horseAnimationFrame)cancelAnimationFrame(horseAnimationFrame);horseAnimationFrame=null;$$('#horseTrack .race-runner').forEach(x=>{x.style.setProperty('--race-x','0px');x.classList.remove('running','finished');x.querySelector('.finish-rank')?.remove()});$('#horseTrack .horse-track-leaders')?.remove();horseAnimatedRoundId=null}
+function renderHorseMeet(r){if(!r?.card)return;const changed=!horseMeetData||horseMeetData.id!==r.id;horseMeetData=r;horseCardData=r.card;if(changed){horseLiveText='';horsePaintStandings(null,[],false);}if(changed||!$('#horseTrack .race-lane'))horseTrackBuild(r.card);else if($('#horseTrack').querySelectorAll('.race-lane').length!==7)horseTrackBuild(r.card);renderHorsePickGrid();syncHorseTrackSelection();renderHorseOdds();renderHorseOddsBoard();renderHorseParticipants(r);paintHorseCountdown();const ov=$('#raceOverlay');if(ov){ov.classList.toggle('hidden',r.phase!=='result');ov.innerHTML=r.phase==='betting'?'<b>BETTING</b><span>14초 동안 함께 베팅합니다.</span>':r.phase==='result'?'<b>OFFICIAL RESULT</b><span>전체 경주 결과 · 다음 경기 자동 준비</span>':'<b>RACE</b>'}if(r.phase==='running'&&r.order){horseRaceMessage(r.myBet?`🏇 LIVE · ${(r.participants||[]).length}명 관전 · 베팅 -${money(r.myBet.bet)} G`:`🏇 LIVE · 참가자 ${(r.participants||[]).length}명 함께 관전!`);animateHorseMeet(r)}else if(r.phase==='result'&&r.order){const bet=r.myBet,settlement=r.myResult,net=settlement&&bet?Number(settlement.payout||0)-Number(bet.bet||0):null;horseRaceMessage(net==null?'🏆 경주 결과 · 정산 확인':net<0?`❌ 미적중 · 판돈 손실 ${money(-net)} G`:`🏆 적중 · 이번 경주 손익 +${money(net)} G`);setHorseFinalPositions(r);horseLastResult={round:r};renderHorseMeetResult(r)}else if(r.phase==='betting'){horseRaceMessage(r.myBet?`✅ 판돈 -${money(r.myBet.bet)} G 차감 · 함께 출발 대기`:'👥 14초 공동 접수 · 경주판에서 말을 터치해 선택');resetHorsePositions();if(r.myBet)renderHorseBetReceipt(r);else if(horseLastResult?.round)renderHorseMeetResult(horseLastResult.round);else $('#horseResult').innerHTML='<div class="race-result-empty"><b>COMING UP</b><p>14초 동안 함께 베팅 · 전원 동시 출발</p></div>'}updateHorseStartState();updateHorseAutoUi()}
+function resetHorsePositions(){if(horseAnimationFrame)cancelAnimationFrame(horseAnimationFrame);horseAnimationFrame=null;$$('#horseTrack .race-runner').forEach(x=>{x.style.setProperty('--race-x','0px');x.classList.remove('running','finished');x.querySelector('.finish-rank')?.remove()});$$('#horseTrack .race-lane.horizontal').forEach(x=>{x.classList.remove('race-leader','race-podium');x.querySelector('.horse-live-rank')?.remove()});$('#horseTrack .horse-track-leaders')?.remove();horsePaintStandings(null,[],false);horseAnimatedRoundId=null}
 
 function horseTravel(el){const course=el?.closest('.horse-course');return Math.max(8,(course?.clientWidth||260)-(el?.offsetWidth||64)-7)}
+function horsePaintStandings(r,positions=[],official=false){
+  const panel=$('#horseRaceStandings');
+  if(!panel)return;
+  if(!r||!positions.length){panel.innerHTML='<span class="horse-standby">🏁 출발 대기 · 7마리 준비 중</span>';return}
+  const sorted=positions.slice(0,3);
+  const caption=official?'🏆 최종 순위':'🔴 LIVE 현재 순위';
+  const markup='<b class="horse-ranking-heading">'+caption+'</b>'+sorted.map((h,i)=>`<span class="horse-ranking-item place-${i+1}"><strong>${i+1}위</strong><em>${html(h.id+'번 '+h.name)}</em></span>`).join('');
+  if(panel.innerHTML!==markup)panel.innerHTML=markup;
+  const byId=new Map(positions.map((h,i)=>[Number(h.id),i+1]));
+  $$('#horseTrack .race-lane.horizontal').forEach(el=>{
+    const place=byId.get(Number(el.dataset.horsePick))||0;
+    el.classList.toggle('race-leader',place===1);
+    el.classList.toggle('race-podium',place>0&&place<=3);
+    const head=el.querySelector('.lane-head');
+    let badge=head?.querySelector('.horse-live-rank');
+    if(place>0&&place<=3){
+      if(!badge){head?.insertAdjacentHTML('beforeend','<span class="horse-live-rank"></span>');badge=head?.querySelector('.horse-live-rank')}
+      if(badge){badge.textContent=place+'위';badge.className='horse-live-rank rank-'+place}
+    }else badge?.remove();
+  });
+}
 function setHorseFinalPositions(r){
   if(horseAnimationFrame)cancelAnimationFrame(horseAnimationFrame);horseAnimationFrame=null;
-  (r.order||[]).forEach((h,i)=>{const el=$(`#horseTrack .race-runner[data-horse="${h.id}"]`);if(el){el.style.setProperty('--race-x',horseTravel(el)+'px');el.classList.remove('running');el.classList.add('finished');if(!el.querySelector('.finish-rank'))el.insertAdjacentHTML('beforeend',`<span class="finish-rank">${i+1}</span>`)}});
+  const M=window.JunjaHorseMotion;
+  (r.order||[]).forEach((h,i)=>{const el=$(`#horseTrack .race-runner[data-horse="${h.id}"]`);if(el){
+    // Keep a visible gap between the winner and followers. Do not pile every
+    // horse onto the exact same finish line as the old animation did.
+    const final=M?M.progress(r.id,i,1):1-i*.07;
+    el.style.setProperty('--race-x',(horseTravel(el)*final).toFixed(1)+'px');
+    el.classList.remove('running');el.classList.add('finished');
+    if(!el.querySelector('.finish-rank'))el.insertAdjacentHTML('beforeend',`<span class="finish-rank">${i+1}</span>`);
+  }});
+  horsePaintStandings(r,(r.order||[]).map((h,i)=>({id:h.id,name:h.name,officialRank:i+1,progress:1-i*.1})),true);
   renderHorseTrackLeaders(r.order||[]);
 }
 function renderHorseTrackLeaders(order){
@@ -1078,31 +1108,42 @@ function renderHorseTrackLeaders(order){
 }
 function animateHorseMeet(r){
  if(horseAnimatedRoundId===r.id)return;
- horseAnimatedRoundId=r.id;if(horseAnimationFrame)cancelAnimationFrame(horseAnimationFrame);
- const total=Math.max(4200,Number(r.finishAt-r.startedAt)||6500),ordered=r.order||[];
- $$ ('#horseTrack .race-runner').forEach(el=>{el.classList.add('running');el.classList.remove('finished');el.querySelector('.finish-rank')?.remove()});
- let lastFx=0,lastAnnounced='';
+ horseAnimatedRoundId=r.id;
+ if(horseAnimationFrame)cancelAnimationFrame(horseAnimationFrame);
+ const M=window.JunjaHorseMotion,total=Math.max(4200,Number(r.finishAt-r.startedAt)||6500),ordered=r.order||[];
+ $$('#horseTrack .race-runner').forEach(el=>{el.classList.add('running');el.classList.remove('finished');el.querySelector('.finish-rank')?.remove()});
+ let lastFx=0,lastLeaderId=null,lastPaint=0,comebackUntil=0;
  const tick=()=>{
   if(currentView!=='horse'||horseMeetData?.id!==r.id||horseMeetData.phase!=='running'){horseAnimationFrame=null;return}
-  const elapsed=Math.max(0,Date.now()+horseServerClockOffset-Number(r.startedAt)),time=Math.min(1,elapsed/total);
-  let leading={progress:-1,name:''};
+  const elapsed=Math.max(0,Date.now()+horseServerClockOffset-Number(r.startedAt)),time=Math.max(0,Math.min(1,elapsed/total));
+  const positions=[];
   ordered.forEach((h,rank)=>{
    const el=$(`#horseTrack .race-runner[data-horse="${h.id}"]`);if(!el)return;
-   const delay=rank*75,progress=Math.max(0,Math.min(1,(elapsed-delay)/Math.max(1000,total-delay*1.1)));
-   const pace=Math.pow(progress,.91),wave=Math.sin((elapsed+h.id*347)*.004)*.048*(1-progress);
-   const surge=progress>.61&&progress<.98?(1-rank/14)*.04*Math.sin((progress-.61)*Math.PI/.37):0;
-   const visible=Math.max(0,Math.min(1,pace+wave+surge));
-   el.style.setProperty('--race-x',(horseTravel(el)*visible).toFixed(1)+'px');
-   if(visible>leading.progress)leading={progress:visible,name:h.name};
-   if(progress>=1&&!el.classList.contains('finished')){el.classList.remove('running');el.classList.add('finished');el.insertAdjacentHTML('beforeend',`<span class="finish-rank">${rank+1}</span>`)}
+   const progress=M?M.progress(r.id,rank,time):Math.max(0,Math.min(1,time-rank*.06));
+   el.style.setProperty('--race-x',(horseTravel(el)*progress).toFixed(1)+'px');
+   positions.push({id:h.id,name:h.name,officialRank:rank+1,progress});
   });
-  const message=time<.24?'🚀 게이트 출발!':time<.68?`🏇 선두 경쟁 · ${leading.name}`:time<.94?'🔥 마지막 직선주로!':'🏁 결승선 통과!';
-  if(message!==lastAnnounced){horseRaceMessage(message);lastAnnounced=message}
-  if(elapsed-lastFx>700&&elapsed<total-200){lastFx=elapsed;fx('hoof')}
+  positions.sort((a,b)=>b.progress-a.progress||a.officialRank-b.officialRank);
+  const leader=positions[0];
+  if(leader&&time>.05){
+   if(M?.isComeback(r.id)&&time>.68&&lastLeaderId!=null&&lastLeaderId!==leader.id&&leader.id===ordered[0]?.id)comebackUntil=elapsed+1500;
+   lastLeaderId=leader.id;
+  }
+  if(elapsed-lastPaint>90||time>=1){
+   lastPaint=elapsed;
+   horsePaintStandings(r,positions,false);
+  }
+  const label=elapsed<comebackUntil?'⚡ 막판 대역전! '+(leader?.name||'')+' 선두!':
+    time<.16?'🚀 게이트 출발!':time<.7?`🏇 현재 선두 · ${leader?.id||'-'}번 ${leader?.name||''}`:
+    time<.96?`🔥 막판 추격전 · 1위 ${leader?.id||'-'}번 ${leader?.name||''}`:
+    `🏁 결승선! 1위 ${leader?.id||'-'}번 ${leader?.name||''}`;
+  horseRaceMessage(label);
+  if(elapsed-lastFx>750&&elapsed<total-200){lastFx=elapsed;fx('hoof')}
   if(elapsed<total+120)horseAnimationFrame=requestAnimationFrame(tick);else horseAnimationFrame=null;
  };
  horseAnimationFrame=requestAnimationFrame(tick);
 }
+
 function renderHorseBetReceipt(r){const b=r.myBet,m=Number(b?.mult||horseOddsFor(b?.type,b?.picks||[]));$('#horseResult').innerHTML=`<div class="race-live-result bet-receipt"><i></i><b>✓ 판돈 ${money(b.bet)} G 차감 완료</b><span>${b.type==='win'?'단승':b.type==='quinella'?'복승':'쌍승'} · ${b.picks.join(' / ')} · 확정 x${m}${b.balanceBefore!=null&&b.balanceAfter!=null?` · ${money(b.balanceBefore)} → ${money(b.balanceAfter)} G`:''}</span></div>`}
 function renderHorseMeetResult(r){const b=r.myBet,res=r.myResult,root=$('#horseResult');if(!root)return;if(!b||!res){root.innerHTML=`<div class="race-result-empty"><b>OFFICIAL RESULT</b><p>${(r.order||[]).slice(0,3).map((h,i)=>`${i+1}위 ${h.id}번 ${html(h.name)}`).join(' · ')}</p></div>`;return}const payout=Number(res.payout||0),net=payout-Number(b.bet||0),rankRows=(b.picks||[]).map((id,i)=>{const h=(r.order||[]).find(x=>x.id===id);return `<div class="my-horse-rank ${h?.finish===1?'winner':h?.finish===2?'place':''}"><span>${i+1} PICK</span><b>${id}번 ${html(h?.name||'')}</b><strong>${h?.finish||'-'}위</strong></div>`}).join('');root.innerHTML=`<div class="race-result-sticky ${payout>0?'paid':'miss'}"><div class="race-result-verdict"><small>${b.type==='win'?'단승':b.type==='quinella'?'복승':'쌍승'} · OFFICIAL</small><h2>${res.won?'🏆 적중!':res.placeBonus?'🥈 2위 위로금':'❌ 미적중 · -'+money(b.bet)+' G'}</h2><p>${b.balanceBefore!=null&&b.balanceAfter!=null?`베팅 전 ${money(b.balanceBefore)} → 차감 후 ${money(b.balanceAfter)} G · `:''}최종 손익 ${net>=0?'+':''}${money(net)} G</p></div><div class="my-horse-ranks">${rankRows}</div><div class="race-money-board"><div><span>베팅</span><b>${money(b.bet)}</b></div><div class="payout"><span>지급액</span><b>${money(payout)}</b></div><div class="${net>=0?'profit':'loss'}"><span>손익</span><b>${signedMoney(net)}</b></div></div><div class="horse-podium">${(r.order||[]).slice(0,3).map((h,i)=>`<div class="podium-row p${i+1}"><b>${i+1}위</b><span>${h.id}번 ${html(h.name)}</span></div>`).join('')}</div></div>`;if(res.won&&r.phase==='result'&&horseShownResultId!==r.id){horseShownResultId=r.id;fx('win')}}
 async function startHorseRace(auto=false){const r=horseMeetData;if(!r||r.phase!=='betting'||horseAutoBusy)return false;if(r.myBet)return false;const type=$('#horseBetType').value,ids=horseSelectedIds(),need=type==='win'?1:2;if(ids.length!==need){if(!auto)toast(need===1?'말 한 마리를 선택해줘.':'서로 다른 말 두 마리를 선택해줘.');return false}const bet=Math.max(1000,Math.min(10000000,Math.floor(Number($('#horseBet').value||1000)/1000)*1000));$('#horseBet').value=bet;horseAutoBusy=true;updateHorseStartState();try{const d=await api('/api/horse/bet',{method:'POST',body:JSON.stringify({type,picks:ids,bet})});horseLastTicket={type,picks:ids.slice(),bet};horseMeetData=d.round;horseCardData=d.round.card;if(d.user){me=d.user;updateHeader()}renderHorseMeet(d.round);return true}catch(e){if(!auto)toast(e.message);return false}finally{horseAutoBusy=false;updateHorseStartState()}}
