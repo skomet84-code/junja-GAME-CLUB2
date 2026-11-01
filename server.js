@@ -1558,14 +1558,17 @@ function settleRace(userId,bet,type,picks,card,order){
   return {won,placeBonus,finishRank,mult,payout,basePayout,rankBonus,rankBonusPct,winMult};
 }
 let horseMeet=null;
-const HORSE_RUN_MS=6500,HORSE_RESULT_MS=5000;
+const HORSE_RUN_MS=6500,HORSE_RESULT_MS=4200,HORSE_BET_MS=14000;
 function newHorseMeet(){
   const t=now();horseMeet={id:randomToken(5).toUpperCase(),card:horseCard(),phase:'betting',openedAt:t,startedAt:null,finishAt:null,resultUntil:null,order:null,bets:new Map(),ready:new Set(),results:new Map()};return horseMeet;
 }
 function horseStartIfReady(r){
-  if(r.phase!=='betting'||r.bets.size<1)return r;
-  for(const uid of r.bets.keys())if(!r.ready.has(uid))return r;
-  const t=now();r.order=horseRun(r.card);r.phase='running';r.startedAt=t;r.finishAt=t+HORSE_RUN_MS;
+  if(r.phase!=='betting')return r;
+  const t=now(),deadline=r.openedAt+HORSE_BET_MS;
+  // A single ready bettor can begin the shared race; otherwise the deadline
+  // guarantees a start even if a browser leaves without sending /ready.
+  if(t<deadline&&!(r.bets.size>0&&r.ready.size===r.bets.size))return r;
+  r.order=horseRun(r.card);r.phase='running';r.startedAt=t;r.finishAt=t+HORSE_RUN_MS;
   for(const [uid,b] of r.bets){
     try{const result=settleRace(uid,b.bet,b.type,b.picks,r.card,r.order);r.results.set(uid,result);}catch(e){console.error('[HORSE] settle failed',uid,e.message);}
     escrowDelete(`HORSE_${r.id}`,uid);
@@ -1581,7 +1584,7 @@ function horseAdvanceMeet(){
 function horseMeetPublic(userId){
   const r=horseAdvanceMeet(),uid=Number(userId),myBet=r.bets.get(uid)||null,myResult=r.results.get(uid)||null;
   const participants=[...r.bets.entries()].map(([id,b])=>{const u=userPublic(id);return u?{userId:id,nickname:u.nickname,avatar:u.avatar,cosmetics:u.cosmetics,type:b.type,picks:b.picks,bet:b.bet,ready:r.ready.has(id)}:null}).filter(Boolean);
-  return {round:{id:r.id,phase:r.phase,openedAt:r.openedAt,startedAt:r.startedAt,finishAt:r.finishAt,resultUntil:r.resultUntil,card:r.card,order:r.order?r.order.map((h,i)=>({id:h.id,name:h.name,color:h.color,coat:h.coat,finish:i+1})):null,participants,myBet,myReady:r.ready.has(uid),myResult,serverNow:now()}};
+  return {round:{id:r.id,phase:r.phase,openedAt:r.openedAt,betClosesAt:r.openedAt+HORSE_BET_MS,startedAt:r.startedAt,finishAt:r.finishAt,resultUntil:r.resultUntil,card:r.card,order:r.order?r.order.map((h,i)=>({id:h.id,name:h.name,color:h.color,coat:h.coat,finish:i+1})):null,participants,myBet,myReady:r.ready.has(uid),myResult,serverNow:now()}};
 }
 function horsePlaceBet(user,body){
   const r=horseAdvanceMeet();if(r.phase!=='betting')throw new Error('현재 경주는 접수가 마감됐어. 다음 경주를 기다려줘.');

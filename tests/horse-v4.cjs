@@ -1,0 +1,24 @@
+'use strict';const fs=require('node:fs'),assert=require('node:assert/strict'),vm=require('node:vm');
+const server=fs.readFileSync('server.js','utf8');
+const app=fs.readFileSync('public/app.js','utf8');
+const html=fs.readFileSync('public/index.html','utf8'),css=fs.readFileSync('public/grand-race-v4.css','utf8');
+assert.match(server,/const HORSE_RUN_MS=6500,HORSE_RESULT_MS=4200,HORSE_BET_MS=14000/);
+assert.ok(app.includes("$$('#horseTrack .race-runner').forEach"),'reset must use plural query; querySelector.forEach crashes pre-race render');
+assert.ok(app.includes("syncHorseTrackSelection()"),'track selection should highlight');
+assert.ok(app.includes("lane.addEventListener('click'"),'lane selection should handle tap');
+assert.ok(html.includes('/grand-race-v4.css?v='),'compact mobile CSS must load');
+assert.ok(css.includes('body:has(#view-horse.active) .topbar'),'compact top navigation');
+assert.ok(css.includes('#view-horse #horsePickGrid{display:none!important}'),'mobile uses lane selection instead of duplicate cards');
+// Execute only the isolated race scheduler with test stubs; no user database is opened.
+const source=server.slice(server.indexOf('function horseStartIfReady('),server.indexOf('function horseMeetPublic('));
+assert.ok(source.includes('t<deadline'),'race deadline should trigger a spectator race');
+let tick=0,settled=0;
+const ctx={now:()=>tick,horseMeet:null,HORSE_BET_MS:14000,HORSE_RUN_MS:6500,HORSE_RESULT_MS:4200,horseRun:()=>[{id:1}],settleRace:()=>{settled++;return {payout:0}},escrowDelete:()=>{},newHorseMeet(){return {id:'NEXT',phase:'betting',openedAt:tick,bets:new Map(),ready:new Set(),results:new Map(),card:{}}}};
+vm.createContext(ctx);vm.runInContext(source,ctx);
+const fresh=()=>({phase:'betting',openedAt:0,card:{},bets:new Map(),ready:new Set(),results:new Map()});
+let r=fresh();tick=13999;ctx.horseStartIfReady(r);assert.equal(r.phase,'betting');
+tick=14000;ctx.horseStartIfReady(r);assert.equal(r.phase,'running','spectator round starts at deadline without bets');
+r=fresh();tick=1000;r.bets.set(42,{bet:1000,type:'win',picks:[1]});ctx.horseStartIfReady(r);assert.equal(r.phase,'betting');
+r.ready.add(42);ctx.horseStartIfReady(r);assert.equal(r.phase,'running','ready bettor starts without waiting');assert.equal(settled,1);
+r=fresh();tick=14000;r.bets.set(42,{bet:1000,type:'win',picks:[1]});ctx.horseStartIfReady(r);assert.equal(r.phase,'running','unready bettor cannot block for ever');assert.equal(settled,2);
+console.log('HORSE_V4_OK: spectator autoplay, ready early launch, stale ready fallback, 7 selectable lanes and compact mobile layout');
