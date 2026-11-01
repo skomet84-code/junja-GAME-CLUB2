@@ -339,7 +339,7 @@ source = replaceOne(source, oldSevenAction, newSevenAction, 'seven exact all-in 
 // Remove the fixed game wager ceiling globally. Individual endpoints already
 // reject bets larger than the user's wallet; walletWager() remains wallet-capped.
 const oldGameWager = "function gameWager(v,min=1000,max=5000000,step=1000){\n  const n=Math.floor(Number(v));\n  if(!Number.isFinite(n)||n<min||n>max||n%step!==0) throw new Error(`금액은 ${formatMoney(min)}G~${formatMoney(max)}G 범위에서 ${formatMoney(step)}G 단위로 입력하세요.`);\n  return n;\n}";
-const newGameWager = "function gameWager(v,min=1000,max=1000000000000,step=1000){\n  const n=Math.floor(Number(v)),cap=Math.min(1000000000000,max);\n  if(!Number.isSafeInteger(n)||n<min||n>cap||n%step!==0) throw new Error(`금액은 최소 ${formatMoney(min)}G부터 최대 ${formatMoney(cap)}G까지 입력하세요.`);\n  return n;\n}";
+const newGameWager = "function gameWager(v,min=1000,max=1000000000000,step=1000){\n  const n=Math.floor(Number(v)),cap=1000000000000;\n  if(!Number.isSafeInteger(n)||n<min||n>cap||n%step!==0) throw new Error(`금액은 최소 ${formatMoney(min)}G부터 최대 ${formatMoney(cap)}G까지 입력하세요.`);\n  return n;\n}";
 source = replaceOne(source, oldGameWager, newGameWager, 'global game wager ceiling');
 
 // Yut: preserve the v2.8.8+ finish rule while applying the center shortcut.

@@ -569,7 +569,7 @@ function gameWager(v,min=1000,max=5000000,step=1000){
   return n;
 }
 function walletWager(v,balance,min=1000,step=1000){
-  const n=Math.floor(Number(v)),cap=Math.floor(Number(balance||0));
+  const n=Math.floor(Number(v)),cap=Math.min(1000000000000,Math.floor(Number(balance||0)));
   if(!Number.isSafeInteger(n)||n<min||n%step!==0) throw new Error(`금액은 최소 ${formatMoney(min)}G부터 ${formatMoney(step)}G 단위로 입력하세요.`);
   if(n>cap) throw new Error(`보유 게임머니(${formatMoney(cap)}G)를 초과해서 걸 수 없습니다.`);
   return n;
@@ -1624,7 +1624,7 @@ function horsePlaceBet(user,body){
   if(r.bets.has(user.id))throw new Error('이번 경주에는 이미 베팅했어.');
   const type=['win','quinella','exacta'].includes(body.type)?body.type:'win';const picks=(Array.isArray(body.picks)?body.picks:[]).map(Number);const need=type==='win'?1:2;
   if(picks.length!==need||picks.some(x=>!r.card.horses.some(h=>h.id===x))||(need===2&&picks[0]===picks[1]))throw new Error('선택한 말을 확인해줘.');
-  const bet=gameWager(body.bet,1000,10000000,1000);if(user.balance<bet)throw new Error('게임머니가 부족합니다.');
+  const bet=gameWager(body.bet,1000,1000000000000,1000);if(user.balance<bet)throw new Error('게임머니가 부족합니다.');
   const mult=raceMultiplier(type,picks,r.card);if(!mult)throw new Error('배당 정보를 확인할 수 없어.');
   // Keep a per-round exact-integer receipt: the wager is debited immediately,
   // while a winner's payout is only credited when the race finishes.
@@ -1714,7 +1714,7 @@ const BIG_WHEEL_KEYS=['junja','x2','x3','x2','x3','x2','x3','x2','x3','x2','x3',
 const BIG_WHEEL_SEGMENTS=BIG_WHEEL_KEYS.map(key=>BIG_WHEEL_DEFS[key]);
 const BIG_WHEEL_BETS = [...new Map(BIG_WHEEL_SEGMENTS.map(x=>[x.key,x])).values()];
 function bigWheelSpin(userId,bet,key,useRankFree=false){
-  bet=gameWager(bet,1000,10000000,1000);if(bet>10000000)throw new Error('빅휠 최대 베팅은 10,000,000G입니다.');
+  bet=gameWager(bet,1000,10000000,1000);if(bet>1000000000000)throw new Error('빅휠 최대 베팅은 1조 G입니다.');
   const u=userPublic(userId);if(!u)throw new Error('사용자를 찾을 수 없습니다.');
   const target=BIG_WHEEL_BETS.find(x=>x.key===key);if(!target)throw new Error('배당 선택을 확인해주세요.');
   const freePlay=consumeRankFreePlay(userId,'wheel',!!useRankFree);if(freePlay.free)bet=Number(socialRankPerksForUser(userId).freeSlotBet||10000000);if(!freePlay.free&&u.balance<bet)throw new Error('게임머니가 부족합니다.');if(!freePlay.free)walletChange(userId,-bet,'bigwheel_bet',`빅휠 ${target.label} 베팅 ${formatMoney(bet)}G`);
