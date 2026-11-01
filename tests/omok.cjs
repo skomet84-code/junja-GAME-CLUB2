@@ -15,7 +15,7 @@ function checkRules(){
  assert.match(rules.place(b,8,7,1).error,/장목/,'black overline');
  assert.equal(b[7][8],0,'forbidden move does not persist');
  b=mustBoard([[2,7,2],[3,7,2],[4,7,2],[5,7,2],[6,7,2]]);
- assert.equal(rules.place(b,7,7,2).win,true,'white 6 allowed');
+ assert.match(rules.place(b,7,7,2).error,/장목/,'white overline forbidden same as black');
  b=mustBoard([[6,7,1],[8,7,1],[7,6,1],[7,8,1]]);
  assert.match(rules.place(b,7,7,1).error,/3-3/,'double three');
 
@@ -36,6 +36,8 @@ function checkRules(){
 
  b=mustBoard([[5,7,1],[6,7,1],[8,7,1],[7,5,1],[7,6,1],[7,8,1]]);
  assert.match(rules.place(b,7,7,1).error,/4-4/,'double four');
+ b=mustBoard([[5,7,2],[6,7,2],[8,7,2],[7,5,2],[7,6,2],[7,8,2]]);
+ assert.match(rules.place(b,7,7,2).error,/백돌 4-4/,'AI and human white share double-four restriction');
  b=mustBoard([[3,7,1],[4,7,1],[5,7,1],[6,7,1],[7,6,1],[7,8,1]]);
  assert.equal(rules.place(b,7,7,1).win,true,'exact 5 wins before 3-3 test');
  assert.equal(rules.place(rules.fresh(),15,1,1).ok,false,'out of board');
