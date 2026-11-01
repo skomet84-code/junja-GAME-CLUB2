@@ -87,7 +87,8 @@ function createJBank({db,exactWallet,levels,now,kstDate}){
    }else if(kind==='borrow'){
     if(a.installment)throw Error('적금 만기 수령 또는 해지 후 대출할 수 있습니다.');
     const amount=BigInt(text),level=Math.max(0,Math.min(levels.length-1,Number(u.rank_level||0)));
-    if(debt>0n)throw Error('진행 중인 대출을 전액 상환해야 추가 대출이 가능합니다.');
+    if(db.prepare("SELECT 1 FROM room_escrow WHERE user_id=? AND game LIKE 'casino_%' LIMIT 1").get(id))throw Error('카지노 담보가 묶여 있는 동안 추가 대출은 불가능합니다.');
+     if(debt>0n)throw Error('진행 중인 대출을 전액 상환해야 추가 대출이 가능합니다.');
     if(amount<MIN_LOAN)throw Error('최소 대출금은 100만 G입니다.');
     if(amount>BigInt(LIMITS[level]))throw Error('현재 신분의 대출 한도를 초과했습니다.');
     a.principal=String(amount);a.interest='0';a.openedAt=now();a.closedAt=0;a.number=Number(a.number||0)+1;
@@ -115,6 +116,43 @@ function createJBank({db,exactWallet,levels,now,kstDate}){
   }catch(e){try{db.exec('ROLLBACK');}catch{}throw e;}
  }
 
+ // Called ONLY by casino settlement inside its own BEGIN IMMEDIATE transaction.
+// Rank sale pays accrued J-BANK debt first, then adds the free proceeds to wallet.
+// No newly minted winnings are committed unless the entire casino round settles.
+ function forceCasinoSale(id,minimum){
+  const need=BigInt(minimum);
+  if(need<=0n)return {available:'0',sales:[]};
+  const u=db.prepare('SELECT id,rank_level,balance,balance_exact,balance_base FROM users WHERE id=?').get(id);
+  if(!u)throw Error('카지노 신분 담보 계정을 찾을 수 없어.');
+  let level=Number(u.rank_level||0);
+  let balance=exactWallet.read(u),a=project(read(id,kstDate()),kstDate()),debt=BigInt(a.principal)+BigInt(a.interest);
+  let available=0n;
+  const sales=[],at=now();
+  const ledger=db.prepare('INSERT INTO ledger(user_id,amount,balance_after,amount_exact,balance_after_exact,type,memo,created_at) VALUES(?,?,?,?,?,?,?,?)');
+  while(available<need&&level>0){
+   const price=BigInt(String(levels[level].cost))*SELL_RATE_BP/10000n;
+   const applied=price<debt?price:debt,net=price-applied;
+   const paidInterest=applied<BigInt(a.interest)?applied:BigInt(a.interest);
+   a.interest=String(BigInt(a.interest)-paidInterest);
+   a.principal=String(BigInt(a.principal)-(applied-paidInterest));
+   a.totalRepaid=String(BigInt(a.totalRepaid)+applied);
+   if(applied===debt&&debt>0n)a.closedAt=at;
+   const from=levels[level].name,to=levels[level-1].name;
+   const grossBalance=balance+price;balance=grossBalance-applied;
+   ledger.run(id,exactWallet.mirror(price),exactWallet.mirror(grossBalance),String(price),String(grossBalance),'casino_rank_sale',from+' → '+to+' 신분 강제 매각 99%',at);
+   if(applied>0n)ledger.run(id,exactWallet.mirror(-applied),exactWallet.mirror(balance),String(-applied),String(balance),'casino_rank_bank_repay','카지노 매각대금으로 J-BANK 선순위 채무 상환',at);
+   sales.push({from,to,price:String(price),bankRepay:String(applied),net:String(net)});
+   available+=net;debt-=applied;level--;
+   a.saleCount=Number(a.saleCount||0)+1;
+   a.lastRankSale={fromLevel:level+1,toLevel:level,fromName:from,toName:to,salePrice:String(price),repaid:String(applied),remainingDebt:String(debt),cashBack:String(net),at,forcedBy:'casino'};
+  }
+  if(available<need)throw Error('매각 가능한 신분가치로 카지노 손실을 지급할 수 없어.');
+  const mirror=exactWallet.mirror(balance);
+  db.prepare('UPDATE users SET rank_level=?,balance=?,balance_exact=?,balance_base=? WHERE id=?').run(level,mirror,String(balance),String(mirror),id);
+  store(id,a);
+  return {available:String(available),sales};
+ }
+
  // Voluntary one-tier downgrade. A failed repayment never triggers an involuntary sale.
  function sellRank(userId,confirmation,requestId){
   const id=Number(userId);
@@ -133,6 +171,7 @@ function createJBank({db,exactWallet,levels,now,kstDate}){
     if(prev.level!==expectedLevel||prev.debt!==expectedDebt||prev.price!==expectedPrice)throw Error('이미 다른 조건으로 처리된 매각 요청입니다.');
     db.exec('COMMIT');return {ok:true,duplicate:true,sale:prev.sale,status:status(id)};
    }
+   if(db.prepare("SELECT 1 FROM room_escrow WHERE user_id=? AND game LIKE 'casino_%' LIMIT 1").get(id))throw Error('카지노 대국 중에는 담보 신분을 직접 매각할 수 없습니다.');
    const u=db.prepare('SELECT id,is_disabled,rank_level,balance,balance_exact,balance_base FROM users WHERE id=?').get(id);
    if(!u||u.is_disabled)throw Error('현재 계정은 은행 매각을 이용할 수 없습니다.');
    const level=Number(u.rank_level||0);
@@ -165,6 +204,6 @@ function createJBank({db,exactWallet,levels,now,kstDate}){
   }catch(e){try{db.exec('ROLLBACK');}catch{}throw e;}
  }
 
- return {status,owed,limits:LIMITS,...Object.fromEntries(['installmentOpen','installmentPay','installmentClaim','installmentCancel'].map(kind=>[kind,(id,raw,key)=>change(id,kind,raw,key)])),deposit:(id,amount,key)=>change(id,'deposit',amount,key),withdraw:(id,amount,key)=>change(id,'withdraw',amount,key),borrow:(id,amount,key)=>change(id,'borrow',amount,key),repay:(id,amount,key)=>change(id,'repay',amount,key),sellRank};
+ return {status,owed,limits:LIMITS,...Object.fromEntries(['installmentOpen','installmentPay','installmentClaim','installmentCancel'].map(kind=>[kind,(id,raw,key)=>change(id,kind,raw,key)])),deposit:(id,amount,key)=>change(id,'deposit',amount,key),withdraw:(id,amount,key)=>change(id,'withdraw',amount,key),borrow:(id,amount,key)=>change(id,'borrow',amount,key),repay:(id,amount,key)=>change(id,'repay',amount,key),sellRank,forceCasinoSale};
 }
 module.exports={createJBank,LIMITS,RATE_BP,SELL_RATE_BP};
