@@ -1,5 +1,5 @@
 'use strict';
-// J-BANK-compatible virtual G wagering for multiplayer Hula only.
+// J-BANK-compatible virtual G wagering for multiplayer and solo AI Hula.
 // Every participant reserves the maximum possible liability (16x stake).
 // Settlement is zero-sum, atomic, and protected by durable room_escrow rows.
 const STAKES=Object.freeze(['0','1000000','10000000','100000000','1000000000','10000000000','1000000000000']);
@@ -28,16 +28,17 @@ function createRoyalHulaCasino({db,exactWallet,now}){
  }
  function reserve(room){
   if(!room.stake||room.stake==='0')return;
-  if(room.mode!=='multi'||room.game!=='hula'||room.players.some(p=>p.bot))throw Error('훌라 카지노는 친구 멀티 대전에서만 가능해.');
+  const ai=room.mode==='ai';
+  if(room.game!=='hula'||(ai?(room.players.length!==2||room.players.filter(p=>!p.bot).length!==1):(room.mode!=='multi'||room.players.some(p=>p.bot))))throw Error('훌라 카지노 참가자 정보가 올바르지 않아.');
   const amount=BigInt(room.stake)*CAP;
   db.exec('BEGIN IMMEDIATE');
   try{
-   for(const p of room.players){
+   for(const p of room.players.filter(p=>!p.bot)){
     const u=users.get(p.id);if(!u||u.is_disabled)throw Error('훌라 참가자 계정 이용이 제한돼 있어.');
     if(getEscrow.get(room.id,p.id))throw Error('이전 판돈이 아직 정산되지 않았어.');
     if(exactWallet.read(u)<amount)throw Error(p.name+'님의 게임머니가 부족해. 최대 배당금 '+amount.toLocaleString('ko-KR')+'G를 준비해야 해.');
    }
-   for(const p of room.players){
+   for(const p of room.players.filter(p=>!p.bot)){
     credit(p.id,-amount,'hula_escrow','로얄 훌라 '+room.round+'판 배당 대비 16배 예치');
     saveEscrow.run(room.id,p.id,exactWallet.mirror(amount),String(amount),'royal_hula',now());
    }
@@ -48,6 +49,29 @@ function createRoyalHulaCasino({db,exactWallet,now}){
   if(!room.stake||room.stake==='0')return null;
   if(!room.escrowed)throw Error('훌라 판돈 예치 기록을 확인할 수 없어.');
   const stake=BigInt(room.stake),reserved=stake*CAP;
+  if(room.mode==='ai'){
+   const human=room.players.find(p=>!p.bot),bot=room.players.find(p=>p.bot);
+   if(!human||!bot)throw Error('AI 대결 참가자 정보가 올바르지 않아.');
+   const loser=winner.bot?human:bot,seven=loser.hand.filter(c=>Number(c.slice(1))===7).length;
+   const isHula=why.includes('훌라');
+   const raw=(loser.registered?1n:2n)*(2n**BigInt(seven))*(isHula?4n:1n);
+   const multiplier=raw>CAP?CAP:raw,net=stake*multiplier*(winner.bot?-1n:1n);
+   const reasons=[];
+   if(!loser.registered)reasons.push('미등록 x2');
+   if(seven)reasons.push('7 '+seven+'장 x'+(2n**BigInt(seven)));
+   if(isHula)reasons.push('훌라 x4');
+   if(raw>CAP)reasons.push('최대 x16 제한');
+   const result={userId:human.id,name:human.name,payout:String(reserved+net),net:String(net),multiplier:Number(multiplier),reason:(winner.bot?'AI 패배':'AI 승리')+(reasons.length?' · '+reasons.join(' · '):'')};
+   db.exec('BEGIN IMMEDIATE');
+   try{
+    const escrow=getEscrow.get(room.id,human.id);
+    if(!escrow||BigInt(escrow.amount)!==reserved)throw Error('AI 훌라 예치금 검증 실패');
+    credit(human.id,reserved+net,'hula_ai_settlement','AI 훌라 '+room.round+'판 · '+result.reason);
+    dropEscrow.run(room.id,human.id);
+    saveResult.run('royalcards:casino:result:'+room.id+':'+room.round,JSON.stringify({stake:room.stake,winner:winner.id,results:[result],at:now()}),now());
+    db.exec('COMMIT');room.escrowed=false;room.finalPayouts=[result];return [result];
+   }catch(e){try{db.exec('ROLLBACK');}catch{}throw e;}
+  }
   const losers=room.players.filter(p=>p.id!==winner.id).sort((a,b)=>Number(b.registered)-Number(a.registered)||a.hand.reduce((n,c)=>n+Number(c.slice(1)),0)-b.hand.reduce((n,c)=>n+Number(c.slice(1)),0));
   const isHula=why.includes('훌라');
   const results=new Map();
