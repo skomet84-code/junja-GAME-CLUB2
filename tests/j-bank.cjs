@@ -147,6 +147,7 @@ assert.ok(ui.includes('승급비용의 <b>99%</b>'),'sale UI rate is accurate');
  const bankDbFile=new DatabaseSync(':memory:');
  bankDbFile.exec(`CREATE TABLE users(id INTEGER PRIMARY KEY,nickname TEXT,rank_level INTEGER,is_disabled INTEGER DEFAULT 0,balance INTEGER,balance_exact TEXT,balance_base TEXT);
  CREATE TABLE game_state(key TEXT PRIMARY KEY,value TEXT,updated_at INTEGER);
+ CREATE TABLE room_escrow(room_id TEXT NOT NULL,user_id INTEGER NOT NULL,amount INTEGER NOT NULL,amount_exact TEXT,game TEXT NOT NULL,created_at INTEGER NOT NULL,PRIMARY KEY(room_id,user_id));
  CREATE TABLE ledger(id INTEGER PRIMARY KEY AUTOINCREMENT,user_id INTEGER,amount INTEGER,balance_after INTEGER,amount_exact TEXT,balance_after_exact TEXT,type TEXT,memo TEXT,created_at INTEGER);`);
  const transferDb={exec:sql=>bankDbFile.exec(sql),prepare:sql=>bankDbFile.prepare(sql)};
  bankDbFile.prepare("INSERT INTO users(id,nickname,rank_level,is_disabled,balance,balance_exact,balance_base) VALUES(1,'보내는회원',0,0,2000000,'2000000','2000000')").run();
