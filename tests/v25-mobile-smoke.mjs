@@ -71,7 +71,9 @@ for (const [name,engine] of engines) {
   if(slotMax!==null&&slotMax!=='1000000000')throw new Error(`${name} invalid slot input max: ${slotMax}`);
   await page.evaluate(()=>go('yut'));
   await page.waitForSelector('#view-yut.active');
-  await page.click('[data-mode-game="yut"][data-mode="solo"]');
+  // Exercise the app's mode switch directly to avoid a stale touch target after fast view changes.
+  await page.evaluate(()=>switchMode('yut','solo'));
+  await page.waitForSelector('#yutSoloArea:not(.hidden) #soloYutStart:not(.hidden) #soloYutBet',{state:'visible',timeout:8000});
   await page.fill('#soloYutBet','200000');
   // The legacy v25 UI scales the mobile layout viewport; Playwright's
   // physical click locator can hit the input while the button itself is visible.
