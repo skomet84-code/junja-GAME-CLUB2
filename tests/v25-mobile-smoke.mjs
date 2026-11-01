@@ -45,7 +45,7 @@ for (const [name,engine] of engines) {
   await page.waitForSelector('#view-horse.active');
   await page.waitForFunction(()=>document.querySelectorAll('#horseTrack .race-lane.horizontal').length===7,null,{timeout:10000});
   const horseLayout=await page.evaluate(()=>{
-    const selectors=['#view-horse .horse-arena','#horseTrack','#horseTrack .horse-course','#horsePickGrid'];
+    const selectors=['#view-horse .horse-arena','#horseTrack','#horseTrack .horse-course','#horseStartBtn'];
     return {viewport:document.documentElement.clientWidth,items:selectors.map(s=>{
       const e=document.querySelector(s),r=e?.getBoundingClientRect();
       return {s,left:r?.left??-999,right:r?.right??999,width:r?.width??0};
@@ -53,6 +53,22 @@ for (const [name,engine] of engines) {
   });
   if(horseLayout.lanes!==7||horseLayout.picks!==7||horseLayout.items.some(x=>x.width<100||x.right>horseLayout.viewport+5||x.left< -5)){
     throw new Error(`${name} GRAND RACE mobile overflow or missing 7 lanes ${JSON.stringify(horseLayout)}`);
+  }
+  // The mobile redesign hides the redundant horse card grid: select a horse
+  // directly from the displayed 7 lanes. No wagering side effects.
+  await page.locator('#horseTrack .race-lane.horizontal').first().click();
+  const chosen=await page.evaluate(()=>({
+    picked:document.querySelector('#horsePick1')?.value,
+    buttonDisabled:document.querySelector('#horseStartBtn')?.disabled,
+    highlighted:document.querySelectorAll('#horseTrack .race-lane.horizontal.selected').length,
+    buttonBottom:document.querySelector('#horseStartBtn')?.getBoundingClientRect().bottom,
+    viewportHeight:window.innerHeight
+  }));
+  if(!chosen.picked||chosen.buttonDisabled||chosen.highlighted!==1){
+    throw new Error(`${name} GRAND RACE lane selection failed ${JSON.stringify(chosen)}`);
+  }
+  if(chosen.buttonBottom>chosen.viewportHeight+5){
+    throw new Error(`${name} GRAND RACE bet CTA outside one screen ${JSON.stringify(chosen)}`);
   }
   await page.screenshot({path:`/tmp/junja-v25-horse-${name}.png`,fullPage:true});
   await page.evaluate(()=>go('lobby'));
