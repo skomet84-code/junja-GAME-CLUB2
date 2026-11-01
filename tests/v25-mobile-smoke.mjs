@@ -40,6 +40,23 @@ for (const [name,engine] of engines) {
     await page.evaluate(()=>typeof go==='function'&&go('lobby'));
     await page.waitForSelector('#view-lobby.active',{timeout:5000});
   }
+  // GRAND RACE v3: the real mobile layout must fit the viewport, with seven lanes.
+  await page.evaluate(()=>go('horse'));
+  await page.waitForSelector('#view-horse.active');
+  await page.waitForFunction(()=>document.querySelectorAll('#horseTrack .race-lane.horizontal').length===7,null,{timeout:10000});
+  const horseLayout=await page.evaluate(()=>{
+    const selectors=['#view-horse .horse-arena','#horseTrack','#horseTrack .horse-course','#horsePickGrid'];
+    return {viewport:document.documentElement.clientWidth,items:selectors.map(s=>{
+      const e=document.querySelector(s),r=e?.getBoundingClientRect();
+      return {s,left:r?.left??-999,right:r?.right??999,width:r?.width??0};
+    }),lanes:document.querySelectorAll('#horseTrack .race-lane.horizontal').length,picks:document.querySelectorAll('#horsePickGrid [data-horse-pick]').length};
+  });
+  if(horseLayout.lanes!==7||horseLayout.picks!==7||horseLayout.items.some(x=>x.width<100||x.right>horseLayout.viewport+5||x.left< -5)){
+    throw new Error(`${name} GRAND RACE mobile overflow or missing 7 lanes ${JSON.stringify(horseLayout)}`);
+  }
+  await page.screenshot({path:`/tmp/junja-v25-horse-${name}.png`,fullPage:true});
+  await page.evaluate(()=>go('lobby'));
+  await page.waitForSelector('#view-lobby.active');
   await page.evaluate(()=>go('slot'));
   await page.waitForSelector('#view-slot.active');
   await page.fill('#slotBetInput','200000');
