@@ -37,9 +37,11 @@ console.log('OMOK_EXTREME_AI_TEST_OK: center, instant win, threat block, legal R
 const complex=board([[4,7,2],[5,7,2],[6,7,2],[7,4,2],[7,5,2],[7,6,2]]);
 const copy=JSON.stringify(complex);
 const tactical=selectMove(complex,2,{timeMs:800});
-assert.deepEqual([tactical.x,tactical.y],[7,7],'AI creates a double forcing threat at the crossing');
+assert.ok(tactical,'AI returns a legal alternative when a crossing 4-4 is forbidden');
+assert.match(rules.place(complex.map(row=>row.slice()),7,7,2).error,/4-4/,'white 4-4 is forbidden exactly like black');
+assert.notDeepEqual([tactical.x,tactical.y],[7,7],'AI never bypasses white 4-4 restriction');
+assert.equal(rules.place(complex.map(row=>row.slice()),tactical.x,tactical.y,2).ok,true,'AI selects a server-legal square');
 assert.equal(JSON.stringify(complex),copy,'AI must not mutate the original board');
-assert.equal(tactical.reason,'vcf','AI proves the immediate forced tactical continuation');
 const middle=board([[7,7,1],[8,8,2],[8,7,1],[6,7,2],[5,5,1],[6,5,2],[9,9,1],[5,8,2],[9,7,1],[10,6,2],[7,6,1],[4,4,2]]);
 const middleCopy=JSON.stringify(middle),middleMove=selectMove(middle,1,{timeMs:600});
 assert.ok(middleMove,'AI completes bounded middlegame analysis');
