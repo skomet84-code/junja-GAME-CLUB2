@@ -6,7 +6,8 @@ async function checkBoardGeometry(page, label, baseline=null){
  const metrics=await page.locator('.omk-board').evaluate(board=>{
   const points=[...board.querySelectorAll('.omk-point')];
   if(points.length!==225)throw Error('15x15 board must have 225 points');
-  const center=(x,y)=>{const rect=points[y*15+x].getBoundingClientRect();return {x:rect.left+rect.width/2,y:rect.top+rect.height/2,w:rect.width,h:rect.height};};
+  // Use document coordinates: a mobile click may scroll the viewport without moving the board in the page.
+  const center=(x,y)=>{const rect=points[y*15+x].getBoundingClientRect();return {x:rect.left+window.scrollX+rect.width/2,y:rect.top+window.scrollY+rect.height/2,w:rect.width,h:rect.height};};
   const xs=Array.from({length:15},(_,x)=>center(x,7).x);
   const ys=Array.from({length:15},(_,y)=>center(7,y).y);
   const widths=Array.from({length:15},(_,y)=>center(7,y).w);
