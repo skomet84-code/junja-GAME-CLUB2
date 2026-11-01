@@ -26,6 +26,17 @@ assert.match(css,/prefers-reduced-motion:reduce/);
 assert.match(css,/1\.34s linear both!important/,'no infinite toss animation');
 assert.ok(!/animation:[^;\n]*infinite/.test(css),'scene animations are finite, unlike legacy wiggle');
 assert.ok(html.includes('yut-toss-real-v3.css?v='),'last-loaded winning CSS');
-assert.ok(app.includes('await sleep(1610);renderSoloYut(d.game)'),'solo result after all four sticks land');
+assert.ok(app.includes('async function playYutServerToss(root,sticks,ms)'),'one shared server-controlled toss helper');
+assert.ok(app.includes('scene.outerHTML=yutSticksHtml(sticks,true)'),'toss animates four authoritative faces, not stale ones');
+assert.ok(app.includes('await playYutServerToss(root,d.game?.last?.sticks,1610);renderSoloYut(d.game)'),'solo throw animates confirmed roll before final render');
+assert.ok(app.includes('await playYutServerToss(root,d.room?.yut?.last?.sticks,1750);renderYut(d.room)'),'multiplayer throw animates confirmed roll before final render');
+assert.ok(!app.includes("btn.disabled=true;$('.yut-toss-scene',root)?.classList.add('throwing')"),'no stale multiplayer faces spinning');
+const cases=[['빽도',[0,1,1,1],1],['도',[1,0,1,1],1],['개',[0,0,1,1],2],['걸',[0,0,0,1],3],['윷',[0,0,0,0],4],['모',[1,1,1,1],0]];
+for(const [name,sticks,backCount] of cases){
+ const markup=render(sticks,true);
+ assert.equal((markup.match(/class="yut-stick back-face/g)||[]).length,backCount,name+' landing face count');
+ assert.equal((markup.match(/class="yut-stick flat-face/g)||[]).length,4-backCount,name+' opposite faces');
+}
+
 assert.ok(app.includes("await sleep(1530);nextScene?.classList.remove('throwing')"),'AI replay lasts until last stick lands');
 console.log('YUT_REAL_TOSS_OK: 3-D faces, synchronized arcs/flip/impact, finite motion, authoritative outcomes, mobile and reduced-motion');
