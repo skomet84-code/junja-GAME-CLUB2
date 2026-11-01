@@ -8,7 +8,7 @@ const db={exec:x=>sqlite.exec(x),prepare:x=>{const st=sqlite.prepare(x);st.setRe
 let t=1792900000000,day='2026-10-25';const bank=createJBank({db,exactWallet:wallet,levels:ranks,now:()=>t,kstDate:()=>day});
 const user=id=>db.prepare('SELECT * FROM users WHERE id=?').get(id),cash=id=>wallet.read(user(id)),balance=n=>{const m=wallet.mirror(n);return [m,String(n),String(m)]};
 db.prepare('INSERT INTO users(id,rank_level,balance,balance_exact,balance_base) VALUES(?,?,?,?,?)').run(1,2,...balance(0n));
-bank.borrow(1,'1000000000','overdue_test_request_1234');
+bank.borrow(1,'100000000','overdue_test_request_1234');
 assert.equal(bank.enforceOverdue(1).processed,false);
 t+=8*86400000;day='2026-11-02';
 const forced=bank.enforceOverdue(1);assert.equal(forced.processed,true);assert.equal(bank.enforceOverdue(1).processed,false,'idempotent');
