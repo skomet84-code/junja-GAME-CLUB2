@@ -602,7 +602,7 @@ function ensureAdminAccount(){
 }
 ensureAdminAccount();
 
-function dailyDrawPrize(rank){return rank===1?100000000000:rank===2?50000000000:rank===3?1000000000:10000000;}
+function dailyDrawPrize(rank){return rank===1?1_000_000_000_000_000:rank===2?500_000_000_000_000:rank===3?100_000_000_000_000:rank===4?100_000_000_000:10_000_000;}
 function dailyDrawRanks(date){
   const key='daily_draw_ranks_'+date;let ranks=gameStateGet(key,null);
   if(Array.isArray(ranks)&&ranks.length===77)return ranks;
@@ -616,7 +616,7 @@ function dailyDrawState(userId){
   const top3=used.filter(x=>Number(x.rank)>=1&&Number(x.rank)<=3).sort((a,b)=>Number(a.rank)-Number(b.rank)).map(x=>{const u=db.prepare('SELECT nickname FROM users WHERE id=?').get(Number(x.user_id));return {rank:Number(x.rank),number:Number(x.number),prize:Number(x.prize),nickname:u?.nickname||'알 수 없음'};});
   return {date,usedNumbers:used.map(x=>x.number),top3,mine:mine.length?{number:mine[mine.length-1].number,rank:mine[mine.length-1].rank,prize:mine[mine.length-1].prize,pickedAt:mine[mine.length-1].picked_at}:null,
     myPicks:mine.map(x=>({number:x.number,rank:x.rank,prize:x.prize,pickedAt:x.picked_at})),usedAttempts:mine.length,maxAttempts:perks.dailyDraws,attemptsLeft:Math.max(0,perks.dailyDraws-mine.length),
-    remaining:77-used.length,rankPerks:perks,prizes:{1:100000000000,2:50000000000,3:1000000000,other:10000000}};
+    remaining:77-used.length,rankPerks:perks,prizes:{1:1_000_000_000_000_000,2:500_000_000_000_000,3:100_000_000_000_000,4:100_000_000_000,other:10_000_000}};
 }
 function dailyDrawPick(userId,number){
   number=Number(number);if(!Number.isInteger(number)||number<1||number>77)throw new Error('1~77번 중 하나를 선택해주세요.');
@@ -630,10 +630,11 @@ function dailyDrawPick(userId,number){
     const rank=Number(ranks[number-1]),prize=dailyDrawPrize(rank),pickedAt=now();
     if(usedAttempts===0)db.prepare('INSERT INTO daily_draw_picks(draw_date,number,user_id,rank,prize,picked_at) VALUES(?,?,?,?,?,?)').run(date,number,userId,rank,prize,pickedAt);
     else db.prepare('INSERT INTO daily_draw_bonus_picks(draw_date,number,user_id,pick_slot,rank,prize,picked_at) VALUES(?,?,?,?,?,?,?)').run(date,number,userId,usedAttempts+1,rank,prize,pickedAt);
-    const u=db.prepare('SELECT balance FROM users WHERE id=?').get(userId),next=Number(u.balance)+prize;if(!Number.isSafeInteger(next))throw new Error('보유 게임머니 한도를 초과합니다.');
-    db.prepare('UPDATE users SET balance=? WHERE id=?').run(next,userId);
-    db.prepare('INSERT INTO ledger(user_id,amount,balance_after,type,memo,created_at) VALUES(?,?,?,?,?,?)').run(userId,prize,next,'daily_draw',`77 출석 뽑기 ${number}번 · ${rank}등 · ${usedAttempts+1}/${perks.dailyDraws}회`,pickedAt);
-    db.exec('COMMIT');return {number,rank,prize,balance:next,state:dailyDrawState(userId)};
+    const u=db.prepare('SELECT balance,balance_exact,balance_base FROM users WHERE id=?').get(userId);
+    const next=exactWallet.read(u)+BigInt(prize),mirror=exactWallet.mirror(next);
+    db.prepare('UPDATE users SET balance=?,balance_exact=?,balance_base=? WHERE id=?').run(mirror,String(next),String(mirror),userId);
+    db.prepare('INSERT INTO ledger(user_id,amount,balance_after,amount_exact,balance_after_exact,type,memo,created_at) VALUES(?,?,?,?,?,?,?,?)').run(userId,prize,mirror,String(prize),String(next),'daily_draw',`77 출석 뽑기 ${number}번 · ${rank}등 · ${usedAttempts+1}/${perks.dailyDraws}회`,pickedAt);
+    db.exec('COMMIT');return {number,rank,prize,balance:exactWallet.output(next),state:dailyDrawState(userId)};
   }catch(e){try{db.exec('ROLLBACK')}catch{}throw e;}
 }
 
