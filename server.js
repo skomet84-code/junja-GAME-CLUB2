@@ -518,7 +518,10 @@ const SHOP_ITEMS = [
 ]
 // v2.3 Luxury perks: equipped premium pieces provide tiny transparent benefits, hard-capped.
 const SHOP_PERKS={char_m_junja:{slotLuckPct:.4,dailyBonusPct:2},char_f_junja:{slotLuckPct:.4,dailyBonusPct:2},char_m_royal:{slotLuckPct:.2},char_f_empress:{slotLuckPct:.2},frame_legend:{slotLuckPct:.3},frame_junjaroyal:{slotLuckPct:.2},pet_guardian:{slotLuckPct:.3,dailyBonusPct:2},pet_phoenix:{slotLuckPct:.15},title_thejunja:{dailyBonusPct:1}};
-for(const item of SHOP_ITEMS){if(SHOP_PERKS[item.id])item.perk={...SHOP_PERKS[item.id]};}
+for(const item of SHOP_ITEMS){
+  if(Number.isSafeInteger(item.price)&&item.price>0)item.price*=10; // Existing purchases not repriced.
+  if(SHOP_PERKS[item.id])item.perk={...SHOP_PERKS[item.id]};
+}
 const SHOP_BY_ID = Object.fromEntries(SHOP_ITEMS.map(x=>[x.id,Object.freeze({...x})]));
 const LOADOUT_FIELDS = new Set(['character','costume','frame','title','pet','table_skin','card_back','bubble_pack']);
 const SLOT_SYMBOLS = [
@@ -2422,6 +2425,16 @@ const server=http.createServer(async(req,res)=>{
     if(url.pathname==='/api/leaderboard'&&req.method==='GET'){
       const u=requireAuth(req,res);if(!u)return;const rows=db.prepare(`SELECT u.id,u.nickname,u.balance,u.avatar,s.poker_wins,s.yut_wins,s.slot_profit,s.seotda_wins,s.gostop_wins FROM users u JOIN stats s ON s.user_id=u.id ORDER BY u.balance DESC LIMIT 20`).all().map(x=>({...x,avatarEmoji:AVATARS[x.avatar%AVATARS.length],cosmetics:cosmeticsPublic(x.id),rank:socialRankPublic(x.id)}));return json(res,200,{rows});
     }
+    if(url.pathname==='/api/admin/bank-assets'&&req.method==='GET'){
+      const admin=requireAdmin(req,res);if(!admin)return;
+      const id=Number(url.searchParams.get('userId'));
+      if(!Number.isSafeInteger(id)||id<1||!db.prepare('SELECT 1 FROM users WHERE id=?').get(id))return json(res,404,{error:'회원을 찾을 수 없어.'});
+      try{
+       const bank=jBank.status(id),stock=jStocks.status(id),coin=jCoins.status(id);
+       return json(res,200,{bank:{savings:bank.savings,installment:bank.installment,outstanding:bank.outstanding,rank:bank.rank},
+       stock:{marketValue:stock.marketValue},coin:{marketValue:coin.marketValue}});
+      }catch(e){return json(res,400,{error:e.message});}
+    }
     if(url.pathname==='/api/admin/users'&&req.method==='GET'){
       const admin=requireAdmin(req,res);if(!admin)return;
       const q=escText(url.searchParams.get('q')||'',30);
@@ -2707,6 +2720,7 @@ const server=http.createServer(async(req,res)=>{
     if(url.pathname==='/api/rooms'&&req.method==='POST'){
       const u=requireAuth(req,res);if(!u)return;if(findUserRoom(u.id)||baccaratFindUser(u.id)||treasureRaid.hasUser(u.id)||goldenbell.hasUser(u.id)||omok.hasUser(u.id)||liar.hasUser(u.id)||janggi.hasUser(u.id)||royalCards.hasUser(u.id))return json(res,409,{error:'이미 다른 게임방에 참가 중입니다. 먼저 그 방에서 나와주세요.'});const b=await readBody(req),requested=String(b.game||'holdem'),game=['holdem','yut','seotda','sevenpoker','gostop'].includes(requested)?requested:'holdem';
       const yutMode=game==='yut'&&['individual','2v2','3v3'].includes(b.yutMode)?b.yutMode:'individual';const maxPlayers=(game==='holdem'||game==='sevenpoker')?clampInt(b.maxPlayers,2,6):game==='yut'?(yutMode==='2v2'?4:yutMode==='3v3'?6:clampInt(b.maxPlayers,2,6)):2;const chipGame=game==='holdem'||game==='sevenpoker';let buyIn;try{buyIn=chipGame?Math.floor(Number(u.balance||0)):game==='seotda'?walletWager(b.buyIn,u.balance,5000,1000):game==='gostop'?gameWager(b.buyIn,5000,Number.MAX_SAFE_INTEGER,1000):gameWager(b.buyIn,5000,100000,1000)}catch(e){return json(res,400,{error:e.message})};
+      if(['yut','seotda','gostop'].includes(game)&&buyIn>1000000000000)return json(res,400,{error:'최대 판돈은 1조 G입니다.'});
       if(!Number.isSafeInteger(buyIn)||buyIn<1000)return json(res,400,{error:'포커 테이블 입장에는 최소 1,000G가 필요합니다.'});if(u.balance<buyIn)return json(res,400,{error:'방 참가금보다 보유 게임머니가 적습니다.'});
       const id=makeRoomId();const name=game==='holdem'?`홀덤 테이블 ${id}`:game==='yut'?`윷놀이 방 ${id}`:game==='seotda'?`3장 섯다 듀얼 ${id}`:game==='gostop'?`맞고 대전방 ${id}`:`세븐포커 테이블 ${id}`;walletChange(u.id,-buyIn,`${game}_buyin`,chipGame?`${name} 전액 스택 입장`:`${name} 참가금`);
       const t=now(),sb=game==='holdem'?Math.max(1000,Math.min(50000,Math.floor((buyIn*.002)/1000)*1000||1000)):0;const r={id,name,game,buyIn,maxPlayers,allWallet:chipGame,hostId:u.id,smallBlind:sb,bigBlind:game==='holdem'?sb*2:0,players:[{userId:u.id,nickname:u.nickname,avatar:u.avatar,seat:0,stack:chipGame?buyIn:0,ready:false,joinedAt:t}],createdAt:t,updatedAt:t,version:1,hand:null,seven:null,seotda:null,gostop:null,yut:null,yutMode,dealerSeat:null,reactions:{}};
