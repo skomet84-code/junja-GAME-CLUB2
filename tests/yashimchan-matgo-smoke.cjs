@@ -15,7 +15,7 @@ const { chromium } = require('playwright');
   await page.waitForSelector('#mainApp:not(.hidden)');
   await page.click('[data-go="gostop"]');
   await page.waitForSelector('#view-gostop.active');
-  await page.fill('#gostopBet','10000');
+  await page.fill('#gostopBet','5000');
   await page.click('#startGostop');
   await page.waitForSelector('.yashimchan-table');
   for(let turn=0;turn<4;turn++){
