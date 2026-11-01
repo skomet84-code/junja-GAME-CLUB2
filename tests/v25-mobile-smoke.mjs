@@ -37,6 +37,18 @@ for (const [name,engine] of engines) {
     await page.waitForSelector(`#view-${game}.active`,{timeout:5000});
     const visible=await page.locator(`#view-${game}`).isVisible();
     if(!visible)throw new Error(`${name} ${game} view not visible`);
+    // Regression: tap the Yut AI mode as a real mobile user, not by calling
+    // switchMode() directly. The previous binder error left this tab inert.
+    if(game==='yut'){
+      await page.locator('[data-mode-game="yut"][data-mode="solo"]').click();
+      await page.waitForFunction(()=>document.querySelector('#yutSoloArea')?.classList.contains('hidden')===false,null,{timeout:5000}).catch(async()=>{
+        throw new Error(`${name} Yut AI tab did not open after mobile tap`);
+      });
+      const aiSelected=await page.locator('[data-mode-game="yut"][data-mode="solo"]').evaluate(b=>b.classList.contains('active'));
+      if(!aiSelected)throw new Error(`${name} Yut AI tab not active after tap`);
+      await page.locator('[data-mode-game="yut"][data-mode="multi"]').click();
+      await page.waitForFunction(()=>document.querySelector('#yutMultiArea')?.classList.contains('hidden')===false,null,{timeout:5000});
+    }
     await page.evaluate(()=>typeof go==='function'&&go('lobby'));
     await page.waitForSelector('#view-lobby.active',{timeout:5000});
   }
