@@ -978,10 +978,10 @@ async function playSoloYutReplay(g){
 
 
 // HORSE RACING · v2.2 SHARED LIVE VERTICAL MEET
-let horsePollBusy=false,horseLastTicket=null,horseShownResultId=null,horseLiveText='';
+let horsePollBusy=false,horseLastTicket=null,horseShownResultId=null,horseLiveText='',horseServerClockOffset=0;
 function stopHorseMeet(){clearInterval(horseMeetTimer);horseMeetTimer=null;if(horseAnimationFrame)cancelAnimationFrame(horseAnimationFrame);horseAnimationFrame=null;horseRacing=false}
 function startHorseMeet(){stopHorseMeet();loadHorseMeet(false);horseMeetTimer=setInterval(()=>{if(currentView==='horse'&&!document.hidden)loadHorseMeet(true)},1700)}
-async function loadHorseMeet(silent=true){if(horsePollBusy)return;horsePollBusy=true;try{const d=await api('/api/horse/meet');horseCardData=d.round.card;if(d.user){me=d.user;updateHeader()}renderHorseMeet(d.round);await maybeHorseAuto(d.round)}catch(e){if(!silent)toast(e.message)}finally{horsePollBusy=false}}
+async function loadHorseMeet(silent=true){if(horsePollBusy)return;horsePollBusy=true;try{const d=await api('/api/horse/meet');horseCardData=d.round.card;horseServerClockOffset=Number(d.round.serverNow||Date.now())-Date.now();if(d.user){me=d.user;updateHeader()}renderHorseMeet(d.round);await maybeHorseAuto(d.round)}catch(e){if(!silent)toast(e.message)}finally{horsePollBusy=false}}
 function horseQuickWager(amount){const el=$('#horseBet');if(!el)return;const max=Math.min(10000000,Math.floor(Number(me?.balance||0)/1000)*1000);const n=amount==='max'?max:Math.min(Number(amount),max);if(n<1000){toast('베팅 가능한 게임머니가 부족해.');return}el.value=String(Math.max(1000,n));syncHorseBetUI();fx('chip')}
 function horseRestoreTicket(){if(!horseLastTicket||horseMeetData?.phase!=='betting'||horseMeetData?.myBet)return;$('#horseBetType').value=horseLastTicket.type;$('#horsePick1').value=String(horseLastTicket.picks[0]);$('#horsePick2').value=horseLastTicket.picks.length>1?String(horseLastTicket.picks[1]):'';const max=Math.min(10000000,Math.floor(Number(me?.balance||0)/1000)*1000);if(max<1000)return toast('게임머니가 부족해.');$('#horseBet').value=String(Math.min(horseLastTicket.bet,max));syncHorseBetUI()}
 function horseRaceMessage(text){const el=$('#horseRaceLive');if(el&&horseLiveText!==text){horseLiveText=text;el.textContent=text}}
@@ -1035,7 +1035,7 @@ function animateHorseMeet(r){
  let lastFx=0,lastAnnounced='';
  const tick=()=>{
   if(currentView!=='horse'||horseMeetData?.id!==r.id||horseMeetData.phase!=='running'){horseAnimationFrame=null;return}
-  const elapsed=Math.max(0,Date.now()-Number(r.startedAt)-(Date.now()-Number(horseMeetData.serverNow||Date.now()))),time=Math.min(1,elapsed/total);
+  const elapsed=Math.max(0,Date.now()+horseServerClockOffset-Number(r.startedAt)),time=Math.min(1,elapsed/total);
   let leading={progress:-1,name:''};
   ordered.forEach((h,rank)=>{
    const el=$(`#horseTrack .race-runner[data-horse="${h.id}"]`);if(!el)return;
