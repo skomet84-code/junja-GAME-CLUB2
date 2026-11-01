@@ -38,10 +38,10 @@
   if(t>=1)return frames[frames.length-1];
   let i=0;while(i<TIMES.length-2&&t>TIMES[i+1])i++;
   const part=(t-TIMES[i])/(TIMES[i+1]-TIMES[i]);
-  // Tiny deterministic stride variation without falsifying the finish order.
-  const seed=hashRound(id)+n*37;
-  const gait=Math.sin(t*30+seed%17)*.0025*Math.sin(Math.PI*t);
-  return clamp(frames[i]+(frames[i+1]-frames[i])*part+gait);
+  // A monotone distance interpolation: no backward step or visual cheating.
+  // Different segments have different speeds; the 20% comeback profile
+  // visibly passes the leaders before the finish line.
+  return clamp(frames[i]+(frames[i+1]-frames[i])*part);
  }
  function standings(id,order,t){
   return (order||[]).map((h,rank)=>({id:h.id,name:h.name,officialRank:rank+1,progress:progress(id,rank,t)}))
