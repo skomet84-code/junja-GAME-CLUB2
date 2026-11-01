@@ -48,6 +48,27 @@ assert.throws(()=>casino.reserve(tooMuch),/부족/);
 assert.equal(wallet(1),cashBefore,'failed reservation cannot debit first player');
 assert.equal(wallet(4),otherBefore);
 assert.equal(db.prepare('SELECT COUNT(*) AS c FROM room_escrow').get().c,0n);
+// Solo AI wagering: the virtual bot has no wallet, the human alone escrows 16x.
+const aiBot={id:'ai:solo',name:'J-BOT',bot:true,registered:false,hand:['H7','C4']};
+const solo=room('RC-solo-win',[who(1,true,[]),aiBot]);
+solo.mode='ai';
+const soloBefore=wallet(1);
+casino.reserve(solo);
+assert.equal(wallet(1),soloBefore-16000000n);
+assert.equal(db.prepare('SELECT COUNT(*) AS c FROM room_escrow').get().c,1n,'only human deposits in AI game');
+const soloResult=casino.settle(solo,solo.players[0],'모두 등록하고 완주');
+assert.equal(soloResult.length,1);
+assert.equal(soloResult[0].net,'4000000','unregistered J-BOT with one 7 loses 4x stake');
+assert.equal(wallet(1),soloBefore+4000000n);
+assert.throws(()=>casino.settle(solo,solo.players[0],'retry'),/예치/);
+const aiLose=room('RC-solo-loss',[who(1,false,['S7','H8']),{...aiBot,hand:[],registered:true}]);
+aiLose.mode='ai';
+const loseBefore=wallet(1);
+casino.reserve(aiLose);
+const loseResult=casino.settle(aiLose,aiLose.players[1],'AI 완주');
+assert.equal(loseResult[0].net,'-4000000');
+assert.equal(wallet(1),loseBefore-4000000n,'AI defeat costs its multiplier, no extra deductions');
+assert.equal(db.prepare('SELECT COUNT(*) AS c FROM room_escrow').get().c,0n);
 console.log('ROYAL_HULA_CASINO_OK: escrow, 2/4/16x multipliers, all-player atomicity, exact G, replay defence, zero-sum payout');
 
 (async()=>{
@@ -95,6 +116,16 @@ console.log('ROYAL_HULA_CASINO_OK: escrow, 2/4/16x multipliers, all-player atomi
  assert.equal(winner.body.room.finalPayouts.length,2);
  assert.equal(wallet(1)+wallet(2),before1+before2,'finished game preserves G across accounts');
  assert.equal(db.prepare('SELECT COUNT(*) AS c FROM room_escrow').get().c,0n,'settled game has no pending escrow');
+ const aiBefore=wallet(1);
+ const aiCreated=await request(1,'/create',{game:'hula',mode:'ai',stake:'1000000'});
+ assert.equal(aiCreated.status,201,JSON.stringify(aiCreated.body));
+ assert.equal(aiCreated.body.room.stake,'1000000');
+ assert.equal(aiCreated.body.room.phase,'playing');
+ assert.equal(wallet(1),aiBefore-16000000n,'AI table reserves before dealing');
+ const aiExited=await request(1,'/'+aiCreated.body.room.id+'/leave',{});
+ assert.equal(aiExited.status,200,JSON.stringify(aiExited.body));
+ assert.ok(wallet(1)<aiBefore,'leaving a staked bot game is a loss');
+ assert.equal(db.prepare('SELECT COUNT(*) AS c FROM room_escrow').get().c,0n,'AI exit settles');
  console.log('ROYAL_HULA_CASINO_API_OK: authenticated table, entry escrow, player leave, payout and zero-sum G');
 })().catch(e=>{console.error(e);process.exitCode=1;});
 
