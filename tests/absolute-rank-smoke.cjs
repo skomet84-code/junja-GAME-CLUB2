@@ -6,10 +6,14 @@ const rankJs=fs.readFileSync(path.join(__dirname,'..','public','rank-system.js')
 const rankCss=fs.readFileSync(path.join(__dirname,'..','public','rank-system.css'),'utf8');
 const exact=require('../exact-wallet');
 const start=server.indexOf('const SOCIAL_RANKS = [');
+const ranksEnd=server.indexOf('\n];',start)+3;
+const perksStart=server.indexOf('function socialRankPerks(level){',ranksEnd);
 const end=server.indexOf('function socialRankPerksForUser(',start);
-assert.ok(start>=0&&end>start,'rank definitions found');
+assert.ok(start>=0&&ranksEnd>start&&perksStart>ranksEnd&&end>perksStart,'rank definitions and perks found');
 const context={};
-vm.runInNewContext(server.slice(start,end).replace(/const jBank=createJBank\([^;]+;\s*/, '')+';globalThis.ranks=SOCIAL_RANKS;globalThis.perks=socialRankPerks;',context);
+// Evaluate only rank data and its pure perks function, not adjacent service setup.
+// Bank/collateral initialization is exercised by the dedicated integration tests.
+vm.runInNewContext(server.slice(start,ranksEnd)+'\n'+server.slice(perksStart,end)+';globalThis.ranks=SOCIAL_RANKS;globalThis.perks=socialRankPerks;',context);
 const ranks=context.ranks,perks=context.perks;
 assert.equal(ranks.length,14);
 assert.equal(ranks[12].name,'THE ABSOLUTE');

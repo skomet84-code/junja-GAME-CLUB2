@@ -179,13 +179,9 @@ source = replaceOne(source,"raw>target.balance","raw>exactWallet.read(target)",'
 source = replaceOne(source,"`관리자 조정 · ${memo}`);","`관리자 조정 · ${memo}`,null,typeof b.requestKey==='string'?b.requestKey.slice(0,100):null);",'idempotent admin credit');
 source = replaceOne(source,".run(admin.id,targetId,amount>0?'credit':'debit',amount,memo,now());",".run(admin.id,targetId,amount>0?'credit':'debit',exactWallet.mirror(amount),memo,now());",'admin audit mirror');
 
+// Daily draw now uses BigInt and balance_exact in the core. Its former
+// Number-based ceiling patch is obsolete and must not block server startup.
 // Direct balance paths retained from the stable core: only remove the former 1경 ceiling.
-source = replaceOne(
-  source,
-  "const u=db.prepare('SELECT balance FROM users WHERE id=?').get(userId),next=Number(u.balance)+prize;if(!Number.isSafeInteger(next))throw new Error('보유 게임머니 한도를 초과합니다.');",
-  "const u=db.prepare('SELECT balance FROM users WHERE id=?').get(userId),next=Number(u.balance)+prize;if(!Number.isInteger(next)||next>9000000000000000000)throw new Error('보유 게임머니 저장 한도를 초과합니다.');",
-  'daily draw large wallet'
-);
 source = replaceOne(
   source,
   "const senderNext=sender.balance-total,targetNext=target.balance+amount,t=now();\n    if(!Number.isSafeInteger(senderNext)||!Number.isSafeInteger(targetNext))throw new Error('게임머니 한도를 초과합니다.');",
