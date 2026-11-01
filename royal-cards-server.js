@@ -89,9 +89,9 @@ function combinations(arr){
 }
 const attackValue=c=>c==='JOKR'?7:c==='JOKB'?5:rank(c)===2?2:rank(c)===1?(suit(c)==='S'?5:3):0;
 const attackLevel=c=>c==='JOKR'?5:c==='JOKB'?4:rank(c)===1?3:rank(c)===2?2:0;
-module.exports=function createRoyalCards({db,crypto,requireAuth,readBody,json,rateLimit=()=>true,otherBusy=()=>false,notify=()=>{},exactWallet=null,now=Date.now,setTimer=setTimeout,clearTimer=clearTimeout}){
+module.exports=function createRoyalCards({db,crypto,requireAuth,readBody,json,rateLimit=()=>true,otherBusy=()=>false,notify=()=>{},exactWallet=null,casinoCollateral=null,now=Date.now,setTimer=setTimeout,clearTimer=clearTimeout}){
  const rooms=new Map(),timers=new Map();
- const casino=exactWallet?createRoyalHulaCasino({db,exactWallet,now}):null;
+ const casino=exactWallet?createRoyalHulaCasino({db,exactWallet,now,collateral:casinoCollateral}):null;
  const shuffle=a=>{for(let i=a.length-1;i>0;i--){let j=crypto.randomInt(i+1);[a[i],a[j]]=[a[j],a[i]];}return a;};
  const player=(r,id)=>r.players.find(p=>String(p.id)===String(id));
  const current=r=>r.players[r.turn];
