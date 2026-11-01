@@ -6,6 +6,7 @@ const path = require('node:path');
 const crypto = require('node:crypto');
 const staticResponse = require('./static-response');
 const exactWallet = require('./exact-wallet');
+const echoReward=require('./echo-rewards');
 const {createJBank}=require('./j-bank-core');
 const {createCasinoCollateral}=require('./casino-collateral');
 const {createJStocks}=require('./j-stock-core');
@@ -2452,6 +2453,42 @@ const server=http.createServer(async(req,res)=>{
     }
     if(url.pathname==='/api/leaderboard'&&req.method==='GET'){
       const u=requireAuth(req,res);if(!u)return;const rows=db.prepare(`SELECT u.id,u.nickname,u.balance,u.avatar,s.poker_wins,s.yut_wins,s.slot_profit,s.seotda_wins,s.gostop_wins FROM users u JOIN stats s ON s.user_id=u.id ORDER BY u.balance DESC LIMIT 20`).all().map(x=>({...x,avatarEmoji:AVATARS[x.avatar%AVATARS.length],cosmetics:cosmeticsPublic(x.id),rank:socialRankPublic(x.id)}));return json(res,200,{rows});
+    }
+    if(url.pathname==='/api/echo/start'&&req.method==='POST'){
+      const u=requireAuth(req,res);if(!u)return;
+      if(!rateLimit('echo:start:'+u.id,12,3600000))return json(res,429,{error:'에코 시작 횟수 제한'});
+      const runId=randomToken(16),key='echo:run:'+u.id,startedAt=now();
+      db.prepare('INSERT INTO game_state(key,value,updated_at) VALUES(?,?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value,updated_at=excluded.updated_at')
+        .run(key,JSON.stringify({runId,startedAt,claimed:false}),startedAt);
+      await db.flush();
+      return json(res,200,{runId,startedAt,tiers:echoReward.TIERS});
+    }
+    if(url.pathname==='/api/echo/finish'&&req.method==='POST'){
+      const u=requireAuth(req,res);if(!u)return;
+      if(!rateLimit('echo:finish:'+u.id,12,3600000))return json(res,429,{error:'에코 정산 횟수 제한'});
+      const b=await readBody(req),score=Number(b.score),runId=String(b.runId||''),time=now();
+      db.exec('BEGIN IMMEDIATE');
+      try{
+        const key='echo:run:'+u.id,entry=db.prepare('SELECT value FROM game_state WHERE key=?').get(key);
+        if(!entry)throw Error('시작된 에코 게임이 없습니다.');
+        const record=JSON.parse(entry.value),elapsed=time-Number(record.startedAt||0);
+        if(record.runId!==runId||record.claimed)throw Error('이미 정산했거나 다른 게임 기록입니다.');
+        if(!echoReward.plausible(score,elapsed))throw Error('게임 시간과 점수 검증에 실패했습니다.');
+        const dayKey='echo:daily:'+u.id+':'+kstDate(),old=db.prepare('SELECT value FROM game_state WHERE key=?').get(dayKey);
+        const count=old?Number(JSON.parse(old.value).count||0):0;
+        if(count>=5)throw Error('오늘의 에코 보상 5회 한도에 도달했습니다.');
+        const amount=BigInt(echoReward.prizeFor(score)),priorUser=db.prepare('SELECT balance,balance_exact,balance_base FROM users WHERE id=?').get(u.id);
+        const prior=exactWallet.read(priorUser),next=prior+amount,mirror=exactWallet.mirror(next);
+        db.prepare('UPDATE users SET balance=?,balance_exact=?,balance_base=? WHERE id=?').run(mirror,String(next),String(mirror),u.id);
+        if(amount>0n)db.prepare('INSERT INTO ledger(user_id,amount,balance_after,amount_exact,balance_after_exact,type,memo,created_at) VALUES(?,?,?,?,?,?,?,?)')
+          .run(u.id,exactWallet.mirror(amount),mirror,String(amount),String(next),'echo_reward','준자에코 점수 '+score+'점 · '+amount+' G 보상',time);
+        db.prepare('INSERT INTO game_state(key,value,updated_at) VALUES(?,?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value,updated_at=excluded.updated_at')
+          .run(key,JSON.stringify({...record,claimed:true,score,prize:String(amount),endedAt:time}),time);
+        db.prepare('INSERT INTO game_state(key,value,updated_at) VALUES(?,?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value,updated_at=excluded.updated_at')
+          .run(dayKey,JSON.stringify({count:count+1}),time);
+        db.exec('COMMIT');await db.flush();pushRefresh();
+        return json(res,200,{prize:String(amount),score,dailyCount:count+1,balance:String(next)});
+      }catch(e){try{db.exec('ROLLBACK')}catch{}return json(res,400,{error:e.message});}
     }
     if(url.pathname==='/api/admin/bank-assets'&&req.method==='GET'){
       const admin=requireAdmin(req,res);if(!admin)return;
