@@ -108,6 +108,8 @@ for(const [browserName,engine] of [['chromium',chromium],['webkit',webkit]]){
   a.once('dialog',dialog=>dialog.accept());
   await a.click('[data-action="leave"]');
   await a.waitForSelector('#omkCreateForm',{timeout:12000});
+  // New CI accounts have no game funds. Exercise the free AI match, not paid-stake confirmation.
+  await a.selectOption('#omkAiStake','0');
   await a.click('[data-action="create-ai"]');
   await a.waitForSelector('.omk-board .omk-point',{timeout:12000});
   const originalAi=await checkBoardGeometry(a,'AI challenge initial');
