@@ -960,6 +960,12 @@ function soloYutAsMulti(g){return {phase:g.phase==='complete'&&!soloYutReplayBus
 function soloYutBoard(g){return yutBoardHtml({},soloYutAsMulti(g))}
 let yutSoloSeenAction='';
 async function loadSoloYut(silent=false){try{const d=await api('/api/solo/yut');if(d.game)renderSoloYut(d.game);else{$('#yutSoloStart')?.classList.remove('hidden');$('#yutSoloRoom')?.classList.add('hidden')}}catch(e){if(!silent)toast(e.message)}}
+// Defense-in-depth: legacy bindMain can abort after unrelated game errors.
+// Capture the solo Yut start action even when that main binding never ran.
+// startSoloYut's synchronous disabled guard prevents double submissions.
+document.addEventListener('click',event=>{
+  if(event.target?.closest?.('#startSoloYut'))void startSoloYut();
+},true);
 async function startSoloYut(){
  const btn=$('#startSoloYut');if(btn?.disabled)return;
  const bet=normalizeWagerInput('soloYutBet',5000,1000000000000);
