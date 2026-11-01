@@ -42,12 +42,18 @@
  #view-horse .horse-race-standings{min-height:19px;height:19px;margin:1px 0;padding:1px 3px}
  #view-horse .horse-ranking-heading{font-size:8px}
  #view-horse .horse-ranking-item em{font-size:8px}
- #view-horse #horseTrack .race-lane.horizontal{height:24px!important;min-height:24px!important;max-height:24px!important}
- #view-horse #horseTrack .race-runner{height:23px!important}
+ #view-horse #horseTrack .race-lane.horizontal{height:22px!important;min-height:22px!important;max-height:22px!important}
+ #view-horse #horseTrack .race-runner{height:21px!important}
 }
 @media(max-width:380px){
  #view-horse .horse-ranking-heading{font-size:8px}
  #view-horse .horse-ranking-item{gap:1px}
  #view-horse .horse-ranking-item strong{font-size:8px}
  #view-horse .horse-ranking-item em{font-size:8px}
+}
+
+@media(max-width:820px) and (max-height:620px){
+ #view-horse #horseTrack .race-lane.horizontal{height:20px!important;min-height:20px!important;max-height:20px!important}
+ #view-horse #horseTrack .race-runner{height:19px!important}
+ #view-horse .horse-race-standings{height:17px;min-height:17px}
 }
