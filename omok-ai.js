@@ -44,7 +44,7 @@ function patternScore(b,x,y,c){
     let count=1;
     for(let k=1;k<=5&&line[5-k]==='X';k++)count++;
     for(let k=1;k<=5&&line[5+k]==='X';k++)count++;
-    if(count>=5){score+=(c===2||count===5)?WIN:0;continue;}
+    if(count>=5){score+=count===5?WIN:0;continue;}
     if(touchesCenter(line,PATTERNS.openFour)){score+=580000;open4++;}
     else if(touchesCenter(line,PATTERNS.four)){score+=100000;four++;}
     else if(touchesCenter(line,PATTERNS.three)){score+=17500;three++;}
@@ -67,7 +67,7 @@ function possibleFive(b,x,y,c){
       if(xx<0||yy<0||xx>=SIZE||yy>=SIZE||b[yy][xx]!==c)break;
       count++;
     }
-    if(c===1?count===5:count>=5)return true;
+    if(count===5)return true;
   }
   return false;
 }
