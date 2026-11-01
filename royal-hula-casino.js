@@ -10,7 +10,7 @@ function stakeValue(raw){
  return value;
 }
 function quote(stake){return {stake:String(stake),maxMultiplier:Number(CAP),reserve:String(BigInt(stake)*CAP),rules:{unregistered:2,sevenEach:2,hula:4},currency:'G'};}
-function createRoyalHulaCasino({db,exactWallet,now}){
+function createRoyalHulaCasino({db,exactWallet,now,collateral=null}){
  if(!db||!exactWallet)throw Error('훌라 카지노 지갑 연결 오류');
  const users=db.prepare('SELECT id,is_disabled,balance,balance_exact,balance_base FROM users WHERE id=?');
  const update=db.prepare('UPDATE users SET balance=?,balance_exact=?,balance_base=? WHERE id=?');
@@ -36,11 +36,12 @@ function createRoyalHulaCasino({db,exactWallet,now}){
    for(const p of room.players.filter(p=>!p.bot)){
     const u=users.get(p.id);if(!u||u.is_disabled)throw Error('훌라 참가자 계정 이용이 제한돼 있어.');
     if(getEscrow.get(room.id,p.id))throw Error('이전 판돈이 아직 정산되지 않았어.');
-    if(exactWallet.read(u)<amount)throw Error(p.name+'님의 게임머니가 부족해. 최대 배당금 '+amount.toLocaleString('ko-KR')+'G를 준비해야 해.');
+    if(!collateral&&exactWallet.read(u)<amount)throw Error(p.name+'님의 게임머니가 부족해. 최대 배당금 '+amount.toLocaleString('ko-KR')+'G를 준비해야 해.');
    }
    for(const p of room.players.filter(p=>!p.bot)){
-    credit(p.id,-amount,'hula_escrow','로얄 훌라 '+room.round+'판 배당 대비 16배 예치');
-    saveEscrow.run(room.id,p.id,exactWallet.mirror(amount),String(amount),'royal_hula',now());
+    if(collateral)collateral.reserve(room.id,p.id,amount,'hula');
+    else {credit(p.id,-amount,'hula_escrow','로얄 훌라 '+room.round+'판 배당 대비 16배 예치');
+    saveEscrow.run(room.id,p.id,exactWallet.mirror(amount),String(amount),'royal_hula',now());}
    }
    db.exec('COMMIT');room.escrowed=true;
   }catch(e){try{db.exec('ROLLBACK');}catch{}throw e;}
@@ -65,9 +66,10 @@ function createRoyalHulaCasino({db,exactWallet,now}){
    db.exec('BEGIN IMMEDIATE');
    try{
     const escrow=getEscrow.get(room.id,human.id);
-    if(!escrow||BigInt(escrow.amount)!==reserved)throw Error('AI 훌라 예치금 검증 실패');
-    credit(human.id,reserved+net,'hula_ai_settlement','AI 훌라 '+room.round+'판 · '+result.reason);
-    dropEscrow.run(room.id,human.id);
+    if(!escrow||(!collateral&&BigInt(escrow.amount)!==reserved))throw Error('AI 훌라 예치금 검증 실패');
+    if(collateral)collateral.settle(room.id,human.id,net<0n?-net:0n,net>0n?net:0n);
+    else {credit(human.id,reserved+net,'hula_ai_settlement','AI 훌라 '+room.round+'판 · '+result.reason);
+    dropEscrow.run(room.id,human.id);}
     saveResult.run('royalcards:casino:result:'+room.id+':'+room.round,JSON.stringify({stake:room.stake,winner:winner.id,results:[result],at:now()}),now());
     db.exec('COMMIT');room.escrowed=false;room.finalPayouts=[result];return [result];
    }catch(e){try{db.exec('ROLLBACK');}catch{}throw e;}
@@ -94,12 +96,13 @@ function createRoyalHulaCasino({db,exactWallet,now}){
   try{
    for(const p of room.players){
     const escrow=getEscrow.get(room.id,p.id);
-    if(!escrow||BigInt(escrow.amount)!==reserved)throw Error('훌라 판돈 예치액 검증 실패. 이 판은 관리자 확인이 필요해.');
+    if(!escrow||(!collateral&&BigInt(escrow.amount)!==reserved))throw Error('훌라 판돈 예치액 검증 실패. 이 판은 관리자 확인이 필요해.');
    }
    for(const p of room.players){
     const result=results.get(p.id);
-    credit(p.id,BigInt(result.payout),'hula_settlement','훌라 '+room.round+'판 · '+result.reason);
-    dropEscrow.run(room.id,p.id);
+    if(collateral){const net=BigInt(result.net);collateral.settle(room.id,p.id,net<0n?-net:0n,net>0n?net:0n);}
+    else {credit(p.id,BigInt(result.payout),'hula_settlement','훌라 '+room.round+'판 · '+result.reason);
+    dropEscrow.run(room.id,p.id);}
    }
    const list=room.players.map(p=>results.get(p.id));
    saveResult.run('royalcards:casino:result:'+room.id+':'+room.round,JSON.stringify({stake:room.stake,winner:winner.id,results:list,at:now()}),now());
