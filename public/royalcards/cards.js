@@ -279,7 +279,7 @@ function renderDone(r){
  const settled=(r.finalPayouts||[]).find(x=>String(x.userId)===String(p.id));
  const n=settled?BigInt(settled.net):0n;
  return '<div class="score-row"><strong>'+esc(r.players.find(x=>x.id===p.id)?.name)+'</strong> · '+p.score+'점'+
-  (settled?'<br><b class="'+(n>=0n?'casino-win':'casino-loss')+'">'+(n>=0n?'+':'')+money(n)+'</b><small> '+esc(settled.reason)+'</small>':'')+'</div>';
+  (settled?'<br><b class="'+(n>=0n?'casino-win':'casino-loss')+'">'+(n>=0n?'+':'')+money(n)+'</b><small> '+esc(settled.reason)+(settled.rankSales?.length?' · 신분 자동매각 '+settled.rankSales.map(x=>esc(x.from+'→'+x.to)).join(', '):'')+'</small>':'')+'</div>';
  }).join(''):'';
  $('#againBtn').textContent=r.mode==='ai'?'J-BOT과 재대결':'다시 준비하기';
  $('#againBtn').onclick=()=>{selected.clear();command('/'+r.id+'/rematch');};
