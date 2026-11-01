@@ -73,6 +73,14 @@ for (const [name,engine] of engines) {
   await page.waitForSelector('#view-yut.active');
   // Exercise the app's mode switch directly to avoid a stale touch target after fast view changes.
   await page.evaluate(()=>switchMode('yut','solo'));
+  console.log('YUT_MODE_DEBUG',name,await page.evaluate(()=>({
+    currentView,currentRoomId,currentGame,
+    activeViews:[...document.querySelectorAll('.view.active')].map(v=>v.id),
+    soloArea:document.querySelector('#yutSoloArea')?.className,
+    soloStart:document.querySelector('#yutSoloStart')?.className,
+    soloRoom:document.querySelector('#yutSoloRoom')?.className,
+    yutMode:[...document.querySelectorAll('[data-mode-game="yut"]')].map(b=>({mode:b.dataset.mode,className:b.className}))
+  })));
   await page.waitForSelector('#yutSoloArea:not(.hidden) #soloYutStart:not(.hidden) #soloYutBet',{state:'visible',timeout:8000});
   await page.fill('#soloYutBet','200000');
   // The legacy v25 UI scales the mobile layout viewport; Playwright's
