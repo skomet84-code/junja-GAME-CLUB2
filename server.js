@@ -1054,6 +1054,15 @@ function currentTurnUserId(r){if(r.game==='holdem')return r.hand?.phase!=='compl
 function closeRoomAndRefund(r,reason='방 종료 환급'){
   const playing=roomStatus(r)==='PLAYING';
   for(const p of [...r.players]){
+    if(r.game==='gostop'){
+      const current=db.prepare('SELECT game FROM room_escrow WHERE room_id=? AND user_id=?').get(r.id,p.userId);
+      if(current?.game==='casino_matgo_multi'){
+        db.exec('BEGIN IMMEDIATE');
+        try{casinoCollateral.settle(r.id,p.userId,0n,0n);db.exec('COMMIT');}
+        catch(e){try{db.exec('ROLLBACK');}catch{}throw e;}
+        continue;
+      }
+    }
     let refund=0;
     if(r.game==='holdem'){
       const hp=r.hand?.p?.[p.userId];
@@ -1828,24 +1837,38 @@ function matgoOpeningValue(card){return (({'광':4,'열끗':3,'띠':2,'피':1}[c
 function matgoOpeningDraw(d){let a=d.pop(),b=d.pop();while(matgoOpeningValue(a)===matgoOpeningValue(b)){d.push(b);shuffle(d);b=d.pop()}const starter=matgoOpeningValue(a)>matgoOpeningValue(b)?'user':'bot';const opening={user:a,bot:b,starter};d.push(a,b);shuffle(d);return opening}
 function roomGostopStart(r){
   if(r.players.length!==2)throw new Error('맞고는 2명이 있어야 시작할 수 있습니다.');
+  db.exec('BEGIN IMMEDIATE');
+  try{for(const p of r.players)casinoCollateral.reserve(r.id,p.userId,matgoMaxLoss(r.buyIn),'matgo_multi',{existing:true});db.exec('COMMIT');}
+  catch(e){try{db.exec('ROLLBACK');}catch{}throw e;}
   const ps=orderedPlayers(r),previousWinner=r.gostop?.phase==='complete'?r.gostop.winner:null,d=hwatuDeck(),opening=previousWinner?null:matgoOpeningDraw(d),starter=previousWinner||opening.starter,s={bet:r.buyIn,phase:'playing',userA:ps[0].userId,userB:ps[1].userId,hands:{user:[],bot:[]},floor:[],captured:{user:[],bot:[]},deck:d,turn:starter,goCount:{user:0,bot:0},lastDecisionScore:{user:0,bot:0},needDecision:false,pendingChoice:null,shakes:{user:0,bot:0},shakenMonths:{user:[],bot:[]},bombSkips:{user:0,bot:0},events:[],lastDraw:null,winner:null,result:null,opening};
   for(let i=0;i<10;i++){s.hands.user.push(d.pop());s.hands.bot.push(d.pop())}for(let i=0;i<8;i++)s.floor.push(d.pop());addMatgoBonusPi(s);matgoEvent(s,opening?`선 정하기 · ${opening.user.m}월 vs ${opening.bot.m}월 · 높은 패가 선`:`지난 판 승자가 선`,'gold');r.gostop=s;for(const p of r.players)p.ready=false;
 }
 function roomGostopSide(s,userId){if(Number(userId)===Number(s.userA))return'user';if(Number(userId)===Number(s.userB))return'bot';throw new Error('이 맞고방 참가자가 아닙니다.')}
 function roomGostopFinish(r,winner,reason){
- const s=r.gostop;if(!s||s.phase==='complete')return;s.phase='complete';s.winner=winner;const winnerId=winner==='user'?s.userA:winner==='bot'?s.userB:null;
- const us=gostopScore(s.captured.user),bs=gostopScore(s.captured.bot),calc=winner?matgoMultiplier(s,winner):null;
- const base=winner?Math.max(1,calc.ws.score+s.goCount[winner]):0,multiplier=calc?calc.mult:1,netWin=winnerId?Math.floor(r.buyIn*base*multiplier):0;
- s.result={reason,base,multiplier,payout:netWin,bonuses:calc?.reasons||[]};
- for(const p of r.players)escrowDelete(r.id,p.userId);
- if(winnerId){
-   const loserId=winnerId===s.userA?s.userB:s.userA,extra=Math.max(0,netWin-r.buyIn);
-   if(extra)walletChange(loserId,-extra,'gostop_multi_loss',`${r.name} 맞고 ${base}점 x${multiplier}`);
-   walletChange(winnerId,netWin+r.buyIn,'gostop_multi_win',`${r.name} 맞고 승리 ${base}점 x${multiplier}`);
+ const s=r.gostop;if(!s||s.phase==='complete')return;
+ const winnerId=winner==='user'?s.userA:winner==='bot'?s.userB:null;
+ const calc=winner?matgoMultiplier(s,winner):null;
+ const base=winner?Math.max(1,calc.ws.score+s.goCount[winner]):0;
+ const mult=calc?calc.mult:1,award=winnerId?matgoAward(r.buyIn,base,mult):0n;
+ db.exec('BEGIN IMMEDIATE');
+ try{
+  if(winnerId){
+   const loserId=winnerId===s.userA?s.userB:s.userA;
+   casinoCollateral.settle(r.id,loserId,award,0n);
+   casinoCollateral.settle(r.id,winnerId,0n,award);
    db.prepare('UPDATE stats SET gostop_games=gostop_games+1, gostop_wins=gostop_wins+1 WHERE user_id=?').run(winnerId);
    db.prepare('UPDATE stats SET gostop_games=gostop_games+1 WHERE user_id=?').run(loserId);
- } else {for(const p of r.players)walletChange(p.userId,r.buyIn,'gostop_multi_draw',`${r.name} 나가리 환급`);for(const p of r.players)db.prepare('UPDATE stats SET gostop_games=gostop_games+1 WHERE user_id=?').run(p.userId);}
- matgoEvent(s,`${reason}${winner?' · '+base+'점 ×'+multiplier:''}`,'gold');
+  }else{
+   for(const p of r.players){
+    casinoCollateral.settle(r.id,p.userId,0n,0n);
+    db.prepare('UPDATE stats SET gostop_games=gostop_games+1 WHERE user_id=?').run(p.userId);
+   }
+  }
+  db.exec('COMMIT');
+ }catch(e){try{db.exec('ROLLBACK');}catch{}throw e;}
+ s.phase='complete';s.winner=winner;
+ s.result={reason,base,multiplier:mult,payout:exactWallet.output(award),maxFactor:Number(MATGO_MAX_FACTOR),bonuses:calc?.reasons||[]};
+ matgoEvent(s,`${reason}${winner?' · '+base+'점 ×'+mult+' (상한 128배)':''}`,'gold');
 }
 function roomGostopAfterTurn(r,side){
  const s=r.gostop,sc=gostopScore(s.captured[side]).score;if(sc>=7&&sc>s.lastDecisionScore[side]){s.lastDecisionScore[side]=sc;s.needDecision=true;s.turn=side;return}
