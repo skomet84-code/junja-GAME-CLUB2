@@ -40,7 +40,8 @@ for (const [name,engine] of engines) {
     await page.evaluate(()=>typeof go==='function'&&go('lobby'));
     await page.waitForSelector('#view-lobby.active',{timeout:5000});
   }
-  // GRAND RACE v3: the real mobile layout must fit the viewport, with seven lanes.
+  // GRAND RACE v4: even a short 390x650 mobile viewport must show the full wager CTA.
+  await page.setViewportSize({width:390,height:650});
   await page.evaluate(()=>go('horse'));
   await page.waitForSelector('#view-horse.active');
   await page.waitForFunction(()=>document.querySelectorAll('#horseTrack .race-lane.horizontal').length===7,null,{timeout:10000});
@@ -71,6 +72,7 @@ for (const [name,engine] of engines) {
     throw new Error(`${name} GRAND RACE bet CTA outside one screen ${JSON.stringify(chosen)}`);
   }
   await page.screenshot({path:`/tmp/junja-v25-horse-${name}.png`,fullPage:true});
+  await page.setViewportSize({width:390,height:844});
   await page.evaluate(()=>go('lobby'));
   await page.waitForSelector('#view-lobby.active');
   await page.evaluate(()=>go('slot'));
