@@ -6,7 +6,7 @@ const css=fs.readFileSync('public/grand-race-v3.css','utf8');
 const server=fs.readFileSync('server.js','utf8');
 for(const marker of ['function horseTrackBuild(','.horse-course','horseTravel(el)','--race-x','horseSideSprite(h)','horsePollBusy','horseQuickWager(','horseRestoreTicket(','horseRaceMessage(','horseLastTicket={type,picks:ids.slice(),bet}'])assert.ok(app.includes(marker),'Missing race v3 implementation: '+marker);
 assert.ok(/horseMeetTimer=setInterval\([\s\S]*?,1700\)/.test(app),'Live race refresh must follow 6.5s event');
-assert.ok(app.includes("const ready=await api('/api/horse/ready'"),'One-tap wager must explicitly mark ready');
+assert.ok(app.includes("horseLastTicket={type,picks:ids.slice(),bet}"),'One-tap wager must confirm betting without a second Ready step');
 assert.ok(app.includes("if(res.won&&r.phase==='result'&&horseShownResultId!==r.id)"),'Result sound must not repeat on each poll');
 assert.ok(html.includes('grand-race-v3.css'),'New responsive style must load');
 assert.ok(html.includes('data-horse-wager="max"'),'Quick bet buttons must exist');
@@ -15,4 +15,4 @@ assert.ok(css.includes('#view-horse #horseTrack.vertical-race-track.horse-track'
 assert.ok(css.includes('prefers-reduced-motion'),'Reduced motion accessibility');
 assert.ok(server.includes('const HORSE_RUN_MS=6500'),'Existing shared server-meet timing must remain intact');
 assert.ok(server.includes('function settleRace('),'Official payouts must remain on server');
-console.log('HORSE_V3_OK: responsive horizontal track, live refresh, side-view motion, one-tap ready, selection and server-payout preservation');
+console.log('HORSE_V3_OK: responsive horizontal track, live refresh, side-view motion, one-tap shared betting, selection and server-payout preservation');
