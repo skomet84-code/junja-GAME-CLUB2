@@ -1,0 +1,84 @@
+/* JUNJA GRAND RACE v3 · scoped horizontal broadcast / mobile first */
+#view-horse{--race-gold:#f9d37c;--race-ink:#090f1a}
+#view-horse .horse-arena.horse-v22{max-width:1180px;margin:auto;padding:clamp(10px,2vw,20px)!important;border:1px solid #9db8b32c!important;border-radius:22px!important;overflow:hidden!important;background:radial-gradient(circle at 80% 0,#203d38 0,transparent 55%),#0a1119!important}
+#view-horse .horse-stand{min-width:0;gap:8px}
+#view-horse .horse-host{min-width:0}
+#view-horse .horse-host>div{min-width:0}
+#view-horse .horse-host h3{font-size:clamp(13px,2.1vw,20px);line-height:1.25;overflow-wrap:anywhere}
+#view-horse .horse-host span{font-size:11px}
+#view-horse .horse-meet-clock{flex-shrink:0;padding:8px 10px;min-width:88px}
+#view-horse .horse-v3-live-status{margin:12px 0 8px;padding:10px 14px;min-height:36px;display:flex;align-items:center;justify-content:center;font-weight:850;color:#ffe6a4;border-radius:11px;background:linear-gradient(110deg,#273931,#14292c);border:1px solid #d9bd7561;text-align:center;letter-spacing:.025em;font-size:clamp(11px,2vw,14px)}
+#view-horse .horse-live-bettors{max-width:100%;overflow-x:auto;scrollbar-width:thin}
+#view-horse #horseTrack.vertical-race-track.horse-track{box-sizing:border-box;display:flex!important;flex-direction:column!important;gap:0!important;width:100%!important;min-width:0!important;height:auto!important;min-height:0!important;padding:12px 10px!important;margin:0!important;border-radius:16px!important;background:linear-gradient(180deg,#173a32,#102d2a)!important;box-shadow:inset 0 0 24px #0004!important;overflow:hidden!important;isolation:isolate}
+#view-horse #horseTrack.horse-track:before,#view-horse #horseTrack.horse-track:after{content:none!important;display:none!important}
+#view-horse #horseTrack .start-gate-line,#view-horse #horseTrack .finish-line{display:none!important}
+#view-horse #horseTrack .race-lane.horizontal{position:relative;flex:none;display:grid!important;grid-template-columns:82px minmax(0,1fr)!important;align-items:stretch!important;gap:6px;width:100%!important;min-width:0!important;height:62px!important;min-height:0!important;margin:0!important;padding:0!important;border-bottom:1px solid #d2e2bd30!important;background:linear-gradient(0deg,#658e6520,#ffffff04)!important;overflow:hidden!important}
+#view-horse #horseTrack .race-lane.horizontal:last-of-type{border-bottom:0!important}
+#view-horse #horseTrack .race-lane .lane-head{position:relative!important;inset:auto!important;left:auto!important;top:auto!important;right:auto!important;bottom:auto!important;display:grid!important;grid-template-columns:28px 1fr!important;grid-template-rows:28px 19px;column-gap:4px;align-content:center;padding:4px!important;background:#071b1de0!important;border-right:3px solid var(--hc)!important;border-radius:0!important;max-width:82px;overflow:hidden}
+#view-horse #horseTrack .lane-head b{grid-row:1/span 2!important;width:25px!important;height:25px!important;min-width:0!important;background:var(--hc);color:#10191b;font-size:13px!important;display:grid;place-items:center;border-radius:8px}
+#view-horse #horseTrack .lane-head span{display:block!important;font-size:12px!important;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#fff}
+#view-horse #horseTrack .lane-head small{display:block!important;font-size:9px!important;color:#c7cfd5;white-space:nowrap}
+#view-horse #horseTrack .horse-course{position:relative;min-width:0;height:100%;overflow:hidden;background:repeating-linear-gradient(90deg,#ffffff09 0,#ffffff09 1px,transparent 1px,transparent 40px);border-radius:3px}
+#view-horse #horseTrack .horse-course:before{content:'';position:absolute;top:0;bottom:0;left:3px;border-left:2px solid #dde6bb66}
+#view-horse #horseTrack .horse-course:after{content:'';position:absolute;top:0;bottom:0;right:4px;width:8px;background:repeating-conic-gradient(#f6f1db 0 25%,#1c2929 0 50%) 0 0/8px 8px;z-index:1;opacity:.85}
+#view-horse #horseTrack .race-runner{position:absolute!important;left:0!important;right:auto!important;top:50%!important;bottom:auto!important;width:76px!important;min-width:0!important;height:54px!important;min-height:0!important;margin:0!important;padding:0!important;background:none!important;border:0!important;transform:translate3d(var(--race-x,0px),-50%,0)!important;transition:none!important;will-change:transform;z-index:3;overflow:visible!important;contain:none!important}
+#view-horse #horseTrack .horse-art{display:block!important;position:absolute;inset:0;width:100%!important;height:100%!important;overflow:visible}
+#view-horse #horseTrack .horse-sprite-svg{display:block;width:100%;height:100%;filter:drop-shadow(0 3px 3px #0008);overflow:visible}
+#view-horse #horseTrack .runner-tag{position:absolute!important;left:8px!important;right:auto!important;top:-2px!important;bottom:auto!important;transform:none!important;display:flex!important;align-items:center;border:0!important;padding:0!important;background:transparent!important;box-shadow:none!important}
+#view-horse #horseTrack .runner-tag b{background:var(--hc)!important;color:#091014!important;font-size:10px!important;border-radius:50%;width:17px!important;height:17px!important}
+#view-horse #horseTrack .dust-cloud{display:none!important}
+#view-horse #horseTrack .race-runner.running .horse-sprite-svg{animation:jr3Gallop .22s ease-in-out infinite alternate}
+#view-horse #horseTrack .race-runner.running .leg-front,#view-horse #horseTrack .race-runner.running .leg-back-alt{animation:jr3LegFront .25s ease-in-out infinite alternate;transform-origin:75px 42px}
+#view-horse #horseTrack .race-runner.running .leg-back,#view-horse #horseTrack .race-runner.running .leg-front-alt{animation:jr3LegBack .25s ease-in-out infinite alternate;transform-origin:42px 42px}
+#view-horse #horseTrack .finish-rank{position:absolute!important;left:42px!important;top:0!important;right:auto!important;bottom:auto!important;z-index:8;font-size:13px!important;width:25px!important;height:25px!important;border-radius:50%;background:#f8d77f!important;color:#17150e!important}
+#view-horse #horseTrack .race-overlay{position:absolute!important;left:50%!important;top:50%!important;transform:translate(-50%,-50%)!important;width:min(84%,320px)!important;height:auto!important;min-height:0!important;padding:10px 14px!important;border-radius:14px!important;z-index:5;pointer-events:none;backdrop-filter:blur(4px);box-shadow:0 6px 22px #0009}
+#view-horse #horseTrack .horse-track-leaders{position:absolute;left:50%;top:49%;transform:translate(-50%,-50%);z-index:7;pointer-events:none;max-width:86%;white-space:nowrap}
+#view-horse .horse-control-grid{display:grid!important;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr)!important;gap:12px!important;align-items:start}
+#view-horse .horse-control-grid>*,#view-horse .horse-bet-panel,#view-horse .horse-result-panel{min-width:0!important;max-width:100%!important}
+#view-horse .horse-pick-grid{display:grid!important;grid-template-columns:repeat(7,minmax(0,1fr))!important;gap:5px!important}
+#view-horse .horse-pick-card{position:relative!important;min-width:0!important;min-height:76px!important;padding:9px 3px!important;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;border-radius:12px!important;overflow:hidden;text-align:center;white-space:normal}
+#view-horse .horse-pick-card.selected{box-shadow:inset 0 0 0 2px var(--hc),0 0 16px #f4d37733!important}
+#view-horse .horse-pick-name{font-size:clamp(10px,1.5vw,13px)!important;font-weight:900}
+#view-horse .horse-pick-card small{font-size:10px!important}
+#view-horse .horse-pick-card em{font-size:8px;color:#c3cfcb;font-style:normal;white-space:nowrap}
+#view-horse .horse-v3-quick{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:5px;margin:9px 0}
+#view-horse .horse-v3-quick button{min-height:39px;border:1px solid #f5d58e66;border-radius:9px;background:linear-gradient(180deg,#34453b,#1a2b2b);color:#ffe7ae;font-size:12px;font-weight:800;cursor:pointer}
+#view-horse .horse-v3-repeat{width:100%;min-height:35px;border:1px dashed #7da7a8a1;border-radius:9px;background:#182a32;color:#bfe0e0;font-size:11px;font-weight:800;margin-bottom:10px}
+#view-horse .horse-type-row{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+#view-horse .horse-type-row input,#view-horse .horse-type-row select{min-width:0!important;width:100%!important;box-sizing:border-box}
+#view-horse .horse-auto-panel{margin-top:10px}
+#view-horse .horse-auto-panel>summary,#view-horse .horse-odds-board>summary{cursor:pointer;list-style:disclosure-closed;padding:9px 4px;color:#e9d6ab;font-weight:900;font-size:12px}
+#view-horse .horse-auto-panel[open]>summary,#view-horse .horse-odds-board[open]>summary{list-style:disclosure-open}
+#view-horse .horse-auto-panel>summary span{float:right;color:#a7c7bc}
+#view-horse .horse-odds-board{margin-top:12px}
+#view-horse .horse-odds-board .section-head{margin-top:6px}
+#view-horse .horse-result-panel{height:auto}
+#view-horse .horse-result-sticky,#view-horse .horse-result{min-width:0;overflow-wrap:anywhere}
+#view-horse .horse-podium{max-width:100%}
+@keyframes jr3Gallop{from{transform:translateY(-1px) rotate(-1deg)}to{transform:translateY(1.5px) rotate(1deg)}}
+@keyframes jr3LegFront{from{transform:rotate(-20deg)}to{transform:rotate(22deg)}}
+@keyframes jr3LegBack{from{transform:rotate(20deg)}to{transform:rotate(-23deg)}}
+@media(max-width:800px){
+#view-horse .horse-control-grid{grid-template-columns:minmax(0,1fr)!important}
+#view-horse .horse-stand{flex-wrap:wrap;align-items:start}
+#view-horse .horse-meet-clock{margin-left:auto}
+#view-horse #horseTrack.vertical-race-track.horse-track{padding:8px 5px!important}
+#view-horse #horseTrack .race-lane.horizontal{grid-template-columns:68px minmax(0,1fr)!important;height:55px!important;gap:3px}
+#view-horse #horseTrack .race-lane .lane-head{max-width:68px;grid-template-columns:22px 1fr!important;column-gap:2px!important;padding:3px!important}
+#view-horse #horseTrack .lane-head b{width:21px!important;height:21px!important;font-size:11px!important}
+#view-horse #horseTrack .lane-head span{font-size:11px!important}
+#view-horse #horseTrack .lane-head small{font-size:8px!important}
+#view-horse #horseTrack .race-runner{width:59px!important;height:48px!important}
+#view-horse .horse-pick-grid{grid-template-columns:repeat(4,minmax(0,1fr))!important}
+#view-horse .horse-pick-card{min-height:70px!important}
+}
+@media(max-width:380px){
+#view-horse .horse-arena{padding:8px!important}
+#view-horse .horse-host-face{width:36px;height:36px}
+#view-horse #horseTrack .race-lane.horizontal{grid-template-columns:60px minmax(0,1fr)!important}
+#view-horse #horseTrack .lane-head small{display:none!important}
+#view-horse #horseTrack .race-runner{width:50px!important;height:42px!important}
+#view-horse .horse-v3-quick button{font-size:10px;padding:6px 0}
+#view-horse .horse-pick-card em{font-size:7px}
+}
+@media(prefers-reduced-motion:reduce){#view-horse #horseTrack .race-runner.running .horse-sprite-svg,#view-horse #horseTrack .race-runner.running .horse-gallop-legs>*{animation:none!important}}

@@ -23,7 +23,7 @@
 <script defer src="/goldenbell/game.js?v=20261004-hof1"></script>
 <script defer src="/network-client.js?v=20260925"></script>
 <script defer src="/treasure-raid.js?v=6"></script>
-<script defer src="/app.js?v=20261101-yut-backdo-home-1"></script>
+<script defer src="/app.js?v=20261101-grand-race-v3-r1"></script>
 <script defer src="/rank-system.js?v=god-junja-ultimate-100gyeong-20261025"></script>
 <script defer src="/j-bank.js?v=20261101-flexible-withdraw"></script>
 <script defer src="/j-stock.js?v=20261031-unified-invest-1"></script>
@@ -33,6 +33,7 @@
 <link rel="stylesheet" href="/royal-plus-shop.css?v=1">
 <link rel="stylesheet" href="/blackroom/lobby.css?v=1">
 <link rel="stylesheet" href="/holdem-mobile-fit.css?v=20261031-1">
+<link rel="stylesheet" href="/grand-race-v3.css?v=20261101-r1">
 </head>
 <body>
 <div id="app">
@@ -155,13 +156,13 @@
         <div class="view-head"><button class="back" data-go="lobby" type="button">←</button><div><small>JUNJA GRAND RACE · SHARED LIVE MEET</small><h2>라이브 경마</h2></div><button class="secondary view-guide" data-open-help="horse" type="button">? 사용법</button></div>
         <div class="horse-arena panel horse-v22">
           <div class="horse-stand"><div class="horse-host"><img loading="lazy" decoding="async" class="horse-host-face" src="/art/club-host.svg" alt="레이스 호스트"><div><small>JUNJA NIGHT CUP · 1200M</small><h3>7 HORSES · SAME RACE FOR EVERYONE</h3><span>우니 · 도도 · 아라 · 돼지 · 햅피 · 신동 · 준자</span></div></div><div id="horseMeetClock" class="horse-meet-clock"><small>BET CLOSE</small><b>--</b></div></div>
-          <div id="horseLiveBettors" class="horse-live-bettors"><span>이번 경주 참여자 대기 중...</span></div>
+          <div class="horse-v3-live-status" id="horseRaceLive" aria-live="polite">① 승식 · ② 말 선택 · ③ 베팅하고 출발</div><div id="horseLiveBettors" class="horse-live-bettors"><span>이번 경주 참여자 대기 중...</span></div>
           <div id="horseTrack" class="horse-track vertical-race-track"><div class="start-gate-line">START</div><div class="finish-line">FINISH</div><div class="race-overlay" id="raceOverlay"><b>LIVE BETTING</b><span>같은 경주표에 모두 함께 베팅합니다.</span></div></div>
           <div class="horse-control-grid">
-            <div class="premium-panel horse-bet-panel"><div class="horse-panel-title"><div><small>ONE TOUCH · LIVE POOL</small><h3>BETTING</h3></div><span id="horsePickHint" class="horse-pick-hint">말 1마리를 눌러 선택</span></div><div class="horse-type-row"><label>승식<select id="horseBetType"><option value="win">단승 · 1등 / 2등 위로금</option><option value="quinella">복승 · 1·2등 순서 무관</option><option value="exacta">쌍승 · 1·2등 순서 정확히</option></select></label><label>베팅<input id="horseBet" class="no-spinner" type="number" min="1000" max="100000" step="1000" value="10000" inputmode="numeric"><small>최대 100,000G</small></label></div><input id="horsePick1" type="hidden"><input id="horsePick2" type="hidden"><div id="horsePickGrid" class="horse-pick-grid" aria-label="경주마 선택"></div><div id="horsePickSummary" class="horse-pick-summary">선택한 말이 없습니다.</div><div id="horseOdds" class="horse-odds">배당표 불러오는 중...</div><button id="horseStartBtn" class="primary full" type="button" disabled>🏁 베팅 접수</button><div class="horse-auto-panel"><div><b>연속 경주</b><span id="horseAutoStatus">수동</span></div><div class="horse-auto-buttons"><button data-horse-auto="10" type="button">AUTO 10</button><button data-horse-auto="30" type="button">AUTO 30</button><button data-horse-auto="50" type="button">AUTO 50</button><button id="horseAutoStop" class="danger" type="button" disabled>STOP</button></div></div></div>
+            <div class="premium-panel horse-bet-panel"><div class="horse-panel-title"><div><small>ONE TOUCH · LIVE POOL</small><h3>BETTING</h3></div><span id="horsePickHint" class="horse-pick-hint">말 1마리를 눌러 선택</span></div><div class="horse-type-row"><label>승식<select id="horseBetType"><option value="win">단승 · 1등 / 2등 위로금</option><option value="quinella">복승 · 1·2등 순서 무관</option><option value="exacta">쌍승 · 1·2등 순서 정확히</option></select></label><label>베팅<input id="horseBet" class="no-spinner" type="number" min="1000" max="10000000" step="1000" value="10000" inputmode="numeric"><small>1,000G 단위 · 최대 1,000만 G</small></label></div><div class="horse-v3-quick"><button data-horse-wager="10000" type="button">1만</button><button data-horse-wager="100000" type="button">10만</button><button data-horse-wager="1000000" type="button">100만</button><button data-horse-wager="10000000" type="button">1,000만</button><button data-horse-wager="max" type="button">MAX</button></div><button id="horseRepeatBet" class="horse-v3-repeat" type="button">↻ 이전 선택 불러오기 (확인 후 베팅)</button><input id="horsePick1" type="hidden"><input id="horsePick2" type="hidden"><div id="horsePickGrid" class="horse-pick-grid" aria-label="경주마 선택"></div><div id="horsePickSummary" class="horse-pick-summary">선택한 말이 없습니다.</div><div id="horseOdds" class="horse-odds">배당표 불러오는 중...</div><button id="horseStartBtn" class="primary full" type="button" disabled>🏁 베팅 접수</button><details class="horse-auto-panel"><summary><b>연속 경주 옵션</b><span id="horseAutoStatus">수동</span></summary><div class="horse-auto-buttons"><button data-horse-auto="10" type="button">AUTO 10</button><button data-horse-auto="30" type="button">AUTO 30</button><button data-horse-auto="50" type="button">AUTO 50</button><button id="horseAutoStop" class="danger" type="button" disabled>STOP</button></div></details></div>
             <div class="premium-panel horse-result-panel"><div class="horse-result-head"><div><small>RESULT BOARD</small><h3>MY RACE RESULT</h3></div><span>내 선택마 순위·배당·지급액을 다음 경주까지 유지</span></div><div id="horseResult" class="horse-result"><p>아직 경주 전이야.</p></div></div>
           </div>
-          <div class="premium-panel horse-odds-board"><div class="section-head"><div><small>PRE-RACE ODDS</small><h3>복승 · 쌍승 전체 배당표</h3></div><span>베팅 전에 모든 조합의 확정 배당 확인</span></div><div id="horseOddsBoard" class="horse-odds-table-wrap"></div></div>
+          <details class="premium-panel horse-odds-board"><summary>상세 배당표 보기 · 복승 / 쌍승</summary><div class="section-head"><div><small>PRE-RACE ODDS</small><h3>복승 · 쌍승 전체 배당표</h3></div><span>베팅 전에 모든 조합의 확정 배당 확인</span></div><div id="horseOddsBoard" class="horse-odds-table-wrap"></div></details>
         </div>
       </section>
 
