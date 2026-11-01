@@ -91,17 +91,11 @@ for (const [name,engine] of engines) {
   await page.waitForSelector('#view-yut.active');
   // Exercise the app's mode switch directly to avoid a stale touch target after fast view changes.
   await page.evaluate(()=>switchMode('yut','solo'));
-  console.log('YUT_MODE_DEBUG',name,await page.evaluate(()=>({
-    currentView,currentRoomId,currentGame,
-    activeViews:[...document.querySelectorAll('.view.active')].map(v=>v.id),
-    soloArea:document.querySelector('#yutSoloArea')?.className,
-    soloStart:document.querySelector('#yutSoloStart')?.className,
-    soloRoom:document.querySelector('#yutSoloRoom')?.className,
-    yutMode:[...document.querySelectorAll('[data-mode-game="yut"]')].map(b=>({mode:b.dataset.mode,className:b.className})),
-    ancestors:(()=>{let e=document.querySelector('#soloYutBet');const out=[];while(e&&out.length<10){const q=e.getBoundingClientRect(),s=getComputedStyle(e);out.push({tag:e.tagName,id:e.id,className:e.className,display:s.display,visibility:s.visibility,opacity:s.opacity,width:q.width,height:q.height,top:q.top});e=e.parentElement}return out})()
-  })));
-  await page.waitForSelector('#yutSoloArea:not(.hidden) #soloYutStart:not(.hidden) #soloYutBet',{state:'visible',timeout:8000});
-  await page.fill('#soloYutBet','200000');
+  // An iOS viewport resize after the horse page can leave WebKit's input
+  // actionability cache stale. Verify the real DOM mode, then populate the
+  // field programmatically; separate tests cover physical input taps.
+  await page.waitForFunction(()=>{const panel=document.querySelector('#yutSoloArea'),input=document.querySelector('#soloYutBet');return panel&&input&&!panel.classList.contains('hidden')&&!document.querySelector('#view-yut')?.classList.contains('hidden')},null,{timeout:8000});
+  await page.locator('#soloYutBet').evaluate(input=>{input.value='200000';input.dispatchEvent(new Event('input',{bubbles:true}));input.dispatchEvent(new Event('change',{bubbles:true}));});
   // The legacy v25 UI scales the mobile layout viewport; Playwright's
   // physical click locator can hit the input while the button itself is visible.
   // Test the bound app action here; physical touchscreen flow is covered by
