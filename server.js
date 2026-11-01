@@ -236,7 +236,7 @@ const goldenbell=require('./goldenbell-server')({db,crypto,readBody,requireAuth,
   isUserBusy:id=>!!findUserRoom(id)||!!baccaratFindUser(id)||treasureRaid.hasUser(id)||sichuanBattle.hasUser(id)||omok.hasUser(id)||liar.hasUser(id)||janggi.hasUser(id)||royalCards.hasUser(id),
   notify:(ids,roomId)=>{for(const [,client] of sseClients)if(ids.includes(Number(client.userId))){try{client.res.write(`event: refresh\ndata: ${JSON.stringify({goldenbell:true,roomId})}\n\n`);}catch{}}}
 });
-const omok=require('./omok-server')({db,crypto,readBody,requireAuth,json,rateLimit,
+const omok=require('./omok-server')({db,crypto,exactWallet,readBody,requireAuth,json,rateLimit,
   isUserBusy:id=>!!findUserRoom(id)||!!baccaratFindUser(id)||treasureRaid.hasUser(id)||goldenbell.hasUser(id)||sichuanBattle.hasUser(id),
   notify:(ids,roomId)=>{for(const [,client] of sseClients)if(ids.includes(Number(client.userId))){try{client.res.write(`event: refresh\ndata: ${JSON.stringify({omok:true,roomId})}\n\n`);}catch{}}}
 });
