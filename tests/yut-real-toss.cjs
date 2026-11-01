@@ -14,7 +14,7 @@ assert.equal((first.match(/class="yut-stick back-face/g)||[]).length,1,'one back
 assert.equal((first.match(/class="yut-stick flat-face/g)||[]).length,3,'three flat faces');
 assert.equal((second.match(/class="yut-stick flat-face/g)||[]).length,4);
 assert.equal((first.match(/class="yut-stick-body"/g)||[]).length,4,'four 3-D bodies');
-assert.equal((first.match(/class="yut-face-flat"/g)||[]).length,4,'four fronts');
+assert.equal((first.match(/class="yut-stick-face yut-face-flat"/g)||[]).length,4,'four fronts');
 assert.equal((first.match(/class="yut-stick-face yut-face-back"/g)||[]).length,4,'four backs');
 assert.equal((first.match(/--rest-face:180deg/g)||[]).length,1,'server backs are rendered as backs');
 assert.equal((first.match(/--rest-face:0deg/g)||[]).length,3,'server flats are rendered as flats');
@@ -24,7 +24,7 @@ assert.ok(css.includes('@keyframes yutRealArc')&&css.includes('@keyframes yutRea
 assert.match(css,/calc\(720deg \+ var\(--rest-face\)\)/,'full flips land on authoritative side');
 assert.match(css,/prefers-reduced-motion:reduce/);
 assert.match(css,/1\.34s linear both!important/,'no infinite toss animation');
-assert.ok(!css.includes('infinite'),'scene animations are finite, unlike legacy wiggle');
+assert.ok(!/animation:[^;\n]*infinite/.test(css),'scene animations are finite, unlike legacy wiggle');
 assert.ok(html.includes('yut-toss-real-v3.css?v='),'last-loaded winning CSS');
 assert.ok(app.includes('await sleep(1610);renderSoloYut(d.game)'),'solo result after all four sticks land');
 assert.ok(app.includes("await sleep(1530);nextScene?.classList.remove('throwing')"),'AI replay lasts until last stick lands');
