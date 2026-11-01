@@ -2,8 +2,10 @@
 const rules=require('./omok-engine');
 const {Worker}=require('node:worker_threads');
 const {selectMove}=require('./omok-ai');
-module.exports=function createOmok({db,crypto,readBody,requireAuth,json,rateLimit,now=Date.now,isUserBusy=()=>false,notify=()=>{},setTimer=setTimeout,clearTimer=clearTimeout,aiDecide=null}){
+const {stakeValue,createOmokAiWager}=require('./omok-ai-wager');
+module.exports=function createOmok({db,crypto,readBody,requireAuth,json,rateLimit,now=Date.now,isUserBusy=()=>false,notify=()=>{},setTimer=setTimeout,clearTimer=clearTimeout,aiDecide=null,exactWallet=null}){
   const rooms=new Map(),timers=new Map();
+  const wager=exactWallet?createOmokAiWager({db,exactWallet,now}):null;
   const AI_ID=0,AI_NICKNAME='J-BOT · EXTREME';
   const TURN_MS=90000,WAIT_MS=30*60000,DONE_MS=15*60000;
   const getStats=id=>{
@@ -49,6 +51,7 @@ module.exports=function createOmok({db,crypto,readBody,requireAuth,json,rateLimi
   function disarm(r){const timer=timers.get(r.id);if(timer)clearTimer(timer);timers.delete(r.id);}
   function finish(r,winner,reason,line=[]){
     if(r.phase!=='playing')return;
+    if(r.aiMode&&r.stake!=='0')r.settlement=wager.settle(r,winner);
     disarm(r);r.phase='complete';r.aiThinking=false;r.winner=winner;r.reason=reason;r.line=line;r.deadline=0;r.completedAt=now();
     record(r,winner);publish(r);
   }
@@ -118,7 +121,7 @@ module.exports=function createOmok({db,crypto,readBody,requireAuth,json,rateLimi
       }).catch(error=>{
         // Never leave a user trapped in a stalled computer turn.
         console.error('[OMOK AI]',error.message);
-        if(rooms.get(r.id)===r&&r.phase==='playing'&&r.turn===color){r.aiThinking=false;finish(r,r.players.find(p=>p.id!==AI_ID).id,'AI 연산 오류');}
+        if(rooms.get(r.id)===r&&r.phase==='playing'&&r.turn===color){r.aiThinking=false;finish(r,null,'AI 연산 오류 · 판돈 환급');}
       });
   }
   function pub(r,id){
@@ -126,10 +129,14 @@ module.exports=function createOmok({db,crypto,readBody,requireAuth,json,rateLimi
       name:r.name,hostId:r.hostId,players:r.players.map(p=>({id:p.id,nickname:p.nickname,ready:p.ready,rematch:p.rematch,color:r.colors[p.id]||0})),
       selfId:Number(id),myColor:r.colors[id]||0,myTurn:r.phase==='playing'&&r.colors[id]===r.turn,
       turn:r.turn,deadline:r.deadline,serverNow:now(),winner:r.winner,reason:r.reason,moves:r.moves,
-      aiMode:!!r.aiMode,aiThinking:!!r.aiThinking};
+      aiMode:!!r.aiMode,aiThinking:!!r.aiThinking,stake:r.stake||'0',settlement:r.phase==='complete'?r.settlement||null:null};
   }
   function start(r,again=false){
     if(r.players.length!==2)throw Error('두 명이 모두 입장해야 합니다.');
+    if(r.aiMode&&r.stake!=='0'){
+      if(!wager)throw Error('오목 AI 게임머니 지갑 연결 오류');
+      wager.reserve(r);
+    }
     const p0=r.players[0],p1=r.players[1];
     r.round=(r.round||0)+1;
     r.colors={};
@@ -137,7 +144,7 @@ module.exports=function createOmok({db,crypto,readBody,requireAuth,json,rateLimi
     r.colors[p1.id]=r.round%2===1?2:1;
     r.players.forEach(p=>{p.ready=false;p.rematch=false;});
     r.board=rules.fresh();r.last=null;r.line=[];r.moves=0;r.turn=1;r.winner=null;r.reason='';
-    r.phase='playing';r.recorded=false;r.aiThinking=false;
+    r.phase='playing';r.recorded=false;r.aiThinking=false;r.settlement=null;
     if(r.aiMode&&r.colors[AI_ID]===r.turn)queueAi(r);
     else {arm(r);publish(r);}
   }
@@ -168,9 +175,9 @@ module.exports=function createOmok({db,crypto,readBody,requireAuth,json,rateLimi
         const id='OM'+crypto.randomBytes(7).toString('hex');
         const room={id,name:'극한 AI 챌린지',hostId:user.id,
           players:[{id:user.id,nickname:user.nickname,ready:true,rematch:false},{id:AI_ID,nickname:AI_NICKNAME,ready:true,rematch:false}],
-          colors:{},aiMode:true,aiThinking:false,phase:'waiting',round:0,board:rules.fresh(),last:null,line:[],
+          colors:{},aiMode:true,aiThinking:false,stake:stakeValue(b.stake),escrowed:false,phase:'waiting',round:0,board:rules.fresh(),last:null,line:[],
           moves:0,turn:1,winner:null,reason:'',version:0,updated:now(),deadline:0,recorded:false};
-        rooms.set(id,room);start(room);
+        rooms.set(id,room);try{start(room);}catch(e){rooms.delete(id);throw e;}
         return reply(201,{room:pub(room,user.id)});
       }
       if(url.pathname==='/api/omok/create'&&req.method==='POST'){
