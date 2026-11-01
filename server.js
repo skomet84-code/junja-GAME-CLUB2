@@ -7,6 +7,7 @@ const crypto = require('node:crypto');
 const staticResponse = require('./static-response');
 const exactWallet = require('./exact-wallet');
 const {createJBank}=require('./j-bank-core');
+const {createCasinoCollateral}=require('./casino-collateral');
 const {createJStocks}=require('./j-stock-core');
 const {createKospiReference}=require('./j-stock-kospi-reference');
 const {createJCoins}=require('./j-coin-core');
@@ -786,6 +787,7 @@ const SOCIAL_RANKS = [
   {level:13,name:'GOD JUNJA',icon:'G',cost:'1000000000000000000',className:'absolute'}
 ];
 const jBank=createJBank({db,exactWallet,levels:SOCIAL_RANKS,now,kstDate});
+const casinoCollateral=createCasinoCollateral({db,exactWallet,jBank,levels:SOCIAL_RANKS,now});
 function socialRankPerks(level){
   level=Math.max(0,Math.min(SOCIAL_RANKS.length-1,Number(level)||0));
   const extraDraws=level>=13?9:level>=12?6:level>=11?4:level>=9?3:level>=6?2:level>=3?1:0;
@@ -838,6 +840,7 @@ function promoteSocialRank(userId){
     const next=SOCIAL_RANKS[level+1];
     if(!next)throw new Error('이미 GOD JUNJA · 갓준자 최고 신분입니다.');
     if(jBank.owed(userId)>0n)throw new Error('J-BANK 원금과 이자를 완납해야 신분 상승이 가능합니다.');
+    if(db.prepare("SELECT 1 FROM room_escrow WHERE user_id=? AND game LIKE 'casino_%' LIMIT 1").get(userId))throw new Error('진행 중인 카지노에 담보가 묶여 있어 신분 상승이 제한됩니다.');
     // Keep rank purchases on the same exact-integer wallet path as the rest of JUNJA LAND.
     const current=exactWallet.read(u),cost=BigInt(next.cost);
     if(current<cost)throw new Error(`신분 상승에 ${formatMoney(next.cost)} G가 필요합니다.`);
@@ -2110,7 +2113,7 @@ const treasureRaid=createTreasureRaid({
 });
 
 
-const royalCards=require('./royal-cards-server')({db,crypto,exactWallet,readBody,requireAuth,json,rateLimit,
+const royalCards=require('./royal-cards-server')({db,crypto,exactWallet,casinoCollateral,readBody,requireAuth,json,rateLimit,
   otherBusy:id=>!!findUserRoom(id)||!!baccaratFindUser(id)||treasureRaid.hasUser(id)||goldenbell.hasUser(id)||omok.hasUser(id)||liar.hasUser(id)||janggi.hasUser(id)||sichuanBattle.hasUser(id),
   notify:(ids,roomId)=>{for(const [,client] of sseClients)if(ids.includes(Number(client.userId))){try{client.res.write('event: refresh\n'+'data: '+JSON.stringify({royalcards:true,roomId})+'\n\n');}catch{}}}
 });
