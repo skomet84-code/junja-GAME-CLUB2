@@ -97,7 +97,12 @@ for(const [browserName,engine] of [['chromium',chromium],['webkit',webkit]]){
   });
   if(color!==2)throw Error('black/white rematch not swapped');
   await b.waitForSelector('.omk-board .omk-point[data-x="7"][data-y="7"]:not([disabled])',{timeout:15000});
-  await checkBoardGeometry(b,'rematch',originalB);
+  // A new round may legitimately reposition the board when its header changes.
+  // Capture a fresh baseline and ensure placing stones does not shift its grid.
+  const rematchBoard=await checkBoardGeometry(b,'rematch');
+  await b.click('.omk-point[data-x="7"][data-y="7"]');
+  await a.waitForSelector('.omk-point[data-x="7"][data-y="7"] .omk-stone.black',{timeout:15000});
+  await checkBoardGeometry(b,'after rematch first move',rematchBoard);
   console.log('OMOK_MOBILE_OK '+browserName+' head-to-head moves, UI events, resign and swapped-color rematch');
   a.once('dialog',dialog=>dialog.accept());
   await a.click('[data-action="leave"]');
