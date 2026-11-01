@@ -101,6 +101,14 @@ for (const [name,engine] of engines) {
   // Test the bound app action here; physical touchscreen flow is covered by
   // tests/omok-mobile-smoke.mjs for the newly added multiplayer game.
   await page.locator('#startSoloYut').evaluate(button=>button.click());
+  await page.waitForTimeout(350);
+  const yutStartDebug=await page.evaluate(async()=>{
+    let apiResult;try{const r=await fetch('/api/solo/yut',{credentials:'same-origin'});const j=await r.json();apiResult={status:r.status,game:!!j.game,phase:j.game?.phase,error:j.error}}catch(e){apiResult={error:String(e)}}
+    return {toast:document.querySelector('#toast')?.textContent,soloRoomClass:document.querySelector('#yutSoloRoom')?.className,
+      soloStartClass:document.querySelector('#yutSoloStart')?.className,buttonDisabled:document.querySelector('#startSoloYut')?.disabled,
+      apiResult};
+  });
+  console.log('YUT_SOLO_START_DEBUG',name,JSON.stringify(yutStartDebug));
   await page.waitForSelector('#yutSoloRoom:not(.hidden)',{timeout:8000});
   await page.waitForSelector('#yutSoloRoom .true-yut-board',{timeout:5000});
   const boardBox=await page.locator('#yutSoloRoom .true-yut-board').boundingBox();
