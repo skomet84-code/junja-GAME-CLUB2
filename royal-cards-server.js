@@ -301,9 +301,10 @@ module.exports=function createRoyalCards({db,crypto,requireAuth,readBody,json,ra
  }
  function create(game,host,mode,max,name,stake){
   const r={id:'RC'+crypto.randomBytes(7).toString('hex'),game,mode,hostId:host.id,name:String(name|| (game==='onecard'?'로얄 원카드':'로얄 훌라')).trim().slice(0,36)||'ROYAL CARDS',
-   stake:game==='hula'&&mode==='multi'?stakeValue(stake):'0',phase:'waiting',version:0,round:0,max,players:[{id:host.id,name:host.nickname,ready:false,hand:[],registered:false,meldBefore:false}],direction:1,turn:0,
+   stake:game==='hula'?stakeValue(stake):'0',phase:'waiting',version:0,round:0,max,players:[{id:host.id,name:host.nickname,ready:false,hand:[],registered:false,meldBefore:false}],direction:1,turn:0,
    updated:now(),events:[],deck:[],discard:[],melds:[],deadline:0};
   if(mode==='ai'){r.players.push({id:'ai:'+r.id,name:game==='onecard'?'J-BOT · 에이스':'J-BOT · 타짜',bot:true,ready:true,hand:[],registered:false});}
+  if(mode==='ai'&&r.stake!=='0'){if(!casino)throw Error('훌라 카지노 지갑 연결 오류');casino.reserve(r);}
   rooms.set(r.id,r);if(mode==='ai')fresh(r);else publish(r);return r;
  }
  function newRound(r){
