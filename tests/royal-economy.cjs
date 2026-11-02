@@ -3,7 +3,20 @@ const assert=require('node:assert/strict');
 const {DatabaseSync}=require('node:sqlite');
 const exactWallet=require('../exact-wallet');
 const {createRoyalEconomy,ROYAL_ITEMS}=require('../royal-economy');
-const db=new DatabaseSync(':memory:');
+// Mirror persistent-db's BigInt-safe reads: native node:sqlite throws for >2^53 otherwise.
+const native=new DatabaseSync(':memory:');
+const normalize=value=>{
+ if(typeof value==='bigint')return value<=BigInt(Number.MAX_SAFE_INTEGER)&&value>=-BigInt(Number.MAX_SAFE_INTEGER)?Number(value):String(value);
+ if(value&&typeof value==='object'){for(const k of Object.keys(value))value[k]=normalize(value[k]);}
+ return value;
+};
+const db={
+ exec(sql){return native.exec(sql)},
+ prepare(sql){
+  const stmt=native.prepare(sql);stmt.setReadBigInts(true);
+  return {run(...a){return stmt.run(...a)},get(...a){return normalize(stmt.get(...a))},all(...a){return stmt.all(...a).map(normalize)}};
+ }
+};
 db.exec(`
 CREATE TABLE users(id INTEGER PRIMARY KEY,nickname TEXT NOT NULL,balance INTEGER,balance_exact TEXT,balance_base TEXT,is_disabled INTEGER DEFAULT 0);
 CREATE TABLE user_inventory(user_id INTEGER NOT NULL,item_id TEXT NOT NULL,purchase_price INTEGER,purchased_at INTEGER,PRIMARY KEY(user_id,item_id));
