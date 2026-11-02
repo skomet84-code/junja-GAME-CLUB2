@@ -1,16 +1,22 @@
 'use strict';
-const DAY=86400000,DENOM=10000n*BigInt(DAY);
+const DAY=86400000,KST_OFFSET=9*3600000,DENOM=10000n*BigInt(DAY);
+// Installments are limited by Asia/Seoul calendar dates, not rolling 24h windows.
+const kstDay=at=>Math.floor((Number(at)+KST_OFFSET)/DAY);
 const PRODUCTS=Object.freeze([{days:7,rateBP:8},{days:14,rateBP:10},{days:30,rateBP:15}].map(p=>Object.freeze({...p,dailyInterestPct:(p.rateBP/100).toFixed(2)})));
 function interest(a,end,rate){return String(a.payments.reduce((sum,p)=>sum+BigInt(a.amount)*BigInt(Math.max(0,Math.min(end,a.maturesAt)-p.at))*BigInt(rate),0n)/DENOM);}
 function view(a,at){
  if(!a)return null;
- const slot=Math.floor((at-a.openedAt)/DAY),matured=at>=a.maturesAt,complete=a.payments.length===a.days;
- const missed=Math.max(0,Math.min(a.days,slot)-a.payments.filter(p=>p.slot<slot).length);
- const rateBP=missed?5:a.rateBP;
- return {id:a.id,days:a.days,amount:a.amount,openedAt:a.openedAt,maturesAt:a.maturesAt,paidCount:a.payments.length,principal:String(BigInt(a.amount)*BigInt(a.payments.length)),dailyInterestPct:(a.rateBP/100).toFixed(2),effectiveDailyInterestPct:(rateBP/100).toFixed(2),missedCount:missed,matured,complete,
-  canPay:!matured&&slot>=0&&!a.payments.some(p=>p.slot===slot),nextPaymentAt:a.openedAt+(slot+1)*DAY,
+ const slot=kstDay(at)-kstDay(a.openedAt),matured=at>=a.maturesAt,complete=a.payments.length>=a.days;
+ // Use actual transaction timestamps to support old accounts with 24h-based stored slots.
+ const paidDays=new Set(a.payments.map(p=>kstDay(p.at)-kstDay(a.openedAt)));
+ const dueDays=Math.max(0,Math.min(a.days,slot));
+ const missed=Math.max(0,dueDays-[...paidDays].filter(s=>s>=0&&s<dueDays).length);
+ const rateBP=missed?5:a.rateBP,paidToday=paidDays.has(slot);
+ return {id:a.id,days:a.days,amount:a.amount,openedAt:a.openedAt,maturesAt:a.maturesAt,paidCount:a.payments.length,principal:String(BigInt(a.amount)*BigInt(a.payments.length)),dailyInterestPct:(a.rateBP/100).toFixed(2),effectiveDailyInterestPct:(rateBP/100).toFixed(2),missedCount:missed,matured,complete,paidToday,
+  canPay:!matured&&!complete&&slot>=0&&slot<a.days&&!paidToday,nextPaymentAt:(kstDay(at)+1)*DAY-KST_OFFSET,
   accruedInterest:interest(a,Math.min(at,a.maturesAt),rateBP),maturityInterestOnPaid:interest(a,a.maturesAt,rateBP)};
 }
+
 function requestText(kind,raw){
  if(kind==='installmentOpen'){
   if(!raw||!PRODUCTS.some(p=>p.days===raw.days)||typeof raw.amount!=='string'||!/^[1-9][0-9]{0,79}$/.test(raw.amount))throw Error('적금 기간과 납입금액을 확인하세요.');
@@ -34,9 +40,9 @@ function transact(record,kind,text,requestId,at,debt,balance){
  const v=view(a,at);
  if(kind==='installmentPay'){
   if(debt>0n)throw Error('대출을 완납해야 적금을 납입할 수 있습니다.');
-  if(!v.canPay)throw Error(v.matured?'만기일이 지났습니다. 만기 수령해 주세요.':'이번 회차는 이미 납입했습니다.');
+  if(!v.canPay)throw Error(v.matured?'만기일이 지났습니다. 만기 수령해 주세요.':v.complete?'모든 회차의 납입이 완료됐습니다.':v.paidToday?'오늘은 이미 납입했습니다. 한국시간 기준 하루 1회만 가능합니다.':'이번 회차는 이미 납입했거나 납입 가능 기간이 아닙니다.');
   const amount=BigInt(a.amount);if(amount>balance)throw Error('게임머니 잔액이 부족합니다.');
-  a.payments.push({slot:Math.floor((at-a.openedAt)/DAY),at});
+  a.payments.push({slot:kstDay(at)-kstDay(a.openedAt),at});
   return {delta:-amount,type:'jbank_installment_pay',memo:'J-BANK 적금 '+a.payments.length+'회차 납입'};
  }
  if(kind!=='installmentClaim'&&kind!=='installmentCancel')throw Error('알 수 없는 적금 거래입니다.');
