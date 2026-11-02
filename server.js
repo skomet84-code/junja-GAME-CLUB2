@@ -796,22 +796,23 @@ function equipShopItem(userId,category,itemId){
 
 const SOCIAL_RANKS = [
   {level:0,name:'평민',icon:'◇',cost:0,className:'commoner'},
-  {level:1,name:'상인',icon:'🪙',cost:1000000000,className:'merchant'},
-  {level:2,name:'부호',icon:'💎',cost:10000000000,className:'tycoon'},
-  {level:3,name:'귀족',icon:'✦',cost:100000000000,className:'noble'},
-  {level:4,name:'남작',icon:'♜',cost:500000000000,className:'baron'},
-  {level:5,name:'자작',icon:'♞',cost:1000000000000,className:'viscount'},
-  {level:6,name:'백작',icon:'♛',cost:3000000000000,className:'count'},
-  {level:7,name:'후작',icon:'⚜',cost:5000000000000,className:'marquis'},
-  {level:8,name:'공작',icon:'👑',cost:10000000000000,className:'duke'},
-  {level:9,name:'왕',icon:'♔',cost:30000000000000,className:'king'},
-  {level:10,name:'황제',icon:'🏰',cost:100000000000000,className:'emperor'},
-  {level:11,name:'JUNJA ROYAL',icon:'J',cost:300000000000000,className:'royal'},
-  {level:12,name:'THE ABSOLUTE',icon:'∞',cost:10000000000000000,className:'god'},
-  // GOD JUNJA final tier, 100경 G · decimal string is exact beyond Number.MAX_SAFE_INTEGER.
-  {level:13,name:'GOD JUNJA',icon:'G',cost:'1000000000000000000',className:'absolute'}
+  {level:1,name:'상인',icon:'🪙',cost:10000000000,className:'merchant'},
+  {level:2,name:'부호',icon:'💎',cost:100000000000,className:'tycoon'},
+  {level:3,name:'귀족',icon:'✦',cost:1000000000000,className:'noble'},
+  {level:4,name:'남작',icon:'♜',cost:5000000000000,className:'baron'},
+  {level:5,name:'자작',icon:'♞',cost:10000000000000,className:'viscount'},
+  {level:6,name:'백작',icon:'♛',cost:30000000000000,className:'count'},
+  {level:7,name:'후작',icon:'⚜',cost:50000000000000,className:'marquis'},
+  {level:8,name:'공작',icon:'👑',cost:100000000000000,className:'duke'},
+  {level:9,name:'왕',icon:'♔',cost:300000000000000,className:'king'},
+  {level:10,name:'황제',icon:'🏰',cost:1000000000000000,className:'emperor'},
+  {level:11,name:'JUNJA ROYAL',icon:'J',cost:3000000000000000,className:'royal'},
+  {level:12,name:'THE ABSOLUTE',icon:'∞',cost:'100000000000000000',className:'god'},
+  // GOD JUNJA final tier, 1,000경 G · decimal string is exact beyond Number.MAX_SAFE_INTEGER.
+  {level:13,name:'GOD JUNJA',icon:'G',cost:'10000000000000000000',className:'absolute'}
 ];
-const jBank=createJBank({db,exactWallet,levels:SOCIAL_RANKS,now,kstDate});
+const RANK_RESALE_LEGACY_COSTS=Object.freeze(["0","1000000000","10000000000","100000000000","500000000000","1000000000000","3000000000000","5000000000000","10000000000000","30000000000000","100000000000000","300000000000000","10000000000000000","1000000000000000000"]);
+const jBank=createJBank({db,exactWallet,levels:SOCIAL_RANKS,legacyRankCosts:RANK_RESALE_LEGACY_COSTS,now,kstDate});
 const casinoCollateral=createCasinoCollateral({db,exactWallet,jBank,levels:SOCIAL_RANKS,now});
 let bankCollectionsBusy=false;
 async function checkOverdueBanks(){

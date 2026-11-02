@@ -1,0 +1,36 @@
+name: Rank Price and Collateral Regression
+on:
+  push:
+    branches: ['fix/rank-promotion-x10-20261103']
+  pull_request:
+    paths:
+      - 'server.js'
+      - 'j-bank-core.js'
+      - 'j-bank-overdue.js'
+      - 'casino-collateral.js'
+      - 'public/rank-system.js'
+      - 'tests/god-junja-price-exact.cjs'
+      - 'tests/j-bank.cjs'
+      - '.github/workflows/rank-price-regression.yml'
+jobs:
+  rank-bank:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-package-lock --omit=optional --no-audit --no-fund
+      - name: Rank and banking exact-value tests
+        run: |
+          node --check server.js
+          node --check j-bank-core.js
+          node --check j-bank-overdue.js
+          node --check casino-collateral.js
+          node --check public/rank-system.js
+          node tests/god-junja-rank-smoke.cjs
+          node tests/absolute-rank-smoke.cjs
+          node tests/god-junja-price-exact.cjs
+          node tests/j-bank.cjs
+          node tests/j-bank-overdue.cjs
+          node tests/casino-collateral.cjs

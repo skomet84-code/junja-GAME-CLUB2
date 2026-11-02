@@ -6,6 +6,7 @@ const server=fs.readFileSync('server.js','utf8'),html=fs.readFileSync('public/in
 const start=server.indexOf('const SOCIAL_RANKS = ['),end=server.indexOf('\n];',start)+3;
 assert.ok(start>=0&&end>start,'live rank table');
 const ranks=vm.runInNewContext(server.slice(start,end)+'\nSOCIAL_RANKS;');
+const legacyRankCosts=ranks.map(rank=>rank.level?String(BigInt(rank.cost)/10n):'0');
 assert.equal(ranks[12].name,'THE ABSOLUTE');assert.equal(ranks[13].name,'GOD JUNJA');
 assert.equal(LIMITS.length,ranks.length);assert.equal(LIMITS[12],'100000000000000000','10경 G for THE ABSOLUTE');
 assert.equal(LIMITS[11],'5000000000000000','JUNJA ROYAL 5000조 G loan limit');
@@ -19,7 +20,7 @@ function add(id,rank,money=0n){db.prepare('INSERT INTO users(id,rank_level,balan
 function wallet(id){return exactWallet.read(db.prepare('SELECT balance,balance_exact,balance_base FROM users WHERE id=?').get(id));}
 function fund(id,amount){db.prepare('UPDATE users SET balance=?,balance_exact=?,balance_base=? WHERE id=?').run(exactWallet.mirror(amount),String(amount),String(exactWallet.mirror(amount)),id);}
 let day='2026-10-25',tm=1792900000000;
-const bank=createJBank({db,exactWallet,levels:ranks,now:()=>tm++,kstDate:()=>day});
+const bank=createJBank({db,exactWallet,levels:ranks,legacyRankCosts,now:()=>tm++,kstDate:()=>day});
 const req=n=>'idempotent_request_'+n;
 const x=100000000000000000n;
 add(1,12);add(2,0);
@@ -60,11 +61,12 @@ assert.equal(wallet(1),0n);
 assert.equal(bank.status(1).canPromote,true,'promotion unlocked when principal AND interest gone');
 assert.equal(bank.repay(1,'all',req('full')).duplicate,true,'repeat payoff never debits twice');
 assert.throws(()=>bank.repay(1,'1',req('overpay')),/상환할 대출/);
-fund(1,1000000000000000000n);
+fund(1,10000000000000000000n);
 assert.equal(ctx.promote(1).rank.level,13,'fully repaid member may ascend to GOD JUNJA');
 assert.equal(wallet(1),0n);
 assert.equal(bank.status(1).rank.name,'GOD JUNJA');
-const again=createJBank({db,exactWallet,levels:ranks,now:()=>tm++,kstDate:()=>day});
+assert.equal(bank.rankResaleBasis(1,13),10000000000000000000n,'new purchase resale basis equals actual 1,000경 paid');
+const again=createJBank({db,exactWallet,levels:ranks,legacyRankCosts,now:()=>tm++,kstDate:()=>day});
 assert.equal(again.status(1).totalBorrowed,String(x),'bank survives service instance restart');
 assert.equal(again.status(1).outstanding,'0');
 assert.equal(bank.status(2).outstanding,'0','users isolated');
@@ -105,7 +107,7 @@ assert.equal(db.prepare("SELECT COUNT(*) AS n FROM ledger WHERE user_id=4 AND ty
 assert.equal(db.prepare("SELECT COUNT(*) AS n FROM ledger WHERE user_id=4 AND type='jbank_rank_sale_repay'").get().n,1n);
 assert.equal(bank.status(4).saleCount,1);
 assert.equal(bank.status(4).lastRankSale.toName,'JUNJA ROYAL');
-const afterSaleRestart=createJBank({db,exactWallet,levels:ranks,now:()=>tm++,kstDate:()=>day});
+const afterSaleRestart=createJBank({db,exactWallet,levels:ranks,legacyRankCosts,now:()=>tm++,kstDate:()=>day});
 assert.equal(afterSaleRestart.status(4).rank.level,11,'rank sale survives bank restart');
 assert.equal(afterSaleRestart.status(4).outstanding,'90100000000000000','partial debt survives restart');
 
@@ -153,7 +155,7 @@ assert.ok(ui.includes('승급비용의 <b>99%</b>'),'sale UI rate is accurate');
  bankDbFile.prepare("INSERT INTO users(id,nickname,rank_level,is_disabled,balance,balance_exact,balance_base) VALUES(1,'보내는회원',0,0,2000000,'2000000','2000000')").run();
  bankDbFile.prepare("INSERT INTO users(id,nickname,rank_level,is_disabled,balance,balance_exact,balance_base) VALUES(2,'받는회원',0,0,100,'100','100')").run();
  let transferDay='2026-10-25';
- const transferBank=createJBank({db:transferDb,exactWallet,levels:ranks,now:()=>tm++,kstDate:()=>transferDay});
+ const transferBank=createJBank({db:transferDb,exactWallet,levels:ranks,legacyRankCosts,now:()=>tm++,kstDate:()=>transferDay});
  const transferContext={db:transferDb,jBank:transferBank,now:()=>tm++,socialRankPerksForUser:()=>({transferFeePct:2}),formatMoney:n=>String(n)};
  vm.createContext(transferContext);
  vm.runInContext(server.slice(transferStart,transferEnd)+'\nthis.transfer=transferGameMoney;',transferContext);
@@ -188,7 +190,7 @@ console.log('JBANK_OK: exact 10경, rank limits, daily simple interest, partial/
 
 // Savings use elapsed time, exact integers and atomic idempotent wallet transfers.
 let savingsNow=Date.parse('2026-10-31T00:00:00Z');
-const savingsBank=createJBank({db,exactWallet,levels:ranks,now:()=>savingsNow,kstDate:()=>day});
+const savingsBank=createJBank({db,exactWallet,levels:ranks,legacyRankCosts,now:()=>savingsNow,kstDate:()=>day});
 add(20,12,100000000000000000n);
 const deposited=100000000000000000n;
 savingsBank.deposit(20,String(deposited),req('save'));
@@ -202,7 +204,7 @@ savingsBank.withdraw(20,'50000000000000',req('interest'));
 assert.equal(savingsBank.status(20).savings.principal,String(deposited),'interest withdrawn first');
 savingsNow+=86400000;
 assert.equal(savingsBank.status(20).savings.interest,'50000000000000','simple, not compound');
-const restartSavings=createJBank({db,exactWallet,levels:ranks,now:()=>savingsNow,kstDate:()=>day});
+const restartSavings=createJBank({db,exactWallet,levels:ranks,legacyRankCosts,now:()=>savingsNow,kstDate:()=>day});
 restartSavings.withdraw(20,'all',req('withdraw_all'));
 assert.equal(wallet(20),deposited+100000000000000n);
 assert.equal(restartSavings.withdraw(20,'all',req('withdraw_all')).duplicate,true);
@@ -233,7 +235,7 @@ console.log('JBANK_SAVINGS_OK: exact money, elapsed interest, fractional carry, 
 // Fixed installment schedules: elapsed-time interest per payment, never total-principal x full term.
 let installmentNow=Date.parse('2026-11-01T00:00:00Z');
 const dailyMs=86400000;
-const installmentBank=createJBank({db,exactWallet,levels:ranks,now:()=>installmentNow,kstDate:()=>day});
+const installmentBank=createJBank({db,exactWallet,levels:ranks,legacyRankCosts,now:()=>installmentNow,kstDate:()=>day});
 for(const [id,days,rate] of [[30,7,8n],[31,14,10n],[32,30,15n]]){
  const amount=10000000000000000n,initial=amount*100n;add(id,12,initial);
  const key=req('installment_'+days);
@@ -251,7 +253,7 @@ for(const [id,days,rate] of [[30,7,8n],[31,14,10n],[32,30,15n]]){
  installmentNow=opened.maturesAt;
  const expected=amount*BigInt(days*(days+1)/2)*rate/10000n;
  assert.equal(installmentBank.status(id).installment.maturityInterestOnPaid,String(expected));
- const restart=createJBank({db,exactWallet,levels:ranks,now:()=>installmentNow,kstDate:()=>day});
+ const restart=createJBank({db,exactWallet,levels:ranks,legacyRankCosts,now:()=>installmentNow,kstDate:()=>day});
  assert.throws(()=>restart.installmentPay(id,key,req('late_'+days)),/만기/);
  assert.throws(()=>restart.installmentCancel(id,key,req('cancel_mature_'+days)),/만기/);
  restart.installmentClaim(id,key,req('claim_'+days));

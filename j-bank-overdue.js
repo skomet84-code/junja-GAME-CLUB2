@@ -2,7 +2,7 @@
 // Automatic J-BANK game-money collections. All changes to wallet, collateral,
 // portfolios, and bank debt commit as one SQLite transaction. No live orders.
 const DAY=86400000,GRANT=100000000000n;
-function createOverdue({db,exactWallet,now,kstDate,levels,read,project,store,empty,installment}){
+function createOverdue({db,exactWallet,now,kstDate,levels,read,project,store,empty,installment,purchasedRankBasis}){
  const selectUser=db.prepare('SELECT id,rank_level,balance,balance_exact,balance_base FROM users WHERE id=?');
  const getKey=db.prepare('SELECT value FROM game_state WHERE key=?');
  const putKey=db.prepare('INSERT INTO game_state(key,value,updated_at) VALUES(?,?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value,updated_at=excluded.updated_at');
@@ -100,7 +100,7 @@ function createOverdue({db,exactWallet,now,kstDate,levels,read,project,store,emp
      assetSale('jstock',1n,50n);
      assetSale('jcoin',10000n,20n);
      while(debtOf(a)>0n&&rank>0){
-       const value=BigInt(String(levels[rank].cost))*9900n/10000n;
+       const value=purchasedRankBasis(id,rank)*9900n/10000n;
        const label=levels[rank].name+' → '+levels[rank-1].name;
        rank--;
        if(value>0n)addAsset(value,'jbank_overdue_rank',label+' 신분 99% 강제 매각');

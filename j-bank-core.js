@@ -11,7 +11,7 @@ const LIMITS=Object.freeze([
 const RATE_BP=10n,MIN_LOAN=1000000n,SELL_RATE_BP=9900n; // 99% of the rank purchase price // 0.1% simple interest per KST day.
 function dayNumber(s){const n=Date.parse(String(s)+'T00:00:00Z');if(!Number.isFinite(n))throw Error('이자 계산 날짜 오류');return Math.floor(n/86400000);}
 function positive(raw){if(typeof raw!=='string'||!/^[1-9][0-9]{0,79}$/.test(raw))throw Error('금액은 1G 이상의 정수여야 합니다.');return BigInt(raw);}
-function createJBank({db,exactWallet,levels,now,kstDate}){
+function createJBank({db,exactWallet,levels,legacyRankCosts=null,now,kstDate}){
  const accountKey=id=>'jbank:account:'+Number(id);
  function empty(day){return {principal:'0',interest:'0',asOf:day,openedAt:0,closedAt:0,number:0,totalBorrowed:'0',totalRepaid:'0',lastRankSale:null,saleCount:0,savingsPrincipal:'0',savingsInterest:'0',savingsEarned:'0',savingsRemainder:'0',savingsAt:now(),savingsLockedUntil:0,installment:null,lastInstallment:null};}
  function read(id,day=kstDate()){const r=db.prepare('SELECT value FROM game_state WHERE key=?').get(accountKey(id));return r?{...empty(day),...JSON.parse(r.value)}:empty(day);}
@@ -33,13 +33,26 @@ function createJBank({db,exactWallet,levels,now,kstDate}){
  }
  function owed(id,day=kstDate()){const x=project(read(id,day),day);return BigInt(x.principal)+BigInt(x.interest);}
  function store(id,record){db.prepare('INSERT INTO game_state(key,value,updated_at) VALUES(?,?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value,updated_at=excluded.updated_at').run(accountKey(id),JSON.stringify(record),now());}
- const overdue=createOverdue({db,exactWallet,now,kstDate,levels,read,project,store,empty,installment});
+ // Selling an existing rank must not retroactively multiply its collateral value.
+ // Read the last actual promotion payment; for pre-change/granted ranks use the
+ // pre-increase price as a conservative legacy basis. All amounts remain exact BigInts.
+ const purchasedRankBasis=(id,level)=>{
+  if(level<=0||level>=levels.length)return 0n;
+  const row=db.prepare("SELECT amount_exact,amount FROM ledger WHERE user_id=? AND type='rank_promotion' AND memo=? ORDER BY created_at DESC,rowid DESC LIMIT 1")
+   .get(id,'신분 상승 · '+levels[level].name);
+  if(row){
+   const paid=BigInt(String(row.amount_exact??row.amount));
+   if(paid<0n)return -paid;
+  }
+  return BigInt(String(legacyRankCosts?.[level]??levels[level].cost));
+ };
+ const overdue=createOverdue({db,exactWallet,now,kstDate,levels,read,project,store,empty,installment,purchasedRankBasis});
  function status(id,day=kstDate()){
   const u=db.prepare('SELECT id,rank_level,balance,balance_exact,balance_base FROM users WHERE id=?').get(id);
   if(!u)throw Error('은행 회원을 찾을 수 없습니다.');
   const level=Math.max(0,Math.min(levels.length-1,Number(u.rank_level||0))),r=project(read(id,day),day);
   const debt=BigInt(r.principal)+BigInt(r.interest),limit=LIMITS[level];
-  const price=level>0?BigInt(String(levels[level].cost))*SELL_RATE_BP/10000n:0n;
+  const price=level>0?purchasedRankBasis(id,level)*SELL_RATE_BP/10000n:0n;
   const pay=price<debt?price:debt;
   const rankSale=debt>0n&&level>0?{fromLevel:level,fromName:levels[level].name,toLevel:level-1,toName:levels[level-1].name,
    salePrice:String(price),repayAmount:String(pay),remainingDebt:String(debt-pay),cashBack:String(price-pay),saleRatePct:99}:null;
@@ -135,7 +148,7 @@ function createJBank({db,exactWallet,levels,now,kstDate}){
   const sales=[],at=now();
   const ledger=db.prepare('INSERT INTO ledger(user_id,amount,balance_after,amount_exact,balance_after_exact,type,memo,created_at) VALUES(?,?,?,?,?,?,?,?)');
   while(available<need&&level>0){
-   const price=BigInt(String(levels[level].cost))*SELL_RATE_BP/10000n;
+   const price=purchasedRankBasis(id,level)*SELL_RATE_BP/10000n;
    const applied=price<debt?price:debt,net=price-applied;
    const paidInterest=applied<BigInt(a.interest)?applied:BigInt(a.interest);
    a.interest=String(BigInt(a.interest)-paidInterest);
@@ -183,7 +196,7 @@ function createJBank({db,exactWallet,levels,now,kstDate}){
    if(level<=0||level>=levels.length)throw Error('매각 가능한 신분이 없습니다.');
    const a=project(read(id,kstDate()),kstDate()),debt=BigInt(a.principal)+BigInt(a.interest);
    if(debt<=0n)throw Error('신분 매각은 상환할 대출이 있을 때만 가능합니다.');
-   const proceeds=BigInt(String(levels[level].cost))*SELL_RATE_BP/10000n;
+   const proceeds=purchasedRankBasis(id,level)*SELL_RATE_BP/10000n;
    if(proceeds<=0n)throw Error('매각할 신분 가치가 없습니다.');
    if(expectedLevel!==level||expectedDebt!==String(debt)||expectedPrice!==String(proceeds))
     throw Error('신분 매각 조건이 변경됐습니다. 은행을 새로 열고 다시 확인하세요.');
@@ -209,6 +222,6 @@ function createJBank({db,exactWallet,levels,now,kstDate}){
   }catch(e){try{db.exec('ROLLBACK');}catch{}throw e;}
  }
 
- return {status,owed,limits:LIMITS,...Object.fromEntries(['installmentOpen','installmentPay','installmentClaim','installmentCancel'].map(kind=>[kind,(id,raw,key)=>change(id,kind,raw,key)])),deposit:(id,amount,key)=>change(id,'deposit',amount,key),withdraw:(id,amount,key)=>change(id,'withdraw',amount,key),borrow:(id,amount,key)=>change(id,'borrow',amount,key),repay:(id,amount,key)=>change(id,'repay',amount,key),sellRank,forceCasinoSale,enforceOverdue:overdue.enforce,rehabilitation:overdue.rehabilitation};
+ return {status,owed,rankResaleBasis:purchasedRankBasis,limits:LIMITS,...Object.fromEntries(['installmentOpen','installmentPay','installmentClaim','installmentCancel'].map(kind=>[kind,(id,raw,key)=>change(id,kind,raw,key)])),deposit:(id,amount,key)=>change(id,'deposit',amount,key),withdraw:(id,amount,key)=>change(id,'withdraw',amount,key),borrow:(id,amount,key)=>change(id,'borrow',amount,key),repay:(id,amount,key)=>change(id,'repay',amount,key),sellRank,forceCasinoSale,enforceOverdue:overdue.enforce,rehabilitation:overdue.rehabilitation};
 }
 module.exports={createJBank,LIMITS,RATE_BP,SELL_RATE_BP};
