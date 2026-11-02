@@ -166,6 +166,27 @@ ensureColumn('users','is_archived','INTEGER NOT NULL DEFAULT 0');
 ensureColumn('users','rank_level','INTEGER NOT NULL DEFAULT 0');
 ensureColumn('user_loadout','character','TEXT');
 
+// One-time operator-requested nickname correction (2026-11-02).
+// Preserve account ID, username/login, balances, inventory and all play history.
+(function renamePositiveToCherryOnce(){
+  const from='긍정', to='체리';
+  try{
+    const target=db.prepare('SELECT id FROM users WHERE nickname=? COLLATE NOCASE').get(from);
+    if(!target){console.log('[NICKNAME CHANGE] No account named 긍정; nothing modified.');return;}
+    const collision=db.prepare('SELECT id FROM users WHERE nickname=? COLLATE NOCASE').get(to);
+    if(collision){console.warn('[NICKNAME CHANGE] 체리 already belongs to another account; no change.',{targetId:target.id,collisionId:collision.id});return;}
+    db.exec('BEGIN IMMEDIATE');
+    try{
+      const result=db.prepare('UPDATE users SET nickname=? WHERE id=? AND nickname=? COLLATE NOCASE').run(to,target.id,from);
+      if(result.changes!==1)throw new Error('Expected exactly one nickname update, got '+result.changes);
+      db.exec('COMMIT');
+    }catch(e){db.exec('ROLLBACK');throw e;}
+    console.log('[NICKNAME CHANGE] 긍정 -> 체리 successful, userId='+target.id);
+    void db.flush().catch(e=>console.error('[NICKNAME CHANGE] Persistence flush failed:',e.message));
+  }catch(e){console.error('[NICKNAME CHANGE] No mutation completed:',e.message);}
+})();
+
+
 // The stock exchange is isolated from the SOCIAL_RANKS test-evaluated block.
 const kospiReference=createKospiReference({now});
 // Public market quotes are optional; the server and users' funds work without them.
