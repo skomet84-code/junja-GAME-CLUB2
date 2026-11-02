@@ -11,7 +11,7 @@ const LIMITS=Object.freeze([
 const RATE_BP=10n,MIN_LOAN=1000000n,SELL_RATE_BP=9900n; // 99% of the rank purchase price // 0.1% simple interest per KST day.
 function dayNumber(s){const n=Date.parse(String(s)+'T00:00:00Z');if(!Number.isFinite(n))throw Error('이자 계산 날짜 오류');return Math.floor(n/86400000);}
 function positive(raw){if(typeof raw!=='string'||!/^[1-9][0-9]{0,79}$/.test(raw))throw Error('금액은 1G 이상의 정수여야 합니다.');return BigInt(raw);}
-function createJBank({db,exactWallet,levels,now,kstDate}){
+function createJBank({db,exactWallet,levels,legacyRankCosts=null,now,kstDate}){
  const accountKey=id=>'jbank:account:'+Number(id);
  function empty(day){return {principal:'0',interest:'0',asOf:day,openedAt:0,closedAt:0,number:0,totalBorrowed:'0',totalRepaid:'0',lastRankSale:null,saleCount:0,savingsPrincipal:'0',savingsInterest:'0',savingsEarned:'0',savingsRemainder:'0',savingsAt:now(),savingsLockedUntil:0,installment:null,lastInstallment:null};}
  function read(id,day=kstDate()){const r=db.prepare('SELECT value FROM game_state WHERE key=?').get(accountKey(id));return r?{...empty(day),...JSON.parse(r.value)}:empty(day);}
@@ -44,7 +44,7 @@ function createJBank({db,exactWallet,levels,now,kstDate}){
    const paid=BigInt(String(row.amount_exact??row.amount));
    if(paid<0n)return -paid;
   }
-  return BigInt(String(levels[level].cost))/10n;
+  return BigInt(String(legacyRankCosts?.[level]??levels[level].cost));
  };
  const overdue=createOverdue({db,exactWallet,now,kstDate,levels,read,project,store,empty,installment,purchasedRankBasis});
  function status(id,day=kstDate()){
