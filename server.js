@@ -6,6 +6,7 @@ const path = require('node:path');
 const crypto = require('node:crypto');
 const staticResponse = require('./static-response');
 const exactWallet = require('./exact-wallet');
+const {ROYAL_ITEMS,createRoyalEconomy}=require('./royal-economy');
 const echoReward=require('./echo-rewards');
 const {createJBank}=require('./j-bank-core');
 const {createCasinoCollateral}=require('./casino-collateral');
@@ -539,12 +540,14 @@ const SHOP_ITEMS = [
   {id:'title_rank_royal',category:'title',name:'JUNJA ROYAL',icon:'J',rarity:'prestige',price:3000000000,rankTier:5,desc:'신분 상점 TIER 5 · JUNJA ROYAL 전용 칭호'}
 ]
 // v2.3 Luxury perks: equipped premium pieces provide tiny transparent benefits, hard-capped.
+SHOP_ITEMS.push(...ROYAL_ITEMS);
 const SHOP_PERKS={char_m_junja:{slotLuckPct:.4,dailyBonusPct:2},char_f_junja:{slotLuckPct:.4,dailyBonusPct:2},char_m_royal:{slotLuckPct:.2},char_f_empress:{slotLuckPct:.2},frame_legend:{slotLuckPct:.3},frame_junjaroyal:{slotLuckPct:.2},pet_guardian:{slotLuckPct:.3,dailyBonusPct:2},pet_phoenix:{slotLuckPct:.15},title_thejunja:{dailyBonusPct:1}};
 for(const item of SHOP_ITEMS){
   if(Number.isSafeInteger(item.price)&&item.price>0)item.price*=10; // Existing purchases not repriced.
   if(SHOP_PERKS[item.id])item.perk={...SHOP_PERKS[item.id]};
 }
 const SHOP_BY_ID = Object.fromEntries(SHOP_ITEMS.map(x=>[x.id,Object.freeze({...x})]));
+const royalEconomy=createRoyalEconomy({db,exactWallet,now,getAssets:id=>({bank:jBank.status(id),stock:jStocks.status(id),coin:jCoins.status(id)})});
 const LOADOUT_FIELDS = new Set(['character','costume','frame','title','pet','table_skin','card_back','bubble_pack']);
 const SLOT_SYMBOLS = [
   // v2.8.15: lower only the base 7 symbol chance to 1.0%; keep J at 1.5%.
@@ -745,10 +748,11 @@ function shopState(userId){
   const load=ensureLoadout(userId),owned=inventoryIds(userId),u=db.prepare('SELECT is_admin FROM users WHERE id=?').get(userId),happy=isHappyUser(userId),shopTier=Number(socialRankPerksForUser(userId).shopTier||0);
   if(u?.is_admin)for(const item of SHOP_ITEMS)if(item.adminOnly)owned.add(item.id);
   if(happy)owned.add('char_f_happy_exclusive');
-  return {items:SHOP_ITEMS.filter(x=>(!x.adminOnly||u?.is_admin)&&(!x.happyOnly||happy)).map(x=>({...x,owned:owned.has(x.id),equipped:load[x.category]===x.id,rankShopUnlocked:shopTier>=Number(x.rankTier||0),rankShopTier:shopTier})),loadout:cosmeticsPublic(userId,true),ownedCount:owned.size,rankShopTier:shopTier,rankShopUnlocked:shopTier>0};
+  return {items:SHOP_ITEMS.filter(x=>x.collection!=='royalboutique'&&(!x.adminOnly||u?.is_admin)&&(!x.happyOnly||happy)).map(x=>({...x,owned:owned.has(x.id),equipped:load[x.category]===x.id,rankShopUnlocked:shopTier>=Number(x.rankTier||0),rankShopTier:shopTier})),loadout:cosmeticsPublic(userId,true),ownedCount:owned.size,rankShopTier:shopTier,rankShopUnlocked:shopTier>0};
 }
 function buyShopItem(userId,itemId){
   const item=SHOP_BY_ID[String(itemId||'')];if(!item)throw new Error('존재하지 않는 상점 아이템입니다.');
+   if(item.collection==='royalboutique')return royalEconomy.buy(userId,item);
   if(item.adminOnly)throw new Error('GOD JUNJA는 갓준자 관리자 전용 캐릭터입니다.');
   if(item.happyOnly)throw new Error('HAPPY 캐릭터는 햅피 전용 캐릭터입니다.');
   if(Number(item.rankTier||0)>Number(socialRankPerksForUser(userId).shopTier||0))throw new Error(`현재 신분으로는 구매할 수 없는 신분 전용 아이템입니다.`);
@@ -2370,6 +2374,19 @@ const server=http.createServer(async(req,res)=>{
       if(!rateLimit('rank_promote:'+u.id,6,60000))return json(res,429,{error:'신분 상승 요청이 너무 빠릅니다.'});
       try{const result=promoteSocialRank(u.id);pushRefresh();return json(res,200,{ok:true,...result,user:userPublic(u.id)});}catch(e){return json(res,400,{error:e.message});}
     }
+    if(url.pathname==='/api/royal-economy'&&req.method==='GET'){
+      const u=requireAuth(req,res);if(!u)return;
+      return json(res,200,royalEconomy.catalog(u.id));
+    }
+    if(url.pathname==='/api/royal-economy/buy'&&req.method==='POST'){
+      const u=requireAuth(req,res);if(!u)return;
+      if(!rateLimit('royal_buy:'+u.id,12,60000))return json(res,429,{error:'구매 요청을 너무 빠르게 반복하고 있습니다.'});
+      try{
+        const body=await readBody(req),receipt=royalEconomy.buy(u.id,String(body.itemId||''));
+        await db.flush();pushRefresh();
+        return json(res,200,{ok:true,...receipt,user:userPublic(u.id)});
+      }catch(e){return json(res,400,{error:e.message});}
+    }
     if(url.pathname==='/api/shop'&&req.method==='GET'){const u=requireAuth(req,res);if(!u)return;return json(res,200,{...shopState(u.id),user:userPublic(u.id)});}
     if(url.pathname==='/api/shop/buy'&&req.method==='POST'){
       const u=requireAuth(req,res);if(!u)return;if(!rateLimit('shop_buy:'+u.id,20,60000))return json(res,429,{error:'구매를 너무 빠르게 반복하고 있어. 잠시 후 다시 시도해줘.'});
@@ -2511,6 +2528,12 @@ const server=http.createServer(async(req,res)=>{
         db.exec('COMMIT');await db.flush();pushRefresh();
         return json(res,200,{prize:String(amount),score,dailyCount:count+1,balance:String(next)});
       }catch(e){try{db.exec('ROLLBACK')}catch{}return json(res,400,{error:e.message});}
+    }
+    if(url.pathname==='/api/admin/economy'&&req.method==='GET'){
+      const u=requireAdmin(req,res);if(!u)return;
+      if(!rateLimit('economy_admin:'+u.id,15,60000))return json(res,429,{error:'경제 조회 요청이 너무 빠릅니다.'});
+      try{return json(res,200,royalEconomy.dashboard());}
+      catch(e){console.error('[ROYAL ECONOMY]',e);return json(res,500,{error:'경제 통계를 계산하지 못했습니다.'});}
     }
     if(url.pathname==='/api/admin/bank-assets'&&req.method==='GET'){
       const admin=requireAdmin(req,res);if(!admin)return;
