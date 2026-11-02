@@ -16,8 +16,8 @@ function createCasinoCollateral({db,exactWallet,jBank,levels,now}){
  const updateBalance=db.prepare('UPDATE users SET balance=?,balance_exact=?,balance_base=? WHERE id=?');
  const ledger=db.prepare('INSERT INTO ledger(user_id,amount,balance_after,amount_exact,balance_after_exact,type,memo,created_at) VALUES(?,?,?,?,?,?,?,?)');
  const pledgeKey=(roomId,userId)=>'casino:pledge:'+roomId+':'+userId;
- function rankValue(level){
-  let v=0n;for(let i=1;i<=Math.min(levels.length-1,Number(level));i++)v+=BigInt(String(levels[i].cost))*SELL_RATE_BP/10000n;
+ function rankValue(level,userId){
+  let v=0n;for(let i=1;i<=Math.min(levels.length-1,Number(level));i++)v+=jBank.rankResaleBasis(userId,i)*SELL_RATE_BP/10000n;
   return v;
  }
  function credit(userId,delta,kind,memo){
@@ -31,7 +31,7 @@ function createCasinoCollateral({db,exactWallet,jBank,levels,now}){
  }
  function available(userId){
   const u=readUser.get(userId);if(!u||u.is_disabled)throw Error('카지노 이용이 제한된 회원이야.');
-  const cash=exactWallet.read(u),rank=rankValue(u.rank_level),debt=jBank.owed(userId);
+  const cash=exactWallet.read(u),rank=rankValue(u.rank_level,userId),debt=jBank.owed(userId);
   return {cash,rank,bankDebt:debt,usableRank:rank>debt?rank-debt:0n,total:cash+(rank>debt?rank-debt:0n)};
  }
  // existing=true converts a lobby's already-paid buy-in to a secured bet.
