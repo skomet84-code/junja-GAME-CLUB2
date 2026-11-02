@@ -178,7 +178,7 @@ ensureColumn('user_loadout','character','TEXT');
     db.exec('BEGIN IMMEDIATE');
     try{
       const result=db.prepare('UPDATE users SET nickname=? WHERE id=? AND nickname=? COLLATE NOCASE').run(to,target.id,from);
-      if(result.changes!==1)throw new Error('Expected exactly one nickname update, got '+result.changes);
+      if(Number(result.changes)!==1)throw new Error('Expected exactly one nickname update, got '+String(result.changes));
       db.exec('COMMIT');
     }catch(e){db.exec('ROLLBACK');throw e;}
     console.log('[NICKNAME CHANGE] 긍정 -> 체리 successful, userId='+target.id);
