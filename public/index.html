@@ -37,6 +37,8 @@
 <link rel="stylesheet" href="/grand-race-v3.css?v=20261101-r1"><link rel="stylesheet" href="/grand-race-v4.css?v=20261101-shared-14s-r1"><link rel="stylesheet" href="/grand-race-v5.css?v=20261101-finish-v5">
 <link rel="stylesheet" href="/yut-toss-real-v3.css?v=20261101-2">
 <link rel="stylesheet" href="/junja-economy-v1.css?v=20261101-1">
+<link rel="stylesheet" href="/royal-economy.css?v=20261103-1">
+<script defer src="/royal-economy-ui.js?v=20261103-1"></script>
 </head>
 <body>
 <div id="app">
@@ -248,12 +250,14 @@
       <section id="view-shop" class="view">
         <div class="view-head boutique-head"><button class="back" data-go="lobby" type="button">←</button><div><small>JUNJA LUXURY BOUTIQUE · COLLECTION</small><h2>럭셔리 아바타 & 컬렉션 상점</h2></div><span class="boutique-badge perk">CAPPED LUXURY PERKS</span></div>
         <div class="economy-notice panel"><div>💎</div><p><b>게임으로 벌고, 꾸미고, 자랑하는 CLUB ECONOMY.</b><br>대부분은 외형·연출 전용. 일부 LEGEND·MYTHIC·PRESTIGE 아이템에는 작은 CLUB PERK가 있으며 슬롯 희귀 심볼 가중치는 장착 아이템을 합쳐도 최대 +1%로 제한됩니다. 게임머니는 현금 가치·환전·상품 교환이 없습니다.</p></div>
-        <div id="shopContent"></div>
+        <div id="royalBoutiqueRoot" aria-label="준자 로얄 명품관"></div>
+         <div id="shopContent"></div>
       </section>
 
       <section id="view-admin" class="view">
         <div class="view-head admin-head"><button class="back" data-go="lobby" type="button">←</button><div><small>OWNER CONTROL CENTER</small><h2>관리자 센터</h2></div><span class="admin-badge">SERVER ADMIN</span></div>
-        <div class="admin-summary-grid">
+        <div id="economyCenterRoot" aria-label="운영자 전용 준자랜드 경제관리센터"></div>
+         <div class="admin-summary-grid">
           <div class="panel admin-summary"><span>회원 수</span><b id="adminUserCount">0</b><small>등록 계정</small></div>
           <div class="panel admin-summary"><span>전체 게임머니</span><b id="adminTotalMoney">0 G</b><small>회원 잔액 합계</small></div>
           <div class="panel admin-summary"><span>이용중지</span><b id="adminDisabledCount">0</b><small>중지 계정</small></div>

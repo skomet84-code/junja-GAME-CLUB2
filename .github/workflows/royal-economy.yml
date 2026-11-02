@@ -1,0 +1,30 @@
+name: Royal Boutique and Economy Regression
+on:
+  push:
+    branches: ['feature/royal-boutique-economy-20261103']
+  pull_request:
+    paths:
+      - 'royal-economy.js'
+      - 'public/royal-economy-ui.js'
+      - 'public/royal-economy.css'
+      - 'public/index.html'
+      - 'server.js'
+      - 'tests/royal-economy.cjs'
+      - '.github/workflows/royal-economy.yml'
+jobs:
+  royal:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-package-lock --omit=optional --no-audit --no-fund
+      - name: Exact value and availability tests
+        run: |
+          node --check server.js
+          node --check royal-economy.js
+          node --check public/royal-economy-ui.js
+          node tests/royal-economy.cjs
+          node tests/shop-ui-smoke.cjs
+          node tests/god-junja-price-exact.cjs

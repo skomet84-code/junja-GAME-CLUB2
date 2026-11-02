@@ -1,0 +1,50 @@
+/* JUNJA ROYAL BOUTIQUE + administrator economy dashboard */
+#royalBoutiqueRoot{margin:14px 0 24px;color:#f8f2df}
+.jre-hero{display:flex;justify-content:space-between;align-items:center;gap:20px;min-height:190px;padding:26px 24px;border:1px solid #b99c4a;border-radius:20px;background:radial-gradient(circle at 85% 18%,#874ab377,transparent 48%),linear-gradient(118deg,#161023,#302238 58%,#1b1724);box-shadow:0 14px 35px #130b1b66}
+.jre-hero small,.jre-economy-head small{font-size:10px;letter-spacing:.19em;color:#dfba60}
+.jre-hero h2,.jre-economy-head h2{font-size:clamp(23px,4vw,34px);line-height:1.18;margin:8px 0 10px;color:#f7d47d}
+.jre-hero p{font-size:14px;max-width:620px;line-height:1.6;margin:0 0 10px;color:#f4ebf9}
+.jre-hero em{display:inline-block;font-size:11px;font-style:normal;color:#d8c9ed}
+.jre-emblem{font-size:100px;color:#d7bc70;filter:drop-shadow(0 0 22px #bd7cff);line-height:1}
+.jre-topline{margin:22px 0 12px;display:flex;justify-content:space-between;gap:12px;align-items:center}
+.jre-topline strong{font-size:15px;letter-spacing:.1em;color:#dbba66}
+.jre-topline span{font-size:12px;color:#b6a9c0}
+.jre-products{display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:12px}
+.jre-product{min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:9px;padding:18px 16px;background:linear-gradient(150deg,#231b30,#15151f);border:1px solid #85704990;border-radius:17px;box-shadow:0 5px 18px #05040b77}
+.jre-product.jre-limited{background:radial-gradient(circle at 15% 15%,#67366c80,transparent 65%),linear-gradient(140deg,#302235,#171421);border-color:#eac16b}
+.jre-product.jre-owned{border-color:#78a598}
+.jre-item-icon{display:grid;place-items:center;width:65px;height:65px;border-radius:16px;background:radial-gradient(circle at 40% 20%,#cba4fa66,transparent 90%),#352642;border:1px solid #ba9356;font-size:34px}
+.jre-product-copy{flex:1}
+.jre-rarity{font-size:10px;font-weight:700;letter-spacing:.13em;color:#c9a665}
+.jre-product h3{font-size:17px;margin:5px 0;color:#fff4d8}
+.jre-product p{font-size:12px;line-height:1.5;color:#d2c5da;margin:0}
+.jre-product .jre-price{font-size:20px;word-break:break-word;color:#f8d688}
+.jre-product .jre-inscription,.jre-stock{font-size:11px;color:#d6bafa}
+.jre-product button{cursor:pointer;border:1px solid #f6d286;color:#251b28;background:linear-gradient(135deg,#fff0b5,#ce9949);border-radius:10px;min-height:42px;width:100%;font-weight:850}
+.jre-product button:disabled{cursor:default;color:#c7bfcf;background:#353042;border-color:#62536a}
+.jre-leaderboard{margin-top:20px;padding:22px;border:1px solid #9b7b4b90;border-radius:16px;background:linear-gradient(145deg,#251d35,#1a1624)}
+.jre-leaderboard small{color:#eac876;letter-spacing:.1em}
+.jre-leaderboard h3{color:#ffefc2;margin:4px 0}
+.jre-leaderboard p{font-size:12px;color:#b2a4be}
+.jre-ranks{display:grid;gap:8px;margin-top:12px}
+.jre-ranks>div{display:grid;grid-template-columns:45px 1fr auto;align-items:center;gap:10px;padding:9px 12px;border-radius:8px;background:#ffffff0e}
+.jre-ranks b{color:#ffde88}.jre-ranks strong{color:#f1d5a2}
+#economyCenterRoot{color:#f4ebfa;margin:20px 0}
+.jre-economy-head{padding:20px;border-radius:15px;border:1px solid #997cb9;background:linear-gradient(120deg,#231830,#36203c);display:flex;justify-content:space-between;gap:12px;align-items:center}
+.jre-economy-head p{margin:0;font-size:12px;color:#c9b2d5}
+.jre-economy-head button{border:1px solid #c69d63;background:#49385b;color:#ffe3a0;padding:11px 12px;border-radius:9px;cursor:pointer}
+.jre-economy-sub{font-size:16px;color:#e6c984;margin:18px 0 10px}
+.jre-economy-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px}
+.jre-econ-stat{border:1px solid #ffffff27;border-radius:12px;background:linear-gradient(145deg,#272331,#1e1d29);padding:13px;min-width:0}
+.jre-econ-stat small{display:block;color:#bdacca;font-size:12px;margin-bottom:7px}
+.jre-econ-stat b{display:block;font-size:clamp(13px,2.3vw,17px);color:#f9e7b2;word-break:break-all}
+.jre-econ-note{font-size:12px;line-height:1.6;color:#d1b9da;margin:15px 0;padding:10px;border-left:3px solid #b98d5b;background:#4a345433}
+.jre-econ-rank{display:grid;gap:6px}
+.jre-econ-rank>div{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:9px 12px;background:#30263b;border-radius:8px}
+.jre-econ-rank span{color:#f7e1b7;font-size:13px}
+.jre-econ-rank b{color:#fff;font-size:13px;word-break:break-all}
+.jre-error{border:1px solid #a97b7b;border-radius:12px;padding:20px;color:#fbcaca}
+.styled-avatar.frame-royalboutique_royal{box-shadow:0 0 0 3px #f0bf61,0 0 13px #c9a0fe!important;border-radius:50%}
+.styled-avatar.frame-royalboutique_aura{box-shadow:0 0 0 3px #e4bc76,0 0 22px 9px #e1a04275!important;border-radius:50%}
+.styled-avatar.frame-royalboutique_regalia{box-shadow:0 0 0 4px #a681d4,0 0 18px #f4d183!important;border-radius:50%}
+@media(max-width:600px){.jre-hero{padding:18px 15px;min-height:155px}.jre-emblem{font-size:57px}.jre-products{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.jre-product{padding:13px 10px}.jre-item-icon{width:50px;height:50px;font-size:26px}.jre-product h3{font-size:14px}.jre-product .jre-price{font-size:16px}.jre-product-copy p{font-size:11px}.jre-economy-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.jre-economy-head{padding:13px}.jre-economy-head h2{font-size:21px}}
