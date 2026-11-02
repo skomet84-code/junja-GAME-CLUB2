@@ -811,7 +811,8 @@ const SOCIAL_RANKS = [
   // GOD JUNJA final tier, 1,000경 G · decimal string is exact beyond Number.MAX_SAFE_INTEGER.
   {level:13,name:'GOD JUNJA',icon:'G',cost:'10000000000000000000',className:'absolute'}
 ];
-const jBank=createJBank({db,exactWallet,levels:SOCIAL_RANKS,now,kstDate});
+const RANK_RESALE_LEGACY_COSTS=Object.freeze(["0","1000000000","10000000000","100000000000","500000000000","1000000000000","3000000000000","5000000000000","10000000000000","30000000000000","100000000000000","300000000000000","10000000000000000","1000000000000000000"]);
+const jBank=createJBank({db,exactWallet,levels:SOCIAL_RANKS,legacyRankCosts:RANK_RESALE_LEGACY_COSTS,now,kstDate});
 const casinoCollateral=createCasinoCollateral({db,exactWallet,jBank,levels:SOCIAL_RANKS,now});
 let bankCollectionsBusy=false;
 async function checkOverdueBanks(){
