@@ -110,7 +110,7 @@
  async function load(){
    const reqToken=++loadToken;
    const heading=view.querySelector('.jrg-view-head h2');
-   if(heading)heading.textContent=visitor?'♛ '+visitor+'의 로얄 전시관':'♛ 내 로얄 전시관';
+   if(heading)heading.textContent=visitor?'♛ '+visitor+'의 로얄 전시관':'♛ 내 전시관';
    loading=true;
    host.innerHTML='<div class="jrg-loading"><span>♛</span><h2>나만의 로얄 전시실을 여는 중</h2><p>JUNJA PRIVATE MUSEUM</p></div>';
    try{
