@@ -41,5 +41,5 @@ assert.match(gallery,/selected\.displayOnly/,'cannot equip display item');
 assert.match(galleryCss,/garage-hall\.svg/,'actual illustrated garage for car owners');
 assert.match(app,/x\?\.art/,'show real art on user profiles');
 assert.match(server,/if\(!item\.displayOnly\)db\.prepare\('UPDATE user_loadout/,'never attach supercars to avatar loadout');
-for(const file of ['royal-economy.css','royal-economy-ui.js','royal-gallery.js','royal-gallery.css'])assert.match(index,new RegExp(file.replace(/\./g,'\\.')+'\\?v='+(file.startsWith('royal-gallery')?'20261103-vault-v8':'20261103-photos-v7')),'cache-bust '+file);
+for(const [file,version] of [['royal-economy.css','20261103-photos-v7'],['royal-economy-ui.js','20261103-v10'],['royal-gallery.js','20261103-v10'],['royal-gallery.css','20261103-vault-v8']])assert(index.includes(file+'?v='+version),'cache-bust '+file);
 console.log('ROYAL_LUXURY_V5_OK: 40 unique pieces, 1경 floor, photo-first shop and gallery, safe purchases');
