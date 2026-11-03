@@ -104,5 +104,5 @@ for(const cat of ['title','frame','costume','pet'])assert.equal(afterCarLoad[cat
 assert(royal.gallery(3).items.some(x=>x.id===newCar.id&&x.art==='car-gold'&&x.displayOnly),'gallery must include owned illustrated supercar');
 assert.deepEqual(royal.updateShowcase(3,[newCar.id]).showcase.map(x=>x.id),[newCar.id]);
 assert.throws(()=>royal.buy(3,newCar.id),/이미 영구 소장/);
-assert.equal(db.prepare("SELECT COUNT(*) AS n FROM ledger WHERE user_id=3 AND type='royal_boutique_purchase'").get().n,1);
+assert.equal(db.prepare("SELECT COUNT(*) AS n FROM ledger WHERE user_id=3 AND type='royal_boutique_purchase'").get().n,2,'one legacy item plus one car, with no duplicate charge');
 console.log('ROYAL ECONOMY TESTS OK');
