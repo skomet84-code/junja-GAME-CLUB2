@@ -40,6 +40,17 @@ for(const [engineName,engine] of [['chromium',chromium],['webkit',webkit]]){
   if(store.hud>100)throw Error('luxury-screen mobile game HUD too tall: '+store.hud);
   if(store.overflow>10)throw Error('luxury-screen horizontal overflow: '+JSON.stringify(store));
   await page.screenshot({path:'/tmp/junja-royal-final-store-'+engineName+'.png',fullPage:true});
+  const brandLayout=await page.evaluate(()=>{
+    const hero=document.querySelector('.jrp-motors-hero')?.getBoundingClientRect();
+    const nav=document.querySelector('.jrp-brand-nav')?.getBoundingClientRect();
+    const collector=document.querySelector('.jrp-collector')?.getBoundingClientRect();
+    return {heroBottom:hero?.bottom,navTop:nav?.top,navBottom:nav?.bottom,collectorTop:collector?.top};
+  });
+  if(brandLayout.navTop<brandLayout.heroBottom-5||brandLayout.collectorTop<brandLayout.navBottom-5)throw Error('brand tab must sit between showroom and collector '+JSON.stringify(brandLayout));
+  await page.locator('#royalBoutiqueRoot [data-jre-filter="brand-bentley"]').first().click();
+  await page.waitForFunction(()=>document.querySelectorAll('#royalBoutiqueRoot .jrp-gallery .jrp-tile').length===4,null,{timeout:6000});
+  const visibleBrands=await page.locator('#royalBoutiqueRoot .jrp-gallery .jrp-tile-preview .jrp-tile-index').allTextContents();
+  if(!visibleBrands.every(x=>x.includes('BENTLEY')))throw Error('brand product filter is inconsistent '+JSON.stringify(visibleBrands));
   const owned={...car,owned:true,photoBy:car.photoBy,photoLicense:car.photoLicense,inscription:{ownerNickname:nickname,purchasedAt:Date.now(),paid:String(car.price)}};
   const mock={nickname,items:[owned],collector:{tier:'ROYAL',tierIcon:'♛',spent:String(car.price),ownedCount:1,totalItems:40,showcase:[{...owned}]},public:true};
   await page.route('**/api/royal-economy',route=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(mock)}));
