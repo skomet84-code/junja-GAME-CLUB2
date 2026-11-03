@@ -3,7 +3,7 @@
 // 24-hour auctions with escrow, bank buyback and immutable-style provenance journal.
 const crypto=require('node:crypto');
 const GYEONG=10n**16n,AUCTION_MS=24*3600*1000;
-const MARKET_FEE_PCT=8n,BANK_BUYBACK_PCT=50n;
+const MARKET_FEE_PCT=8n,BANK_BUYBACK_PCT=75n;
 function createRoyalMarket({db,exactWallet,now,items}){
  const catalog=new Map(items.map(x=>[x.id,x]));
  const getKey=k=>db.prepare('SELECT value FROM game_state WHERE key=?').get(k)?.value;
