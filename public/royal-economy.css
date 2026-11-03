@@ -265,3 +265,6 @@
 .royal-public-item b{font-size:11px;color:#f2dab4;overflow-wrap:anywhere;line-height:1.25}
 .royal-public-item small{font-size:10px;color:#d5b2f0}
 @media(max-width:390px){.royal-public-display{padding:10px}.royal-public-item img{height:49px}.royal-public-item b{font-size:10px}}
+
+.jrp-collector-slot .jrp-set-primary{position:static;width:auto;height:auto;padding:5px 7px;background:linear-gradient(130deg,#f4dfa3,#c69756);border:1px solid #f5d99e;border-radius:6px;font-size:9px;font-weight:800;color:#2a1b32;cursor:pointer}
+.jrp-collector-slot>small{font-size:9px;color:#e6c987}
