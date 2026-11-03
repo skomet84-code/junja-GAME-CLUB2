@@ -18,8 +18,15 @@ db.prepare('INSERT INTO users(id,rank_level,balance,balance_exact,balance_base) 
 bank.borrow(2,'5000000','rehab_test_request_12345');
 const k=user(2);db.prepare('UPDATE users SET balance=?,balance_exact=?,balance_base=? WHERE id=?').run(...balance(0n),2);
 assert.equal(bank.status(2).canRehabilitate,true,'personal rehabilitation eligible on loan day without 7-day wait');
+const pendingTicket='jpl:v1:ticket:S1:2:pending_rehab_ticket';
+db.prepare('INSERT INTO game_state(key,value,updated_at) VALUES(?,?,?)').run(pendingTicket,JSON.stringify({
+ userId:2,seasonId:'S1',id:'pending_rehab_ticket',status:'OPEN',paid:'0',stake:'1000',
+ legs:[{matchId:'JPL-001',pick:'H',odds100:200}],potential:'2000'
+}),t);
+
 const applied=bank.rehabilitation(2,'개인회생','rehab_final_request_123');
 assert.equal(applied.newWallet,'100000000000');assert.equal(cash(2),100000000000n);
+assert.equal(JSON.parse(db.prepare('SELECT value FROM game_state WHERE key=?').get(pendingTicket).value).status,'FORFEITED','personal rehabilitation forfeits all unsettled football tickets');
 assert.equal(BigInt(bank.status(2).outstanding),0n);assert.equal(Number(user(2).rank_level),0);
 assert.throws(()=>bank.rehabilitation(2,'개인회생','rehab_second_request_123'),/탕감 대상|1회/);
 // Cross-asset liquidation: cash, savings, installment, stock and fractional coin.
