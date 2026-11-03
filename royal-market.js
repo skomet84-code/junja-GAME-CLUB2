@@ -36,7 +36,7 @@ function createRoyalMarket({db,exactWallet,now,items}){
  // A transfer moves the holder pointer; the serial ID never changes.
  function certificate(uid,itemId){
   if(!owning(uid,itemId)||!catalog.has(itemId))return null;
-  const pointer=getKey(holderKey(uid,itemId));
+  const pointer=parse(getKey(holderKey(uid,itemId)));
   const receipt=parse(getKey(inscriptionKey(uid,itemId)),{});
   const inventory=owning(uid,itemId);
   const originalAt=Number(receipt.purchasedAt||inventory.purchased_at||0);
@@ -58,7 +58,7 @@ function createRoyalMarket({db,exactWallet,now,items}){
   const receipt=parse(getKey(inscriptionKey(uid,itemId)),{});
   const inventory=owning(uid,itemId);
   if(!inventory)throw Error('해당 소장품의 소유자가 아니야.');
-  const serial=getKey(holderKey(uid,itemId))||serialFor(uid,itemId,Number(receipt.purchasedAt||inventory.purchased_at||0));
+  const serial=parse(getKey(holderKey(uid,itemId)))||serialFor(uid,itemId,Number(receipt.purchasedAt||inventory.purchased_at||0));
   let cert=parse(getKey(certKey(serial)));
   if(!cert){
    const u=user(uid),name=u?.nickname||'컬렉터',at=Number(receipt.purchasedAt||inventory.purchased_at||now());
