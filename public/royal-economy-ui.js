@@ -25,7 +25,10 @@
    if(key.includes('phoenix'))return '/art/royal/phoenix.svg';
    if(key.includes('regalia')||key.includes('frame_royalboutique_royal'))return '/art/royal/regalia.svg';
    if(key.includes('entry'))return '/art/royal/scepter.svg';
-   if(key.includes('dragon')||key.includes('immortal'))return '/art/royal/dragon.svg';
+   if(key.includes('title_royalboutique_gold'))return '/art/royal/noble.svg';
+   if(key.includes('aura'))return '/art/royal/aura.svg';
+   if(key.includes('immortal'))return '/art/royal/immortal.svg';
+   if(key.includes('dragon'))return '/art/royal/dragon.svg';
    if(key.includes('wings'))return '/art/royal/wings.svg';
    if(key.includes('diamond')||key.includes('frame_royalboutique'))return '/art/royal/gem.svg';
    return '/art/royal/crown.svg';
