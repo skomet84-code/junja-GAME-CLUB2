@@ -1,0 +1,100 @@
+/* JUNJA ROYAL EXCHANGE · responsive private collector market */
+#junjaRoyalMarketRoot{width:100%;max-width:1320px;margin:0 auto}
+.jrm-exchange{--gold:#efd09a;--cream:#f7e2b9;--edge:#826747;--purple:#28152e;position:relative;isolation:isolate;padding:32px 20px 46px;background:radial-gradient(ellipse at 9% 3%,rgba(116,58,129,.2),transparent 49%),linear-gradient(160deg,#140e1c 0%,#09070e 62%,#1a0d22 100%);border:1px solid #58416a;border-radius:25px;color:#f0e5d9;box-shadow:0 25px 70px #09031280;overflow:hidden}
+.jrm-exchange:before{content:"";position:absolute;inset:9px;pointer-events:none;border:1px solid rgba(229,186,107,.16);border-radius:19px}
+.jrm-hero{position:relative;display:flex;gap:24px;align-items:end;justify-content:space-between;padding:28px 28px 32px;border:1px solid rgba(230,185,103,.4);background:radial-gradient(ellipse at 98% 10%,rgba(170,104,63,.20),transparent 46%),linear-gradient(120deg,#261829,#0b0913 75%);border-radius:19px}
+.jrm-hero small,.jrm-section-title small,.jrm-ledger-section>small{display:block;color:#cbac7d;letter-spacing:.22em;font-size:10px;font-weight:800}
+.jrm-hero h2{font:600 clamp(29px,4.3vw,55px)/1.12 Georgia,'Times New Roman',serif;color:#ffedc8;letter-spacing:.035em;margin:15px 0}
+.jrm-hero h2 em{font-weight:400;color:#d3a1db}
+.jrm-hero p{font-size:14px;line-height:1.8;max-width:550px;color:#c2afc0;margin:0 0 18px}
+.jrm-hero span{color:#efd29f;font-size:10px;letter-spacing:.12em}
+.jrm-hero button,.jrm-appraisal-actions button,.jrm-lot-bid button,.jrm-lot-action{border-radius:11px;border:1px solid #d8b77f;background:linear-gradient(145deg,#fae8bd,#cb9856);color:#211624;font-weight:900;cursor:pointer;min-height:45px;padding:11px 17px;transition:transform .15s,filter .15s}
+.jrm-hero button:hover,.jrm-appraisal-actions button:hover,.jrm-lot-bid button:hover{filter:brightness(1.08);transform:translateY(-2px)}
+.jrm-exchange button:disabled{opacity:.47;cursor:not-allowed;filter:grayscale(.25);transform:none}
+.jrm-info-strip{margin:20px 0 38px;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.jrm-info-strip>span{border:1px solid #56405d;border-radius:9px;padding:13px 9px;background:linear-gradient(135deg,#30203799,#0a0b13);font-size:11px;color:#af9daf;text-align:center;line-height:1.9}
+.jrm-info-strip b{display:block;color:#ead2a2;font-size:15px}
+.jrm-owner-section,.jrm-auction-section,.jrm-ledger-section{position:relative;margin:0 8px 42px}
+.jrm-section-title{margin:0 0 20px;border-bottom:1px solid #594260;padding-bottom:19px}
+.jrm-section-title h3,.jrm-ledger-section h3{font:600 clamp(24px,3vw,36px)/1.1 Georgia,serif;color:#f0d6a6;margin:10px 0 9px}
+.jrm-section-title p{color:#b8a8bd;line-height:1.65;font-size:13px;margin:0}
+.jrm-owned-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:11px;margin:18px 0}
+.jrm-owned-piece{display:flex;align-items:center;gap:9px;text-align:left;padding:10px;min-width:0;background:linear-gradient(135deg,#281a30,#121019);border:1px solid #6b5369;border-radius:13px;color:#f0e0cf;cursor:pointer;transition:border-color .18s,transform .18s}
+.jrm-owned-piece.selected{border:2px solid #edd094;box-shadow:0 0 0 2px #bd98672e}
+.jrm-owned-piece.listed{opacity:.73}
+.jrm-owned-piece:hover{transform:translateY(-2px);border-color:#e1bd89}
+.jrm-owned-art{flex:0 0 72px;height:68px;border-radius:8px;overflow:hidden;background:radial-gradient(circle,#75516a,#120d17);position:relative}
+.jrm-owned-art .jrp-product-art,.jrm-owned-art img{display:block;width:100%;height:100%;object-fit:cover}
+.jrm-owned-copy{flex:1;min-width:0}
+.jrm-owned-copy small{display:block;color:#caa57b;font-size:9px;letter-spacing:.1em}
+.jrm-owned-copy strong{display:block;color:#ffe6c0;font-size:12px;line-height:1.5;overflow:hidden;text-overflow:ellipsis}
+.jrm-owned-copy span{display:block;color:#9c88a3;font-size:9px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.jrm-owned-state{font-size:9px;color:#e0ca9e;align-self:end;white-space:nowrap}
+.jrm-appraisal{margin:16px 0 8px;padding:21px;border-radius:16px;border:1px solid #a78054;background:radial-gradient(ellipse at 92% 20%,#91673f2e,transparent 70%),linear-gradient(130deg,#2d2030,#101019);box-shadow:inset 0 0 42px #0004}
+.jrm-appraisal-head{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;border-bottom:1px solid #5c4861;padding-bottom:15px}
+.jrm-appraisal-head span{font-size:10px;letter-spacing:.16em;color:#d3ac80}
+.jrm-appraisal-head strong{font:600 20px/1.35 Georgia,serif;color:#ffebc7}
+.jrm-appraisal-head small{font-size:11px;color:#ac96ab;letter-spacing:.06em}
+.jrm-appraisal-quote{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:18px 0}
+.jrm-appraisal-quote>div{padding:14px;border:1px solid #5c4861;border-radius:10px;background:#100e18c7}
+.jrm-appraisal-quote small{display:block;color:#ad98ad;font-size:11px;margin-bottom:6px}
+.jrm-appraisal-quote b{color:#e7c487;font-size:clamp(17px,2.5vw,26px);overflow-wrap:anywhere}
+.jrm-appraisal-actions{display:grid;grid-template-columns:minmax(110px,.8fr) minmax(140px,1.2fr) minmax(140px,1fr);gap:9px;align-items:end}
+.jrm-appraisal-actions label,.jrm-lot-bid label{color:#bd9db9;font-size:11px}
+.jrm-appraisal-actions input,.jrm-lot-bid input{display:block;width:100%;min-width:0;border:1px solid #97764e;border-radius:8px;background:#0b0b12;color:#f6e2b3;padding:10px;font-size:15px;margin-top:6px}
+.jrm-appraisal-actions .jrm-bank-button{background:#211b2b;color:#f3d49c}
+.jrm-appraisal-note{font-size:11px;color:#aa98ae;margin:16px 0 0;line-height:1.7}
+.jrm-auctions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.jrm-lot{min-width:0;overflow:hidden;border:1px solid #74556c;border-radius:15px;background:linear-gradient(170deg,#332037,#110e18);box-shadow:0 12px 30px #0005}
+.jrm-lot-picture{height:195px;position:relative;background:radial-gradient(circle,#6d4258 0%,#150e20 75%);overflow:hidden}
+.jrm-lot-picture .jrp-product-art,.jrm-lot-picture>img{width:100%;height:100%;display:block;object-fit:cover}
+.jrm-lot-picture>span{position:absolute;left:9px;bottom:10px;color:#ffebcc;font-size:9px;letter-spacing:.1em;padding:5px 8px;background:#17111acc;border:1px solid #967d6a;border-radius:4px}
+.jrm-lot-content{padding:18px 14px}
+.jrm-lot-content>small{color:#d7b483;font-size:10px;letter-spacing:.16em}
+.jrm-lot-content h4{font:600 19px/1.3 Georgia,serif;color:#f7e5c3;margin:9px 0}
+.jrm-lot-content p{font-size:11px;color:#ac9ba7;margin:0 0 12px}
+.jrm-lot-content p b{color:#d9b889}
+.jrm-lot-prices{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.jrm-lot-prices>div{padding:10px 9px;background:#0a0a12b8;border-radius:8px;border:1px solid #584b5a}
+.jrm-lot-prices span{display:block;color:#aa94a8;font-size:10px}
+.jrm-lot-prices strong{display:block;color:#f1cf92;font-size:14px;margin-top:5px;overflow-wrap:anywhere}
+.jrm-lot-time{margin:12px 0;color:#e5c48d;font-size:12px;font-weight:700}
+.jrm-lot-bid{display:flex;align-items:end;gap:7px}
+.jrm-lot-bid label{flex:1;min-width:0}
+.jrm-lot-bid button{font-size:11px;white-space:nowrap}
+.jrm-lot-action{width:100%;background:#281d2c;color:#e5c38c;font-size:12px}
+.jrm-lot-unavailable{display:block;padding:12px;border:1px solid #735c71;border-radius:9px;color:#beacca;text-align:center;font-size:12px}
+.jrm-message{padding:11px 14px;border:1px solid #947e66;border-radius:9px;background:#1c1723;font-size:13px}
+.jrm-message.error{border-color:#bd7474;color:#f6b8b8}
+.jrm-message.success{color:#efdaa9}
+.jrm-empty{text-align:center;border:1px dashed #68566c;border-radius:13px;padding:28px 15px;color:#bcafbe}
+.jrm-ledger-section{margin-bottom:25px}
+.jrm-history{border:1px solid #664f62;border-radius:12px;overflow:hidden;margin-top:15px}
+.jrm-history>div{display:grid;grid-template-columns:1fr auto auto;gap:12px;padding:13px;border-bottom:1px solid #574457;color:#dec9d7;font-size:12px}
+.jrm-history>div:last-child{border:0}
+.jrm-history small{color:#a793a7}
+.jrm-history b{color:#efd29d}
+.jrm-caveat{border-top:1px solid #5c465b;margin:0 10px;padding:17px 0 0;color:#998998;font-size:11px;line-height:1.7}
+.jrg-cert-provenance{margin-top:18px;padding:14px;background:linear-gradient(130deg,#f1e4cc,#e0c9a1);border:1px solid #be995e;border-radius:10px;color:#4b3543;text-align:left}
+.jrg-cert-provenance h4{font:700 16px Georgia,serif;letter-spacing:.08em;margin:0 0 9px}
+.jrg-cert-provenance>div{padding:7px 0;border-top:1px solid #caa77c;font-size:12px;line-height:1.6}
+.jrg-cert-provenance b{display:block;color:#372639}
+@media(max-width:970px){.jrm-owned-grid,.jrm-auctions{grid-template-columns:repeat(2,minmax(0,1fr))}.jrm-appraisal-actions{grid-template-columns:1fr 1fr}.jrm-appraisal-actions label{grid-column:1/-1}}
+@media(max-width:650px){
+ .jrm-exchange{padding:15px 10px 28px;border-radius:15px}.jrm-exchange:before{inset:4px;border-radius:11px}
+ .jrm-hero{padding:23px 15px;flex-direction:column;align-items:stretch;gap:18px}
+ .jrm-hero h2{font-size:34px}.jrm-hero p{font-size:12px}.jrm-hero button{width:100%}
+ .jrm-info-strip{grid-template-columns:1fr 1fr;gap:7px;margin:12px 0 28px}
+ .jrm-info-strip>span{font-size:10px}.jrm-info-strip b{font-size:13px}
+ .jrm-owner-section,.jrm-auction-section,.jrm-ledger-section{margin:0 3px 30px}
+ .jrm-owned-grid{grid-template-columns:minmax(0,1fr)}
+ .jrm-owned-art{height:75px;flex-basis:78px}
+ .jrm-owned-copy strong{font-size:13px}
+ .jrm-appraisal{padding:13px}
+ .jrm-appraisal-quote{grid-template-columns:1fr}
+ .jrm-appraisal-actions{grid-template-columns:1fr}
+ .jrm-appraisal-actions label{grid-column:1}
+ .jrm-auctions{grid-template-columns:minmax(0,1fr)}
+ .jrm-lot-picture{height:220px}
+ .jrm-history>div{grid-template-columns:1fr auto}.jrm-history b{grid-column:2}.jrm-history small{grid-row:2}
+}
