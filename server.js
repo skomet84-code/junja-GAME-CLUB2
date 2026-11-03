@@ -2387,6 +2387,14 @@ const server=http.createServer(async(req,res)=>{
         return json(res,200,{ok:true,...receipt,user:userPublic(u.id)});
       }catch(e){return json(res,400,{error:e.message});}
     }
+    if(url.pathname==='/api/royal-economy/showcase'&&req.method==='POST'){
+      const u=requireAuth(req,res);if(!u)return;
+      if(!rateLimit('royal_showcase:'+u.id,20,60000))return json(res,429,{error:'전시 설정을 너무 자주 변경하고 있습니다.'});
+      try{
+        const body=await readBody(req),collector=royalEconomy.updateShowcase(u.id,body.selectedIds);
+        await db.flush();pushRefresh();return json(res,200,{ok:true,collector});
+      }catch(e){return json(res,400,{error:e.message});}
+    }
     if(url.pathname==='/api/shop'&&req.method==='GET'){const u=requireAuth(req,res);if(!u)return;return json(res,200,{...shopState(u.id),user:userPublic(u.id)});}
     if(url.pathname==='/api/shop/buy'&&req.method==='POST'){
       const u=requireAuth(req,res);if(!u)return;if(!rateLimit('shop_buy:'+u.id,20,60000))return json(res,429,{error:'구매를 너무 빠르게 반복하고 있어. 잠시 후 다시 시도해줘.'});
@@ -2403,7 +2411,7 @@ const server=http.createServer(async(req,res)=>{
       const target=db.prepare('SELECT id,nickname,avatar,is_disabled FROM users WHERE nickname=? COLLATE NOCASE').get(nickname);
       if(!target||target.is_disabled)return json(res,404,{error:'해당 닉네임의 친구를 찾을 수 없어.'});
       if(Number(target.id)===Number(u.id))return json(res,400,{error:'자기 자신에게는 보낼 수 없어.'});
-      const owned=inventoryIds(target.id);const ownedItems=SHOP_ITEMS.filter(x=>owned.has(x.id)&&!x.adminOnly).map(itemPublic).slice(0,60);return json(res,200,{user:{id:target.id,nickname:target.nickname,avatar:target.avatar,avatarEmoji:AVATARS[target.avatar%AVATARS.length],cosmetics:cosmeticsPublic(target.id),rank:socialRankPublic(target.id),ownedCount:owned.size,ownedItems}});
+      const owned=inventoryIds(target.id);const ownedItems=SHOP_ITEMS.filter(x=>owned.has(x.id)&&!x.adminOnly).map(itemPublic).slice(0,60);return json(res,200,{user:{id:target.id,nickname:target.nickname,avatar:target.avatar,avatarEmoji:AVATARS[target.avatar%AVATARS.length],cosmetics:cosmeticsPublic(target.id),rank:socialRankPublic(target.id),ownedCount:owned.size,ownedItems,royal:royalEconomy.collector(target.id)}});
     }
     if(url.pathname==='/api/shop/gift'&&req.method==='POST'){
       const u=requireAuth(req,res);if(!u)return;
