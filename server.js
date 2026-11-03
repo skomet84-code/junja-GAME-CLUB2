@@ -2362,6 +2362,23 @@ const server=http.createServer(async(req,res)=>{
       try{const d=jpl.schedule(u.id);if(d.changed)await db.flush();return json(res,200,d);}
       catch(e){return json(res,400,{error:e.message})}
     }
+    if(url.pathname==='/api/jpl/analysis'&&req.method==='GET'){
+      const u=requireAuth(req,res);if(!u)return;
+      try{
+        const d=jpl.analysis(u.id,url.searchParams.get('matchId'),false);
+        if(d.changed)await db.flush();
+        return json(res,200,d);
+      }catch(e){return json(res,400,{error:e.message});}
+    }
+    if(url.pathname==='/api/jpl/analysis'&&req.method==='POST'){
+      const u=requireAuth(req,res);if(!u)return;
+      if(!rateLimit('jpl-analysis:'+u.id,12,60000))return json(res,429,{error:'경기분석 구매 요청이 너무 빠릅니다.'});
+      try{
+        const b=await readBody(req),d=jpl.analysis(u.id,b.matchId,true);
+        await db.flush();pushRefresh();
+        return json(res,200,d);
+      }catch(e){return json(res,400,{error:e.message});}
+    }
     if(url.pathname==='/api/jpl/bet'&&req.method==='POST'){
       const u=requireAuth(req,res);if(!u)return;
       if(!rateLimit('jpl-bet:'+u.id,12,60000))return json(res,429,{error:'축구 베팅 요청이 너무 빠릅니다.'});
