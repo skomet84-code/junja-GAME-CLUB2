@@ -85,8 +85,9 @@ function retireFantasyRoyalInventory(db,now){
 }
 function createRoyalEconomy({db,exactWallet,now,getAssets}){
  retireFantasyRoyalInventory(db,now);
- let market=null;
+ let market=null,bank=null;
  const setMarket=instance=>{market=instance};
+ const setBank=instance=>{bank=instance};
  const itemMap=new Map(ROYAL_ITEMS.map(item=>[item.id,item]));
  const readExact=(v)=>BigInt(String(v??0));
  const inventoryCount=db.prepare('SELECT COUNT(*) AS n FROM user_inventory WHERE item_id=?');
@@ -115,7 +116,7 @@ function createRoyalEconomy({db,exactWallet,now,getAssets}){
    if(owned){const row=getInscription.get(purchaseKey(uid,item.id));try{inscription=row?JSON.parse(row.value):null}catch{}}
    return {stock:item.stock??null,remaining:item.stock==null?null:Math.max(0,item.stock-sold),soldOut:item.stock!=null&&sold>=item.stock&&!owned,owners:ownerNames.all(item.id).map(x=>x.nickname),soldCount:sold,inscription};
  }
- function buy(uid,id){
+ function buy(uid,id,options={}){
    const item=typeof id==='string'?itemMap.get(id):itemMap.get(id?.id);
    if(!item)throw new Error('로얄 명품관 상품을 찾을 수 없습니다.');
    db.exec('BEGIN IMMEDIATE');
@@ -124,8 +125,15 @@ function createRoyalEconomy({db,exactWallet,now,getAssets}){
      if(!u||u.is_disabled)throw new Error('계정을 확인할 수 없습니다.');
      if(owns.get(uid,item.id))throw new Error('이미 영구 소장 중인 상품입니다. 추가 결제되지 않았습니다.');
      if(item.stock!=null&&Number(inventoryCount.get(item.id)?.n||0)>=item.stock)throw new Error('한정판 재고가 모두 소진됐습니다.');
-     const price=readExact(item.price),balance=exactWallet.read(u);
-     if(balance<price)throw new Error('게임머니 잔액이 부족합니다.');
+     const price=readExact(item.price),walletBalance=exactWallet.read(u);
+     let loanAmount='0';
+     if(walletBalance<price){
+      if(options.loanPurchase!==true)throw new Error('게임머니가 부족합니다. 대출구매를 선택하면 한도 내에서 이용할 수 있어.');
+      if(!bank)throw new Error('은행 대출구매를 이용할 수 없습니다.');
+      loanAmount=bank.borrowForPurchase(uid,String(price),item.name).loanAmount;
+     }
+     const balance=walletBalance+BigInt(loanAmount);
+     if(balance<price)throw new Error('대출금으로도 구매가격을 충족할 수 없어.');
      const next=balance-price,t=now(),mirrored=exactWallet.mirror(next);
      db.prepare('UPDATE users SET balance=?,balance_exact=?,balance_base=? WHERE id=?').run(mirrored,String(next),String(mirrored),uid);
      db.prepare('INSERT INTO user_inventory(user_id,item_id,purchase_price,purchased_at) VALUES(?,?,?,?)').run(uid,item.id,exactWallet.mirror(price),t);
@@ -139,7 +147,7 @@ function createRoyalEconomy({db,exactWallet,now,getAssets}){
        .run(uid,exactWallet.mirror(-price),mirrored,String(-price),String(next),'royal_boutique_purchase','JUNJA ROYAL BOUTIQUE · '+item.name+' · 재화 영구 소멸',t);
      if(!owns.get(uid,item.id)||(!item.displayOnly&&db.prepare('SELECT '+item.category+' AS equipped FROM user_loadout WHERE user_id=?').get(uid)?.equipped!==item.id))throw new Error('구매 검증 실패');
      db.exec('COMMIT');
-     return {item,inscription,balance:String(next)};
+     return {item,inscription,balance:String(next),loanAmount};
    }catch(e){try{db.exec('ROLLBACK')}catch{}throw e;}
  }
 
@@ -207,7 +215,7 @@ function createRoyalEconomy({db,exactWallet,now,getAssets}){
     .map(r=>({nickname:r.nickname,itemName:String(r.memo||'').split(' · ')[1]||'로얄 명품',purchasedAt:r.purchasedAt}))
     .filter(r=>!retiredNames.has(r.itemName)).slice(0,8);
    const records=ownerRecords(uid);
-   return {nickname:db.prepare('SELECT nickname FROM users WHERE id=?').get(uid)?.nickname||'',items:ROYAL_ITEMS.map(item=>({...item,owned:!!owns.get(uid,item.id),equipped:!item.displayOnly&&load[item.category]===item.id,...(records.get(item.id)||{}),...decorate(item,uid),certificate:market&&owns.get(uid,item.id)?market.certificate(uid,item.id):null,listed:market&&owns.get(uid,item.id)?!!market.activeFor(uid,item.id):false})),collector:collector(uid),ranking:rank(),recent,serverNow:now()};
+   return {nickname:db.prepare('SELECT nickname FROM users WHERE id=?').get(uid)?.nickname||'',items:ROYAL_ITEMS.map(item=>({...item,owned:!!owns.get(uid,item.id),equipped:!item.displayOnly&&load[item.category]===item.id,...(records.get(item.id)||{}),...decorate(item,uid),certificate:market&&owns.get(uid,item.id)?market.certificate(uid,item.id):null,listed:market&&owns.get(uid,item.id)?!!market.activeFor(uid,item.id):false})),collector:collector(uid),ranking:rank(),recent,financing:bank?(()=>{const b=bank.status(uid);return {available:b.available,canBorrow:b.canBorrow,minLoan:b.minLoan,loanLimit:b.loanLimit,outstanding:b.outstanding,dailyInterestPct:b.dailyInterestPct}})():null,serverNow:now()};
  }
 
  // Read-only public museum: only owned royal collectibles, no wallet or private user data.
@@ -265,6 +273,6 @@ function createRoyalEconomy({db,exactWallet,now,getAssets}){
      topWealth:fortunes.slice(0,10),royalRanking:rank(),assetsFailed,
      note:'오늘 장부 유입/유출에는 유저 송금·은행·투자 이동이 포함됩니다. 신규 재화 발행량과 동일하지 않습니다. 투자 평가액은 시세에 따라 변동합니다.'};
  }
- return {buy,catalog,collector,gallery,updateShowcase,decorate,dashboard,setMarket};
+ return {buy,catalog,collector,gallery,updateShowcase,decorate,dashboard,setMarket,setBank};
 }
 module.exports={ROYAL_ITEMS,RETIRED_ROYAL_IDS,createRoyalEconomy,retireFantasyRoyalInventory};
