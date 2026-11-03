@@ -41,7 +41,7 @@ def fileinfo(name):
         info=arr[0]; meta=info.get('extmetadata',{})
         lic=clean(meta.get('LicenseShortName',{}).get('value',''))
         if not any(t in lic.upper() for t in LICENSES):return None
-        if not (info.get('mime','image/jpeg') or '').startswith('image/'):return None
+        if info.get('mime') and not info['mime'].startswith('image/'):return None
         author=clean(meta.get('Artist',{}).get('value','')) or 'Wikimedia Commons contributor'
         source=info.get('descriptionurl') or 'https://commons.wikimedia.org/wiki/File:'+quote(name.replace(' ','_'))
         licenseurl=meta.get('LicenseUrl',{}).get('value','') or 'https://commons.wikimedia.org/wiki/Commons:Licensing'
@@ -93,7 +93,7 @@ def grade(img):
     md.ellipse((-int(width*.25),-int(height*.37),int(width*1.25),int(height*1.37)),fill=230)
     mask=mask.filter(ImageFilter.GaussianBlur(max(14,width//7)))
     dark=ImageEnhance.Brightness(img).enhance(.76)
-    img=Image.composite(img,dark,ImageOps.invert(mask))
+    img=Image.composite(img,dark,mask)
     return img
 
 def main():
