@@ -19,6 +19,9 @@ for item in records.get("photos", []):
         continue
     raw = filename.read_bytes()
     original_bytes += len(raw)
+    if item.get("optimized"):
+        final_bytes += len(raw)
+        continue
     with Image.open(io.BytesIO(raw)) as image:
         image = ImageOps.exif_transpose(image).convert("RGB")
         image.thumbnail((1600, 1400), Image.Resampling.LANCZOS)
