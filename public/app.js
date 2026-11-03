@@ -355,7 +355,7 @@ async function openFriendsHub(prefill=''){
 function royalCollectorProfile(royal){
  if(!royal)return '';
  const collector=royal.collector||royal,items=Array.isArray(collector.showcase)?collector.showcase:[];
- const iconFor=id=>id.includes('dragon')||id.includes('immortal')?'dragon':id.includes('wings')?'wings':id.includes('diamond')||id.includes('frame')?'gem':'crown';
+ const iconFor=id=>id.includes('phoenix')?'phoenix':id.includes('immortal')?'immortal':id.includes('dragon')?'dragon':id.includes('wings')?'wings':id.includes('regalia')||id.includes('frame_royalboutique_royal')?'regalia':id.includes('aura')?'aura':id.includes('entry')?'scepter':id.includes('title_royalboutique_gold')?'noble':id.includes('diamond')||id.includes('frame')?'gem':'crown';
  const fmtRoyal=v=>{try{const n=BigInt(String(v??0));if(n>=10n**16n)return (n/(10n**16n)).toLocaleString('ko-KR')+'경 G';if(n>=10n**12n)return (n/(10n**12n)).toLocaleString('ko-KR')+'조 G';return n.toLocaleString('ko-KR')+' G'}catch{return '0 G'}};
  return '<section class="royal-public-display"><div class="royal-public-title"><small>JUNJA ROYAL · COLLECTOR PROFILE</small><h3>♛ '+html(collector.tier||'NEW COLLECTOR')+'</h3><p>명품 '+Number(collector.ownedCount||0)+'종 소장 · 누적 '+fmtRoyal(collector.spent)+'</p></div><div class="royal-public-items">'+(items.length?items.map((x,i)=>'<div class="royal-public-item"><img alt="" src="/art/royal/'+iconFor(x.id||'')+'.svg"><b>'+html(x.name)+'</b><small>'+(i===0?'대표 명품':'전시 명품')+'</small></div>').join(''):'<p>아직 전시한 로얄 명품이 없어.</p>')+'</div></section>';
 }
