@@ -75,7 +75,7 @@ async function copy(){
 }
 function drawImage(){
  const t=current;if(!t)throw Error('구매표를 찾을 수 없어.');
- const rows=lines(t),W=930,scale=2,extra=BigInt(tax(t))>0n?1:0,H=560+rows.length*96+extra*60;
+ const rows=lines(t),W=930,scale=2,extra=BigInt(tax(t))>0n?1:0,H=770+rows.length*96+extra*53;
  const canvas=document.createElement('canvas');canvas.width=W*scale;canvas.height=H*scale;
  const c=canvas.getContext('2d');c.scale(scale,scale);
  c.fillStyle='#101827';c.fillRect(0,0,W,H);
