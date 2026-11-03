@@ -97,10 +97,21 @@
  }
  function celebrate(item,inscription){
    const overlay=document.createElement('div');overlay.className='jrp-victory';overlay.setAttribute('role','dialog');overlay.setAttribute('aria-modal','true');
-   overlay.innerHTML='<div class="jrp-victory-card"><span class="jrp-victory-glow"></span><small>MAISON JUNJA · AUTHENTIC ACQUISITION</small><div class="jrp-victory-art"><img alt="" src="'+showcaseArt(item)+'"></div><h2>ROYAL ACQUIRED</h2><h3>'+safe(item.name)+'</h3><p>이 명품은 이제 너만의 역사야.</p><div class="jrp-victory-sign">소유주 · '+safe(inscription?.ownerNickname||'ROYAL COLLECTOR')+'<br>구매가 · '+fmt(inscription?.paid||item.price)+'</div><button class="jrp-victory-done" type="button">컬렉션 돌아가기</button></div>';
+   overlay.innerHTML='<div class="jrp-victory-card '+(isRealPhoto(item)?'jrp-victory-photographic':'')+'"><span class="jrp-victory-glow"></span><small>MAISON JUNJA · VERIFIED OWNERSHIP</small><div class="jrp-victory-art">'+photoTag(item,item.name+' 정식 소유 인증 사진',true)+'</div><h2>ROYAL ACQUIRED</h2><h3>'+safe(item.name)+'</h3><p>구매가 완료됐어. 이 명품은 영구 소장되며 나만의 전시관에 공개할 수 있어.</p><div class="jrp-victory-sign">소유주 · '+safe(inscription?.ownerNickname||'ROYAL COLLECTOR')+'<br>구매가 · '+fmt(inscription?.paid||item.price)+'</div><div class="jrp-victory-actions"><button class="jrp-victory-exhibit" type="button">♛ 내 전시관 대표로 전시</button><button class="jrp-victory-done" type="button">컬렉션 계속 감상</button></div></div>';
    function close(){overlay.remove();}
    overlay.querySelector('.jrp-victory-done').addEventListener('click',close);
    overlay.addEventListener('click',e=>{if(e.target===overlay)close()});
+   overlay.querySelector('.jrp-victory-exhibit').addEventListener('click',async e=>{
+      const button=e.currentTarget;
+      if(button.disabled)return;button.disabled=true;
+      const previous=(royalState?.collector?.showcase||[]).map(x=>x.id);
+      const selectedIds=[item.id,...previous.filter(x=>x!==item.id)].slice(0,3);
+      try{
+        await get('/api/royal-economy/showcase',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({selectedIds})});
+        close();
+        document.querySelector('#view-shop [data-go="gallery"]')?.click();
+      }catch(error){alert(error.message);button.disabled=false;}
+   });
    document.body.appendChild(overlay);overlay.querySelector('button')?.focus();
  }
  async function buy(id,button){
