@@ -8,7 +8,7 @@ const assets=[
 const units=[['경',10000000000000000n],['조',1000000000000n],['억',100000000n],['만',10000n]];
 let activeDialog=null,previousFocus=null;
 function asUnits(n){
-  const negative=n<0n,abs=negative?-n:n,parts=[];
+  const negative=n<0n;let abs=negative?-n:n;const parts=[];
   for(const [unit,scale] of units){
     const value=abs/scale;
     if(value>0n)parts.push(value.toLocaleString('ko-KR')+unit);
