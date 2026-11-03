@@ -322,12 +322,24 @@ async function loadShop(){try{const d=await api('/api/shop');shopData=d;me=d.use
 async function buyShopItemUI(itemId,btn){
   const item=shopData?.items?.find(x=>x.id===itemId);if(!item)return;
   if(item.rankTier&&!item.rankShopUnlocked){toast(`${SHOP_TIER_LABELS[item.rankTier]||('신분 TIER '+item.rankTier)}부터 구매할 수 있어.`);return}
-  try{if(BigInt(String(me.balance??0))<BigInt(String(item.price??0))){toast('게임머니가 부족해.');return}}catch{if(Number(me.balance)<Number(item.price)){toast('게임머니가 부족해.');return}}
-  const ask=`${item.name}을 ${money(item.price)}에 구매할까?\n구매 즉시 보유 처리되고 자동 장착돼.`;
-  let ok=true;try{if(typeof window.confirm==='function')ok=window.confirm(ask)}catch{ok=true}if(!ok)return;
+  const finance=shopData?.financing||{};
+  const wallet=BigInt(String(finance.wallet??me.balance??0)),price=BigInt(String(item.price??0));
+  let loanPurchase=false;
+  if(wallet<price){
+    const shortage=price-wallet,minLoan=BigInt(String(finance.minLoan||1000000));
+    const loanAmount=shortage>minLoan?shortage:minLoan;
+    if(!finance.canBorrow||loanAmount>BigInt(String(finance.available||0))){
+      toast('잔액이 부족하고 J-BANK 대출 가능한 한도도 부족해.');return;
+    }
+    if(!confirm(item.name+'을(를) 대출구매할까?\\n부족액 '+money(String(shortage))+' · 신규 대출 '+money(String(loanAmount))+'\\nJ-BANK 원금 일 0.1% 단리, 7일 이내 상환 · 연체 시 자산 강제 매각 가능\\n[확인] 대출구매 / [취소] 구매하지 않음'))return;
+    loanPurchase=true;
+  }else{
+    const ask=`${item.name}을 ${money(item.price)}에 구매할까?\\n구매 즉시 보유 처리되고 자동 장착돼.`;
+    let ok=true;try{if(typeof window.confirm==='function')ok=window.confirm(ask)}catch{ok=true}if(!ok)return;
+  }
   btn.disabled=true;
   try{
-    const d=await api('/api/shop/buy',{method:'POST',body:JSON.stringify({itemId})});
+    const d=await api('/api/shop/buy',{method:'POST',body:JSON.stringify({itemId,loanPurchase})});
     me=d.user;shopData=d.state;updateHeader();renderShop();
     const saved=shopData?.items?.find(x=>x.id===itemId);
     if(!saved?.owned||!saved?.equipped)throw new Error('구매 저장 확인에 실패했어. 다시 구매하지 말고 새로고침 후 확인해줘.');
