@@ -128,7 +128,7 @@ function createRoyalEconomy({db,exactWallet,now,getAssets}){
      const price=readExact(item.price),walletBalance=exactWallet.read(u);
      let loanAmount='0';
      if(walletBalance<price){
-      if(options.loanPurchase!==true)throw new Error('게임머니가 부족합니다. 대출구매를 선택하면 한도 내에서 이용할 수 있어.');
+      if(options.loanPurchase!==true)throw new Error('게임머니 잔액이 부족합니다. 대출구매를 선택하면 한도 내에서 이용할 수 있어.');
       if(!bank)throw new Error('은행 대출구매를 이용할 수 없습니다.');
       loanAmount=bank.borrowForPurchase(uid,String(price),item.name).loanAmount;
      }
