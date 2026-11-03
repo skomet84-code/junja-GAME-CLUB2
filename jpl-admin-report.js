@@ -1,5 +1,7 @@
 'use strict';
 // Read-only JPL operator report. Routes MUST enforce requireAdmin before invoking.
+const {ALL_CLUBS}=require('./jpl-core');
+const clubNames=Object.fromEntries(ALL_CLUBS.map(c=>[c.id,c.short]));
 function report(db, options={}) {
   const rawSeason=db.prepare('SELECT value FROM game_state WHERE key=?').get('jpl:v1:current');
   let currentSeason='S1';
@@ -72,7 +74,7 @@ function report(db, options={}) {
     ...m,picks:Object.fromEntries(Object.entries(m.picks).map(([pick,v])=>[pick,{count:v.count,stake:String(v.stake)}]))
   }));
   const total=tickets.length,pages=Math.max(1,Math.ceil(total/limit)),safePage=Math.min(page,pages);
-  return {ok:true,currentSeason,filters:{season,status:state,user:userTerm},
+  return {ok:true,currentSeason,clubNames,filters:{season,status:state,user:userTerm},
     seasons:[...seasons].sort((a,b)=>Number(b.slice(1))-Number(a.slice(1))),
     summary,matches:matchItems,
     tickets:tickets.slice((safePage-1)*limit,safePage*limit),
