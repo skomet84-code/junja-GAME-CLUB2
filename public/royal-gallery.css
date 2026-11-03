@@ -274,3 +274,83 @@
  #view-gallery .jrg-grand-garage .jrg-object-right{height:29%}
  #view-gallery .jrg-selected-image img{height:205px}
 }
+
+
+/* JUNJA PRIVATE MOTOR GALLERY V6 — real automobile photography as framed
+   collector exhibits, separate from text-based product/store presentation. */
+#view-gallery .jrg-object.jrg-real-photo{
+  border:0;overflow:visible;filter:drop-shadow(0 14px 15px #07040de5);
+}
+#view-gallery .jrg-object.jrg-real-photo>img{
+  display:block;position:relative;z-index:4;width:99%;height:67%;max-width:100%;
+  object-fit:cover;object-position:center;
+  border:3px solid #d7b072;border-radius:13px 13px 6px 6px;
+  box-shadow:0 0 0 5px #f6dda10d,0 10px 17px #080611b8,0 0 30px #e9b56b60;
+  filter:none;animation:none;
+}
+#view-gallery .jrg-object.jrg-real-photo.jrg-object-center>img{
+  width:100%;height:70%;border-width:4px;border-color:#f5daa1;
+  box-shadow:0 15px 24px #090611d8,0 0 35px #f9cf847a;
+}
+#view-gallery .jrg-object.jrg-real-photo .jrg-piece-glow{
+  position:absolute;inset:4% -9% 10%;width:auto;height:auto;
+  background:radial-gradient(ellipse at 50% 45%,#d8b0b86e,transparent 72%);
+}
+#view-gallery .jrg-object.jrg-real-photo .jrg-piece-frame{
+  position:relative;z-index:5;margin-top:7px;min-height:44px;
+  background:linear-gradient(125deg,#24162e,#4b2c52,#21152c);
+  border:1px solid #edca82;box-shadow:0 6px 17px #08050dde;
+}
+#view-gallery .jrg-object.jrg-real-photo .jrg-piece-frame strong{font-weight:800;color:#ffe3ac}
+#view-gallery .jrg-object.jrg-real-photo:hover>img,
+#view-gallery .jrg-object.jrg-real-photo.chosen>img{
+  border-color:#fff1ca;box-shadow:0 13px 23px #08040c,0 0 30px #fbe0a99c
+}
+#view-gallery .jrg-photo-detail .jrg-selected-image{
+  min-height:370px;
+  background:radial-gradient(ellipse at 50% 50%,#9164b46c,transparent 66%),
+    linear-gradient(125deg,#1f152e,#30213a,#0e0b17);
+}
+#view-gallery .jrg-photo-detail .jrg-selected-image>img{
+  display:block;width:96%;height:325px;max-width:96%;
+  object-fit:cover;border:2px solid #e6bf83;border-radius:12px;
+  box-shadow:0 15px 26px #07040fae,0 0 19px #edc7803d;
+  filter:none;animation:none;
+}
+#view-gallery .jrg-card-art.jrg-real-photo{
+  position:relative;overflow:hidden;background:#130b21;
+}
+#view-gallery .jrg-card-art.jrg-real-photo>img{
+  object-fit:cover;object-position:center;
+  filter:none;transition:transform .26s ease;width:100%;height:100%;max-width:100%;
+}
+#view-gallery .jrg-collection-card:hover .jrg-card-art.jrg-real-photo>img{transform:scale(1.04)}
+#view-gallery .jrg-photo-credit{font-size:10px;line-height:1.6;color:#bfa9d0;
+  padding:12px 0;border-top:1px solid #8b6b5970;margin-top:14px}
+#view-gallery .jrg-photo-credit a{color:#f2d499;text-decoration:underline;
+  text-decoration-color:#b99157}
+#view-gallery .jrg-photo-credit>p{font-size:10px;color:#a994b5;margin:7px 0 0}
+#view-gallery .jrg-photo-detail .jrg-selected-info>small{color:#f5d28e}
+#view-gallery .jrg-public-view-badge{background:#30223f;border:1px solid #c7a475;color:#f2dcb2}
+#view-gallery .jrg-card-art.jrg-real-photo .jrp-media-fallback,
+#view-gallery .jrg-object.jrg-real-photo .jrp-media-fallback,
+#view-gallery .jrg-photo-detail .jrp-media-fallback{object-fit:contain!important;background:#21162b!important}
+#profileContent .royal-public-item img[data-junja-photo],
+#friendLookupResult .royal-public-item img[data-junja-photo]{
+  width:100%;height:74px;object-fit:cover;border:1px solid #d6b780;border-radius:8px;
+  box-shadow:0 5px 12px #09050da6;filter:none;
+}
+@media(max-width:700px){
+ #view-gallery .jrg-object.jrg-real-photo>img{border-width:2px;border-radius:7px;height:60%}
+ #view-gallery .jrg-object.jrg-real-photo.jrg-object-center>img{height:66%;border-width:3px}
+ #view-gallery .jrg-object.jrg-real-photo .jrg-piece-frame{min-height:31px;margin-top:4px}
+ #view-gallery .jrg-photo-detail .jrg-selected-image{min-height:249px}
+ #view-gallery .jrg-photo-detail .jrg-selected-image>img{height:235px}
+ #view-gallery .jrg-card-art.jrg-real-photo>img{height:100%}
+}
+@media(max-width:390px){
+ #view-gallery .jrg-object.jrg-real-photo>img{height:55%}
+ #view-gallery .jrg-object.jrg-real-photo.jrg-object-center>img{height:60%}
+ #view-gallery .jrg-photo-detail .jrg-selected-image>img{height:195px}
+ #view-gallery .jrg-photo-detail .jrg-selected-image{min-height:212px}
+}
