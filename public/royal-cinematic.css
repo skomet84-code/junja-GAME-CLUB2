@@ -1,0 +1,58 @@
+/* JUNJA ROYAL CINEMATIC V9 — illustrated collector showrooms, original ownership unchanged. */
+#royalBoutiqueRoot .jrp-cinematic-hero{isolation:isolate;overflow:hidden;background:#100b13;border:1px solid #c49b60;box-shadow:0 16px 45px #030207bf}
+#royalBoutiqueRoot .jrp-cinematic-hero:before,#royalBoutiqueRoot .jrp-cinematic-hero:after{display:none}
+#royalBoutiqueRoot .jrp-cinematic-panorama{position:relative;overflow:hidden;background:#09070e}
+#royalBoutiqueRoot .jrp-cinematic-panorama>img{display:block;width:100%;height:clamp(320px,47vw,590px);object-fit:cover;object-position:center 50%}
+#royalBoutiqueRoot .jrp-cinematic-panorama:after{content:"";position:absolute;inset:0;background:linear-gradient(0deg,#08040bf2,transparent 68%),linear-gradient(90deg,#08040ba6,transparent 70%);pointer-events:none}
+#royalBoutiqueRoot .jrp-cinematic-panorama-caption{position:absolute;z-index:2;left:clamp(15px,4vw,48px);right:15px;bottom:clamp(20px,4vw,47px);text-shadow:0 3px 11px #000}
+#royalBoutiqueRoot .jrp-cinematic-panorama-caption small{font:700 clamp(9px,1vw,13px) Georgia,serif;letter-spacing:.15em;color:#f8d8a0}
+#royalBoutiqueRoot .jrp-cinematic-panorama-caption h1{font:750 clamp(36px,7vw,88px)/1 Georgia,serif;letter-spacing:-.04em;color:#fff2cc;margin:10px 0}
+#royalBoutiqueRoot .jrp-cinematic-panorama-caption h1 em{color:#ecc183;font-style:italic}
+#royalBoutiqueRoot .jrp-cinematic-panorama-caption p{font:800 clamp(14px,2vw,23px) 'Noto Serif KR',serif;color:#fff4db;margin:0 0 8px}
+#royalBoutiqueRoot .jrp-cinematic-panorama-caption span{color:#f4d5a3;font-size:12px;font-weight:700}
+#royalBoutiqueRoot .jrp-cinematic-title{padding:25px 10px 3px;position:relative;z-index:2}
+#royalBoutiqueRoot .jrp-cinematic-title h2{font:750 clamp(21px,3vw,33px) Georgia,serif;letter-spacing:.12em;color:#f7d4a1;margin:11px 0}
+#royalBoutiqueRoot .jrp-cinematic-title p{font-size:13px;color:#ddc6a2;line-height:1.7;margin:3px 0 0}
+#royalBoutiqueRoot .jrp-motors-photo-row.jrp-cinematic-room-grid{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:12px!important;padding:20px!important;overflow:visible!important;align-items:stretch!important}
+#royalBoutiqueRoot .jrp-cinematic-room{position:relative;display:block;width:100%;height:176px!important;min-width:0;border:1px solid #bb935f;border-radius:12px;padding:0;background:#110c13;overflow:hidden;cursor:pointer;transition:border .25s,transform .25s}
+#royalBoutiqueRoot .jrp-cinematic-room:focus-visible{outline:3px solid #fff0b8;outline-offset:3px}
+#royalBoutiqueRoot .jrp-cinematic-room.active,#royalBoutiqueRoot .jrp-cinematic-room:hover{border-color:#ffe5a6;box-shadow:0 0 0 2px #e8bc8077,0 10px 26px #000a;transform:translateY(-3px)}
+#royalBoutiqueRoot .jrp-cinematic-room img{width:100%;height:100%;object-fit:cover;object-position:center;display:block}
+#royalBoutiqueRoot .jrp-cinematic-room:after{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(0deg,#07040de8,transparent 80%)}
+#royalBoutiqueRoot .jrp-cinematic-room-caption{position:absolute;z-index:2;bottom:12px;left:12px;right:8px;text-align:left;display:flex;flex-direction:column;gap:4px;text-shadow:0 3px 9px #000}
+#royalBoutiqueRoot .jrp-cinematic-room-caption small{color:#efd19a;font:700 9px Georgia,serif;letter-spacing:.08em}
+#royalBoutiqueRoot .jrp-cinematic-room-caption strong{color:#fff6de;font:850 14px 'Noto Serif KR',serif}
+#royalBoutiqueRoot .jrp-cinematic-hero .jrp-motors-bottom{background:#110b15}
+#royalBoutiqueRoot .jrp-featured-art{position:relative;isolation:isolate;overflow:hidden;background:#120d17}
+#royalBoutiqueRoot .jrp-cinematic-feature-bg{position:absolute;inset:0;z-index:0;background-size:cover;background-position:center;opacity:.68;filter:saturate(.88)}
+#royalBoutiqueRoot .jrp-cinematic-feature-bg:after{content:"";position:absolute;inset:0;background:linear-gradient(0deg,#08050ed1,#0a05104d 57%,#08040b4f)}
+#royalBoutiqueRoot .jrp-featured-art .jrp-art-arch{position:relative;z-index:2}
+#royalBoutiqueRoot .jrp-featured-art .jrp-art-caption,#royalBoutiqueRoot .jrp-featured-art .jrp-media-credit{position:relative;z-index:2}
+#royalBoutiqueRoot .jrp-featured-art.jrp-photo-real .jrp-art-arch{background:#100916d0}
+#royalBoutiqueRoot .jrp-tile-art.jrp-cinematic-tile-art,#royalBoutiqueRoot .jrp-tile-preview.jrp-photo-real .jrp-tile-art.jrp-cinematic-tile-art{position:relative;overflow:hidden;background-position:center;background-size:cover;background-repeat:no-repeat;border-color:#d6ae72}
+#royalBoutiqueRoot .jrp-tile-art.jrp-cinematic-tile-art>img,#royalBoutiqueRoot .jrp-tile-preview.jrp-photo-real .jrp-tile-art.jrp-cinematic-tile-art>img{width:74%;height:76%;max-width:90%;margin:auto;object-fit:contain;object-position:center;background:#0c0815bb;border:1px solid #d3a8728c;border-radius:7px;box-shadow:0 6px 24px #0009;filter:none}
+#royalBoutiqueRoot .jrp-tile-preview.jrp-photo-real .jrp-tile-art.jrp-cinematic-tile-art:after{content:"ROYAL PRIVATE COLLECTION";font-size:8px}
+#view-gallery .jrg-stage.jrg-cinematic-stage{background-image:linear-gradient(0deg,#07040be0 0%,#07040b35 48%,#07040b78 100%),var(--jrg-cinema-image)!important;background-size:cover!important;background-position:center!important}
+#view-gallery .jrg-stage.jrg-cinematic-stage:after{background:linear-gradient(90deg,#020104bb,transparent 31%,transparent 68%,#020104bb),linear-gradient(0deg,#020104af,transparent 40%,#0201045c)}
+#view-gallery .jrg-selected-image.jrg-cinematic-selected{background-image:radial-gradient(ellipse at 50% 44%,#06030a36,#07040bc2),var(--jrg-cinema-image)!important;background-position:center!important;background-size:cover!important}
+#view-gallery .jrg-cinematic-card-backdrop{background-position:center;background-size:cover;opacity:.81}
+#view-gallery .jrg-vault-piece .jrg-vault-art img{max-width:88%;max-height:76%;background:#0c0815ba;border-radius:9px;box-shadow:0 8px 21px #0009}
+#view-gallery .jrg-certificate-dialog .jrg-cert-picture.jrg-cinematic-certificate{background-image:linear-gradient(#06030c99,#06030c99),var(--jrg-cinema-image)!important;background-position:center!important;background-size:cover!important}
+@media(max-width:700px){
+ #royalBoutiqueRoot .jrp-cinematic-panorama>img{height:286px;object-position:51% center}
+ #royalBoutiqueRoot .jrp-cinematic-panorama-caption{bottom:18px;left:14px}
+ #royalBoutiqueRoot .jrp-cinematic-panorama-caption h1{font-size:42px}
+ #royalBoutiqueRoot .jrp-cinematic-panorama-caption small{font-size:9px;letter-spacing:.05em}
+ #royalBoutiqueRoot .jrp-cinematic-panorama-caption p{font-size:13px}
+ #royalBoutiqueRoot .jrp-cinematic-panorama-caption span{font-size:10px}
+ #royalBoutiqueRoot .jrp-cinematic-title{padding:18px 7px 5px}
+ #royalBoutiqueRoot .jrp-cinematic-title h2{font-size:22px}
+ #royalBoutiqueRoot .jrp-motors-photo-row.jrp-cinematic-room-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px!important;padding:10px!important}
+ #royalBoutiqueRoot .jrp-cinematic-room{height:132px!important;border-radius:9px}
+ #royalBoutiqueRoot .jrp-cinematic-room-caption{left:9px;bottom:10px}
+ #royalBoutiqueRoot .jrp-cinematic-room-caption small{font-size:8px}
+ #royalBoutiqueRoot .jrp-cinematic-room-caption strong{font-size:12px}
+ #royalBoutiqueRoot .jrp-motors-bottom{flex-wrap:wrap}
+}
+@media(max-width:390px){#royalBoutiqueRoot .jrp-cinematic-room{height:115px!important}#royalBoutiqueRoot .jrp-cinematic-panorama>img{height:255px}}
+@media(prefers-reduced-motion:reduce){#royalBoutiqueRoot .jrp-cinematic-room{transition:none}}
