@@ -396,3 +396,95 @@
  #royalBoutiqueRoot .jrp-editorial-items button img{height:96px}
 }
 @media(prefers-reduced-motion:reduce){#royalBoutiqueRoot .jrp-maison-maincar{animation:none}}
+
+
+/* MAISON JUNJA V6 — photography-led grand automobile hall
+   User-requested Rolls-Royce / Bentley / Aston Martin real-photo experience.
+   Scoped exclusively to boutique; legacy cosmetics/game CSS left intact. */
+#royalBoutiqueRoot{--jrp-gold:#f7d99b;--jrp-glow:#e5b86b}
+#royalBoutiqueRoot .jrp-opening{letter-spacing:.12em;border-color:#d6a86f;background:linear-gradient(100deg,#24122d,#462849,#1b1021)}
+#royalBoutiqueRoot .jrp-motors-hero{isolation:isolate;position:relative;overflow:hidden;border:1px solid #d4a267;border-top:0;border-radius:0 0 23px 23px;background:radial-gradient(ellipse at 50% 10%,#6e497c71,transparent 52%),linear-gradient(125deg,#160b21,#3a1e41 48%,#110916);box-shadow:0 19px 48px #05020bac,inset 0 0 0 4px #dbb97312}
+#royalBoutiqueRoot .jrp-motors-hero:before{content:"";position:absolute;inset:8px;border:1px solid #e4ba7949;border-radius:16px;z-index:5;pointer-events:none}
+#royalBoutiqueRoot .jrp-motors-hero:after{content:"";position:absolute;z-index:0;left:-10%;right:-10%;top:-4%;height:68%;background:repeating-linear-gradient(90deg,#e2bd7212 0 1px,transparent 1px 17%),radial-gradient(ellipse at 50% 24%,#e4b56b38,transparent 65%);pointer-events:none}
+#royalBoutiqueRoot .jrp-motors-title{position:relative;z-index:2;text-align:center;padding:29px 12px 19px}
+#royalBoutiqueRoot .jrp-motors-title>small{display:block;color:#edce94;font:700 10px Georgia,serif;letter-spacing:.24em}
+#royalBoutiqueRoot .jrp-motors-title h1{font:800 clamp(46px,6.6vw,93px)/1 Georgia,serif;letter-spacing:-.045em;color:#fff5d2;margin:12px 0 10px;text-shadow:0 0 20px #dda95f75,0 4px 3px #170c18}
+#royalBoutiqueRoot .jrp-motors-title h1 em{font-style:italic;color:#ecc177}
+#royalBoutiqueRoot .jrp-motors-title>p{font:750 clamp(14px,2.1vw,21px)/1.35 'Noto Serif KR',serif;color:#f7e1b7;margin:0 0 10px}
+#royalBoutiqueRoot .jrp-motors-title>span{font:700 10px Georgia,serif;letter-spacing:.16em;color:#cba9d6}
+#royalBoutiqueRoot .jrp-motors-photo-row{display:grid;grid-template-columns:1fr 1.22fr 1fr;gap:8px;align-items:end;position:relative;z-index:2;padding:6px 20px 20px}
+#royalBoutiqueRoot .jrp-motors-photo{position:relative;isolation:isolate;display:block;width:100%;height:277px;overflow:hidden;min-width:0;text-align:left;background:linear-gradient(120deg,#3d2b4d,#140e20);border:1px solid #b38d63;border-radius:13px;box-shadow:0 10px 26px #040208b8,0 0 0 3px #d4a86916;padding:0;cursor:pointer;transition:transform .25s,border-color .25s,filter .25s}
+#royalBoutiqueRoot .jrp-motors-photo.is-center{height:330px;border:2px solid #f5d28f;box-shadow:0 14px 33px #050209cc,0 0 27px #e4b66b5a}
+#royalBoutiqueRoot .jrp-motors-photo:hover{transform:translateY(-5px);border-color:#fff0be;filter:brightness(1.07)}
+#royalBoutiqueRoot .jrp-motors-photo:focus-visible{outline:3px solid #fce4a1;outline-offset:3px}
+#royalBoutiqueRoot .jrp-motors-photo:before{content:"";z-index:2;position:absolute;inset:0;background:linear-gradient(0deg,#100818eb 0%,#12081a9e 16%,transparent 50%),linear-gradient(90deg,#1a082826,transparent 30%,transparent 70%,#1a082826);pointer-events:none}
+#royalBoutiqueRoot .jrp-motors-photo>img{display:block;width:100%;height:100%;object-fit:cover;object-position:center 56%;transition:transform .35s ease}
+#royalBoutiqueRoot .jrp-motors-photo:hover>img{transform:scale(1.045)}
+#royalBoutiqueRoot .jrp-motors-photo-caption{position:absolute;z-index:3;left:12px;right:12px;bottom:13px;display:flex;flex-direction:column;align-items:flex-start;gap:4px}
+#royalBoutiqueRoot .jrp-motors-photo-caption>small{font:700 11px Georgia,serif;letter-spacing:.13em;color:#ecd099}
+#royalBoutiqueRoot .jrp-motors-photo-caption>b{font:750 15px 'Noto Serif KR',Georgia,serif;color:#fff4dd;line-height:1.3;text-shadow:0 2px 8px #07030e}
+#royalBoutiqueRoot .jrp-motors-photo-caption>em{font-size:13px;color:#f8d18a;font-style:normal;font-weight:900}
+#royalBoutiqueRoot .jrp-motors-bottom{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:14px 26px 20px;background:linear-gradient(100deg,#261730,#3a2442,#24152e);border-top:1px solid #d1a47180}
+#royalBoutiqueRoot .jrp-motors-bottom span{font:700 10px Georgia,serif;letter-spacing:.14em;color:#d5bd95}
+#royalBoutiqueRoot .jrp-motors-bottom button{padding:12px 18px;border:1px solid #ffe3a9;border-radius:9px;background:linear-gradient(125deg,#fff1c9,#c6904e);color:#2a1a2c;font-size:12px;font-weight:850}
+#royalBoutiqueRoot .jrp-brand-nav{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;padding:11px 0 7px}
+#royalBoutiqueRoot .jrp-brand-nav button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;min-height:74px;min-width:0;padding:9px 5px;border-radius:11px;border:1px solid #a18261;background:radial-gradient(ellipse at 50% 0%,#7d527d65,transparent 72%),linear-gradient(130deg,#35213e,#170e24);color:#f2d7ae;cursor:pointer}
+#royalBoutiqueRoot .jrp-brand-nav button.active{border:2px solid #f5d290;background:linear-gradient(150deg,#5b365f,#2c1a37);box-shadow:0 0 18px #e8b66b4d}
+#royalBoutiqueRoot .jrp-brand-nav button>b{font:700 clamp(10px,1.25vw,15px)/1.2 Georgia,serif;letter-spacing:.06em;overflow-wrap:anywhere}
+#royalBoutiqueRoot .jrp-brand-nav button>small{font-size:9px;color:#bfa8d0}
+#royalBoutiqueRoot .jrp-featured-art.jrp-photo-real .jrp-art-arch{height:360px;width:min(100%,540px);border-radius:14px;background:#241528;border:2px solid #cba56e;box-shadow:0 0 0 6px #f3d99a0b,0 15px 32px #090515b3;overflow:hidden}
+#royalBoutiqueRoot .jrp-featured-art.jrp-photo-real .jrp-art-arch>img{width:100%;height:100%;object-fit:cover;animation:none;filter:none}
+#royalBoutiqueRoot .jrp-featured-art.jrp-photo-real .jrp-art-arch .jrp-art-aura,
+#royalBoutiqueRoot .jrp-featured-art.jrp-photo-real .jrp-art-arch .jrp-stage-plinth{display:none}
+#royalBoutiqueRoot .jrp-featured-art.jrp-photo-real .jrp-art-arch:after{content:"JUNJA · REAL MODEL REFERENCE";position:absolute;left:0;right:0;bottom:0;z-index:4;text-align:center;padding:12px 6px;background:linear-gradient(transparent,#100c1cf2);color:#f5dca5;font:700 10px Georgia,serif;letter-spacing:.12em}
+#royalBoutiqueRoot .jrp-media-credit{display:block;font-size:10px;line-height:1.5;color:#b8a5c6;margin:8px auto 0;text-align:center}
+#royalBoutiqueRoot .jrp-media-credit a{color:#ecd099;text-decoration:underline;text-decoration-color:#a98b56}
+#royalBoutiqueRoot .jrp-tile-preview.jrp-photo-real .jrp-tile-art{overflow:hidden;background:linear-gradient(125deg,#2b2039,#100b1b);border:1px solid #c49b69}
+#royalBoutiqueRoot .jrp-tile-preview.jrp-photo-real .jrp-tile-art>img{width:100%;height:100%;object-fit:cover;filter:none;transition:transform .3s}
+#royalBoutiqueRoot .jrp-tile-preview.jrp-photo-real:hover .jrp-tile-art>img{transform:scale(1.04)}
+#royalBoutiqueRoot .jrp-tile-preview.jrp-photo-real .jrp-tile-art:after{content:"REAL MODEL PHOTO";position:absolute;left:7px;bottom:7px;background:#140b20d9;border:1px solid #cea56d;padding:5px;color:#f8d9a1;font:700 8px Georgia,serif}
+#royalBoutiqueRoot .jrp-editorial-items button>img{border-radius:8px;object-fit:cover}
+#royalBoutiqueRoot .jrp-collector-slot.filled>img{border-radius:6px;object-fit:cover}
+#royalBoutiqueRoot .jrp-real-photo .jrp-media-fallback{object-fit:contain!important;filter:drop-shadow(0 9px 10px #0d0614b4)!important}
+#royalBoutiqueRoot .jrp-motors-photo .jrp-media-fallback{object-fit:contain;background:radial-gradient(ellipse at 50% 40%,#6e518a,#1c1227)}
+#royalBoutiqueRoot .jrp-featured-copy .jrp-intro{max-width:470px}
+#royalBoutiqueRoot .jrp-disclaimer{line-height:1.8}
+@media(max-width:960px){
+ #royalBoutiqueRoot .jrp-motors-photo-row{padding:5px 9px 15px;gap:5px}
+ #royalBoutiqueRoot .jrp-motors-photo{height:214px}
+ #royalBoutiqueRoot .jrp-motors-photo.is-center{height:255px}
+ #royalBoutiqueRoot .jrp-motors-title h1{font-size:clamp(44px,7.4vw,65px)}
+ #royalBoutiqueRoot .jrp-motors-title>small{font-size:8px;letter-spacing:.1em}
+ #royalBoutiqueRoot .jrp-motors-title>span{font-size:9px}
+ #royalBoutiqueRoot .jrp-motors-photo-caption{left:8px;right:6px;bottom:8px}
+ #royalBoutiqueRoot .jrp-motors-photo-caption>b{font-size:12px}
+ #royalBoutiqueRoot .jrp-brand-nav button{min-height:65px}
+}
+@media(max-width:700px){
+ #royalBoutiqueRoot .jrp-motors-title{padding:23px 9px 12px}
+ #royalBoutiqueRoot .jrp-motors-title h1{font-size:clamp(37px,9vw,56px);margin:9px 0}
+ #royalBoutiqueRoot .jrp-motors-title>p{font-size:13px}
+ #royalBoutiqueRoot .jrp-motors-title>span{font-size:8px;letter-spacing:.08em}
+ #royalBoutiqueRoot .jrp-motors-photo-row{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:thin;scroll-padding-inline:11px;align-items:stretch;gap:9px;padding:7px 12px 16px}
+ #royalBoutiqueRoot .jrp-motors-photo,
+ #royalBoutiqueRoot .jrp-motors-photo.is-center{flex:0 0 76%;height:242px;min-width:0;scroll-snap-align:center;border:1px solid #e4c185}
+ #royalBoutiqueRoot .jrp-motors-photo.is-center{order:-1}
+ #royalBoutiqueRoot .jrp-motors-photo-caption>b{font-size:15px}
+ #royalBoutiqueRoot .jrp-motors-bottom{padding:11px 13px 15px}
+ #royalBoutiqueRoot .jrp-motors-bottom span{font-size:8px;letter-spacing:0}
+ #royalBoutiqueRoot .jrp-motors-bottom button{padding:10px 9px;font-size:11px;min-width:121px}
+ #royalBoutiqueRoot .jrp-brand-nav{display:flex;overflow-x:auto;gap:7px;scrollbar-width:thin;padding:11px 0}
+ #royalBoutiqueRoot .jrp-brand-nav button{flex:0 0 40%;min-height:63px;padding:7px 3px}
+ #royalBoutiqueRoot .jrp-brand-nav button>b{font-size:11px}
+ #royalBoutiqueRoot .jrp-featured-art.jrp-photo-real{min-height:255px}
+ #royalBoutiqueRoot .jrp-featured-art.jrp-photo-real .jrp-art-arch{height:235px;width:100%}
+ #royalBoutiqueRoot .jrp-tile-preview.jrp-photo-real .jrp-tile-art{height:155px}
+ #royalBoutiqueRoot .jrp-editorial-items button>img{height:117px}
+}
+@media(max-width:390px){
+ #royalBoutiqueRoot .jrp-motors-photo,#royalBoutiqueRoot .jrp-motors-photo.is-center{height:218px}
+ #royalBoutiqueRoot .jrp-motors-title h1{font-size:37px}
+ #royalBoutiqueRoot .jrp-tile-preview.jrp-photo-real .jrp-tile-art{height:135px}
+ #royalBoutiqueRoot .jrp-brand-nav button{flex-basis:45%}
+}
+@media(prefers-reduced-motion:reduce){#royalBoutiqueRoot .jrp-motors-photo,#royalBoutiqueRoot .jrp-motors-photo img{transition:none}}
