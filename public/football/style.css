@@ -362,3 +362,33 @@ footer a{color:#b9d1e6}
  footer{margin-top:21px;font-size:9px}
 }
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{animation:none!important;scroll-behavior:auto!important;transition:none!important}}
+
+/* 2026 JPL club-crest & 3-way handicap extension */
+.crest svg{position:relative;z-index:1;width:70%;height:67%;fill:none;stroke:#fff8df;filter:drop-shadow(0 1px 2px #000a);pointer-events:none}
+.crest svg circle,.crest svg path{vector-effect:non-scaling-stroke}
+.market-rows{border-top:1px solid #ffffff19;margin-top:10px;padding:9px 0 2px;display:grid;gap:6px}
+.market-row{display:grid;grid-template-columns:90px 1fr;align-items:center;gap:9px}
+.market-label{color:#c0d0df;font-size:10px;font-weight:900;line-height:1.4}
+.market-label.hdp{color:#f0cb80}
+.market-row .odds-row{padding:0;margin:0;border:0}
+.market-row .odds-row button{padding:7px 10px}
+.market-row .odds-row button b{font-size:15px}
+.league-table .relegation-zone{background:rgba(172,56,62,.12)}
+.league-table .relegation-zone td:first-child{color:#f28c8d}
+.league-transition{border-top:1px solid #ffffff1b;background:linear-gradient(110deg,#132b37,#1d2539);padding:15px 20px;display:grid;gap:7px}
+.league-transition>span{color:#f0c77e;font:900 11px 'Barlow Condensed',sans-serif;letter-spacing:.14em}
+.league-transition b{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:11px;color:#ecf3f8}
+.league-transition .crest{width:29px;height:34px;margin-right:-6px}
+.league-transition .crest small{font-size:6px;bottom:4px}
+.league-transition small{font-size:10px;color:#96aabb}
+.league-transition .reserve-sep{color:#e9c37a}
+.ticket-status.FORFEITED{color:#d4b48d;border-color:#d4b48d66}
+@media(max-width:650px){
+ .market-rows{margin-top:8px;gap:7px}
+ .market-row{grid-template-columns:73px 1fr;gap:6px}
+ .market-label{font-size:9px}
+ .market-row .odds-row{gap:4px}
+ .market-row .odds-row button{padding:6px 8px}
+ .market-row .odds-row button b{font-size:14px}
+ .league-transition{padding:12px}
+}
