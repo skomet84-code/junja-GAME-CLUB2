@@ -15,7 +15,7 @@
   item?.photoLicense==='CC BY-SA 4.0'?'https://creativecommons.org/licenses/by-sa/4.0/':
   'https://commons.wikimedia.org/wiki/Commons:Licensing';
  const isPhoto=item=>!!photo(item);
- const cinemaRooms=Object.freeze({car:'car',watch:'watch',yacht:'yacht',jet:'jet',estate:'estate',frame:'jewelry',art:'jewelry',vault:'jewelry',title:'jewelry',costume:'jewelry',pet:'jewelry'});
+ const cinemaRooms=Object.freeze({car:'car',watch:'watch',yacht:'yacht',jet:'jet',estate:'estate',frame:'jewelry',jewel:'jewelry',art:'jewelry',vault:'jewelry',title:'jewelry',costume:'jewelry',pet:'jewelry'});
  const scene=item=>'/art/royal/cinematic/'+(cinemaRooms[String(item?.category||'')]||'jewelry')+'-showroom.webp';
  document.addEventListener('error',e=>{
   const img=e.target;
