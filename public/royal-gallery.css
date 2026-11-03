@@ -354,3 +354,104 @@
  #view-gallery .jrg-photo-detail .jrg-selected-image>img{height:195px}
  #view-gallery .jrg-photo-detail .jrg-selected-image{min-height:212px}
 }
+
+
+/* JUNJA FINAL PRIVATE MOTOR MUSEUM · true licensed photographed artworks.
+   A true owner-only photographic hero sits above the independently managed three-piece collection. */
+#view-gallery .jrg-cinematic-entrance{
+ position:relative;isolation:isolate;height:clamp(360px,46vw,540px);overflow:hidden;
+ background:radial-gradient(ellipse at 48% 40%,#58356f,#0d0919 73%);
+ border:2px solid #dbb676;border-bottom:0;
+ box-shadow:0 17px 45px #07040fc4,inset 0 0 0 7px #d7b47712;
+}
+#view-gallery .jrg-cinematic-entrance:before{
+ position:absolute;content:"";z-index:3;inset:10px;pointer-events:none;
+ border:1px solid #ecc58374;
+}
+#view-gallery .jrg-cinematic-entrance:after{
+ position:absolute;content:"";z-index:2;inset:0;pointer-events:none;
+ background:linear-gradient(90deg,#0b0818e8 0,#0a0715a3 24%,transparent 60%,#0a061454 100%),
+ linear-gradient(0deg,#0c091bec 0%,transparent 43%),
+ linear-gradient(180deg,#1a102f83 0%,transparent 32%);
+}
+#view-gallery .jrg-cinematic-entrance>img{
+ position:absolute;inset:0;width:100%;height:100%;display:block;
+ object-fit:cover;object-position:center 48%;
+ filter:brightness(.83) saturate(1.12) contrast(1.06);
+ animation:none;
+}
+#view-gallery .jrg-cinema-light{
+ position:absolute;z-index:1;inset:0;pointer-events:none;
+ background:radial-gradient(ellipse at 55% 23%,#d9b4dd30,transparent 60%);
+}
+#view-gallery .jrg-cinema-information{
+ position:absolute;z-index:4;left:clamp(22px,4.3vw,65px);
+ bottom:clamp(27px,5vw,64px);right:24%;max-width:580px;color:#fff0cc;
+ text-shadow:0 3px 12px #080510;
+}
+#view-gallery .jrg-cinema-information>small{
+ display:block;color:#f2d497;font:700 11px Georgia,serif;letter-spacing:.19em;
+ margin-bottom:13px;
+}
+#view-gallery .jrg-cinema-information>strong{
+ display:block;font:800 clamp(30px,4.3vw,57px)/1.15 Georgia,'Noto Serif KR',serif;
+ color:#fff2cd;letter-spacing:-.03em;text-shadow:0 4px 12px #0b0517,0 0 16px #d3a4637d;
+}
+#view-gallery .jrg-cinema-information>p{font-size:14px;line-height:1.6;color:#e8d8eb;margin:12px 0 19px}
+#view-gallery .jrg-cinema-information>button{
+ background:linear-gradient(122deg,#fff3c7,#c69550);
+ color:#2a1928;font-size:13px;font-weight:850;padding:13px 23px;
+ border:1px solid #ffecb5;border-radius:9px;
+ box-shadow:0 6px 20px #130a1ed0;cursor:pointer;text-shadow:none;
+}
+#view-gallery .jrg-cinema-information>button:hover{filter:brightness(1.08)}
+#view-gallery .jrg-cinema-information>button:focus-visible{outline:3px solid #fff6e0;outline-offset:3px}
+#view-gallery .jrg-cinema-corner{
+ position:absolute;z-index:4;right:28px;top:23px;
+ text-align:right;color:#f5d7a0;font:700 16px/1.2 Georgia,serif;letter-spacing:.2em;
+ text-shadow:0 2px 10px #080410;
+}
+#view-gallery .jrg-cinema-silhouette{
+ position:absolute;inset:0;display:grid;place-items:center;
+ font-size:clamp(100px,20vw,280px);font-family:Georgia,serif;
+ color:#d9b47977;text-shadow:0 0 55px #d6a86d94;opacity:.8;
+}
+#view-gallery .jrg-cinematic-entrance:not(.has-owned-photo){background:
+ radial-gradient(circle at 70% 50%,#95709e90,transparent 42%),
+ url('/art/royal/garage-hall.svg') center/cover no-repeat;}
+#view-gallery .jrg-cinematic-entrance:not(.has-owned-photo)>img{display:none}
+#view-gallery .jrg-cinematic-entrance+.jrg-hall{margin-top:0;border-top:3px solid #b8915c;border-radius:0 0 21px 21px}
+#view-gallery .jrg-cinematic-entrance+.jrg-hall .jrg-stage{aspect-ratio:1400/750;min-height:340px}
+#view-gallery .jrg-entry{border-radius:20px 20px 0 0;margin-bottom:0}
+#view-gallery .jrg-owner-ribbon{border-bottom:0}
+#view-gallery .jrg-relic-promises{margin-top:12px}
+@media(max-width:800px){
+ #view-gallery .jrg-cinematic-entrance{height:350px}
+ #view-gallery .jrg-cinematic-entrance>img{object-position:center 56%}
+ #view-gallery .jrg-cinema-information{right:18px;bottom:30px;left:25px;max-width:95%}
+ #view-gallery .jrg-cinema-information>strong{font-size:clamp(29px,5.1vw,42px)}
+ #view-gallery .jrg-cinema-information>small{font-size:9px;letter-spacing:.13em}
+ #view-gallery .jrg-cinema-information>p{font-size:12px}
+ #view-gallery .jrg-cinema-corner{font-size:11px;right:22px}
+}
+@media(max-width:700px){
+ #view-gallery .jrg-cinematic-entrance{height:294px}
+ #view-gallery .jrg-cinematic-entrance:before{inset:6px}
+ #view-gallery .jrg-cinema-information{bottom:19px;left:15px;right:12px}
+ #view-gallery .jrg-cinema-information>small{font-size:8px;margin-bottom:7px}
+ #view-gallery .jrg-cinema-information>strong{font-size:clamp(24px,6.5vw,34px)}
+ #view-gallery .jrg-cinema-information>p{font-size:11px;line-height:1.4;margin:8px 0 11px}
+ #view-gallery .jrg-cinema-information>button{font-size:11px;padding:10px 13px}
+ #view-gallery .jrg-cinema-corner{font-size:8px;top:14px;right:14px}
+ #view-gallery .jrg-cinematic-entrance+.jrg-hall .jrg-stage{height:344px;min-height:0;aspect-ratio:auto}
+}
+@media(max-width:390px){
+ #view-gallery .jrg-cinematic-entrance{height:252px}
+ #view-gallery .jrg-cinema-information>strong{font-size:24px}
+ #view-gallery .jrg-cinematic-entrance+.jrg-hall .jrg-stage{height:316px}
+ #view-gallery .jrg-cinema-information>p{max-width:270px}
+}
+@media(prefers-reduced-motion:reduce){
+ #view-gallery .jrg-cinematic-entrance>img,
+ #view-gallery .jrg-cinema-information>button{animation:none;transition:none}
+}
