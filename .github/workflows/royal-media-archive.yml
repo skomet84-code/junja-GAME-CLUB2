@@ -18,6 +18,10 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: junja-royal-archive-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: false
+
 jobs:
   archive-photographs:
     runs-on: ubuntu-22.04
@@ -43,9 +47,14 @@ jobs:
           test "$(find public/art/royal/photos -type f -name '*.jpg' | wc -l)" -ge 3
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          # Another allowed edit may have advanced this branch while we compressed.
+          # Recompute from the latest remote state instead of rebasing generated
+          # manifest and JPEG files (which creates unnecessary merge conflicts).
+          git fetch origin feat/royal-visual-qa-v7-20261103
+          git reset --hard origin/feat/royal-visual-qa-v7-20261103
+          python scripts/optimize-royal-photos.py
           git add public/art/royal/photos/
           if ! git diff --staged --quiet; then
             git commit -m 'assets(royal): compressed CC photos cached locally for iOS gallery'
-            git pull --rebase origin feat/royal-visual-qa-v7-20261103
             git push origin HEAD:feat/royal-visual-qa-v7-20261103
           fi
