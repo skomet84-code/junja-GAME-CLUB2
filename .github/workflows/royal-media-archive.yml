@@ -1,0 +1,40 @@
+name: Archive Royal Luxury Photo Assets
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - feat/royal-visual-qa-v7-20261103
+    paths:
+      - scripts/sync-royal-media.cjs
+      - .github/workflows/royal-media-archive.yml
+
+permissions:
+  contents: write
+
+jobs:
+  archive-photographs:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 14
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/royal-visual-qa-v7-20261103
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Download and audit Creative Commons full-photo thumbnails
+        continue-on-error: true
+        run: node scripts/sync-royal-media.cjs
+      - name: Verify photo assets, publish cache to same feature branch
+        run: |
+          echo "ARCHIVED_PHOTO_FILES $(find public/art/royal/photos -type f -name '*.jpg' | wc -l)"
+          test "$(find public/art/royal/photos -type f -name '*.jpg' | wc -l)" -ge 3
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add public/art/royal/photos/
+          if ! git diff --staged --quiet; then
+            git commit -m 'assets(royal): pin licensed automobile photos locally for iOS gallery'
+            git push origin HEAD:feat/royal-visual-qa-v7-20261103
+          fi
