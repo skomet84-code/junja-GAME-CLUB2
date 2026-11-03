@@ -27,7 +27,7 @@ for(const [src,re,subject] of [
  [gallery,/data-jrg-pin/,'place owned item'],
  [gallery,/data-jrg-remove/,'remove owned item'],
  [gallery,/data-jrg-focus/,'inspect each exhibited collectible'],
- [gallery,/data-visit-royal/,'readonly visiting'],
+ [gallery,/dataset\.visitRoyal/,'readonly visiting'],
  [gallery,/isOwner\(\)/,'owner checks'],
  [gallery,/Object\.keys|owned/,'collection content'],
  [boutique,/data-go="gallery"/,'showroom entry in boutique'],
