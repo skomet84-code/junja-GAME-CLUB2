@@ -10,7 +10,14 @@ function mount(){
  div.innerHTML='<div class="jbank-panel"><button id="jbankClose" class="jbank-close" aria-label="닫기" type="button">×</button><small class="jbank-kicker">JUNJA PRIVATE BANKING · VIRTUAL CURRENCY</small><h2>♛ J-BANK</h2><p>신분에 따라 달라지는 대출 한도 · 게임머니 전용 디지털 은행</p><button id="jbankMarketOpen" class="jstock-launch" type="button"><span><b>📈 준자 주식 거래소</b><small>준자반도체 · 물산 · 엔터 · 바이오 · 에너지</small></span><strong>J-STOCK 입장 ›</strong></button><button id="jbankCoinOpen" class="jstock-launch" type="button"><span><b>🪙 J-COIN 거래소</b><small>8종 코인 · 15분 변동 · 24시간 거래</small></span><strong>J-COIN 입장 ›</strong></button><div id="jbankContent">은행 정보 확인 중...</div><div id="jbankNotice" aria-live="polite"></div></div>';
  document.body.appendChild(div);
  div.addEventListener('click',e=>{if(e.target===div||e.target.closest('#jbankClose'))close();
-  const choice=e.target.closest('[data-jbank-preset]');if(choice&&state){const type=choice.dataset.jbankType,input=$('#jbank'+(type==='borrow'?'Borrow':'Repay'));if(!input)return;let max=type==='borrow'?BigInt(state.available):BigInt(state.outstanding);if(type==='repay'&&BigInt(state.wallet)<max)max=BigInt(state.wallet);input.value=String(choice.dataset.jbankPreset==='max'?max:max*BigInt(choice.dataset.jbankPreset)/100n);}
+  const choice=e.target.closest('[data-jbank-preset]');if(choice&&state){const type=choice.dataset.jbankType;
+   const credit=type.startsWith('credit'),borrow=type==='borrow'||type==='creditBorrow';
+   const input=$(credit?'#jcredit'+(borrow?'Borrow':'Repay'):'#jbank'+(borrow?'Borrow':'Repay'));
+   if(!input)return;
+   const quote=credit?state.credit:state;
+   let max=BigInt(borrow?quote.available:quote.outstanding);
+   if(!borrow&&BigInt(state.wallet)<max)max=BigInt(state.wallet);
+   input.value=String(choice.dataset.jbankPreset==='max'?max:max*BigInt(choice.dataset.jbankPreset)/100n);}
   const action=e.target.closest('[data-jbank-action]');if(action)submit(action.dataset.jbankAction);
  });
  div.addEventListener('input',e=>{if(e.target.classList.contains('jbank-input'))e.target.value=e.target.value.replace(/[^0-9]/g,'');});
@@ -25,7 +32,7 @@ function rehabilitationStatus(d){
  return '연체 상태입니다. 자동 자산 매각이 완료되고도 빚이 남아야 신청할 수 있어요.';
 }
 function render(d){
- state=d;const debt=BigInt(d.outstanding),cash=BigInt(d.wallet),hasLoan=debt>0n,loanLocked=hasLoan||!!d.installment;
+ state=d;const debt=BigInt(d.outstanding),cash=BigInt(d.wallet),hasLoan=debt>0n,loanLocked=!d.canBorrow;
  const q=d.rankSale;
  const saleHtml=q?'<section class="jbank-rank-sale"><div class="jbank-sale-heading">⚖️ <b>신분 매각 · 빚 상환</b><small>매각은 본인 선택이며 취소할 수 없습니다.</small></div>'+
  '<p>현재 <b>'+esc(q.fromName)+'</b> → <b>'+esc(q.toName)+'</b> · 승급비용의 <b>99%</b> 매입</p>'+
@@ -34,7 +41,7 @@ function render(d){
  '<button class="jbank-submit jbank-sell-btn" data-jbank-action="sellRank" type="button">신분 1단계 매각 · 빚 상환하기</button></section>':
  '<div class="jbank-sale-muted">미상환 대출이 있고 평민보다 높은 등급일 때 신분 매각을 사용할 수 있습니다.</div>';
  $('#jbankContent').innerHTML='<div class="jbank-member">♛ '+esc(d.rank.name)+' 신분 · 한도 '+fmt(d.loanLimit)+' G</div>'+
- '<div class="jbank-grid"><div><small>신규 대출 가능</small><strong>'+fmt(d.available)+' G</strong></div><div><small>총 상환 잔액</small><strong>'+fmt(debt)+' G</strong></div><div><small>남은 원금</small><strong>'+fmt(d.principal)+' G</strong></div><div><small>누적 이자</small><strong>'+fmt(d.interest)+' G</strong></div></div>'+
+ '<div class="jbank-grid"><div><small>신분 대출 가능</small><strong>'+fmt(d.available)+' G</strong></div><div><small>총 상환 잔액</small><strong>'+fmt(debt)+' G</strong></div><div><small>남은 원금</small><strong>'+fmt(d.principal)+' G</strong></div><div><small>누적 이자</small><strong>'+fmt(d.interest)+' G</strong></div></div>'+
  '<p class="jbank-terms">📖 <b>대출 안내</b> — 게임머니 G 전용 · 원금 기준 일 0.1% 단리 · 이자 포함 7일 내 완납. 7일 초과 연체 시 현금·자유저축·적금·주식·코인·신분(99% 매각가) 순으로 자동 회수됩니다. 연체료는 없습니다.</p>'+
  (d.dueAt&&hasLoan?'<p class="jbank-terms">⏰ 상환 마감: '+new Date(d.dueAt).toLocaleString('ko-KR')+(d.overdue?' · <b>연체/강제 회수 대상</b>':'')+'</p>':'')+
  '<section class="jbank-rank-sale" id="jbankRehabilitation"><h3>🛟 개인회생 · 최후의 재출발</h3>'+
@@ -42,9 +49,37 @@ function render(d){
  '<p>개인회생 신청 시 남은 대출은 탕감되지만 <b>기존 보유머니·신분·예적금·주식·코인은 모두 초기화</b>돼요. 다시 시작할 게임머니 1,000억 G가 지급되며 <b>계정당 1회, 취소 불가</b>예요.</p>'+
  '<p class="jbank-terms"><b>현재 '+(d.canRehabilitate?'신청 가능':'신청 불가')+'</b> · '+esc(rehabilitationStatus(d))+'</p>'+
  '<button class="jbank-submit" data-jbank-action="rehabilitation" type="button">🛟 개인회생 신청'+(d.canRehabilitate?' · 최종 확인':' · 신청 조건 확인')+'</button></section>'+
- '<div class="jbank-forms"><section><h3>🏦 대출 신청</h3><label>대출금 G<input id="jbankBorrow" class="jbank-input" inputmode="numeric" type="text" placeholder="최소 '+fmt(d.minLoan)+' G" '+(loanLocked?'disabled':'')+'></label><div class="jbank-presets"><button type="button" data-jbank-type="borrow" data-jbank-preset="25" '+(loanLocked?'disabled':'')+'>25%</button><button type="button" data-jbank-type="borrow" data-jbank-preset="50" '+(loanLocked?'disabled':'')+'>50%</button><button type="button" data-jbank-type="borrow" data-jbank-preset="max" '+(loanLocked?'disabled':'')+'>최대한도</button></div><button class="jbank-submit" data-jbank-action="borrow" '+(loanLocked?'disabled':'')+'>게임머니 대출받기</button></section>'+
+ (loanLocked?'<p class="jbank-blocked-reason">🔒 신분 대출 제한: '+esc(d.borrowBlockedReason||'현재 대출 신청 조건을 확인해 주세요.')+'</p>':'')+
+ '<div class="jbank-forms"><section><h3>🏦 신분 대출 신청</h3><label>대출금 G<input id="jbankBorrow" class="jbank-input" inputmode="numeric" type="text" placeholder="최소 '+fmt(d.minLoan)+' G" '+(loanLocked?'disabled':'')+'></label><div class="jbank-presets"><button type="button" data-jbank-type="borrow" data-jbank-preset="25" '+(loanLocked?'disabled':'')+'>25%</button><button type="button" data-jbank-type="borrow" data-jbank-preset="50" '+(loanLocked?'disabled':'')+'>50%</button><button type="button" data-jbank-type="borrow" data-jbank-preset="max" '+(loanLocked?'disabled':'')+'>최대한도</button></div><button class="jbank-submit" data-jbank-action="borrow" '+(loanLocked?'disabled':'')+'>게임머니 대출받기</button></section>'+
  '<section><h3>💳 원금·이자 상환</h3><label>상환금 G<input id="jbankRepay" class="jbank-input" inputmode="numeric" type="text" placeholder="보유 '+fmt(cash)+' G" '+(!hasLoan?'disabled':'')+'></label><div class="jbank-presets"><button type="button" data-jbank-type="repay" data-jbank-preset="25" '+(!hasLoan?'disabled':'')+'>25%</button><button type="button" data-jbank-type="repay" data-jbank-preset="50" '+(!hasLoan?'disabled':'')+'>50%</button><button type="button" data-jbank-type="repay" data-jbank-preset="max" '+(!hasLoan?'disabled':'')+'>상환 가능 최대</button></div><button class="jbank-submit repay" data-jbank-action="repay" '+(!hasLoan?'disabled':'')+'>입력 금액 상환</button><button class="jbank-submit repay" data-jbank-action="all" '+(!hasLoan||cash<debt?'disabled':'')+'>원금+이자 전액 완납</button></section></div>'+
- savingsHtml(d)+installmentHtml(d)+saleHtml+'<details class="jbank-tiers"><summary>신분별 J-BANK 대출 한도 확인</summary><table><tbody>'+TIERS.map((tier,i)=>'<tr class="'+(d.rank.level===i?'current':'')+'"><td>'+esc(tier)+'</td><td>'+fmt(LIMITS[i])+' G</td></tr>').join('')+'</tbody></table></details>';
+ creditHtml(d.credit)+savingsHtml(d)+installmentHtml(d)+saleHtml+'<details class="jbank-tiers"><summary>신분별 J-BANK 대출 한도 확인</summary><table><tbody>'+TIERS.map((tier,i)=>'<tr class="'+(d.rank.level===i?'current':'')+'"><td>'+esc(tier)+'</td><td>'+fmt(LIMITS[i])+' G</td></tr>').join('')+'</tbody></table></details>';
+}
+function creditHtml(c){
+ if(!c)return '';
+ const locked=!c.canBorrow,hasDebt=BigInt(c.outstanding||'0')>0n;
+ return '<section id="jbankCredit" class="jbank-rank-sale jcredit-panel">'+
+ '<div class="jcredit-heading"><span class="jcredit-mark">50%</span><div><small>JUNJA PRIVATE CREDIT</small><h3>💎 총자산 신용대출</h3><p>신분별 한도와 별개 · 평가자산의 최대 50% · 일 0.2% 단리</p></div></div>'+
+ '<div class="jbank-grid jcredit-values"><div><small>보유 총자산 평가액</small><strong>'+fmt(c.assets.gross)+' G</strong></div>'+
+ '<div><small>기존 채무 차감 후 평가액</small><strong>'+fmt(c.assets.net)+' G</strong></div>'+
+ '<div><small>최대 신용대출 한도 (50%)</small><strong>'+fmt(c.creditLimit)+' G</strong></div>'+
+ '<div><small>지금 신청 가능액</small><strong>'+fmt(c.available)+' G</strong></div>'+
+ '<div><small>신용대출 남은 원금</small><strong>'+fmt(c.principal)+' G</strong></div>'+
+ '<div><small>현재 미납 이자</small><strong>'+fmt(c.interest)+' G</strong></div></div>'+
+ '<details class="jcredit-details"><summary>총자산 평가 구성 확인</summary><div class="jcredit-breakdown">'+
+ [['보유머니',c.assets.cash],['자유저축',c.assets.savings],['적금 원금',c.assets.installment],
+  ['주식 시가',c.assets.stocks],['코인 시가',c.assets.coins],['명품 은행매입가(정가 75%)',c.assets.luxury]]
+ .map(([k,v])=>'<div><span>'+k+'</span><b>'+fmt(v)+' G</b></div>').join('')+
+ '</div><p>경매 등록 중인 명품, 신분 승급 비용 및 일반 장식 아이템은 신용평가에서 제외합니다.</p></details>'+
+ '<p class="jbank-terms">상환기한 7일 · 원금 기준 일 0.2% 단리 · 기간 중 일부/전액 상환 가능. 7일 초과 미상환 시 보유머니 → 자유저축 → 적금 → 주식 → 코인 → 명품 순서로 자동 회수합니다. 주식·코인 매각에는 기존 거래 수수료가 적용되고, 명품은 은행 즉시매입가(정가 75%)로 정산됩니다.</p>'+
+ (hasDebt?'<p class="jcredit-due">📅 상환기한 '+new Date(c.dueAt).toLocaleString('ko-KR',{timeZone:'Asia/Seoul'})+(c.overdue?' · 연체 강제회수 진행':'')+' · 총 채무 '+fmt(c.outstanding)+' G</p>':'')+
+ (locked?'<p class="jbank-blocked-reason">🔒 '+esc(c.blockedReason)+'</p>':'')+
+ '<div class="jbank-forms"><section><h3>신용대출 신청</h3><label>대출금 G<input id="jcreditBorrow" class="jbank-input" inputmode="numeric" type="text" placeholder="최소 '+fmt(c.minLoan)+' G" '+(locked?'disabled':'')+'></label>'+
+ '<div class="jbank-presets"><button type="button" data-jbank-type="creditBorrow" data-jbank-preset="25" '+(locked?'disabled':'')+'>25%</button><button type="button" data-jbank-type="creditBorrow" data-jbank-preset="50" '+(locked?'disabled':'')+'>50%</button><button type="button" data-jbank-type="creditBorrow" data-jbank-preset="max" '+(locked?'disabled':'')+'>최대한도</button></div>'+
+ '<button class="jbank-submit jcredit-borrow" data-jbank-action="creditBorrow" '+(locked?'disabled':'')+'>총자산 기반 신용대출 받기</button></section>'+
+ '<section><h3>신용대출 상환</h3><label>상환금 G<input id="jcreditRepay" class="jbank-input" inputmode="numeric" type="text" placeholder="현재 미상환 '+fmt(c.outstanding)+' G" '+(!hasDebt?'disabled':'')+'></label>'+
+ '<div class="jbank-presets"><button type="button" data-jbank-type="creditRepay" data-jbank-preset="25" '+(!hasDebt?'disabled':'')+'>25%</button><button type="button" data-jbank-type="creditRepay" data-jbank-preset="50" '+(!hasDebt?'disabled':'')+'>50%</button><button type="button" data-jbank-type="creditRepay" data-jbank-preset="max" '+(!hasDebt?'disabled':'')+'>상환 가능 최대</button></div>'+
+ '<button class="jbank-submit repay" data-jbank-action="creditRepay" '+(!hasDebt?'disabled':'')+'>입력 금액 상환</button>'+
+ '<button class="jbank-submit repay" data-jbank-action="creditRepayAll" '+(!hasDebt||BigInt(state.wallet)<BigInt(c.outstanding)?'disabled':'')+'>신용대출 전액 완납</button></section></div></section>';
 }
 function savingsHtml(d){
  const s=d.savings;if(!s)return '';
@@ -119,7 +154,25 @@ async function rehabilitation(){
   notice('개인회생 완료 · 채무 '+fmt(d.result.forgiven)+' G 탕감, 새 출발금 1,000억 G');
  }catch(e){notice(e.message,true)}finally{busy=false;}
 }
-async function submit(action){if(action==='rehabilitation')return rehabilitation();if(action.startsWith('installment'))return installmentSubmit(action);if(['deposit','withdraw','withdrawAll'].includes(action))return savingsSubmit(action);if(action==='sellRank')return sellRank();
+async function creditSubmit(action){
+ if(busy||!state?.credit)return;
+ const borrow=action==='creditBorrow',all=action==='creditRepayAll';
+ const raw=all?'all':$('#jcredit'+(borrow?'Borrow':'Repay'))?.value?.trim();
+ if(raw!=='all'&&!/^[1-9][0-9]*$/.test(String(raw||''))){notice('대출 금액을 정확히 입력해 주세요.',true);return;}
+ const c=state.credit;
+ if(borrow&&(BigInt(raw)<BigInt(c.minLoan)||BigInt(raw)>BigInt(c.available))){notice('신용대출은 최소 100만 G부터 총자산의 50% 이내에서 신청할 수 있어요.',true);return;}
+ if(!borrow&&raw!=='all'&&(BigInt(raw)>BigInt(c.outstanding)||BigInt(raw)>BigInt(state.wallet))){notice('미상환 신용대출 또는 보유머니를 초과했습니다.',true);return;}
+ if(!borrow&&all&&BigInt(state.wallet)<BigInt(c.outstanding)){notice('전액 완납에 필요한 게임머니가 부족해요.',true);return;}
+ if(!confirm(borrow?'총자산 평가액의 50% 한도 내에서 '+fmt(raw)+' G 신용대출을 신청할까요?\n일 0.2% 단리, 7일 이내 상환. 연체 시 자산이 순차적으로 강제매각됩니다.':'신용대출을 '+(all?'전액':fmt(raw)+' G')+' 상환할까요?'))return;
+ busy=true;document.querySelectorAll('#jbankModal [data-jbank-action]').forEach(b=>b.disabled=true);
+ try{
+  const d=await request('/api/jcredit/'+(borrow?'borrow':'repay'),{method:'POST',body:JSON.stringify({amount:raw,requestId:crypto.randomUUID()})});
+  render(d.status);document.dispatchEvent(new CustomEvent('jbank:wallet-change',{detail:{balance:d.status.wallet,user:d.user}}));
+  notice(borrow?'신용대출 입금 완료 · 7일 내 상환해 주세요.':'신용대출 상환 완료.'+(BigInt(d.status.credit.outstanding)===0n?' 신용대출 제한이 해제됐어요.':''));
+ }catch(e){try{render(await request('/api/jbank'))}catch{}notice(e.message,true)}
+ finally{busy=false;}
+}
+async function submit(action){if(action==='creditBorrow'||action==='creditRepay'||action==='creditRepayAll')return creditSubmit(action);if(action==='rehabilitation')return rehabilitation();if(action.startsWith('installment'))return installmentSubmit(action);if(['deposit','withdraw','withdrawAll'].includes(action))return savingsSubmit(action);if(action==='sellRank')return sellRank();
  if(busy||!state)return;const borrow=action==='borrow';
  const raw=action==='all'?'all':$('#jbank'+(borrow?'Borrow':'Repay'))?.value?.trim();
  if(raw!=='all'&&!/^[1-9][0-9]*$/.test(String(raw||''))){notice('금액을 정확히 입력해 주세요.',true);return;}
