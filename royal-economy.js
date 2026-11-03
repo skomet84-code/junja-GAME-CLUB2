@@ -85,6 +85,8 @@ function retireFantasyRoyalInventory(db,now){
 }
 function createRoyalEconomy({db,exactWallet,now,getAssets}){
  retireFantasyRoyalInventory(db,now);
+ let market=null;
+ const setMarket=instance=>{market=instance};
  const itemMap=new Map(ROYAL_ITEMS.map(item=>[item.id,item]));
  const readExact=(v)=>BigInt(String(v??0));
  const inventoryCount=db.prepare('SELECT COUNT(*) AS n FROM user_inventory WHERE item_id=?');
@@ -204,7 +206,7 @@ function createRoyalEconomy({db,exactWallet,now,getAssets}){
     .map(r=>({nickname:r.nickname,itemName:String(r.memo||'').split(' · ')[1]||'로얄 명품',purchasedAt:r.purchasedAt}))
     .filter(r=>!retiredNames.has(r.itemName)).slice(0,8);
    const records=ownerRecords(uid);
-   return {nickname:db.prepare('SELECT nickname FROM users WHERE id=?').get(uid)?.nickname||'',items:ROYAL_ITEMS.map(item=>({...item,owned:!!owns.get(uid,item.id),equipped:!item.displayOnly&&load[item.category]===item.id,...(records.get(item.id)||{}),...decorate(item,uid)})),collector:collector(uid),ranking:rank(),recent,serverNow:now()};
+   return {nickname:db.prepare('SELECT nickname FROM users WHERE id=?').get(uid)?.nickname||'',items:ROYAL_ITEMS.map(item=>({...item,owned:!!owns.get(uid,item.id),equipped:!item.displayOnly&&load[item.category]===item.id,...(records.get(item.id)||{}),...decorate(item,uid),certificate:market&&owns.get(uid,item.id)?market.certificate(uid,item.id):null,listed:market&&owns.get(uid,item.id)?!!market.activeFor(uid,item.id):false})),collector:collector(uid),ranking:rank(),recent,serverNow:now()};
  }
 
  // Read-only public museum: only owned royal collectibles, no wallet or private user data.
@@ -222,7 +224,9 @@ function createRoyalEconomy({db,exactWallet,now,getAssets}){
        price:item.price,desc:item.desc,owned:true,equipped:!item.displayOnly&&load[item.category]===item.id,
        stock:item.stock??null,collectionNo:certificate.collectionNo||null,acquiredAt:certificate.acquiredAt||null,
        inscription:note?{itemId:item.id,itemName:item.name,ownerNickname:user.nickname,
-         purchasedAt:note.purchasedAt,paid:note.paid}:null
+         purchasedAt:note.purchasedAt,paid:note.paid}:null,
+        certificate:market?market.certificate(uid,item.id):null,
+        listed:market?!!market.activeFor(uid,item.id):false
      };
    });
    return {nickname:user.nickname,collector:collector(uid),items,public:true};
@@ -260,6 +264,6 @@ function createRoyalEconomy({db,exactWallet,now,getAssets}){
      topWealth:fortunes.slice(0,10),royalRanking:rank(),assetsFailed,
      note:'오늘 장부 유입/유출에는 유저 송금·은행·투자 이동이 포함됩니다. 신규 재화 발행량과 동일하지 않습니다. 투자 평가액은 시세에 따라 변동합니다.'};
  }
- return {buy,catalog,collector,gallery,updateShowcase,decorate,dashboard};
+ return {buy,catalog,collector,gallery,updateShowcase,decorate,dashboard,setMarket};
 }
 module.exports={ROYAL_ITEMS,RETIRED_ROYAL_IDS,createRoyalEconomy,retireFantasyRoyalInventory};
