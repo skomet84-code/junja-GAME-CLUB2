@@ -109,7 +109,7 @@ assert.equal(get('royal:certificate:serial:'+certificate.serial).status,'BANK_RE
 assert.equal(market.market(3).owned.length,0,'collector inventory updated');
 assert(balance(3)>0n,'excess liquidation proceeds return to the user');
 assert.equal(credit.enforce(3).processed,false,'no double redemption');
-assert.throws(()=>credit.borrow(3,large,req('invalid')),/50%|한도/);
+assert.throws(()=>credit.borrow(3,'10000000000000000',req('invalid')),/50%|한도/);
 // Locked auction lot contributes no loan value.
 user(4,0n);
 db.prepare('INSERT INTO user_inventory(user_id,item_id,purchase_price,purchased_at) VALUES(?,?,?,?)').run(4,item.id,0,time);
