@@ -19,6 +19,7 @@ const {createJPL}=require('./jpl-core');
 const {BASE:SLOT_POOL_BASE,output:slotPoolOutput,readPool:readSlotJackpotPool}=require('./slot-jackpot-pool');
 const {combinedInvestmentRanking}=require('./j-investment-ranking');
 const { DatabaseSync } = require('./persistent-db');
+const {report: jplAdminReport}=require('./jpl-admin-report');
 const createTreasureRaid = require('./treasure-raid-server');
 const createBlackroomCloud = require('./blackroom-cloud');
 
@@ -2352,6 +2353,21 @@ const server=http.createServer(async(req,res)=>{
       const token=parseCookies(req).sid;if(token)db.prepare('DELETE FROM sessions WHERE token=?').run(token);return json(res,200,{ok:true},{'Set-Cookie':'sid=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0'});
     }
     if(url.pathname==='/api/me'&&req.method==='GET'){const u=requireAuth(req,res);if(!u)return;const includePresence=url.searchParams.get('presence')==='1';return json(res,200,{user:u,online:onlineCount(),presence:includePresence?presenceSnapshot():[]});}
+    // Only verified operators may inspect all members' JPL tickets.
+    if(url.pathname==='/api/admin/jpl-bets'&&req.method==='GET'){
+      const admin=requireAdmin(req,res);if(!admin)return;
+      if(!rateLimit('jpl-admin-report:'+admin.id,30,60000))
+        return json(res,429,{error:'베팅 현황 조회가 너무 빠릅니다.'});
+      try{
+        const result=jplAdminReport(db,{
+          season:url.searchParams.get('season')||'current',
+          status:url.searchParams.get('status')||'ALL',
+          user:url.searchParams.get('user')||'',
+          page:url.searchParams.get('page')||'1'
+        });
+        return json(res,200,result);
+      }catch(e){return json(res,400,{error:e.message});}
+    }
     if(url.pathname==='/api/jpl/status'&&req.method==='GET'){
       const u=requireAuth(req,res);if(!u)return;
       try{const d=jpl.status(u.id);if(d.changed)await db.flush();return json(res,200,d);}
