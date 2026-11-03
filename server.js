@@ -7,6 +7,7 @@ const crypto = require('node:crypto');
 const staticResponse = require('./static-response');
 const exactWallet = require('./exact-wallet');
 const {ROYAL_ITEMS,createRoyalEconomy}=require('./royal-economy');
+const {createRoyalMarket}=require('./royal-market');
 const echoReward=require('./echo-rewards');
 const {createJBank}=require('./j-bank-core');
 const {createCasinoCollateral}=require('./casino-collateral');
@@ -548,6 +549,14 @@ for(const item of SHOP_ITEMS){
 }
 const SHOP_BY_ID = Object.fromEntries(SHOP_ITEMS.map(x=>[x.id,Object.freeze({...x})]));
 const royalEconomy=createRoyalEconomy({db,exactWallet,now,getAssets:id=>({bank:jBank.status(id),stock:jStocks.status(id),coin:jCoins.status(id)})});
+const royalMarket=createRoyalMarket({db,exactWallet,now,items:ROYAL_ITEMS});
+royalEconomy.setMarket(royalMarket);
+setInterval(()=>{
+ try{
+  const settled=royalMarket.settleExpired();
+  if(settled){void db.flush().then(()=>pushRefresh()).catch(e=>console.error('[ROYAL AUCTION] Persistence:',e.message));}
+ }catch(e){console.error('[ROYAL AUCTION] Settlement:',e.message)}
+},60000).unref();
 const LOADOUT_FIELDS = new Set(['character','costume','frame','title','pet','table_skin','card_back','bubble_pack']);
 const SLOT_SYMBOLS = [
   // v2.8.15: lower only the base 7 symbol chance to 1.0%; keep J at 1.5%.
@@ -2378,6 +2387,31 @@ const server=http.createServer(async(req,res)=>{
       const u=requireAuth(req,res);if(!u)return;
       return json(res,200,royalEconomy.catalog(u.id));
     }
+    if(url.pathname==='/api/royal-market'&&req.method==='GET'){
+      const u=requireAuth(req,res);if(!u)return;
+      if(!rateLimit('royal_market_read:'+u.id,40,60000))return json(res,429,{error:'경매장 조회를 잠시 쉬었다 진행해줘.'});
+      try{
+        const settled=royalMarket.settleExpired();
+        if(settled){await db.flush();pushRefresh();}
+        return json(res,200,royalMarket.market(u.id));
+      }catch(e){return json(res,400,{error:e.message});}
+    }
+    if(url.pathname.startsWith('/api/royal-market/')&&req.method==='POST'){
+      const u=requireAuth(req,res);if(!u)return;
+      if(!rateLimit('royal_market_action:'+u.id,18,60000))return json(res,429,{error:'경매 거래 요청이 너무 잦아. 잠시 후 다시 시도해줘.'});
+      try{
+        const settled=royalMarket.settleExpired();if(settled){await db.flush();pushRefresh();}
+        const body=await readBody(req),action=url.pathname.slice('/api/royal-market/'.length);
+        let result;
+        if(action==='auction/list')result=royalMarket.list(u.id,String(body.itemId||''),String(body.start||''));
+        else if(action==='auction/bid')result=royalMarket.bid(u.id,String(body.lotId||''),String(body.amount||''));
+        else if(action==='auction/cancel')result=royalMarket.cancel(u.id,String(body.lotId||''));
+        else if(action==='bank/sell')result=royalMarket.bankSell(u.id,String(body.itemId||''));
+        else return json(res,404,{error:'알 수 없는 명품 거래 방식이야.'});
+        await db.flush();pushRefresh();
+        return json(res,200,{ok:true,...result,user:userPublic(u.id)});
+      }catch(e){return json(res,400,{error:e.message});}
+    }
     if(url.pathname==='/api/royal-economy/gallery'&&req.method==='GET'){
       const u=requireAuth(req,res);if(!u)return;
       if(!rateLimit('royal_gallery:'+u.id,30,60000))return json(res,429,{error:'전시관 방문 요청이 너무 빠릅니다.'});
@@ -2427,7 +2461,7 @@ const server=http.createServer(async(req,res)=>{
       if(!rateLimit('shop_gift:'+u.id,10,60000))return json(res,429,{error:'아이템 선물을 너무 빠르게 반복하고 있어. 잠시 후 다시 시도해줘.'});
       const b=await readBody(req),targetId=Number(b.targetId),item=SHOP_BY_ID[String(b.itemId||'')];
       if(!Number.isInteger(targetId)||targetId<1||targetId===Number(u.id))return json(res,400,{error:'선물할 친구를 다시 확인해줘.'});
-      if(!item||item.adminOnly)return json(res,400,{error:'선물할 수 없는 아이템이야.'});
+      if(!item||item.adminOnly||item.collection==='royalboutique')return json(res,400,{error:'로얄 명품은 소유권 증명서를 통한 경매로만 양도할 수 있어.'});
       const target=db.prepare('SELECT id,nickname,is_disabled FROM users WHERE id=?').get(targetId);
       if(!target||target.is_disabled)return json(res,404,{error:'선물 받을 친구를 찾을 수 없어.'});
       if(Number(item.rankTier||0)>Number(socialRankPerksForUser(targetId).shopTier||0))return json(res,403,{error:'친구의 현재 신분으로는 받을 수 없는 신분 전용 아이템이야.'});
