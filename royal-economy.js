@@ -3,19 +3,20 @@
 // ledger so all ownership and economic events survive the SQLite -> Postgres sync.
 const W=10n**4n,JO=10n**12n,GYEONG=10n**16n;
 const P=n=>String(BigInt(n)*GYEONG);
-// Read the original item IDs without change so all existing collectors retain ownership.
+// V12: Retired fantasy items are not interchangeable with new jewellery purchases.
+const RETIRED_ROYAL_IDS=Object.freeze(["title_royalboutique_gold","title_royalboutique_diamond","frame_royalboutique_royal","costume_royalboutique_crown","pet_royalboutique_dragon","title_royalboutique_entry","frame_royalboutique_aura","costume_royalboutique_wings","frame_royalboutique_regalia","costume_royalboutique_phoenix","pet_royalboutique_immortal"]);
 const ROYAL_ITEMS=Object.freeze([
- {id:'title_royalboutique_gold',category:'title',name:'황금빛 귀족',icon:'✦',rarity:'prestige',price:P(1),collection:'royalboutique',art:'noble',desc:'닉네임 아래에 빛나는 로얄 칭호 · 영구 소장'},
- {id:'title_royalboutique_diamond',category:'title',name:'다이아몬드 황제',icon:'💎',rarity:'mythic',price:P(3),collection:'royalboutique',art:'gem',desc:'다이아몬드로 새긴 고유 칭호 · 영구 소장'},
- {id:'frame_royalboutique_royal',category:'frame',name:'로얄 프로필 액자',icon:'👑',rarity:'mythic',price:P(6),collection:'royalboutique',art:'regalia',desc:'금빛 왕실 프로필 테두리 · 영구 소장'},
- {id:'costume_royalboutique_crown',category:'costume',name:'순금 황제관',icon:'👑',rarity:'prestige',price:P(10),collection:'royalboutique',art:'crown',desc:'프로필과 게임 아바타에 표시되는 왕관'},
- {id:'pet_royalboutique_dragon',category:'pet',name:'황금 신룡',icon:'🐉',rarity:'mythic',price:P(15),collection:'royalboutique',art:'dragon',desc:'왕실 수호신룡 펫 · 영구 소장'},
- {id:'title_royalboutique_entry',category:'title',name:'황실의 귀환',icon:'✨',rarity:'prestige',price:P(20),collection:'royalboutique',art:'scepter',desc:'등장할 때 눈에 띄는 최고급 칭호'},
- {id:'frame_royalboutique_aura',category:'frame',name:'황제의 오라',icon:'🌟',rarity:'mythic',price:P(30),collection:'royalboutique',art:'aura',desc:'장착하면 아바타 주위로 황금 광휘가 나타남'},
- {id:'costume_royalboutique_wings',category:'costume',name:'신화의 날개',icon:'🪽',rarity:'mythic',price:P(50),collection:'royalboutique',art:'wings',desc:'프로필과 게임 아바타에 표시되는 신화 날개'},
- {id:'frame_royalboutique_regalia',category:'frame',name:'THE ROYAL 문장',icon:'♛',rarity:'prestige',price:P(100),collection:'royalboutique',art:'regalia',desc:'왕실 정통 문장 · 장착 가능한 전설 프로필'},
- {id:'costume_royalboutique_phoenix',category:'costume',name:'불사조 황제관',icon:'🔥',rarity:'sovereign',price:P(300),collection:'royalboutique',art:'phoenix',stock:3,desc:'서버 단 3개 · 소유자 각인과 희소성 보장'},
- {id:'pet_royalboutique_immortal',category:'pet',name:'불멸의 황제 수호수',icon:'🦅',rarity:'sovereign',price:P(600),collection:'royalboutique',art:'immortal',desc:'최상위 영구 소장품 · 승률 및 경제 혜택 없음'},
+ {id:'jewel_royalboutique_platinum_drop',category:'jewel',name:"플래티넘 드롭 다이아 네크리스",icon:'💎',rarity:'prestige',price:P(1),collection:'royalboutique',art:'gem',visualSlot:0,displayOnly:true,desc:"물방울 다이아몬드 펜던트가 돋보이는 플래티넘 하이주얼리"},
+ {id:'jewel_royalboutique_emerald_drops',category:'jewel',name:"에메랄드 드롭 이어링",icon:'💎',rarity:'prestige',price:P(3),collection:'royalboutique',art:'gem',visualSlot:1,displayOnly:true,desc:"선명한 에메랄드와 다이아몬드가 어우러진 드롭 귀걸이"},
+ {id:'jewel_royalboutique_diamond_flower',category:'jewel',name:"플로럴 다이아 주얼리",icon:'💎',rarity:'mythic',price:P(6),collection:'royalboutique',art:'gem',visualSlot:2,displayOnly:true,desc:"꽃잎처럼 펼쳐진 화이트 다이아몬드 하이주얼리"},
+ {id:'jewel_royalboutique_pear_solitaire',category:'jewel',name:"페어컷 다이아 솔리테어",icon:'💎',rarity:'prestige',price:P(10),collection:'royalboutique',art:'gem',visualSlot:3,displayOnly:true,desc:"투명하게 빛나는 물방울형 다이아몬드 메인 스톤"},
+ {id:'jewel_royalboutique_emerald_cocktail',category:'jewel',name:"에메랄드 칵테일 링",icon:'💎',rarity:'mythic',price:P(15),collection:'royalboutique',art:'gem',visualSlot:4,displayOnly:true,desc:"깊은 초록빛 에메랄드와 다이아몬드 세팅 반지"},
+ {id:'jewel_royalboutique_diamond_cluster',category:'jewel',name:"다이아몬드 클러스터 링",icon:'💎',rarity:'mythic',price:P(20),collection:'royalboutique',art:'gem',visualSlot:5,displayOnly:true,desc:"다이아몬드 군집 세팅과 정교한 플래티넘 밴드"},
+ {id:'jewel_royalboutique_imperial_tiara',category:'jewel',name:"임페리얼 다이아 티아라",icon:'💎',rarity:'mythic',price:P(30),collection:'royalboutique',art:'gem',visualSlot:6,displayOnly:true,desc:"대형 다이아몬드로 장식한 왕실 티아라"},
+ {id:'jewel_royalboutique_emerald_suite',category:'jewel',name:"에메랄드 하이주얼리 세트",icon:'💎',rarity:'mythic',price:P(50),collection:'royalboutique',art:'gem',visualSlot:7,displayOnly:true,desc:"에메랄드와 다이아몬드가 조화를 이루는 프라이빗 세트"},
+ {id:'jewel_royalboutique_diamond_choker',category:'jewel',name:"그랑 다이아 드롭 네크리스",icon:'💎',rarity:'sovereign',price:P(100),collection:'royalboutique',art:'gem',visualSlot:0,displayOnly:true,desc:"화이트 다이아몬드가 겹겹이 빛나는 하이주얼리 네크리스"},
+ {id:'jewel_royalboutique_royal_tiara',category:'jewel',name:"로얄 다이아 티아라 리미티드",icon:'💎',rarity:'sovereign',price:P(300),collection:'royalboutique',art:'gem',visualSlot:6,displayOnly:true,stock:3,desc:"다이아몬드 티아라 모티브 3점 한정 가상 명품"},
+ {id:'jewel_royalboutique_masterpiece',category:'jewel',name:"마스터피스 페어컷 다이아",icon:'💎',rarity:'sovereign',price:P(600),collection:'royalboutique',art:'gem',visualSlot:3,displayOnly:true,desc:"대형 페어컷 다이아몬드의 존재감을 담은 가상 명품"},
  // Prestige exhibition objects. These are collectible luxury exhibits, NOT wearable avatars.
  // Never add display-only categories to user_loadout or any game perk.
  {id:'watch_royalboutique_aurora',category:'watch',name:'로열 오로라 워치',icon:'⌚',rarity:'prestige',price:P(1),collection:'royalboutique',art:'watch',displayOnly:true,photoFile:"Rolex Datejust ref. 16013, seconda metà anni '70-primi '80.jpg",photoBy:"EMore98",photoLicense:"CC BY-SA 4.0",desc:'핑크 골드와 자수정 다이얼의 하이엔드 타임피스'},
@@ -58,7 +59,32 @@ const ROYAL_ITEMS=Object.freeze([
  {id:'car_royalboutique_bugatti_chiron',category:'car',name:'부가티 시론 블랙 다이아',icon:'🏎️',rarity:'sovereign',price:P(1000),collection:'royalboutique',art:'car-eclipse',displayOnly:true,stock:5,desc:'블랙 다이아 감성을 표현한 가상 황제 하이퍼카 · 서버 5대 한정'},
  {id:'car_royalboutique_aston_valhalla',category:'car',name:'애스턴마틴 발할라 갓준자 에디션',brand:'aston-martin',model:'Valhalla',icon:'🚘',rarity:'sovereign',price:P(700),collection:'royalboutique',art:'car-purple',displayOnly:true,photoFile:'2026 Aston Martin Valhalla.jpg',photoBy:'MrWalkr',photoLicense:'CC BY-SA 4.0',stock:3,desc:'서버 3대 한정 · 발할라 실차 사진을 사용하는 준자랜드 가상 하이퍼카'}
 ]);
+function retireFantasyRoyalInventory(db,now){
+ const key='royal:retired-fantasy-items-v12';
+ if(db.prepare('SELECT 1 FROM game_state WHERE key=?').get(key))return;
+ const ids=RETIRED_ROYAL_IDS,q=ids.map(()=>'?').join(',');
+ db.exec('BEGIN IMMEDIATE');
+ try{
+  const rows=db.prepare('SELECT user_id,item_id FROM user_inventory WHERE item_id IN ('+q+')').all(...ids);
+  db.prepare('DELETE FROM user_inventory WHERE item_id IN ('+q+')').run(...ids);
+  for(const field of ['title','frame','costume','pet'])
+   db.prepare('UPDATE user_loadout SET '+field+'=NULL WHERE '+field+' IN ('+q+')').run(...ids);
+  for(const row of rows)db.prepare('DELETE FROM game_state WHERE key=?').run('royal:inscription:'+row.user_id+':'+row.item_id);
+  const retired=new Set(ids);
+  for(const row of db.prepare("SELECT key,value FROM game_state WHERE key LIKE 'royal:showcase:%'").all()){
+   let selected;try{selected=JSON.parse(row.value)}catch{continue}
+   if(!Array.isArray(selected))continue;
+   const next=selected.filter(id=>!retired.has(id));
+   if(next.length!==selected.length)db.prepare('UPDATE game_state SET value=?,updated_at=? WHERE key=?').run(JSON.stringify(next),now(),row.key);
+  }
+  db.prepare('INSERT INTO game_state(key,value,updated_at) VALUES(?,?,?)')
+   .run(key,JSON.stringify({removed:rows.length,affectedUsers:new Set(rows.map(x=>x.user_id)).size,retiredIds:ids,refund:false,ledgerPreserved:true}),now());
+  db.exec('COMMIT');
+  if(rows.length)console.log('[ROYAL] Retired '+rows.length+' mismatched fantasy holdings');
+ }catch(err){db.exec('ROLLBACK');throw err}
+}
 function createRoyalEconomy({db,exactWallet,now,getAssets}){
+ retireFantasyRoyalInventory(db,now);
  const itemMap=new Map(ROYAL_ITEMS.map(item=>[item.id,item]));
  const readExact=(v)=>BigInt(String(v??0));
  const inventoryCount=db.prepare('SELECT COUNT(*) AS n FROM user_inventory WHERE item_id=?');
@@ -75,9 +101,8 @@ function createRoyalEconomy({db,exactWallet,now,getAssets}){
  const ROOM_DEFS=Object.freeze([
   {id:'motors',name:'THE MOTOR HALL',label:'로얄 모터스',categories:['car']},
   {id:'fleet',name:'THE PRIVATE FLEET',label:'요트 · 전용기',categories:['jet','yacht']},
-  {id:'jewels',name:'THE JEWEL VAULT',label:'시계 · 보석',categories:['watch','frame']},
-  {id:'relics',name:'THE IMPERIAL ARTS',label:'황실 예술품',categories:['art','vault','estate']},
-  {id:'heritage',name:'THE HERITAGE WING',label:'왕실 유산',categories:['title','costume','pet']}
+  {id:'jewels',name:'THE JEWEL VAULT',label:'시계 · 하이주얼리',categories:['watch','jewel']},
+  {id:'relics',name:'THE IMPERIAL ARTS',label:'황실 예술품',categories:['art','vault','estate']}
  ]);
  function decorate(item,uid){
    if(item.collection!=='royalboutique')return {};
@@ -153,7 +178,7 @@ function createRoyalEconomy({db,exactWallet,now,getAssets}){
        owned:owned.filter(item=>item.brand===brand).length
      })),
      nextTier:next?.name||null,nextAt:next?String(next.min):null,totalItems:ROYAL_ITEMS.length,
-     showcase:chosen.map(id=>{const item=allowed.get(id);return {id:item.id,name:item.name,icon:item.icon,art:item.art,brand:item.brand||null,model:item.model||null,photoFile:item.photoFile||null,photoBy:item.photoBy||null,photoLicense:item.photoLicense||null,displayOnly:!!item.displayOnly,rarity:item.rarity,price:item.price,category:item.category,equipped:!item.displayOnly&&equipped[item.category]===id}}),
+     showcase:chosen.map(id=>{const item=allowed.get(id);return {id:item.id,name:item.name,icon:item.icon,art:item.art,brand:item.brand||null,model:item.model||null,photoFile:item.photoFile||null,photoBy:item.photoBy||null,photoLicense:item.photoLicense||null,visualSlot:item.visualSlot??null,displayOnly:!!item.displayOnly,rarity:item.rarity,price:item.price,category:item.category,equipped:!item.displayOnly&&equipped[item.category]===id}}),
      equipped:ROYAL_ITEMS.filter(x=>!x.displayOnly&&equipped[x.category]===x.id&&allowed.has(x.id)).map(x=>({id:x.id,name:x.name,icon:x.icon}))
    };
  }
@@ -191,7 +216,7 @@ function createRoyalEconomy({db,exactWallet,now,getAssets}){
      const note=info.inscription;
      const certificate=records.get(item.id)||{};
      return {
-       id:item.id,name:item.name,category:item.category,rarity:item.rarity,icon:item.icon,art:item.art,brand:item.brand||null,model:item.model||null,photoFile:item.photoFile||null,photoBy:item.photoBy||null,photoLicense:item.photoLicense||null,displayOnly:!!item.displayOnly,
+       id:item.id,name:item.name,category:item.category,rarity:item.rarity,icon:item.icon,art:item.art,brand:item.brand||null,model:item.model||null,photoFile:item.photoFile||null,photoBy:item.photoBy||null,photoLicense:item.photoLicense||null,visualSlot:item.visualSlot??null,displayOnly:!!item.displayOnly,
        price:item.price,desc:item.desc,owned:true,equipped:!item.displayOnly&&load[item.category]===item.id,
        stock:item.stock??null,collectionNo:certificate.collectionNo||null,acquiredAt:certificate.acquiredAt||null,
        inscription:note?{itemId:item.id,itemName:item.name,ownerNickname:user.nickname,
@@ -235,4 +260,4 @@ function createRoyalEconomy({db,exactWallet,now,getAssets}){
  }
  return {buy,catalog,collector,gallery,updateShowcase,decorate,dashboard};
 }
-module.exports={ROYAL_ITEMS,createRoyalEconomy};
+module.exports={ROYAL_ITEMS,RETIRED_ROYAL_IDS,createRoyalEconomy,retireFantasyRoyalInventory};
