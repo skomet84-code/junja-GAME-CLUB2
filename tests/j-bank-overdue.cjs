@@ -17,10 +17,7 @@ assert.ok(Number(user(1).rank_level)<=2,'rank collateral only sold if necessary'
 db.prepare('INSERT INTO users(id,rank_level,balance,balance_exact,balance_base) VALUES(?,?,?,?,?)').run(2,0,...balance(0n));
 bank.borrow(2,'5000000','rehab_test_request_12345');
 const k=user(2);db.prepare('UPDATE users SET balance=?,balance_exact=?,balance_base=? WHERE id=?').run(...balance(0n),2);
-assert.throws(()=>bank.rehabilitation(2,'개인회생','rehab_before_expire_123'),/7일 연체/);
-t+=8*86400000;day='2026-11-10';
-assert.equal(bank.enforceOverdue(2).processed,true);assert.ok(BigInt(bank.status(2).outstanding)>0n);
-assert.equal(bank.status(2).canRehabilitate,true);
+assert.equal(bank.status(2).canRehabilitate,true,'personal rehabilitation eligible on loan day without 7-day wait');
 const applied=bank.rehabilitation(2,'개인회생','rehab_final_request_123');
 assert.equal(applied.newWallet,'100000000000');assert.equal(cash(2),100000000000n);
 assert.equal(BigInt(bank.status(2).outstanding),0n);assert.equal(Number(user(2).rank_level),0);
@@ -53,4 +50,21 @@ bank.rehabilitation(3,'개인회생','rehab_cross_asset_1234');
 assert.equal(db.prepare("SELECT 1 FROM game_state WHERE key='jstock:portfolio:3'").get(),undefined);
 assert.equal(db.prepare("SELECT 1 FROM game_state WHERE key='jcoin:portfolio:3'").get(),undefined);
 assert.equal(cash(3),100000000000n);
-console.log('JBANK_OVERDUE_OK: 7-day threshold, atomic payments, no double collection, once-only 1000억 rehabilitation');
+// Credit-only debt qualifies immediately. Active luxury auctions and bids block finalization.
+db.prepare('INSERT INTO users(id,rank_level,balance,balance_exact,balance_base) VALUES(?,?,?,?,?)').run(4,0,...balance(0n));
+put('jcredit:account:4',{principal:'3000000',interest:'100000',asOf:day,openedAt:t,number:1});
+bank.setCredit({
+ owed:id=>{const row=db.prepare('SELECT value FROM game_state WHERE key=?').get('jcredit:account:'+id);const a=row?JSON.parse(row.value):{};return BigInt(a.principal||0)+BigInt(a.interest||0);},
+ status:id=>({outstanding:bank.baseOwed(id).toString()}),enforce:()=>({processed:false})
+});
+assert.equal(bank.status(4).canRehabilitate,true,'credit-only immediate eligibility');
+put('royal:auction:lot:test',{status:'OPEN',sellerId:4,bidderId:3});
+assert.equal(bank.status(4).canRehabilitate,false,'open auction locks immediate rehabilitation');
+assert.throws(()=>bank.rehabilitation(4,'개인회생','rehab_blocked_bid_123'),/경매/);
+db.prepare("DELETE FROM game_state WHERE key='royal:auction:lot:test'").run();
+const creditRehab=bank.rehabilitation(4,'개인회생','rehab_credit_only_123');
+assert.equal(creditRehab.creditDebtForgiven,'3100000');
+assert.equal(bank.status(4).creditOutstanding,'0');
+assert.equal(cash(4),100000000000n);
+assert.equal(bank.status(4).canRehabilitate,false);
+console.log('JBANK_OVERDUE_OK: 7-day forced liquidation preserved; same-day one-time rank/credit rehabilitation');
