@@ -3,7 +3,7 @@
 // Server owns all fixtures, odds, results, wallets and betting settlement.
 const crypto=require('node:crypto');
 const {addTradingFee}=require('./slot-jackpot-pool');
-const DAY=86400000,HOUR=3600000,KST=9*HOUR,MATCH_MS=120000;
+const DAY=86400000,HOUR=3600000,KST=9*HOUR,MATCH_MS=60000;
 const MIN_STAKE=1000n,MAX_STAKE=1000000000000n,MAX_RETURN=1000000000000000000n;
 const TAX_THRESHOLD=10000000000000000n,TAX_RATE=20n; // 1경 G; 100x win or over 1경 gross.
 const KEY='jpl:v1:current',TICKET_PREFIX='jpl:v1:ticket:',ARCHIVE='jpl:v1:archive:';
@@ -20,30 +20,30 @@ const CLUB_SYMBOLS=Object.freeze({
  hunt:'🦌',cherry:'🍒',hari:'◆',dupal:'🛡',saram:'🌟'
 });
 const ALL_CLUBS=Object.freeze([
- ['junja','레알 준자 CF','준자','JUN',95,92,'#e4c275','#f5f4eb','J','로얄 베르나베우'],
- ['happy','FC 햅피','햅피','HAP',94,90,'#9a2548','#2750ae','H','햅피 캄프 누'],
- ['ara','아라 유나이티드','아라','ARA',88,82,'#d84937','#f4ece2','A','아라 올드파크'],
+ ['junja','준자 마드리드 CF','준자','JUN',95,92,'#e4c275','#f5f4eb','J','로얄 베르나베우'],
+ ['happy','햅피 바르셀로나 FC','햅피','HAP',94,90,'#9a2548','#2750ae','H','햅피 캄프 누'],
+ ['ara','아라 이글스 FC','아라','ARA',88,82,'#d84937','#f4ece2','A','아라 올드파크'],
  ['pig','돼지 시티 FC','돼지','PIG',86,83,'#7ac6e6','#f4d2da','P','포크 에티하드'],
- ['tuna','참치 마리너스','참치','TUN',80,81,'#0f87b5','#eaf9fa','T','참치 오션돔'],
- ['haehyun','해현 애슬레틱','해현','HAE',82,86,'#e56b9e','#ffe1f0','H','해현 파크'],
- ['ubi','유비 인터 FC','유비','UBI',83,83,'#202d47','#e6edf7','U','유비 아레나'],
- ['chacha','차차 홋스퍼','차차','CHA',84,77,'#ebeaf6','#263459','C','차차 스타디움'],
- ['wooni','우니 로버스','우니','WOO',79,79,'#eab459','#18354a','W','우니 브리지'],
- ['dodo','도도 레즈 FC','도도','DOD',89,85,'#b72c48','#f4d5ca','D','도도 앤필드'],
- ['bisha','비샤 블루스','비샤','BIS',87,84,'#2d5fca','#e5b45e','B','비샤 브리지'],
- ['shasha','샤샤 캐논스','샤샤','SHA',90,81,'#d43837','#f3f4f6','S','샤샤 에미레이트'],
- ['dongdong','동동 원더러스','동동','DON',75,77,'#c08a4d','#252424','D','동동 메트로폴'],
- ['bbobbo','뽀뽀 로열스','뽀뽀','BBO',76,74,'#f48eab','#fbeade','B','뽀뽀 하트필드'],
- ['nada','나다 빌라','나다','NAD',83,77,'#82364c','#87c6db','N','나다 빌라파크'],
- ['gogi','고기 불스 FC','고기','GOG',80,72,'#a83833','#e3aa6e','G','고기 불아레나'],
- ['haengju','행주 레인저스','행주','HAJ',77,81,'#4a72c2','#f3f6fb','H','행주 아이언파크'],
- ['sugeon','수건 타이탄즈','수건','SUG',73,75,'#6b75a3','#d6e1f2','S','수건 웨스트필드'],
- ['mint','민트 포레스트','민트','MIN',77,82,'#28a891','#effaf5','M','민트 포레스트'],
- ['hunt','훈트 바이에른','훈트','HUN',89,87,'#c82c36','#f5efea','H','훈트 알리안츠'],
- ['cherry','체리 체스터 FC','체리','CHE',82,78,'#d1457c','#ffe6f2','C','체리 킹파크'],
- ['hari','하리 크리스털 FC','하리','HAR',75,81,'#345cbb','#a94456','H','하리 팰리스'],
- ['dupal','두팔 올림피크 FC','두팔','DUP',81,79,'#e79652','#163f62','D','두팔 올림피크 스타디움'],
- ['saram','사람 피닉스 유나이티드','사람','SAR',79,80,'#9c7ee8','#e6a768','S','사람 피닉스 아레나']
+ ['tuna','참치 오션 FC','참치','TUN',80,81,'#0f87b5','#eaf9fa','T','참치 오션돔'],
+ ['haehyun','해현 루나 FC','해현','HAE',82,86,'#e56b9e','#ffe1f0','H','해현 파크'],
+ ['ubi','유비 인터 밀라노','유비','UBI',83,83,'#202d47','#e6edf7','U','유비 아레나'],
+ ['chacha','차차 스퍼스 FC','차차','CHA',84,77,'#ebeaf6','#263459','C','차차 스타디움'],
+ ['wooni','우니 로열스 FC','우니','WOO',79,79,'#eab459','#18354a','W','우니 브리지'],
+ ['dodo','도도 리버풀 FC','도도','DOD',89,85,'#b72c48','#f4d5ca','D','도도 앤필드'],
+ ['bisha','비샤 첼시 FC','비샤','BIS',87,84,'#2d5fca','#e5b45e','B','비샤 브리지'],
+ ['shasha','샤샤 아스널 FC','샤샤','SHA',90,81,'#d43837','#f3f4f6','S','샤샤 에미레이트'],
+ ['dongdong','동동 울브스 FC','동동','DON',75,77,'#c08a4d','#252424','D','동동 메트로폴'],
+ ['bbobbo','뽀뽀 하트 FC','뽀뽀','BBO',76,74,'#f48eab','#fbeade','B','뽀뽀 하트필드'],
+ ['nada','나다 애스턴 FC','나다','NAD',83,77,'#82364c','#87c6db','N','나다 빌라파크'],
+ ['gogi','고기 레드불스 FC','고기','GOG',80,72,'#a83833','#e3aa6e','G','고기 불아레나'],
+ ['haengju','행주 레인저스 FC','행주','HAJ',77,81,'#4a72c2','#f3f6fb','H','행주 아이언파크'],
+ ['sugeon','수건 타이탄 FC','수건','SUG',73,75,'#6b75a3','#d6e1f2','S','수건 웨스트필드'],
+ ['mint','민트 포레스트 FC','민트','MIN',77,82,'#28a891','#effaf5','M','민트 포레스트'],
+ ['hunt','훈트 뮌헨 FC','훈트','HUN',89,87,'#c82c36','#f5efea','H','훈트 알리안츠'],
+ ['cherry','체리 로즈 FC','체리','CHE',82,78,'#d1457c','#ffe6f2','C','체리 킹파크'],
+ ['hari','하리 팰리스 FC','하리','HAR',75,81,'#345cbb','#a94456','H','하리 팰리스'],
+ ['dupal','두팔 올림피크','두팔','DUP',81,79,'#e79652','#163f62','D','두팔 올림피크 스타디움'],
+ ['saram','사람 피닉스 FC','사람','SAR',79,80,'#9c7ee8','#e6a768','S','사람 피닉스 아레나']
 ].map(([id,name,short,code,attack,defense,primary,secondary,emblem,stadium])=>Object.freeze({id,name,short,code,attack,defense,primary,secondary,emblem,stadium,symbol:CLUB_SYMBOLS[id]})));
 const CLUBS=Object.freeze(ALL_CLUBS.slice(0,22));
 const RESERVES=Object.freeze(ALL_CLUBS.slice(22));
