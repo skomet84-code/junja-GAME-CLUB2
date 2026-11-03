@@ -26,5 +26,5 @@ assert.match(gallery,/jrg-cinematic-selected/);
 assert.match(gallery,/jrg-cinematic-certificate/);
 assert.match(css,/@media\(max-width:700px\)/);
 assert.match(html,/royal-cinematic\.css\?v=20261103-cinematic-v9/);
-assert.match(html,/royal-gallery\.js\?v=20261103-vault-v8-cinematic-v9/);
+assert.match(html,/royal-gallery\.js\?v=20261103-v10/);
 console.log('ROYAL_CINEMATIC_V9_OK: six optimized showroom scenes, existing purchases and owned-collection views preserved');
