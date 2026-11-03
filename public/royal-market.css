@@ -98,3 +98,7 @@
  .jrm-lot-picture{height:220px}
  .jrm-history>div{grid-template-columns:1fr auto}.jrm-history b{grid-column:2}.jrm-history small{grid-row:2}
 }
+
+/* Market stays within the Royal Boutique wing, never the regular shop wing. */
+#view-shop.store-mode #junjaRoyalMarketRoot{display:none}
+#view-shop.palace-mode #junjaRoyalMarketRoot{display:block}
