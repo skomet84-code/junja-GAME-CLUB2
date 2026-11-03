@@ -27,7 +27,7 @@
  const cinematicRooms=[
  {id:'car',english:'01 / AUTOMOTIVE',name:'슈퍼카 · 명차'},
  {id:'watch',english:'02 / HAUTE HORLOGERIE',name:'하이엔드 시계'},
- {id:'frame',english:'03 / HIGH JEWELLERY',name:'다이아몬드 · 보석'},
+ {id:'jewel',english:'03 / HIGH JEWELLERY',name:'다이아몬드 · 하이주얼리'},
  {id:'yacht',english:'04 / PRIVATE MARINA',name:'프라이빗 요트'},
  {id:'jet',english:'05 / ROYAL AVIATION',name:'황실 전용기'},
  {id:'estate',english:'06 / SIGNATURE ESTATES',name:'초호화 부동산'}
@@ -38,12 +38,12 @@
  const itemType=item=>({
   car:'SUPERCAR & GRAND TOURING',yacht:'PRIVATE YACHT',jet:'ROYAL AVIATION',watch:'HAUTE HORLOGERIE',
   art:'ROYAL ART & SCULPTURE',estate:'PRIVATE REAL ESTATE',vault:'EXCLUSIVE ARTIFACT',
-  costume:'IMPERIAL COUTURE',frame:'ROYAL GEMSTONE',pet:'MYTHIC GUARDIAN',title:'NOBLE INSIGNIA'
+  jewel:'HIGH JEWELLERY · GEMSTONES'
  })[item.category]||'ROYAL COLLECTION';
  const showTime=time=>{try{return new Date(Number(time)).toLocaleDateString('ko-KR',{timeZone:'Asia/Seoul'})}catch{return '—'}};
  let royalBusy=false,adminBusy=false,royalState=null,selectedId='car_royalboutique_rr_phantom',category='all',ownedOnly=false;
  const brands=[{id:'brand-rolls-royce',label:'ROLLS-ROYCE',sub:'영국 왕실의 품격'},{id:'brand-bentley',label:'BENTLEY',sub:'GRAND TOURING'},{id:'brand-aston-martin',label:'ASTON MARTIN',sub:'THE ART OF DRIVING'}];
- const filters=[{id:'all',label:'ALL · 전체'},{id:'car',label:'🏎 슈퍼카'},{id:'watch',label:'⌚ 워치'},{id:'yacht',label:'🛥 요트'},{id:'jet',label:'✈ 전용기'},{id:'art',label:'♛ 예술품'},{id:'estate',label:'◆ 부동산'},{id:'vault',label:'◈ 금고'},{id:'costume',label:'왕실 의상'},{id:'frame',label:'보석 · 오라'},{id:'pet',label:'신화 수호수'},{id:'title',label:'황실 칭호'}];
+ const filters=[{id:'all',label:'ALL · 전체'},{id:'car',label:'🏎 슈퍼카'},{id:'watch',label:'⌚ 워치'},{id:'jewel',label:'💎 하이주얼리'},{id:'yacht',label:'🛥 요트'},{id:'jet',label:'✈ 전용기'},{id:'art',label:'♛ 예술품'},{id:'estate',label:'◆ 부동산'},{id:'vault',label:'◈ 금고'}];
  const pill=item=>item.stock!=null?'<span class="jrp-rare-pill">LIMITED '+item.stock+' · '+item.remaining+' LEFT</span>':'<span class="jrp-rare-pill">'+safe(item.rarity.toUpperCase())+' EDITION</span>';
  function renderRoyal(){
    if(!royal||!royalState)return;
