@@ -234,7 +234,7 @@ function createRoyalMarket({db,exactWallet,now,items}){
    certificate:certificate(uid,x.id),listed:!!activeFor(uid,x.id)
   }));
   const active=lots.filter(x=>x.status==='OPEN').map(x=>({...lotPublic(x),mine:x.sellerId===uid,myBid:x.bidderId===uid,alreadyOwned:!!owning(uid,x.itemId)}));
-  const history=lots.filter(x=>x.status!=='OPEN').slice(0,20).map(lotPublic);
+  const history=lots.filter(x=>x.status!=='OPEN').sort((a,b)=>(b.settledAt||0)-(a.settledAt||0)||b.createdAt-a.createdAt).slice(0,20).map(lotPublic);
   return {owner:current.nickname,owned,active,history,now:now(),rules:{
    durationHours:24,minimumBid:'10000000000000000',sellerFeePct:Number(MARKET_FEE_PCT),bankBuybackPct:Number(BANK_BUYBACK_PCT),minimumRaisePct:5,maxListingsPerUser:10}};
  }
