@@ -498,3 +498,50 @@
 #royalBoutiqueRoot .jrp-all-photo-list .jrp-media-credit{display:inline;font-size:10px}
 #royalBoutiqueRoot .jrp-all-photo-list a{color:#f5d39b;text-decoration:underline;text-decoration-color:#be915c}
 @media(max-width:700px){#royalBoutiqueRoot .jrp-all-photo-list{grid-template-columns:1fr}}
+
+
+/* V7 visual review: mobile flagship is a large Rolls-Royce photograph.
+   Preserve the three-column editorial layout on tablets and desktop. */
+@media(max-width:700px){
+ #royalBoutiqueRoot .jrp-motors-photo-row{
+  display:grid!important;
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  gap:9px!important;
+  overflow:visible!important;
+  scroll-snap-type:none!important;
+  padding:10px 12px 16px!important;
+  align-items:stretch!important;
+ }
+ #royalBoutiqueRoot .jrp-motors-photo-row .jrp-motors-photo{
+  width:100%!important;
+  min-width:0!important;
+  height:150px!important;
+  flex:none!important;
+  order:0!important;
+  scroll-snap-align:none!important;
+ }
+ #royalBoutiqueRoot .jrp-motors-photo-row .jrp-motors-photo.is-center{
+  grid-column:1/-1!important;
+  grid-row:1!important;
+  height:284px!important;
+  order:-1!important;
+  border:2px solid #f7dba3;
+  box-shadow:0 14px 31px #08040d,0 0 32px #d4a25769;
+ }
+ #royalBoutiqueRoot .jrp-motors-photo-row .jrp-motors-photo.is-center img{
+  object-position:center 55%;
+ }
+ #royalBoutiqueRoot .jrp-motors-photo-row .jrp-motors-photo:not(.is-center) .jrp-motors-photo-caption>b{
+  font-size:11px;
+ }
+ #royalBoutiqueRoot .jrp-motors-photo-row .jrp-motors-photo:not(.is-center) .jrp-motors-photo-caption>small{
+  font-size:9px;
+ }
+ #royalBoutiqueRoot .jrp-motors-photo-row .jrp-motors-photo:not(.is-center) .jrp-motors-photo-caption>em{
+  font-size:11px;
+ }
+}
+@media(max-width:390px){
+ #royalBoutiqueRoot .jrp-motors-photo-row .jrp-motors-photo.is-center{height:264px!important}
+ #royalBoutiqueRoot .jrp-motors-photo-row .jrp-motors-photo:not(.is-center){height:138px!important}
+}
