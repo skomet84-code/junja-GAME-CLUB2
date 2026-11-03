@@ -93,16 +93,16 @@ assert.equal(db.prepare('SELECT balance_exact FROM users WHERE id=1').get().bala
   'public museum views must never modify wallet balances');
 // Exhibition-only supercars must spend exact money but never become an avatar category.
 const newCar=ROYAL_ITEMS.find(x=>x.id==='car_royalboutique_royal_gt');
-const beforeCar=BigInt(db.prepare('SELECT balance_exact FROM users WHERE id=4').get().balance_exact);
-const beforeCarLoad=db.prepare('SELECT * FROM user_loadout WHERE user_id=4').get();
-const purchasedCar=royal.buy(4,newCar.id);
+const beforeCar=BigInt(db.prepare('SELECT balance_exact FROM users WHERE id=3').get().balance_exact);
+const beforeCarLoad=db.prepare('SELECT * FROM user_loadout WHERE user_id=3').get();
+const purchasedCar=royal.buy(3,newCar.id);
 assert.equal(purchasedCar.balance,String(beforeCar-BigInt(newCar.price)));
-assert.equal(royal.catalog(4).items.find(x=>x.id===newCar.id).owned,true);
-assert.equal(royal.catalog(4).items.find(x=>x.id===newCar.id).displayOnly,true);
-const afterCarLoad=db.prepare('SELECT title,frame,costume,pet FROM user_loadout WHERE user_id=4').get();
+assert.equal(royal.catalog(3).items.find(x=>x.id===newCar.id).owned,true);
+assert.equal(royal.catalog(3).items.find(x=>x.id===newCar.id).displayOnly,true);
+const afterCarLoad=db.prepare('SELECT title,frame,costume,pet FROM user_loadout WHERE user_id=3').get();
 for(const cat of ['title','frame','costume','pet'])assert.equal(afterCarLoad[cat],beforeCarLoad?.[cat]??null,'display purchase cannot equip '+cat);
-assert(royal.gallery(4).items.some(x=>x.id===newCar.id&&x.art==='car-gold'&&x.displayOnly),'gallery must include owned illustrated supercar');
-assert.deepEqual(royal.updateShowcase(4,[newCar.id]).showcase.map(x=>x.id),[newCar.id]);
-assert.throws(()=>royal.buy(4,newCar.id),/이미 영구 소장/);
-assert.equal(db.prepare("SELECT COUNT(*) AS n FROM ledger WHERE user_id=4 AND type='royal_boutique_purchase'").get().n,1);
+assert(royal.gallery(3).items.some(x=>x.id===newCar.id&&x.art==='car-gold'&&x.displayOnly),'gallery must include owned illustrated supercar');
+assert.deepEqual(royal.updateShowcase(3,[newCar.id]).showcase.map(x=>x.id),[newCar.id]);
+assert.throws(()=>royal.buy(3,newCar.id),/이미 영구 소장/);
+assert.equal(db.prepare("SELECT COUNT(*) AS n FROM ledger WHERE user_id=3 AND type='royal_boutique_purchase'").get().n,1);
 console.log('ROYAL ECONOMY TESTS OK');
