@@ -1,0 +1,141 @@
+/* Mobile-only topbar v1. Keep game-specific compact headers untouched. */
+@media (max-width:820px) {
+  body:not(:has(#view-horse.active)):not(:has(#view-holdem.active :is(#holdemRoom,#holdemSoloRoom):not(.hidden))) .topbar {
+    display:grid!important;
+    grid-template-columns:repeat(12,minmax(0,1fr));
+    grid-template-rows:38px 60px 41px;
+    gap:8px 6px!important;
+    align-items:stretch!important;
+    width:100%;
+    height:auto!important;
+    min-height:0!important;
+    padding:calc(8px + var(--safe-top,0px)) 10px 10px!important;
+    border:0!important;
+    border-bottom:1px solid rgba(226,190,120,.23)!important;
+    background:linear-gradient(180deg,rgba(13,17,29,.98),rgba(8,12,23,.97))!important;
+    box-shadow:0 10px 24px rgba(0,0,0,.17)!important;
+    overflow:visible;
+  }
+  body:not(:has(#view-horse.active)):not(:has(#view-holdem.active :is(#holdemRoom,#holdemSoloRoom):not(.hidden))) .topbar > *{min-width:0;box-sizing:border-box}
+  body:not(:has(#view-horse.active)):not(:has(#view-holdem.active :is(#holdemRoom,#holdemSoloRoom):not(.hidden))) .topbar .brand-inline{
+    grid-area:1 / 1 / 2 / 8;
+    min-width:0;display:flex!important;align-items:center;gap:9px;
+    white-space:nowrap;overflow:hidden;
+  }
+  body:not(:has(#view-horse.active)):not(:has(#view-holdem.active :is(#holdemRoom,#holdemSoloRoom):not(.hidden))) .topbar .brand-inline .mini-mark{
+    width:34px;height:34px;flex:0 0 34px;border-radius:10px;
+    font:900 19px/1 Georgia,serif;
+    box-shadow:inset 0 1px rgba(255,255,255,.35);
+  }
+  body:not(:has(#view-horse.active)):not(:has(#view-holdem.active :is(#holdemRoom,#holdemSoloRoom):not(.hidden))) .topbar .brand-inline strong{
+    display:block!important;color:#f0d89f;font-size:13px;letter-spacing:.095em;
+    overflow:hidden;text-overflow:ellipsis;
+  }
+  body:not(:has(#view-horse.active)):not(:has(#view-holdem.active :is(#holdemRoom,#holdemSoloRoom):not(.hidden))) .topbar #adminBtn:not(.hidden){
+    grid-area:1 / 8 / 2 / 10;justify-self:end;align-self:center;
+    width:34px;height:34px;min-width:34px;padding:0!important;
+    border:1px solid #ffffff20;border-radius:10px;background:#141b29;
+    color:#d5d8e0;font-size:0!important;box-shadow:none!important;
+  }
+  body:not(:has(#view-horse.active)):not(:has(#view-holdem.active :is(#holdemRoom,#holdemSoloRoom):not(.hidden))) .topbar #adminBtn:not(.hidden)::after{content:'⚙';font-size:19px}
+  body:not(:has(#view-horse.active)):not(:has(#view-holdem.active :is(#holdemRoom,#holdemSoloRoom):not(.hidden))) .topbar #profileBtn{
+    grid-area:1 / 10 / 2 / 13;justify-self:stretch;
+    height:38px;min-width:0;display:flex!important;
+    justify-content:flex-end;align-items:center;gap:6px;padding:2px 4px!important;
+    border:0!important;border-radius:10px;background:transparent!important;box-shadow:none!important;
+  }
+  body:not(:has(#view-horse.active)):not(:has(#view-holdem.active :is(#holdemRoom,#holdemSoloRoom):not(.hidden))) .topbar:not(:has(#adminBtn:not(.hidden))) #profileBtn{grid-column:8 / 13}
+  body:not(:has(#view-horse.active)):not(:has(#view-holdem.active :is(#holdemRoom,#holdemSoloRoom):not(.hidden))) .topbar #profileBtn > span:first-child{
+    flex:0 0 32px;width:32px;height:32px;display:grid;place-items:center;font-size:19px;
+  }
+  body:not(:has(#view-horse.active)):not(:has(#view-holdem.active :is(#holdemRoom,#holdemSoloRoom):not(.hidden))) .topbar #profileBtn .header-face,
+  body:not(:has(#view-horse.active)):not(:has(#view-holdem.active :is(#holdemRoom,#holdemSoloRoom):not(.hidden))) .topbar #profileBtn .styled-avatar{width:32px!important;height:32px!important;max-width:32px}
+  body:not(:has(#view-horse.active)):not(:has(#view-holdem.active :is(#holdemRoom,#holdemSoloRoom):not(.hidden))) .topbar #profileBtn > span:last-child{
+    min-width:0;display:flex;flex-direction:column;align-items:flex-start;
+    justify-content:center;overflow:hidden;
+  }
+  body:not(:has(#view-horse.active)):not(:has(#view-holdem.active :is(#holdemRoom,#holdemSoloRoom):not(.hidden))) .topbar #profileBtn b{
+    max-width:100%;font-size:11px!important;line-height:1.3;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  }
+  body:not(:has(#view-horse.active)):not(:has(#view-holdem.active :is(#holdemRoom,#holdemSoloRoom):not(.hidden))) .topbar #profileBtn small{font-size:8px;letter-spacing:0;white-space:nowrap}
+  body:not(:has(#view-horse.active)):not(:has(#view-holdem.active :is(#holdemRoom,#holdemSoloRoom):not(.hidden))) .topbar .wallet-pill,
+  body:not(:has(#view-horse.active)):not(:has(#view-holdem.active :is(#holdemRoom,#holdemSoloRoom):not(.hidden))) .topbar .jstock-header-profit{
+    height:60px;min-height:60px;min-width:0;max-width:none;width:100%;
+    margin:0!important;padding:9px 11px!important;
+    display:flex!important;flex-direction:column;justify-content:center;align-items:flex-start;
+    gap:4px!important;text-align:left!important;
+    border-radius:13px!important;background:#121927!important;
+    border:1px solid rgba(255,255,255,.11)!important;
+    box-shadow:inset 0 1px rgba(255,255,255,.035)!important;
+    cursor:pointer;position:relative;overflow:hidden;
+  }
+  body:not(:has(#view-horse.active)):not(:has(#view-holdem.active :is(#holdemRoom,#holdemSoloRoom):not(.hidden))) .topbar .wallet-pill{grid-area:2 / 1 / 3 / 7;border-color:rgba(228,193,117,.23)!important}
+  body:not(:has(#view-horse.active)):not(:has(#view-holdem.active :is(#holdemRoom,#holdemSoloRoom):not(.hidden))) .topbar .jstock-header-profit{grid-area:2 / 7 / 3 / 13}
+  body:not(:has(#view-horse.active)):not(:has(#view-holdem.active :is(#holdemRoom,#holdemSoloRoom):not(.hidden))) .topbar .wallet-pill span,
+  body:not(:has(#view-horse.active)):not(:has(#view-holdem.active :is(#holdemRoom,#holdemSoloRoom):not(.hidden))) .topbar .jstock-header-profit span{
+    font-size:10px!important;font-weight:600;letter-spacing:0!important;
+    color:#9fa8b8!important;line-height:1.2;white-space:nowrap;
+  }
+  body:not(:has(#view-horse.active)):not(:has(#view-holdem.active :is(#holdemRoom,#holdemSoloRoom):not(.hidden))) .topbar #walletBalance,
+  body:not(:has(#view-horse.active)):not(:has(#view-holdem.active :is(#holdemRoom,#holdemSoloRoom):not(.hidden))) .topbar #jstockHeaderProfitAmount{
+    display:block;width:100%;max-width:100%;min-width:0;
+    font-size:clamp(12px,3.4vw,15px)!important;line-height:1.25;font-weight:850;
+    letter-spacing:-.035em;font-variant-numeric:tabular-nums;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  }
+  body:not(:has(#view-horse.active)):not(:has(#view-holdem.active :is(#holdemRoom,#holdemSoloRoom):not(.hidden))) .topbar #walletBalance{color:#f4d28e}
+  body:not(:has(#view-horse.active)):not(:has(#view-holdem.active :is(#holdemRoom,#holdemSoloRoom):not(.hidden))) .topbar .jstock-header-profit.up{border-color:rgba(255,124,116,.26)!important}
+  body:not(:has(#view-horse.active)):not(:has(#view-holdem.active :is(#holdemRoom,#holdemSoloRoom):not(.hidden))) .topbar .jstock-header-profit.down{border-color:rgba(119,168,252,.25)!important}
+  body:not(:has(#view-horse.active)):not(:has(#view-holdem.active :is(#holdemRoom,#holdemSoloRoom):not(.hidden))) .topbar #shopBtn{grid-area:3 / 1 / 4 / 4}
+  body:not(:has(#view-horse.active)):not(:has(#view-holdem.active :is(#holdemRoom,#holdemSoloRoom):not(.hidden))) .topbar #rankBtn{grid-area:3 / 4 / 4 / 7}
+  body:not(:has(#view-horse.active)):not(:has(#view-holdem.active :is(#holdemRoom,#holdemSoloRoom):not(.hidden))) .topbar #friendsBtn{grid-area:3 / 7 / 4 / 10}
+  body:not(:has(#view-horse.active)):not(:has(#view-holdem.active :is(#holdemRoom,#holdemSoloRoom):not(.hidden))) .topbar #jBankBtn{grid-area:3 / 10 / 4 / 13}
+  body:not(:has(#view-horse.active)):not(:has(#view-holdem.active :is(#holdemRoom,#holdemSoloRoom):not(.hidden))) .topbar :is(#shopBtn,#rankBtn,#friendsBtn,#jBankBtn){
+    width:100%;height:41px;min-height:41px;max-width:100%;min-width:0;
+    display:flex!important;align-items:center;justify-content:center;
+    padding:0 4px!important;line-height:1;border-radius:11px!important;
+    border:1px solid rgba(255,255,255,.12)!important;
+    background:#192031!important;color:#dfdce0!important;
+    box-shadow:none!important;letter-spacing:0!important;white-space:nowrap;
+    font-size:0!important;font-weight:750!important;touch-action:manipulation;
+  }
+  body:not(:has(#view-horse.active)):not(:has(#view-holdem.active :is(#holdemRoom,#holdemSoloRoom):not(.hidden))) .topbar #shopBtn{background:#282117!important;border-color:rgba(237,193,107,.26)!important}
+  body:not(:has(#view-horse.active)):not(:has(#view-holdem.active :is(#holdemRoom,#holdemSoloRoom):not(.hidden))) .topbar #shopBtn::after{content:'◇ 명품관';color:#f1d398}
+  body:not(:has(#view-horse.active)):not(:has(#view-holdem.active :is(#holdemRoom,#holdemSoloRoom):not(.hidden))) .topbar #rankBtn::after{content:'♛ 신분';color:#f1d398}
+  body:not(:has(#view-horse.active)):not(:has(#view-holdem.active :is(#holdemRoom,#holdemSoloRoom):not(.hidden))) .topbar #friendsBtn::after{content:'♧ 친구'}
+  body:not(:has(#view-horse.active)):not(:has(#view-holdem.active :is(#holdemRoom,#holdemSoloRoom):not(.hidden))) .topbar #jBankBtn::after{content:'▣ 은행'}
+  body:not(:has(#view-horse.active)):not(:has(#view-holdem.active :is(#holdemRoom,#holdemSoloRoom):not(.hidden))) .topbar :is(#shopBtn,#rankBtn,#friendsBtn,#jBankBtn)::after{
+    display:block;font-size:clamp(10px,2.9vw,12px)!important;
+    letter-spacing:-.01em;white-space:nowrap;
+  }
+  body:not(:has(#view-horse.active)):not(:has(#view-holdem.active :is(#holdemRoom,#holdemSoloRoom):not(.hidden))) .topbar :is(#shopBtn,#rankBtn,#friendsBtn,#jBankBtn):active{filter:brightness(1.15);transform:scale(.98)}
+  body:not(:has(#view-horse.active)):not(:has(#view-holdem.active :is(#holdemRoom,#holdemSoloRoom):not(.hidden))) .topbar :is(.wallet-pill,.jstock-header-profit):focus-visible,
+  body:not(:has(#view-horse.active)):not(:has(#view-holdem.active :is(#holdemRoom,#holdemSoloRoom):not(.hidden))) .topbar button:focus-visible{outline:2px solid #f0cd7d;outline-offset:2px}
+  body:not(:has(#view-horse.active)):not(:has(#view-holdem.active :is(#holdemRoom,#holdemSoloRoom):not(.hidden))) .topbar #helpBtn{display:none}
+  body:not(:has(#view-horse.active)):not(:has(#view-holdem.active :is(#holdemRoom,#holdemSoloRoom):not(.hidden))) #networkBanner{top:calc(173px + var(--safe-top,0px))}
+}
+@media (max-width:365px) {
+  body:not(:has(#view-horse.active)):not(:has(#view-holdem.active :is(#holdemRoom,#holdemSoloRoom):not(.hidden))) .topbar{column-gap:4px!important;padding-left:7px!important;padding-right:7px!important}
+  body:not(:has(#view-horse.active)):not(:has(#view-holdem.active :is(#holdemRoom,#holdemSoloRoom):not(.hidden))) .topbar .brand-inline strong{font-size:11px}
+  body:not(:has(#view-horse.active)):not(:has(#view-holdem.active :is(#holdemRoom,#holdemSoloRoom):not(.hidden))) .topbar #profileBtn b{font-size:10px!important}
+  body:not(:has(#view-horse.active)):not(:has(#view-holdem.active :is(#holdemRoom,#holdemSoloRoom):not(.hidden))) .topbar .wallet-pill,
+  body:not(:has(#view-horse.active)):not(:has(#view-holdem.active :is(#holdemRoom,#holdemSoloRoom):not(.hidden))) .topbar .jstock-header-profit{padding-left:8px!important;padding-right:8px!important}
+}
+@media (max-width:820px) {
+  .mobile-asset-dialog{position:fixed;inset:0;z-index:21000;display:flex;align-items:flex-end;justify-content:center}
+  .mobile-asset-dialog[hidden]{display:none!important}
+  .mobile-asset-backdrop{position:absolute;inset:0;background:rgba(2,5,12,.72);backdrop-filter:blur(4px)}
+  .mobile-asset-sheet{
+    position:relative;width:100%;max-width:520px;padding:24px 22px calc(25px + var(--safe-bottom,0px));
+    border-radius:22px 22px 0 0;border-top:1px solid rgba(244,211,139,.4);
+    background:linear-gradient(155deg,#1c2230,#0a0d16 78%);
+    box-shadow:0 -20px 60px #0009;
+  }
+  .mobile-asset-kicker{font-size:10px;letter-spacing:.14em;color:#d4b674;font-weight:800}
+  .mobile-asset-sheet h2{font-size:20px;margin:9px 0 18px}
+  .mobile-asset-full{font-size:clamp(17px,5.5vw,26px);font-weight:800;color:#f4db9f;line-height:1.5;overflow-wrap:anywhere}
+  .mobile-asset-exact{margin-top:10px;font-size:12px;color:#afb9ca;overflow-wrap:anywhere;line-height:1.6}
+  .mobile-asset-close{margin-top:22px;width:100%;padding:12px;color:#18150e;background:#f0d08e;border:0;border-radius:11px;font-weight:850}
+  body.mobile-asset-open{overflow:hidden}
+}
