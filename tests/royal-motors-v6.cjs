@@ -29,7 +29,7 @@ assert(branded.every(x=>x.displayOnly&&x.category==='car'),'collector cars canno
 assert(branded.every(x=>typeof x.photoFile==='string'&&/\.jpg$/i.test(x.photoFile)),'photo must be a real sourced JPG file');
 assert(branded.every(x=>typeof x.photoBy==='string'&&typeof x.photoLicense==='string'&&x.photoLicense.length>2),'photographer and CC license credits');
 for(const [id,stock,gyeong] of [
- ['car_royalboutique_rr_one',3,300],['car_royalboutique_bentley_emperor',5,500],
+ ['car_royalboutique_rr_one',1,300],['car_royalboutique_bentley_emperor',2,500],
  ['car_royalboutique_aston_valhalla',3,700]]){
  const x=branded.find(z=>z.id===id);assert(x,id+' SKU');assert.equal(x.stock,stock);assert.equal(BigInt(x.price),BigInt(gyeong)*10n**16n);
 }
