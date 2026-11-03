@@ -74,11 +74,11 @@ function createRoyalEconomy({db,exactWallet,now,getAssets}){
    const next=[...SHOWCASE_TIERS].reverse().find(x=>x.min>spent);
    const equipped=db.prepare('SELECT title,frame,costume,pet FROM user_loadout WHERE user_id=?').get(uid)||{};
    const allowed=new Map(owned.map(x=>[x.id,x]));
-   let custom=[];
-   try{const row=getInscription.get(showcaseKey(uid));custom=row?JSON.parse(row.value):[];}catch{}
-   if(!Array.isArray(custom))custom=[];
+   let custom=[],hasCustom=false;
+   try{const row=getInscription.get(showcaseKey(uid));hasCustom=!!row;custom=row?JSON.parse(row.value):[];}catch{}
+   if(!Array.isArray(custom)){custom=[];hasCustom=false;}
    const chosen=[...new Set(custom)].filter(id=>typeof id==='string'&&allowed.has(id)).slice(0,3);
-   if(!chosen.length){
+   if(!hasCustom){
      const byPrice=owned.slice().sort((a,b)=>{const x=readExact(a.price),y=readExact(b.price);return x===y?0:x>y?-1:1;});
      chosen.push(...byPrice.filter(x=>equipped[x.category]===x.id).map(x=>x.id).slice(0,3));
      for(const item of byPrice){if(chosen.length>=3)break;if(!chosen.includes(item.id))chosen.push(item.id)}
