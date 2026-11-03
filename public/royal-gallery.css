@@ -217,3 +217,7 @@
  #view-shop .jrp-wing-nav-three button{font-size:11px;letter-spacing:-.01em;min-height:58px;padding:7px 4px}
  #view-shop .jrp-wing-nav-three button small{font-size:8px;letter-spacing:0}
 }
+
+#view-shop .jrp-rank-visit{flex:1;min-width:0;text-align:left;border:0;border-bottom:1px solid #d9b57a75;background:transparent;color:#f3dfb9;font-size:12px;padding:8px 4px;cursor:pointer;overflow-wrap:anywhere}
+#view-shop .jrp-rank-visit:hover{color:#fff7d9;text-shadow:0 0 13px #dcbf73}
+#view-shop .jrp-rank-visit:focus-visible{outline:2px solid #f4d28c;outline-offset:2px}
