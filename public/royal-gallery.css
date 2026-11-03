@@ -354,3 +354,73 @@
  #view-gallery .jrg-photo-detail .jrg-selected-image>img{height:195px}
  #view-gallery .jrg-photo-detail .jrg-selected-image{min-height:212px}
 }
+
+
+/* V7 mobile museum composition: main collectible dominates the palace;
+   two side vehicles remain visible as smaller companion exhibits. */
+@media(max-width:700px){
+ #view-gallery .jrg-view-head{
+  display:flex;align-items:center;gap:9px;padding:9px 10px!important;min-height:62px;
+ }
+ #view-gallery .jrg-view-head>div{min-width:0;flex:1}
+ #view-gallery .jrg-view-head small{display:none}
+ #view-gallery .jrg-view-head h2{
+  font-size:18px!important;
+  line-height:1.2!important;
+  white-space:nowrap;
+  margin:0!important;
+ }
+ #view-gallery .jrg-view-head .back{flex:0 0 35px;width:35px;height:35px}
+ #view-gallery .jrg-view-head>.secondary{min-width:66px;flex:0 0 auto;padding:8px 7px!important;font-size:11px}
+ #view-gallery .jrg-hall.jrg-grand-garage .jrg-stage{height:470px!important}
+ #view-gallery .jrg-grand-garage .jrg-object.jrg-object-center{
+  width:66%!important;
+  left:17%!important;
+  height:65%!important;
+  bottom:10%!important;
+  z-index:6!important;
+ }
+ #view-gallery .jrg-grand-garage .jrg-object.jrg-object-left{
+  width:25%!important;
+  left:2%!important;
+  height:33%!important;
+  bottom:16%!important;
+  z-index:4!important;
+ }
+ #view-gallery .jrg-grand-garage .jrg-object.jrg-object-right{
+  width:25%!important;
+  right:2%!important;
+  height:33%!important;
+  bottom:16%!important;
+  z-index:4!important;
+ }
+ #view-gallery .jrg-grand-garage .jrg-object.jrg-real-photo.jrg-object-center>img{
+  width:100%!important;
+  height:76%!important;
+  object-fit:cover;
+  box-shadow:0 17px 32px #04030be6,0 0 28px #eac179aa;
+ }
+ #view-gallery .jrg-grand-garage .jrg-object.jrg-real-photo.jrg-object-left>img,
+ #view-gallery .jrg-grand-garage .jrg-object.jrg-real-photo.jrg-object-right>img{
+  width:100%!important;
+  height:61%!important;
+ }
+ #view-gallery .jrg-grand-garage .jrg-object.jrg-object-center .jrg-piece-frame{
+  width:96%;
+  min-height:48px;
+  background:linear-gradient(90deg,#23142d,#50315a,#24152d);
+ }
+ #view-gallery .jrg-grand-garage .jrg-object.jrg-object-center .jrg-piece-frame strong{
+  font-size:13px!important;
+ }
+ #view-gallery .jrg-grand-garage .jrg-object.jrg-object-left .jrg-piece-frame,
+ #view-gallery .jrg-grand-garage .jrg-object.jrg-object-right .jrg-piece-frame{min-height:35px}
+ #view-gallery .jrg-grand-garage .jrg-object.jrg-object-left .jrg-piece-frame strong,
+ #view-gallery .jrg-grand-garage .jrg-object.jrg-object-right .jrg-piece-frame strong{
+  font-size:8px!important;
+ }
+}
+@media(max-width:390px){
+ #view-gallery .jrg-hall.jrg-grand-garage .jrg-stage{height:430px!important}
+ #view-gallery .jrg-view-head h2{font-size:17px!important}
+}

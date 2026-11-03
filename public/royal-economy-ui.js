@@ -25,7 +25,7 @@
  const isRealPhoto=item=>!!media?.isPhoto(item);
  const photoTag=(item,alt='',eager=false)=>
    '<img src="'+safe(showcaseArt(item))+'" alt="'+safe(alt)+'" loading="'+(eager?'eager':'lazy')+'" decoding="async" referrerpolicy="no-referrer"'+
-   (isRealPhoto(item)?' data-junja-photo="1" data-photo-fallback="'+safe(media.fallback(item))+'"':'')+'>';
+   (isRealPhoto(item)?' data-junja-photo="1" data-photo-fallback="'+safe(media.fallback(item))+'" data-photo-remote="'+safe(media.remote(item))+'"':'')+'>';
  const photoCredit=item=>!isRealPhoto(item)?'':
    '<span class="jrp-media-credit">실차 참고 사진 · <a href="'+safe(media.sourceUrl(item))+'" target="_blank" rel="noopener noreferrer">'+safe(item.photoBy||'Wikimedia Commons')+'</a> · <a href="'+safe(media.licenseUrl(item))+'" target="_blank" rel="noopener noreferrer">'+safe(item.photoLicense||'사진 이용 조건')+'</a></span>';
  const itemType=item=>({

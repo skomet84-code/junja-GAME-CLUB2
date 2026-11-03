@@ -21,7 +21,7 @@
  const iconFor=item=>media?.picture(item)||('/art/royal/'+String(item?.art||'crown')+'.svg');
  const realPhoto=item=>!!media?.isPhoto(item);
  const imageTag=(item,alt='',eager=false)=>'<img src="'+esc(iconFor(item))+'" alt="'+esc(alt)+'" loading="'+(eager?'eager':'lazy')+'" decoding="async" referrerpolicy="no-referrer"'+
-   (realPhoto(item)?' data-junja-photo="1" data-photo-fallback="'+esc(media.fallback(item))+'"':'')+'>';
+   (realPhoto(item)?' data-junja-photo="1" data-photo-fallback="'+esc(media.fallback(item))+'" data-photo-remote="'+esc(media.remote(item))+'"':'')+'>';
  const credit=item=>!realPhoto(item)?'':
   '<div class="jrg-photo-credit">실차 참고 사진 · <a href="'+esc(media.sourceUrl(item))+'" target="_blank" rel="noopener noreferrer">'+esc(item.photoBy||'Wikimedia Commons')+'</a> · <a href="'+esc(media.licenseUrl(item))+'" target="_blank" rel="noopener noreferrer">'+esc(item.photoLicense||'라이선스')+'</a><p>게임 내 한정판은 가상 모델이며 사진 속 실제 차량과 사양이 다를 수 있습니다.</p></div>';
  const categoryName={
@@ -110,7 +110,7 @@
  async function load(){
    const reqToken=++loadToken;
    const heading=view.querySelector('.jrg-view-head h2');
-   if(heading)heading.textContent=visitor?'♛ '+visitor+'의 로얄 전시관':'♛ 내 로얄 전시관';
+   if(heading)heading.textContent=visitor?'♛ '+visitor+'의 로얄 전시관':'♛ 내 전시관';
    loading=true;
    host.innerHTML='<div class="jrg-loading"><span>♛</span><h2>나만의 로얄 전시실을 여는 중</h2><p>JUNJA PRIVATE MUSEUM</p></div>';
    try{

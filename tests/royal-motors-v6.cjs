@@ -6,6 +6,22 @@ const {ROYAL_ITEMS}=require('../royal-economy');
 const branded=ROYAL_ITEMS.filter(x=>x.brand);
 assert.equal(ROYAL_ITEMS.length,40,'28 previous pieces and 12 photo-reference car models');
 assert.equal(branded.length,12,'4 Rolls-Royce + 4 Bentley + 4 Aston Martin');
+const photoProducts=ROYAL_ITEMS.filter(x=>x.photoFile);
+assert.equal(photoProducts.length,18,'twelve cars plus six luxury watches, jets and yachts');
+const photoManifest=JSON.parse(read('public/art/royal/photos/manifest.json'));
+assert.equal(photoManifest.photos.length,18,'every photograph has an attributed local archive');
+assert(photoManifest.photos.every(x=>x.optimized),'all archived photos must be optimized for mobile');
+let localBytes=0;
+for(const item of photoProducts){
+ const asset='public/art/royal/photos/'+item.id+'.jpg';
+ const file=fs.statSync(path.join(__dirname,'..',asset));
+ assert(file.isFile()&&file.size>1500&&file.size<900000,'mobile-local photo missing/too large: '+asset+' '+file.size);
+ localBytes+=file.size;
+ const credit=photoManifest.photos.find(x=>x.id===item.id);
+ assert(credit&&credit.photoFile===item.photoFile&&credit.author===item.photoBy&&credit.license===item.photoLicense,
+   'invalid creator/license for '+item.id);
+}
+assert(localBytes<6500000,'all 18 local photos must fit under 6.5 MB');
 for(const brand of ['rolls-royce','bentley','aston-martin'])assert.equal(branded.filter(x=>x.brand===brand).length,4,'four '+brand+' variants');
 assert.equal(new Set(branded.map(x=>x.id)).size,12,'brand stock-keeping units are unique');
 assert(ROYAL_ITEMS.every(x=>BigInt(x.price)>=10n**16n),'all boutique items start at one gyeong');
@@ -42,5 +58,5 @@ assert.match(app,/data-junja-photo/,'friend profile image fallbacks supported');
 assert.match(css,/@media\(max-width:700px\)/,'mobile photography gallery');
 assert.match(gc,/jrg-real-photo/,'framed private garage photographs');
 assert(html.indexOf('/royal-photo.js')>=0&&html.indexOf('/royal-photo.js')<html.indexOf('/app.js'),'shared media helper must load before profile renderer');
-for(const p of ['app.js','royal-economy.css','royal-economy-ui.js','royal-gallery.js','royal-gallery.css'])assert(html.includes('/'+p+'?v=20261103-motors-v6'),'asset version bump '+p);
+for(const p of ['app.js','royal-economy.css','royal-economy-ui.js','royal-gallery.js','royal-gallery.css'])assert(html.includes('/'+p+'?v=20261103-photos-v7'),'asset version bump '+p);
 console.log('JUNJA_ROYAL_MOTORS_V6_OK: 12 real-photo brand collectibles, 1경+ prices, attribution and responsive museum/gallery integration');
