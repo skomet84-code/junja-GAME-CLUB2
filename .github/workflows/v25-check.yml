@@ -83,12 +83,18 @@ jobs:
         env:
           BASE_URL: http://127.0.0.1:18080
         run: node tests/v25-mobile-smoke.mjs
+      - name: Validate luxury motor showroom & private museum on Chromium and WebKit
+        env:
+          BASE_URL: http://127.0.0.1:18080
+        run: node tests/royal-motors-mobile.mjs
       - name: Upload mobile screenshots
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: junja-land-v25-mobile-evidence
-          path: /tmp/junja-v25-*.png
+          path: |
+            /tmp/junja-v25-*.png
+            /tmp/junja-royal-*.png
           if-no-files-found: ignore
       - name: Print mobile server log on failure
         if: failure()
