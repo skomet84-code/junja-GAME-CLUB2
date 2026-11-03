@@ -48,7 +48,7 @@ function createJBank({db,exactWallet,levels,legacyRankCosts=null,now,kstDate}){
   }
   return BigInt(String(legacyRankCosts?.[level]??levels[level].cost));
  };
- const overdue=createOverdue({db,exactWallet,now,kstDate,levels,read,project,store,empty,installment,purchasedRankBasis});
+ const overdue=createOverdue({db,exactWallet,now,kstDate,levels,read,project,store,empty,installment,purchasedRankBasis,creditOwed:id=>creditBank?creditBank.owed(id):0n});
  function status(id,day=kstDate()){
   const u=db.prepare('SELECT id,rank_level,balance,balance_exact,balance_base FROM users WHERE id=?').get(id);
   if(!u)throw Error('은행 회원을 찾을 수 없습니다.');
@@ -60,7 +60,12 @@ function createJBank({db,exactWallet,levels,legacyRankCosts=null,now,kstDate}){
   const pay=price<debt?price:debt;
   const rankSale=debt>0n&&level>0?{fromLevel:level,fromName:levels[level].name,toLevel:level-1,toName:levels[level-1].name,
    salePrice:String(price),repayAmount:String(pay),remainingDebt:String(debt-pay),cashBack:String(price-pay),saleRatePct:99}:null;
-  const savingsTotal=BigInt(r.savingsPrincipal)+BigInt(r.savingsInterest);
+  const rehabilitationEscrow=!!db.prepare('SELECT 1 FROM room_escrow WHERE user_id=? LIMIT 1').get(id);
+   const rehabilitationAuction=db.prepare("SELECT value FROM game_state WHERE key LIKE 'royal:auction:lot:%'").all().some(row=>{
+    const lot=JSON.parse(row.value);
+    return lot?.status==='OPEN'&&(Number(lot.sellerId)===Number(id)||Number(lot.bidderId)===Number(id));
+   });
+   const savingsTotal=BigInt(r.savingsPrincipal)+BigInt(r.savingsInterest);
   const savings={principal:r.savingsPrincipal,interest:r.savingsInterest,total:String(savingsTotal),totalEarned:r.savingsEarned,dailyInterestPct:'0.05',withdrawAvailableAt:0,canWithdraw:savingsTotal>0n,canDeposit:debt===0n};
   return {installment:installment.view(r.installment,now()),installmentProducts:installment.PRODUCTS,lastInstallment:r.lastInstallment,savings,name:'J-BANK',rank:{level,name:levels[level].name},loanLimit:limit,minLoan:String(MIN_LOAN),
    credit:creditBank?creditBank.status(id):null,creditOutstanding:String(creditDebt),
@@ -70,8 +75,9 @@ function createJBank({db,exactWallet,levels,legacyRankCosts=null,now,kstDate}){
    wallet:exactWallet.output(exactWallet.read(u)),openedAt:r.openedAt,closedAt:r.closedAt,
    totalBorrowed:r.totalBorrowed,totalRepaid:r.totalRepaid,canSellRank:!!rankSale,rankSale,lastRankSale:r.lastRankSale,saleCount:r.saleCount||0,
    dueAt:r.openedAt?Number(r.openedAt)+7*86400000:null,overdue:debt>0n&&r.openedAt>0&&now()>Number(r.openedAt)+7*86400000,
-   canRehabilitate:debt>0n&&!!db.prepare('SELECT 1 FROM game_state WHERE key=?').get('jbank:overdue:v1:'+id+':'+Number(r.number||0))&&!db.prepare('SELECT 1 FROM game_state WHERE key=?').get('jbank:rehabilitation:once:'+id),
-   lastRehabilitation:r.rehabilitation||null};
+   canRehabilitate:debt+creditDebt>0n&&!rehabilitationEscrow&&!rehabilitationAuction&&!db.prepare('SELECT 1 FROM game_state WHERE key=?').get('jbank:rehabilitation:once:'+id),
+    rehabilitationBlockedReason:rehabilitationEscrow?'진행 중인 게임을 종료하세요.':rehabilitationAuction?'경매·입찰 정산을 완료하세요.':'',
+       lastRehabilitation:r.rehabilitation||null};
  }
  function change(id,kind,raw,requestId){
   id=Number(id);
