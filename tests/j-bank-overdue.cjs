@@ -71,7 +71,7 @@ assert.equal(bank.status(4).canRehabilitate,false,'open auction locks immediate 
 assert.throws(()=>bank.rehabilitation(4,'개인회생','rehab_blocked_bid_123'),/경매/);
 db.prepare("DELETE FROM game_state WHERE key='royal:auction:lot:test'").run();
 const creditRehab=bank.rehabilitation(4,'개인회생','rehab_credit_only_123');
-assert.equal(get('jpl:v1:ticket:S1:4:rehabopen_123456').status,'FORFEIT','open football wagers must be forfeited when all assets reset');
+assert.equal(get('jpl:v1:ticket:S1:4:rehabopen_123456').status,'FORFEITED','open football wagers must be forfeited when all assets reset');
 assert.equal(creditRehab.creditDebtForgiven,'3100000');
 assert.equal(bank.status(4).creditOutstanding,'0');
 assert.equal(cash(4),100000000000n);
