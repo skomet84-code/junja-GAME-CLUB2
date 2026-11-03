@@ -1,0 +1,97 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="850" viewBox="0 0 1400 850" role="img" aria-label="보랏빛 벨벳 벽과 금빛 아치, 대리석 바닥과 보석 전시 받침대가 있는 준자 로얄 전시관">
+<defs>
+ <linearGradient id="wall" x1="0" y1="0" x2=".85" y2="1"><stop stop-color="#2B153B"/><stop offset=".34" stop-color="#180E27"/><stop offset=".74" stop-color="#251333"/><stop offset="1" stop-color="#100B1C"/></linearGradient>
+ <linearGradient id="arch" x1="0" y1="0" x2=".7" y2="1"><stop stop-color="#F8E5B6"/><stop offset=".13" stop-color="#A87640"/><stop offset=".38" stop-color="#F0CA81"/><stop offset=".61" stop-color="#694024"/><stop offset=".83" stop-color="#DEB46A"/><stop offset="1" stop-color="#FFF2CD"/></linearGradient>
+ <linearGradient id="ruby" x1="0" y1="0" x2=".8" y2="1"><stop stop-color="#9F619D"/><stop offset=".35" stop-color="#402453"/><stop offset="1" stop-color="#0D0B1D"/></linearGradient>
+ <radialGradient id="niche"><stop stop-color="#623F80"/><stop offset=".55" stop-color="#24142F"/><stop offset="1" stop-color="#0A0915"/></radialGradient>
+ <radialGradient id="light"><stop stop-color="#FFE6AA" stop-opacity=".51"/><stop offset=".23" stop-color="#E8BE81" stop-opacity=".17"/><stop offset="1" stop-color="#8559B0" stop-opacity="0"/></radialGradient>
+ <linearGradient id="floor" x1="0" y1="0" x2=".15" y2="1"><stop stop-color="#614D73"/><stop offset=".18" stop-color="#30293F"/><stop offset=".72" stop-color="#20162E"/><stop offset="1" stop-color="#0B0A14"/></linearGradient>
+ <linearGradient id="pillar" x1="0" y1="0" x2="1" y2="0"><stop stop-color="#6B492E"/><stop offset=".17" stop-color="#E4BB76"/><stop offset=".36" stop-color="#F9DEA0"/><stop offset=".67" stop-color="#9B6D43"/><stop offset=".91" stop-color="#D4AA6B"/><stop offset="1" stop-color="#44272A"/></linearGradient>
+ <linearGradient id="stone" x1="0" y1="0" x2=".2" y2="1"><stop stop-color="#C7A6D5"/><stop offset=".14" stop-color="#7E638D"/><stop offset=".43" stop-color="#483553"/><stop offset=".82" stop-color="#201D2B"/><stop offset="1" stop-color="#110F1D"/></linearGradient>
+ <filter id="blur"><feGaussianBlur stdDeviation="26"/></filter><filter id="glow"><feGaussianBlur stdDeviation="8"/></filter>
+ <pattern id="damask" width="70" height="96" patternUnits="userSpaceOnUse"><path d="M35 9C24 23 17 30 17 40c0 15 18 21 18 35 0-14 18-20 18-35C53 30 46 23 35 9ZM35 19c-5 10-11 17-11 25 0 6 7 13 11 19 4-6 11-13 11-19 0-8-6-15-11-25Z" stroke="#C398D0" stroke-opacity=".14" fill="none" stroke-width="1.3"/><circle cx="35" cy="83" r="2" fill="#E6C08D" opacity=".15"/></pattern>
+</defs>
+<rect width="1400" height="850" fill="#090710"/>
+<rect width="1400" height="648" fill="url(#wall)"/>
+<rect width="1400" height="648" fill="url(#damask)" opacity=".8"/>
+<ellipse cx="700" cy="382" rx="650" ry="520" fill="#8B55A5" opacity=".17" filter="url(#blur)"/>
+<!-- Ceiling with architectural moulding -->
+<path d="M0 0H1400V101Q700 138 0 101Z" fill="#180E25" stroke="#D7A65F" stroke-width="6"/>
+<path d="M0 19H1400M0 42H1400M0 66H1400" stroke="url(#arch)" stroke-width="3" opacity=".65"/>
+<path d="M0 104Q700 140 1400 104" fill="none" stroke="#E7C282" stroke-width="8"/>
+<path d="M0 116Q700 154 1400 116" fill="none" stroke="#71513C" stroke-width="3"/>
+<!-- Royal arch niches -->
+<g>
+ <path d="M118 619V308Q118 161 293 157Q470 161 470 308V619Z" fill="url(#niche)" stroke="#7D4E3B" stroke-width="29"/>
+ <path d="M118 619V308Q118 161 293 157Q470 161 470 308V619Z" fill="none" stroke="url(#arch)" stroke-width="11"/>
+ <path d="M143 612V310Q143 193 293 189Q445 193 445 310V612Z" fill="url(#niche)" stroke="#DAB06E" stroke-opacity=".65" stroke-width="3"/>
+ <path d="M930 619V308Q930 161 1107 157Q1282 161 1282 308V619Z" fill="url(#niche)" stroke="#7D4E3B" stroke-width="29"/>
+ <path d="M930 619V308Q930 161 1107 157Q1282 161 1282 308V619Z" fill="none" stroke="url(#arch)" stroke-width="11"/>
+ <path d="M955 612V310Q955 193 1107 189Q1257 193 1257 310V612Z" fill="url(#niche)" stroke="#DAB06E" stroke-opacity=".65" stroke-width="3"/>
+ <path d="M463 615V260Q463 98 700 88Q937 98 937 260V615Z" fill="url(#niche)" stroke="#58342A" stroke-width="34"/>
+ <path d="M463 615V260Q463 98 700 88Q937 98 937 260V615Z" fill="none" stroke="url(#arch)" stroke-width="16"/>
+ <path d="M482 612V260Q482 121 700 110Q918 121 918 260V612Z" fill="none" stroke="#FFF0C6" stroke-opacity=".47" stroke-width="3"/>
+ <path d="M498 610V264Q498 148 700 136Q902 148 902 264V610Z" fill="url(#ruby)" opacity=".39"/>
+</g>
+<!-- Ornate gold motifs and diamond lights -->
+<g stroke="#BE8C52" fill="none" opacity=".72" stroke-width="2">
+ <path d="M700 166v50m-25-25h50m-30-22 5-8 5 8 13 8-13 8-5 9-5-9-13-8Z"/>
+ <path d="M293 211l13 17-13 17-13-17Z M1107 211l13 17-13 17-13-17Z"/>
+ <path d="M164 324Q293 257 423 324M979 324Q1107 257 1236 324"/>
+ <path d="M502 256Q700 181 898 256"/>
+</g>
+<g fill="url(#light)" opacity=".76"><ellipse cx="700" cy="329" rx="280" ry="315"/><ellipse cx="293" cy="339" rx="210" ry="286"/><ellipse cx="1107" cy="339" rx="210" ry="286"/></g>
+<!-- Gold wall sconces -->
+<g fill="url(#arch)" stroke="#FFF0C1" stroke-opacity=".4" stroke-width="2">
+ <path d="M78 290l16-19 16 19-16 18Z M1290 290l16-19 16 19-16 18Z"/>
+ <path d="M92 305v79l-20-11m20 11 20-11 M1306 305v79l-20-11m20 11 20-11" fill="none" stroke-width="6"/>
+ <path d="M72 372h40v10H72Z M1286 372h40v10h-40Z"/>
+</g>
+<circle cx="94" cy="284" r="83" fill="url(#light)"/><circle cx="1306" cy="284" r="83" fill="url(#light)"/>
+<!-- Chandelier -->
+<g stroke="url(#arch)" fill="none">
+ <path d="M700 0v56m-66-2q66-38 132 0m-135 2c0 58 22 65 69 65s69-7 69-65" stroke-width="5"/>
+ <path d="M596 65c2 60 43 98 104 98s102-38 104-98" stroke-width="5"/>
+ <path d="M611 109l-16 15m210-15 16 15" stroke-width="3"/>
+</g>
+<g fill="#FBE0A8"><path d="m700 104-17 31 17 33 17-33Z"/><path d="m634 112-9 17 9 22 9-22Z m132 0-9 17 9 22 9-22Z"/><circle cx="596" cy="126" r="7"/><circle cx="804" cy="126" r="7"/></g>
+<circle cx="700" cy="116" r="95" fill="url(#light)" opacity=".5"/>
+<!-- Monumental columns -->
+<g>
+ <path d="M0 587h83V186H0Z M1317 587h83V186h-83Z" fill="url(#pillar)" opacity=".83"/>
+ <path d="M47 560h63V178H47Z M1290 560h63V178h-63Z" fill="url(#pillar)"/>
+ <path d="M43 180h71v21H43Z M1286 180h71v21h-71Z M37 548h85v24H37Z M1278 548h85v24h-85Z" fill="url(#arch)"/>
+ <path d="M53 211v328m9-328v328m10-328v328m10-328v328m10-328v328m10-328v328M1298 211v328m10-328v328m10-328v328m10-328v328m10-328v328m10-328v328" stroke="#FCEAB7" stroke-opacity=".3" stroke-width="2"/>
+ <path d="M0 567H125V605H0Z M1275 567H1400V605H1275Z" fill="url(#pillar)"/>
+</g>
+<!-- Marble floor in perspective -->
+<path d="M0 616H1400V850H0Z" fill="url(#floor)"/>
+<path d="M0 625H1400" stroke="#DFBB78" stroke-width="8"/>
+<path d="M0 641H1400" stroke="#FBE2AC" stroke-width="2" opacity=".5"/>
+<path d="M700 629 650 850M700 629 450 850M700 629 150 850M700 629 950 850M700 629 1250 850" stroke="#D1A563" stroke-opacity=".48" stroke-width="3"/>
+<path d="M0 698H1400M0 763H1400M0 831H1400" stroke="#E7C894" stroke-opacity=".22" stroke-width="2"/>
+<path d="M125 780q100-21 154 2m490 18 100-17m195-41 85 5m-845-51 75 11" fill="none" stroke="#E8D7EE" stroke-opacity=".13" stroke-width="2"/>
+<!-- three museum plinths, faceted stone with cast gold rims -->
+<g>
+ <ellipse cx="293" cy="703" rx="147" ry="34" fill="#C89A64" opacity=".22" filter="url(#blur)"/>
+ <path d="M154 647H432L404 684H180Z" fill="url(#arch)" stroke="#FFEFC7" stroke-opacity=".55" stroke-width="3"/>
+ <path d="M180 681H404V763H180Z" fill="url(#stone)" stroke="#C19662" stroke-width="4"/>
+ <path d="M192 697h200v55H192Z" fill="none" stroke="#DEBD83" stroke-opacity=".6" stroke-width="2"/>
+ <path d="M176 760H410V777H176Z" fill="url(#arch)"/>
+ <ellipse cx="1107" cy="703" rx="147" ry="34" fill="#C89A64" opacity=".22" filter="url(#blur)"/>
+ <path d="M968 647H1246L1218 684H994Z" fill="url(#arch)" stroke="#FFEFC7" stroke-opacity=".55" stroke-width="3"/>
+ <path d="M994 681H1218V763H994Z" fill="url(#stone)" stroke="#C19662" stroke-width="4"/>
+ <path d="M1006 697h200v55h-200Z" fill="none" stroke="#DEBD83" stroke-opacity=".6" stroke-width="2"/>
+ <path d="M990 760H1224V777H990Z" fill="url(#arch)"/>
+ <ellipse cx="700" cy="713" rx="202" ry="43" fill="#C89A64" opacity=".32" filter="url(#blur)"/>
+ <path d="M512 645H888L858 685H542Z" fill="url(#arch)" stroke="#FFEFC7" stroke-opacity=".6" stroke-width="4"/>
+ <path d="M544 683H856V796H544Z" fill="url(#stone)" stroke="#CFA56C" stroke-width="6"/>
+ <path d="M559 700H841V781H559Z" fill="none" stroke="#DEBF86" stroke-opacity=".64" stroke-width="3"/>
+ <path d="M535 794H865V818H535Z" fill="url(#arch)"/>
+ <path d="M700 705l14 26-14 26-14-26Z" fill="#BF91E4" stroke="#FFEABB" stroke-width="4"/>
+ <path d="M690 767h20" stroke="#F2CF8A" stroke-width="3"/>
+</g>
+<!-- subtle sparkles -->
+<g fill="#F9E0AD" opacity=".8"><path d="m205 265 4-12 4 12 12 4-12 4-4 12-4-12-12-4Zm996 0 4-12 4 12 12 4-12 4-4 12-4-12-12-4ZM660 227l3-9 3 9 9 3-9 3-3 9-3-9-9-3Z"/></g>
+<path d="M4 4H1396V846H4Z" fill="none" stroke="url(#arch)" stroke-width="5" opacity=".53"/>
+</svg>

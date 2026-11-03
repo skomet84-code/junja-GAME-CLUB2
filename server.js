@@ -2378,6 +2378,15 @@ const server=http.createServer(async(req,res)=>{
       const u=requireAuth(req,res);if(!u)return;
       return json(res,200,royalEconomy.catalog(u.id));
     }
+    if(url.pathname==='/api/royal-economy/gallery'&&req.method==='GET'){
+      const u=requireAuth(req,res);if(!u)return;
+      if(!rateLimit('royal_gallery:'+u.id,30,60000))return json(res,429,{error:'전시관 방문 요청이 너무 빠릅니다.'});
+      const nickname=escText(url.searchParams.get('nickname')||'',14);
+      if(!nickname)return json(res,400,{error:'전시관 주인의 닉네임을 입력해줘.'});
+      const target=db.prepare('SELECT id,is_disabled FROM users WHERE nickname=? COLLATE NOCASE').get(nickname);
+      if(!target||target.is_disabled)return json(res,404,{error:'공개된 전시관을 찾을 수 없어.'});
+      return json(res,200,royalEconomy.gallery(target.id));
+    }
     if(url.pathname==='/api/royal-economy/buy'&&req.method==='POST'){
       const u=requireAuth(req,res);if(!u)return;
       if(!rateLimit('royal_buy:'+u.id,12,60000))return json(res,429,{error:'구매 요청을 너무 빠르게 반복하고 있습니다.'});

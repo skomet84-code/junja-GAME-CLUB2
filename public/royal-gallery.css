@@ -1,0 +1,223 @@
+/* JUNJA PRIVATE MUSEUM V4 — dedicated illustrated museum, isolated from shop CSS.
+ * Architectural image /art/royal/gallery-hall.svg is the stage, CSS handles responsive
+ * positioning, ownership overlays, keyboard focus, and restrained lighting only.
+ */
+#view-gallery{--jrg-gold:#f6daa0;--jrg-violet:#c1a0dd;--jrg-bg:#100c19;--jrg-mute:#b4a1c1;--jrg-frame:#b48a55;position:relative;color:#f9eee1;background:radial-gradient(circle at 51% 0,#40254c 0,#15101f 34%,#0b0913 100%);padding-bottom:50px;overflow:hidden}
+#view-gallery:before{content:"";position:absolute;inset:0;background-image:radial-gradient(#f2cc9655 .7px,transparent .7px);background-size:29px 31px;opacity:.17;pointer-events:none}
+#view-gallery .jrg-view-head{position:relative;z-index:2;background:linear-gradient(100deg,#17101f,#2b1b37);border:1px solid #8f683e;border-radius:16px;margin-bottom:14px;padding:13px 17px}
+#view-gallery .jrg-view-head h2{font-family:Georgia,'Noto Serif KR',serif;color:#f9dfa9;letter-spacing:.01em}
+#view-gallery .jrg-view-head small{color:#cdaa77;letter-spacing:.1em}
+#view-gallery .jrg-view-head .back{background:#392444;border:1px solid #d5af74;border-radius:10px;color:#f5da9f}
+#view-gallery #junjaRoyalGalleryRoot{position:relative;z-index:1}
+.jrg-museum-shell{max-width:1260px;margin:0 auto;padding:0 12px 28px;overflow:visible}
+.jrg-museum-shell button{cursor:pointer;-webkit-tap-highlight-color:transparent}
+.jrg-museum-shell button:disabled{cursor:default;opacity:.8}
+.jrg-museum-shell button:focus-visible{outline:3px solid #fde4b1;outline-offset:3px}
+.jrg-entry{display:flex;justify-content:space-between;align-items:center;position:relative;overflow:hidden;padding:28px 32px 24px;background:radial-gradient(ellipse at 79% 13%,#875ca56c,transparent 44%),linear-gradient(117deg,#22172c 6%,#331c40 62%,#1a1324);border:1px solid #d2a46d;border-bottom:0;border-radius:20px 20px 0 0;box-shadow:0 14px 45px #05030899}
+.jrg-entry:after{content:"";position:absolute;inset:7px;border:1px solid #dbb67755;border-radius:15px;pointer-events:none}
+.jrg-entry-left{min-width:0;position:relative;z-index:1}
+.jrg-entry-left small{font:700 11px Georgia,serif;letter-spacing:.23em;color:#e6c68f}
+.jrg-entry-left h1{font:800 clamp(32px,4.4vw,55px)/1.2 Georgia,'Noto Serif KR',serif;color:#fff0c4;margin:10px 0;text-shadow:0 2px 0 #8c5c37,0 0 25px #d9aa5a69}
+.jrg-entry-left h1 span{font-family:Georgia,serif;color:#e9b968;font-size:1.07em}
+.jrg-entry-left p{font-size:13px;line-height:1.65;color:#d9c1e1;margin:0}
+.jrg-entry-crest{position:relative;display:flex;flex-direction:column;gap:5px;align-items:center;justify-content:center;flex:0 0 114px;height:114px;border:5px double #e9c17c;border-radius:50%;color:#fbe5aa;background:radial-gradient(circle at 45% 34%,#9b6d9d,#36203f 62%,#190f23);box-shadow:0 0 0 6px #342339,0 0 0 7px #b88f61,0 0 35px #dba95d70}
+.jrg-entry-crest span{font:bold italic 61px/1 Georgia,serif;text-shadow:0 0 19px #fbd9a199}
+.jrg-entry-crest small{font:600 8px Georgia,serif;letter-spacing:.12em}
+.jrg-owner-ribbon{position:relative;display:flex;align-items:center;gap:14px;padding:15px 23px;background:linear-gradient(90deg,#201528,#160e20 45%,#2c1d36);border:1px solid #8e693f;border-top:1px solid #ae854d}
+.jrg-owner-avatar{width:48px;height:48px;flex:0 0 48px;display:grid;place-items:center;border-radius:50%;border:2px solid #deb878;background:radial-gradient(circle,#5c346e,#221527);color:#f8d993;font-size:27px;box-shadow:0 0 18px #e2ba7255}
+.jrg-owner-name{display:flex;flex-direction:column;gap:3px;min-width:0;flex:1}
+.jrg-owner-name small{font:700 9px Georgia,serif;letter-spacing:.13em;color:#c69c66}
+.jrg-owner-name strong{font-size:17px;color:#f8e6c6;overflow-wrap:anywhere}
+.jrg-owner-name span{font-size:11px;color:#bfa5d1}
+.jrg-stat-strip{display:grid;grid-template-columns:auto auto minmax(170px,1fr);gap:19px;align-items:center;max-width:55%}
+.jrg-stat-strip>div{display:flex;flex-direction:column;gap:5px;border-left:1px solid #a37b5b6b;padding-left:17px}
+.jrg-stat-strip small{color:#ad99b7;font-size:10px}
+.jrg-stat-strip b{font-size:19px;color:#f3d194;white-space:nowrap}
+.jrg-stat-strip em{font-style:normal;font-size:11px;color:#a995b5}
+.jrg-stat-strip b.jrg-spent{font-size:clamp(13px,1.8vw,20px);white-space:normal;overflow-wrap:anywhere}
+.jrg-hall{position:relative;isolation:isolate;border:2px solid #c99b5c;border-top:0;border-radius:0 0 21px 21px;background:#0f091a;box-shadow:inset 0 0 0 5px #d8af6622,0 20px 50px #040207a6;overflow:hidden}
+.jrg-hall:after{content:"";position:absolute;inset:0;border:1px solid #e3be8588;pointer-events:none;border-radius:inherit}
+.jrg-hall-heading{position:absolute;z-index:5;top:14px;left:22px;right:22px;display:flex;justify-content:space-between;gap:8px;color:#f4d99c;text-shadow:0 2px 6px #090711;font:600 10px Georgia,serif;letter-spacing:.16em;pointer-events:none}
+.jrg-hall-heading span:last-child{color:#d9b7eb}
+.jrg-stage{position:relative;width:100%;aspect-ratio:1400/850;min-height:420px;background:#1e122c url('/art/royal/gallery-hall.svg') no-repeat center center;background-size:100% 100%;overflow:hidden}
+.jrg-stage:after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,#0301084d,transparent 20%,transparent 80%,#0301084d),linear-gradient(0deg,#04030b9a,transparent 23%,transparent 82%,#07041166);pointer-events:none}
+.jrg-stage:before{content:"";position:absolute;inset:0;background:radial-gradient(ellipse at 50% 45%,#e3b78110,transparent 56%);pointer-events:none}
+.jrg-object{position:absolute;z-index:3;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;border:0;background:transparent;padding:0 3px 4px;min-width:0;color:#f9e5bf;transform-origin:center bottom;transition:filter .25s ease,transform .25s ease}
+.jrg-object:hover,.jrg-object.chosen{filter:brightness(1.15) drop-shadow(0 0 11px #e0b76c70)}
+.jrg-object:focus-visible{outline:2px solid #f4dba7;outline-offset:2px;border-radius:16px}
+.jrg-object-left{left:10%;width:22%;height:39%;bottom:19.2%}
+.jrg-object-center{left:36%;width:28%;height:49%;bottom:18.7%}
+.jrg-object-right{right:10%;width:22%;height:39%;bottom:19.2%}
+.jrg-object img{display:block;object-fit:contain;width:94%;height:74%;max-height:100%;position:relative;z-index:2;filter:drop-shadow(0 15px 9px #090612d9) drop-shadow(0 0 14px #d9b96f55);animation:jrg-float 5.8s ease-in-out infinite}
+.jrg-object-left img{animation-delay:-1.5s}
+.jrg-object-right img{animation-delay:-3s}
+.jrg-object .jrg-piece-glow{position:absolute;z-index:1;top:4%;width:80%;height:65%;background:radial-gradient(ellipse,#fce9b22e,#be76da1b 53%,transparent 70%);filter:blur(12px);pointer-events:none}
+.jrg-piece-frame{display:flex;flex-direction:column;align-items:center;gap:3px;width:min(97%,245px);min-height:38px;margin-bottom:1px;padding:5px 4px;background:linear-gradient(90deg,#160b24e8,#3c254be6,#160b24e8);border:1px solid #dec184;box-shadow:0 5px 10px #0b0718a6,0 0 0 2px #20182b;border-radius:5px;position:relative;z-index:4}
+.jrg-piece-frame strong{font-size:clamp(10px,1.2vw,16px);line-height:1.25;overflow-wrap:anywhere;color:#ffe5aa;text-shadow:0 0 6px #c49251}
+.jrg-piece-frame small{font:600 7px Georgia,serif;letter-spacing:.06em;color:#c8aee2}
+.jrg-object.unoccupied{opacity:.63}
+.jrg-vacant-mark{height:66%;display:grid;place-items:center;font:italic clamp(36px,5vw,86px) Georgia,serif;color:#9a72a7;text-shadow:0 0 25px #ba82d49a}
+.jrg-stage-inscription{position:absolute;left:41%;width:18%;bottom:4.5%;z-index:4;text-align:center;font:800 clamp(10px,1.8vw,20px)/1.18 Georgia,serif;letter-spacing:.13em;color:#f4d18d;text-shadow:0 2px 5px #09050d;pointer-events:none}
+.jrg-stage-inscription span{font-size:clamp(5px,.8vw,9px);color:#ead3a0;letter-spacing:.11em}
+.jrg-hall-foot{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:13px 19px;color:#e6c995;background:linear-gradient(90deg,#170f20,#30213c 49%,#170f20);font:700 10px Georgia,serif;letter-spacing:.12em;border-top:1px solid #a57e56}
+.jrg-hall-foot span:last-child{color:#c1a8d5}
+.jrg-relic-promises{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin:10px 0 26px}
+.jrg-relic-promises>span{padding:12px 7px;border:1px solid #9f775b8a;border-radius:7px;background:#261a2d;color:#dfc49c;font:700 9px Georgia,serif;letter-spacing:.1em;text-align:center}
+.jrg-selected-panel{display:grid;grid-template-columns:minmax(220px,.8fr) minmax(0,1.2fr);gap:0;overflow:hidden;margin-top:30px;border:1px solid #b18757;border-radius:18px;background:linear-gradient(130deg,#1c1425,#30203c 58%,#180f21);box-shadow:0 14px 40px #07041292}
+.jrg-selected-image{min-height:340px;position:relative;display:flex;align-items:center;justify-content:center;background:radial-gradient(ellipse at 50% 48%,#aa79c35e,transparent 57%),url('/art/royal/gallery-hall.svg') no-repeat center center;background-size:auto,cover;border-right:1px solid #b58c595d;overflow:hidden}
+.jrg-selected-image:before{content:"";position:absolute;inset:15px;border:1px solid #d2af7959;border-radius:10px;pointer-events:none}
+.jrg-selected-image>span{position:absolute;left:22px;top:23px;font:700 10px Georgia,serif;letter-spacing:.13em;color:#f7d69b}
+.jrg-selected-image img{position:relative;width:80%;height:290px;object-fit:contain;filter:drop-shadow(0 20px 11px #0d0612d1) drop-shadow(0 0 20px #e6be806b);animation:jrg-float 6s ease-in-out infinite}
+.jrg-selected-info{min-width:0;padding:32px clamp(20px,3vw,42px);display:flex;flex-direction:column;align-items:flex-start}
+.jrg-selected-info>small{font:700 10px Georgia,serif;letter-spacing:.18em;color:#dbb77b}
+.jrg-selected-info h2{font:800 clamp(26px,3.5vw,40px)/1.23 Georgia,'Noto Serif KR',serif;color:#ffe9b6;margin:11px 0;text-shadow:0 0 15px #dbad617a}
+.jrg-selected-rarity{color:#efdaae;border:1px solid #d9b47880;padding:7px 12px;background:#af865028;border-radius:30px;font:700 10px Georgia,serif;letter-spacing:.09em}
+.jrg-selected-info>p{color:#cdbbd7;font-size:13px;line-height:1.8;margin:17px 0}
+.jrg-certificate{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1px;align-self:stretch;border:1px solid #a88a6d69;background:#a88a6d69;border-radius:10px;overflow:hidden;margin:10px 0 20px}
+.jrg-certificate>div{display:flex;flex-direction:column;justify-content:center;gap:8px;min-height:72px;padding:11px;background:#1c1427}
+.jrg-certificate small{font-size:10px;color:#b29dbb}
+.jrg-certificate b{font-size:12px;color:#f5dba6;overflow-wrap:anywhere}
+.jrg-selected-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:auto}
+.jrg-selected-actions button,.jrg-selected-actions .jrg-current-primary,.jrg-selected-actions .jrg-equipped{padding:12px 14px;border-radius:8px;font-size:12px;font-weight:850;line-height:1.5}
+.jrg-selected-actions .jrg-primary-btn{color:#2c1c29;background:linear-gradient(120deg,#fff3cf,#c99959 65%,#f7dc9e);border:1px solid #ffecba;box-shadow:0 7px 20px #c9954d42}
+.jrg-selected-actions .jrg-outline-btn{color:#f2d5ad;background:#30203c;border:1px solid #b4916c}
+.jrg-selected-actions .jrg-current-primary{color:#ffe1a2;border:1px solid #b99a67;background:#332638}
+.jrg-selected-actions .jrg-equipped{color:#c9efce;border:1px solid #7aa98c}
+.jrg-selected-actions button:hover{filter:brightness(1.13)}
+.jrg-readonly{font-size:12px;color:#c2a5d1}
+.jrg-inventory{margin:42px 0 0}
+.jrg-inventory-header{display:flex;gap:15px;align-items:end;justify-content:space-between;border-bottom:1px solid #b68b5770;padding:0 2px 17px}
+.jrg-inventory-header small{font:700 10px Georgia,serif;color:#cba36d;letter-spacing:.18em}
+.jrg-inventory-header h2{font:800 clamp(24px,3vw,34px) Georgia,'Noto Serif KR',serif;color:#f9e3b5;margin:6px 0}
+.jrg-inventory-header p{font-size:12px;color:#aa9ab8;margin:0}
+.jrg-inventory-count{border:1px solid #a7895f;border-radius:99px;padding:8px 13px;color:#e9d0a9;font:700 10px Georgia,serif;letter-spacing:.08em;white-space:nowrap}
+.jrg-filter-nav{display:flex;gap:7px;margin:18px 0 21px;overflow-x:auto;padding-bottom:5px;scrollbar-width:thin}
+.jrg-filter-nav button{border:1px solid #77617d;border-radius:99px;background:#281b32;color:#cbb9d3;padding:10px 15px;white-space:nowrap;font-size:12px;font-weight:700}
+.jrg-filter-nav button.active{color:#291e29;background:linear-gradient(130deg,#fff0c4,#c69c5f);border-color:#e5bf7b}
+.jrg-inventory-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:13px}
+.jrg-collection-card{display:flex;flex-direction:column;min-width:0;overflow:hidden;background:radial-gradient(circle at 50% 10%,#62467355,transparent 60%),linear-gradient(135deg,#281c32,#150f1e);border:1px solid #8b6e58;border-radius:13px;box-shadow:0 9px 20px #0705119c;transition:transform .2s,border-color .2s}
+.jrg-collection-card.active,.jrg-collection-card:hover{border-color:#f0d29b;transform:translateY(-2px)}
+.jrg-collection-card.on-show{box-shadow:inset 0 0 0 1px #f0bb6780,0 9px 22px #070511ad}
+.jrg-card-art{position:relative;display:grid;place-items:center;height:198px;width:100%;background:radial-gradient(ellipse at 50% 35%,#9872a44a,transparent 70%),linear-gradient(#392540,#1e1527);border:0;border-bottom:1px solid #ad875566}
+.jrg-card-art:before{content:"";position:absolute;inset:8px;border:1px solid #c59c6477;border-radius:8px;pointer-events:none}
+.jrg-card-art img{width:88%;height:88%;object-fit:contain;filter:drop-shadow(0 8px 9px #0a0611bb);transition:transform .3s}
+.jrg-collection-card:hover img{transform:scale(1.06)}
+.jrg-card-number{position:absolute;left:12px;bottom:11px;color:#ffdb98;font:700 8px Georgia,serif;letter-spacing:.07em;background:#1a1023b7;padding:4px 6px}
+.jrg-card-info{padding:13px;flex:1}
+.jrg-card-info>small{font-size:10px;color:#c1a4c9}
+.jrg-card-info h3{font-size:16px;color:#f9dfa9;line-height:1.33;margin:7px 0 12px}
+.jrg-card-info>span{color:#ead0a0;font-size:13px;font-weight:800}
+.jrg-card-state{font-size:11px;color:#c4a4db;margin-top:11px}
+.jrg-card-buttons{display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:0 10px 11px}
+.jrg-card-buttons button{font-size:11px;font-weight:800;padding:10px 5px;min-height:38px;color:#f3ddbe;border:1px solid #8c718f;border-radius:7px;background:#372940}
+.jrg-card-buttons button.jrg-action-gold{background:linear-gradient(135deg,#f9e4ad,#bc8c4c);border-color:#e8c584;color:#241a27}
+.jrg-card-buttons button.jrg-action-quiet{background:#33273a;color:#bbadbf;border-color:#534356}
+.jrg-inventory-empty{grid-column:1/-1;padding:38px;text-align:center;color:#baa6c3;border:1px solid #816988;border-radius:12px;background:#21162b}
+.jrg-museum-footer{margin-top:23px;display:flex;gap:12px;align-items:center;justify-content:space-between;border-top:1px solid #99784f;padding:19px 4px;color:#c7a46e;font:700 10px Georgia,serif;letter-spacing:.1em}
+.jrg-museum-footer button{border:1px solid #d5b479;background:#2b1b31;border-radius:8px;padding:10px 15px;font:700 12px sans-serif;color:#f7deab}
+.jrg-empty-state{text-align:center;padding:45px 14px 38px;border:1px solid #b18e6180;background:radial-gradient(ellipse at 50% 0,#744b8355,transparent 65%),#1d1525;border-radius:16px;margin:22px 0}
+.jrg-empty-crown{font:76px Georgia,serif;color:#e9ba78;text-shadow:0 0 27px #f6c88599}
+.jrg-empty-state h2{font:800 24px Georgia,'Noto Serif KR',serif;color:#f9e0aa}
+.jrg-empty-state p{font-size:13px;color:#d1b8d9;line-height:1.75;max-width:520px;margin:12px auto}
+.jrg-empty-state button{padding:13px 24px;border:1px solid #ffdf9d;background:linear-gradient(120deg,#fff1c1,#d6a567);color:#2b1d29;font-weight:900;border-radius:10px}
+.jrg-loading,.jrg-load-error{padding:80px 20px;text-align:center;min-height:350px;border:1px solid #a07b5d;background:linear-gradient(#2e1c3a,#140e20);border-radius:17px}
+.jrg-loading span{font:70px Georgia,serif;color:#efca8e;text-shadow:0 0 30px #cf9b4e}
+.jrg-loading h2{color:#f1d69e}
+.jrg-loading p{color:#ab96b7;letter-spacing:.15em}
+.jrg-load-error{color:#f3c5bd}
+.jrg-load-error button{border:1px solid #d8bb88;background:#4c3452;color:#f9e1bb;padding:11px 20px;border-radius:8px;margin-left:7px}
+@keyframes jrg-float{0%,100%{transform:translateY(0)}50%{transform:translateY(-9px)}}
+@media(max-width:960px){
+ .jrg-inventory-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+ .jrg-stat-strip{gap:11px}
+ .jrg-stat-strip>div{padding-left:11px}
+ .jrg-selected-info{padding:25px}
+ .jrg-stage{min-height:360px}
+ .jrg-hall-heading{font-size:8px}
+}
+@media(max-width:700px){
+ #view-gallery .jrg-view-head{padding:10px}
+ .jrg-museum-shell{padding:0 3px 30px}
+ .jrg-entry{padding:19px 17px;gap:7px}
+ .jrg-entry-left small{font-size:8px;letter-spacing:.11em}
+ .jrg-entry-left h1{font-size:clamp(29px,6.5vw,38px);margin:9px 0}
+ .jrg-entry-left p{font-size:11px;line-height:1.55}
+ .jrg-entry-crest{flex-basis:65px;height:65px;border-width:3px;box-shadow:0 0 0 3px #342339,0 0 0 4px #b88f61}
+ .jrg-entry-crest span{font-size:37px}
+ .jrg-entry-crest small{font-size:5px}
+ .jrg-owner-ribbon{padding:11px 12px;gap:9px;flex-wrap:wrap}
+ .jrg-owner-avatar{width:38px;height:38px;flex-basis:38px;font-size:22px}
+ .jrg-owner-name strong{font-size:15px}
+ .jrg-stat-strip{width:100%;max-width:100%;grid-template-columns:1fr 1fr 1.5fr;gap:5px;border-top:1px solid #7a5b5188;padding-top:11px}
+ .jrg-stat-strip>div{padding:0 8px;border-left:1px solid #8c68515c}
+ .jrg-stat-strip b{font-size:17px}
+ .jrg-stat-strip b.jrg-spent{font-size:13px}
+ .jrg-stage{aspect-ratio:auto;height:430px;min-height:0}
+ .jrg-hall-heading{top:10px;left:9px;right:9px;font-size:7px;letter-spacing:.06em}
+ .jrg-hall-heading span:last-child{display:none}
+ .jrg-object-left{left:7%;width:25%;height:34%;bottom:21%}
+ .jrg-object-right{right:7%;width:25%;height:34%;bottom:21%}
+ .jrg-object-center{left:33%;width:34%;height:42%;bottom:21%}
+ .jrg-object img{height:71%;width:100%}
+ .jrg-piece-frame{padding:4px 3px;min-height:31px}
+ .jrg-piece-frame strong{font-size:clamp(9px,2.6vw,13px)}
+ .jrg-piece-frame small{font-size:6px;letter-spacing:0}
+ .jrg-vacant-mark{font-size:34px}
+ .jrg-hall-foot{padding:10px 12px;font-size:8px}
+ .jrg-stage-inscription{font-size:11px;bottom:5%}
+ .jrg-stage-inscription span{font-size:5px}
+ .jrg-relic-promises{gap:3px;margin:8px 0 23px}
+ .jrg-relic-promises>span{padding:9px 3px;font-size:8px;letter-spacing:0}
+ .jrg-selected-panel{grid-template-columns:1fr}
+ .jrg-selected-image{min-height:235px}
+ .jrg-selected-image img{height:220px}
+ .jrg-selected-info{padding:22px 18px}
+ .jrg-selected-info h2{font-size:29px}
+ .jrg-certificate{grid-template-columns:repeat(3,minmax(0,1fr))}
+ .jrg-certificate>div{padding:9px 7px}
+ .jrg-certificate b{font-size:11px}
+ .jrg-inventory{margin-top:35px}
+ .jrg-inventory-header{align-items:flex-start}
+ .jrg-inventory-header h2{font-size:25px}
+ .jrg-inventory-header p{font-size:11px}
+ .jrg-inventory-count{font-size:9px;padding:6px}
+ .jrg-inventory-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+ .jrg-card-art{height:155px}
+ .jrg-card-info{padding:10px}
+ .jrg-card-info h3{font-size:14px}
+ .jrg-card-buttons{grid-template-columns:1fr;padding:0 8px 9px}
+ .jrg-card-buttons button{min-height:32px;padding:7px}
+ .jrg-museum-footer{flex-wrap:wrap}
+}
+@media(max-width:390px){
+ .jrg-entry-crest{flex-basis:53px;height:53px}
+ .jrg-entry-crest span{font-size:30px}
+ .jrg-entry-left h1{font-size:29px}
+ .jrg-owner-name small{font-size:8px}
+ .jrg-stage{height:370px}
+ .jrg-object-left,.jrg-object-right{width:25%;height:33%;bottom:20%}
+ .jrg-object-center{height:43%;bottom:20%}
+ .jrg-piece-frame strong{font-size:9px}
+ .jrg-piece-frame small{font-size:5px}
+ .jrg-inventory-header{flex-direction:column}
+ .jrg-card-art{height:128px}
+ .jrg-card-info h3{font-size:13px}
+ .jrg-relic-promises>span{font-size:7px}
+}
+@media(prefers-reduced-motion:reduce){.jrg-object img,.jrg-selected-image img{animation:none}.jrg-object,.jrg-collection-card,.jrg-card-art img{transition:none}}
+
+/* Unobtrusive third wing: open a full separate museum without replacing shop state. */
+#view-shop .jrp-wing-nav.jrp-wing-nav-three{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+#view-shop .jrp-wing-nav-three .jrp-gallery-entry{color:#f8e1b3;border:1px solid #b68d5c;background:linear-gradient(150deg,#4a3058,#261d30);box-shadow:inset 0 0 0 1px #eed3a023}
+#view-shop .jrp-wing-nav-three .jrp-gallery-entry:hover{background:linear-gradient(125deg,#6d4679,#352440);border-color:#f5d396}
+#view-shop .jrp-collector-links [data-go="gallery"]{background:linear-gradient(125deg,#eec77e,#ac7545);color:#201522;border:1px solid #f6dcaa;font-weight:900;box-shadow:0 5px 17px #e0ac5a40}
+#profileContent [data-go="gallery"],#friendLookupResult [data-go="gallery"]{border:1px solid #e6c083!important;background:linear-gradient(110deg,#644077,#332345)!important;color:#fce4b1!important;box-shadow:0 4px 18px #9e6fbc44}
+@media(max-width:590px){
+ #view-shop .jrp-wing-nav.jrp-wing-nav-three{padding:5px;gap:3px}
+ #view-shop .jrp-wing-nav-three button{font-size:11px;letter-spacing:-.01em;min-height:58px;padding:7px 4px}
+ #view-shop .jrp-wing-nav-three button small{font-size:8px;letter-spacing:0}
+}
+
+#view-shop .jrp-rank-visit{flex:1;min-width:0;text-align:left;border:0;border-bottom:1px solid #d9b57a75;background:transparent;color:#f3dfb9;font-size:12px;padding:8px 4px;cursor:pointer;overflow-wrap:anywhere}
+#view-shop .jrp-rank-visit:hover{color:#fff7d9;text-shadow:0 0 13px #dcbf73}
+#view-shop .jrp-rank-visit:focus-visible{outline:2px solid #f4d28c;outline-offset:2px}

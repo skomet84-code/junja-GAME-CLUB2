@@ -111,6 +111,25 @@ function createRoyalEconomy({db,exactWallet,now,getAssets}){
     .map(r=>({nickname:r.nickname,itemName:String(r.memo||'').split(' · ')[1]||'로얄 명품',purchasedAt:r.purchasedAt}));
    return {nickname:db.prepare('SELECT nickname FROM users WHERE id=?').get(uid)?.nickname||'',items:ROYAL_ITEMS.map(item=>({...item,owned:!!owns.get(uid,item.id),equipped:load[item.category]===item.id,...decorate(item,uid)})),collector:collector(uid),ranking:rank(),recent,serverNow:now()};
  }
+
+ // Read-only public museum: only owned royal collectibles, no wallet or private user data.
+ function gallery(uid){
+   const user=db.prepare('SELECT id,nickname,is_disabled FROM users WHERE id=?').get(uid);
+   if(!user||user.is_disabled)return null;
+   const load=db.prepare('SELECT title,frame,costume,pet FROM user_loadout WHERE user_id=?').get(uid)||{};
+   const items=ROYAL_ITEMS.filter(item=>owns.get(uid,item.id)).map(item=>{
+     const info=decorate(item,uid);
+     const note=info.inscription;
+     return {
+       id:item.id,name:item.name,category:item.category,rarity:item.rarity,icon:item.icon,
+       price:item.price,desc:item.desc,owned:true,equipped:load[item.category]===item.id,
+       stock:item.stock??null,
+       inscription:note?{itemId:item.id,itemName:item.name,ownerNickname:user.nickname,
+         purchasedAt:note.purchasedAt,paid:note.paid}:null
+     };
+   });
+   return {nickname:user.nickname,collector:collector(uid),items,public:true};
+ }
  function dashboard(){
    const people=db.prepare('SELECT id,nickname,balance,balance_exact,balance_base,is_disabled FROM users').all();
    let wallet=0n,savings=0n,installments=0n,stocks=0n,coins=0n,debt=0n,assetsFailed=0;
@@ -144,6 +163,6 @@ function createRoyalEconomy({db,exactWallet,now,getAssets}){
      topWealth:fortunes.slice(0,10),royalRanking:rank(),assetsFailed,
      note:'오늘 장부 유입/유출에는 유저 송금·은행·투자 이동이 포함됩니다. 신규 재화 발행량과 동일하지 않습니다. 투자 평가액은 시세에 따라 변동합니다.'};
  }
- return {buy,catalog,collector,updateShowcase,decorate,dashboard};
+ return {buy,catalog,collector,gallery,updateShowcase,decorate,dashboard};
 }
 module.exports={ROYAL_ITEMS,createRoyalEconomy};
