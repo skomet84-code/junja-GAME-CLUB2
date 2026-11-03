@@ -260,7 +260,7 @@ function createJBank({db,exactWallet,levels,legacyRankCosts=null,now,kstDate}){
   return {loanAmount:String(amount),afterLoanBalance:String(after)};
  }
   return {status,owed,baseOwed,setCredit:(credit)=>{creditBank=credit;},
-   enforceOverdue:(id)=>{const base=overdue.enforce(id),asset=creditBank?creditBank.enforce(id):{processed:false};return {processed:!!(base.processed||asset.processed),base,asset};},
+   enforceOverdue:(id)=>{const base=overdue.enforce(id),asset=creditBank?creditBank.enforce(id):{processed:false};return {...base,processed:!!(base.processed||asset.processed),base,asset};},
    purchaseQuote,borrowForPurchase,rankResaleBasis:purchasedRankBasis,limits:LIMITS,...Object.fromEntries(['installmentOpen','installmentPay','installmentClaim','installmentCancel'].map(kind=>[kind,(id,raw,key)=>change(id,kind,raw,key)])),deposit:(id,amount,key)=>change(id,'deposit',amount,key),withdraw:(id,amount,key)=>change(id,'withdraw',amount,key),borrow:(id,amount,key)=>change(id,'borrow',amount,key),repay:(id,amount,key)=>change(id,'repay',amount,key),sellRank,forceCasinoSale,rehabilitation:overdue.rehabilitation};
 }
 module.exports={createJBank,LIMITS,RATE_BP,SELL_RATE_BP};
