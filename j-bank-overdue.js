@@ -2,7 +2,7 @@
 // Automatic J-BANK game-money collections. All changes to wallet, collateral,
 // portfolios, and bank debt commit as one SQLite transaction. No live orders.
 const DAY=86400000,GRANT=100000000000n;
-function createOverdue({db,exactWallet,now,kstDate,levels,read,project,store,empty,installment,purchasedRankBasis}){
+function createOverdue({db,exactWallet,now,kstDate,levels,read,project,store,empty,installment,purchasedRankBasis,creditOwed=()=>0n}){
  const selectUser=db.prepare('SELECT id,rank_level,balance,balance_exact,balance_base FROM users WHERE id=?');
  const getKey=db.prepare('SELECT value FROM game_state WHERE key=?');
  const putKey=db.prepare('INSERT INTO game_state(key,value,updated_at) VALUES(?,?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value,updated_at=excluded.updated_at');
@@ -113,30 +113,53 @@ function createOverdue({db,exactWallet,now,kstDate,levels,read,project,store,emp
      db.exec('COMMIT');return {processed:true,...event};
    }catch(err){try{db.exec('ROLLBACK')}catch{}throw err}
  }
+ function activeAuction(id){
+  return db.prepare("SELECT value FROM game_state WHERE key LIKE 'royal:auction:lot:%'").all().some(row=>{
+   const lot=JSON.parse(row.value);
+   return lot?.status==='OPEN'&&(Number(lot.sellerId)===id||Number(lot.bidderId)===id);
+  });
+ }
  function rehabilitation(id,confirmation,requestId){
    id=Number(id);
    if(confirmation!=='개인회생'||!Number.isSafeInteger(id)||id<1)throw Error('개인회생 확인 문구가 필요합니다.');
    if(typeof requestId!=='string'||!/^[A-Za-z0-9_-]{12,80}$/.test(requestId))throw Error('개인회생 요청번호 오류');
-   const due=dueInfo(id),key='jbank:overdue:v1:'+id+':'+due.number;
-   if(!readJson(key))throw Error('7일 연체 및 자산 매각 절차가 먼저 완료되어야 합니다.');
    if(hasEscrow.get(id))throw Error('진행 중인 게임을 종료한 뒤 신청하세요.');
    db.exec('BEGIN IMMEDIATE');
    try{
      const receipt='jbank:rehabilitation:once:'+id;
      if(readJson(receipt))throw Error('개인회생은 계정당 1회만 가능합니다.');
+     if(activeAuction(id))throw Error('경매·입찰 정산을 마친 뒤 신청하세요.');
      const u=selectUser.get(id),a=project(read(id,kstDate()),kstDate());
-     if(!u||debtOf(a)<=0n)throw Error('탕감 대상인 미상환 채무가 없습니다.');
-     const prior=exactWallet.read(u),debt=debtOf(a),at=now();
+     const rankDebt=debtOf(a),creditDebt=creditOwed(id),debt=rankDebt+creditDebt;
+     if(!u||debt<=0n)throw Error('탕감 대상인 미상환 채무가 없습니다.');
+     const prior=exactWallet.read(u),at=now();
      db.prepare("DELETE FROM game_state WHERE key IN (?,?)").run('jstock:portfolio:'+id,'jcoin:portfolio:'+id);
+     const creditKey='jcredit:account:'+id,credit=readJson(creditKey);
+     if(credit)writeJson(creditKey,{...credit,principal:'0',interest:'0',asOf:kstDate(),closedAt:at,rehabilitationAt:at});
+     // Owned inventory and certificates are forfeited atomically with loan forgiveness.
+     for(const row of db.prepare('SELECT key,value FROM game_state WHERE key LIKE ?').all('royal:certificate:holder:'+id+':%')){
+      const serial=JSON.parse(row.value),serialKey='royal:certificate:serial:'+serial,cert=readJson(serialKey);
+      if(cert&&Number(cert.currentOwnerId)===id){
+       cert.status='BANK_REDEEMED';cert.currentOwnerId=null;cert.currentOwner='J-BANK';
+       cert.history=[...(Array.isArray(cert.history)?cert.history:[]),{type:'REHABILITATION',at,fromUserId:id}];
+       writeJson(serialKey,cert);
+      }
+     }
+     db.prepare('DELETE FROM game_state WHERE key LIKE ? OR key LIKE ? OR key=?')
+      .run('royal:certificate:holder:'+id+':%','royal:inscription:'+id+':%','royal:showcase:'+id);
+     if(db.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='user_inventory'").get())
+      db.prepare('DELETE FROM user_inventory WHERE user_id=?').run(id);
+     if(db.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='user_loadout'").get())
+      db.prepare('DELETE FROM user_loadout WHERE user_id=?').run(id);
      const clean=empty(kstDate());
      clean.number=Number(a.number||0);clean.totalBorrowed=a.totalBorrowed;clean.totalRepaid=a.totalRepaid;
-     clean.rehabilitation={at,forgiven:String(debt),previousRank:Number(u.rank_level||0)};
+     clean.rehabilitation={at,forgiven:String(debt),rankDebtForgiven:String(rankDebt),creditDebtForgiven:String(creditDebt),previousRank:Number(u.rank_level||0)};
      store(id,clean);
      updateRank.run(0,id);
      const mirror=exactWallet.mirror(GRANT);
      changeBalance.run(mirror,String(GRANT),String(mirror),id);
-     ledger.run(id,exactWallet.mirror(GRANT-prior),mirror,String(GRANT-prior),String(GRANT),'jbank_rehabilitation','개인회생 · 신분/투자자산 초기화 · 채무 탕감 · 재출발 1000억 G',at);
-     const result={at,forgiven:String(debt),previousWallet:String(prior),newWallet:String(GRANT)};
+     ledger.run(id,exactWallet.mirror(GRANT-prior),mirror,String(GRANT-prior),String(GRANT),'jbank_rehabilitation','즉시 개인회생 · 모든 대출 및 자산 초기화 · 재출발 1000억 G',at);
+     const result={at,forgiven:String(debt),rankDebtForgiven:String(rankDebt),creditDebtForgiven:String(creditDebt),previousWallet:String(prior),newWallet:String(GRANT)};
      writeJson(receipt,result);
      db.exec('COMMIT');return result;
    }catch(e){try{db.exec('ROLLBACK')}catch{}throw e}
