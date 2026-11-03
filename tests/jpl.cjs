@@ -3,7 +3,8 @@ const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const {DatabaseSync}=require('node:sqlite');
 const exactWallet=require('../exact-wallet');
-const {createJPL,CLUBS,createSchedule,createSeason,probabilities,oddsFor,DAY,MATCH_MS}=require('../jpl-core');
+const {createJPL,CLUBS,RESERVES,createSchedule,createSeason,probabilities,oddsFor,handicapOddsFor,handicapLine,handicapResult,DAY,MATCH_MS}=require('../jpl-core');
+const {readPool,BASE}=require('../slot-jackpot-pool');
 const dbNative=new DatabaseSync(':memory:');
 dbNative.exec('CREATE TABLE users(id INTEGER PRIMARY KEY,balance INTEGER,balance_exact TEXT,balance_base TEXT,is_disabled INTEGER DEFAULT 0);CREATE TABLE game_state(key TEXT PRIMARY KEY,value TEXT,updated_at INTEGER);CREATE TABLE ledger(id INTEGER PRIMARY KEY AUTOINCREMENT,user_id INTEGER,amount INTEGER,balance_after INTEGER,amount_exact TEXT,balance_after_exact TEXT,type TEXT,memo TEXT,created_at INTEGER)');
 const db={exec:q=>dbNative.exec(q),prepare:q=>{const stmt=dbNative.prepare(q);stmt.setReadBigInts(true);return stmt}};
@@ -12,6 +13,17 @@ const add=(id,amount)=>db.prepare('INSERT INTO users(id,balance,balance_exact,ba
 add(1,1000000000000000n);add(2,1000000000000000n);add(3,1000000000000000n);
 const names=['준자','햅피','아라','돼지','참치','해현','유비','차차','우니','도도','비샤','샤샤','동동','뽀뽀','나다','고기','행주','수건','민트','훈트','체리','하리'];
 assert.equal(CLUBS.length,22);
+assert.equal(RESERVES.length,2,'two second-division promotion clubs');
+assert.deepEqual(RESERVES.map(c=>c.short),['두팔','사람']);
+assert.equal(handicapResult({home:3,away:1},-1),'H','3:1 minus1 is home handicap win');
+assert.equal(handicapResult({home:2,away:1},-1),'D','2:1 minus1 is handicap draw');
+assert.equal(handicapResult({home:1,away:1},-1),'A','1:1 minus1 is away handicap win');
+assert.equal(handicapResult({home:1,away:1},1),'H','home plus1 handicap wins');
+assert.ok(handicapLine('junja','sugeon')<=-1,'strong favorite gives goal handicap');
+assert.ok(handicapLine('sugeon','junja')>=1,'weak home side receives goal handicap');
+for(const value of Object.values(handicapOddsFor('junja','sugeon',-1)))assert.ok(value>=108&&value<=7000);
+assert.equal((fs.readFileSync('public/football/club-icons.js','utf8').match(/:[']?<path/g)||[]).length>=20,true,'club insignia shapes are available');
+
 assert.deepEqual(CLUBS.map(c=>c.short),names);
 assert.equal(new Set(CLUBS.map(c=>c.id)).size,22);
 const at=Date.parse('2026-11-05T00:00:00+09:00');
@@ -124,4 +136,58 @@ const next=jpl.status(1);
 assert.equal(next.season.number,2,'season rolls only after the full 462-match season');
 assert.equal(next.season.finished,0);
 assert.ok(db.prepare("SELECT value FROM game_state WHERE key='jpl:v1:archive:S1'").get(),'old champions and results archived');
-console.log('JPL_OK: 22 clubs, 42 rounds, 462 home-away fixtures, 5/day, 120s broadcast, pre-kickoff odds lock, exact BigInt single/parlay betting, 1x settlement and season rollover');
+
+// Verify the actual 21st/22nd league places are relegated and the named reserves promoted.
+const archive=JSON.parse(db.prepare("SELECT value FROM game_state WHERE key='jpl:v1:archive:S1'").get().value);
+assert.deepEqual(archive.promoted,['dupal','saram'],'two named reserve teams promoted after first season');
+assert.deepEqual(archive.relegated,archive.table.slice(-2).map(t=>t.id));
+assert.equal(next.table.length,22);
+assert.ok(next.table.some(t=>t.id==='dupal'));
+assert.ok(next.table.some(t=>t.id==='saram'));
+assert.ok(!next.table.some(t=>archive.relegated.includes(t.id)));
+// Direct league test of a locked 3-way handicap. Server selects its own frozen line
+// and fixes payouts at purchase time, not at settlement or by browser-side calculation.
+const newFixture=next.upcoming[0],hdp=newFixture.handicap;
+assert.ok(hdp&&Number.isInteger(hdp.line));
+const hdpTicket=jpl.bet(1,[{matchId:newFixture.id,market:'HDP',pick:'H'}],'1000000','jpl_handicap_leg_test_1');
+assert.equal(hdpTicket.ticket.legs[0].market,'HDP');
+assert.equal(hdpTicket.ticket.legs[0].line,hdp.line);
+assert.equal(hdpTicket.ticket.legs[0].odds100,hdp.odds.H);
+assert.throws(()=>jpl.bet(1,[{matchId:newFixture.id,market:'NORMAL',pick:'H'},
+ {matchId:newFixture.id,market:'HDP',pick:'A'}],'1000000','jpl_duplicate_market_12'),/동일한 경기/);
+// Settlement of synthetic winning tickets exercises exact threshold math and
+// existing shared slot-jackpot pool on both threshold conditions independently.
+const jackpotBefore=readPool(db);
+const seasonRow=JSON.parse(db.prepare("SELECT value FROM game_state WHERE key='jpl:v1:current'").get().value);
+const ff=seasonRow.fixtures[0];
+ff.score={home:5,away:0};
+ff.events=[{minute:9,kind:'GOAL',side:'H',text:'GOAL!'}];
+ff.finishedAt=ff.kickoff+MATCH_MS;
+db.prepare("UPDATE game_state SET value=? WHERE key='jpl:v1:current'").run(JSON.stringify(seasonRow));
+const putTicket=(uid,suffix,odds100,gross,pick='H')=>{
+ const t={id:suffix,seasonId:seasonRow.id,userId:uid,status:'OPEN',placedAt:clock,
+  legs:[{matchId:ff.id,pick,odds100,market:'NORMAL'}],stake:'1000000',
+  potential:gross,paid:'0',totalOdds:(odds100/100).toFixed(2)};
+ db.prepare('INSERT INTO game_state(key,value,updated_at) VALUES(?,?,?)').run(
+  'jpl:v1:ticket:'+seasonRow.id+':'+uid+':'+suffix,JSON.stringify(t),clock);
+ return t;
+};
+putTicket(1,'tax_100x',10000,'100000000'); // exactly 100x => 20% levy
+putTicket(2,'tax_1gyeong',200,'20000000000000000'); // over 1경 => 20% levy, despite 2x
+putTicket(3,'tax_no_pay',10000,'100000000','D'); // missed bet, no levy
+const jackpotTarget=100000000n/5n+20000000000000000n/5n;
+clock=ff.finishedAt+1;
+jpl.tick();
+assert.equal(readPool(db),jackpotBefore+jackpotTarget,'20% of gross winning amounts deposited into existing slot jackpot');
+const readTicket=(uid,suffix)=>JSON.parse(db.prepare('SELECT value FROM game_state WHERE key=?')
+ .get('jpl:v1:ticket:'+seasonRow.id+':'+uid+':'+suffix).value);
+assert.equal(readTicket(1,'tax_100x').tax,'20000000');
+assert.equal(readTicket(1,'tax_100x').paid,'80000000');
+assert.equal(readTicket(2,'tax_1gyeong').tax,'4000000000000000');
+assert.equal(readTicket(2,'tax_1gyeong').paid,'16000000000000000');
+assert.equal(readTicket(3,'tax_no_pay').paid,'0');
+const afterTaxJackpot=readPool(db);
+jpl.tick();
+assert.equal(readPool(db),afterTaxJackpot,'no double jackpot levy after repeat tick');
+
+console.log('JPL_OK: 22 clubs, 42 rounds, 462 home-away fixtures, 5/day, 120s broadcast, pre-kickoff odds lock, exact BigInt single/parlay betting, 1x settlement and two relegated + promoted clubs, 3-way handicap & shared 20% jackpot levy');
