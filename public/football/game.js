@@ -1,7 +1,7 @@
 (()=>{'use strict';
 const $=s=>document.querySelector(s);
 const $$=s=>[...document.querySelectorAll(s)];
-const HOUR=3600000,KST=9*HOUR,MATCH_MS=120000,MAX_RETURN=1000000000000000000n,TAX_LIMIT=10000000000000000n;
+const HOUR=3600000,KST=9*HOUR,MATCH_MS=60000,MAX_RETURN=1000000000000000000n,TAX_LIMIT=10000000000000000n;
 const names={H:'홈 승',D:'무승부',A:'원정 승'},numbers={H:'1',D:'X',A:'2'};
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 let status=null,clubs=new Map(),selection=new Map(),fixtureTab='today',watchId=null,allSchedule=null,serverOffset=0,loading=false,betting=false,demo=null;
@@ -61,9 +61,9 @@ function fixtureHTML(f){
  const handicap=f.handicap||{line:-1,odds:f.odds};
  const score=f.score?String(f.score.home)+' : '+String(f.score.away):'VS';
  return '<article class="fixture-item"><div class="fixture-main"><div class="fixture-time"><b>'+esc(time(f.kickoff))+'</b><small>'+esc(shortDate(f.kickoff))+'</small></div>'+
-  '<div class="fixture-match"><div class="fixture-team">'+badge(h)+'<span>'+esc(h.short)+'</span></div>'+
+  '<div class="fixture-match"><div class="fixture-team">'+badge(h)+'<span class="fixture-team-label"><b>'+esc(h.short)+'</b><small>'+esc(h.name)+'</small></span></div>'+
   '<div class="fixture-vs '+(f.score?'fixture-outcome':'')+'">'+esc(score)+'</div>'+
-  '<div class="fixture-team away">'+badge(a)+'<span>'+esc(a.short)+'</span></div></div>'+
+  '<div class="fixture-team away">'+badge(a)+'<span class="fixture-team-label"><b>'+esc(a.short)+'</b><small>'+esc(a.name)+'</small></span></div></div>'+
   '<div class="fixture-right"><button class="watch-btn '+(isLive?'live':'')+'" type="button" data-watch="'+esc(f.id)+'">'+
   (isLive?'● LIVE':f.status==='FINAL'?'다시보기':selected?'선택됨':'관전하기')+'</button></div></div>'+
   (f.status==='SCHEDULED'?'<div class="market-rows"><div class="market-row"><span class="market-label">일반 승무패</span><div class="odds-row" aria-label="일반 승무패 배당">'+oddButtons('NORMAL',f.odds)+'</div></div>'+
@@ -195,10 +195,10 @@ function displayMatch(){
   const elapsed=Math.min(MATCH_MS,now()-demo.startedAt);
   const minute=Math.min(90,Math.max(0,Math.floor(elapsed/MATCH_MS*90)));
   const events=demo.events.filter(e=>e.minute<=minute);
-  return {id:'DEMO',home:'junja',away:'happy',round:0,kickoff:demo.startedAt,
-   status:elapsed>=MATCH_MS?'FINAL':'LIVE',minute,events,seed:5121,score:{
+  return {id:'DEMO-'+demo.source.id,home:demo.source.home,away:demo.source.away,round:demo.source.round,kickoff:demo.startedAt,venue:demo.source.venue,
+   status:elapsed>=MATCH_MS?'FINAL':'LIVE',minute,events,seed:demo.seed,score:{
     home:events.filter(e=>e.kind==='GOAL'&&e.side==='H').length,
-    away:events.filter(e=>e.kind==='GOAL'&&e.side==='A').length},odds:{H:235,D:320,A:270},demo:true};
+    away:events.filter(e=>e.kind==='GOAL'&&e.side==='A').length},odds:demo.source.odds||{H:235,D:320,A:270},demo:true};
  }
  return chooseBroadcast();
 }
@@ -208,8 +208,8 @@ function renderBroadcast(){
  $('#crestHome').outerHTML=badge(h,'','crestHome');
  $('#crestAway').outerHTML=badge(a,'','crestAway');
  $('#teamHome').textContent=h.name;$('#teamAway').textContent=a.name;
- $('#broadcastRound').textContent=f.demo?'EXHIBITION · 연출 데모':'JPL ROUND '+f.round;
- $('#broadcastVenue').textContent=h.stadium;
+ $('#broadcastRound').textContent=f.demo?'EXHIBITION · '+h.short+' vs '+a.short+' · 연출 데모':'JPL ROUND '+f.round;
+ $('#broadcastVenue').textContent=f.venue||h.stadium;
  $('#broadcastTime').textContent=shortDate(f.kickoff)+' · '+time(f.kickoff)+' KST';
  const onair=$('#onair');onair.className='onair'+(live?' live':finished?' final':'');
  onair.lastElementChild.textContent=f.demo?'DEMO · NO BET':live?'● LIVE':finished?'FULL TIME':'PRE-MATCH';
@@ -219,18 +219,18 @@ function renderBroadcast(){
  $('#pitchMinute').textContent=finished?'FT':f.minute?f.minute+'′':'00′';
  const latest=[...(f.events||[])].reverse().find(x=>x.minute<=f.minute);
  $('#commentary').textContent=f.demo?'[연출 데모] '+(latest?latest.minute+'분 · '+(latest.kind==='GOAL'?'GOAL! ':'')+latest.text:'실제 베팅 결과와 관계없는 예시 경기입니다.'):
-  !live&&!finished?'경기는 '+shortDate(f.kickoff)+' '+time(f.kickoff)+'에 시작해. 킥오프부터 120초간 실시간 중계돼.':
+  !live&&!finished?'경기는 '+shortDate(f.kickoff)+' '+time(f.kickoff)+'에 시작해. 킥오프부터 60초간 실시간 중계돼.':
   latest?(latest.minute+'분 · '+team(latest.side==='H'?f.home:f.away).short+' · '+latest.text):
   finished?'풀타임! 경기 결과와 예측 적중금을 확인해 봐.':'선수들이 피치 위에서 공격을 전개하고 있어!';
  $('#progressFill').style.width=finished?'100%':live?f.minute/90*100+'%':'0%';
- $('#demoButton').textContent=demo?'데모 종료 ×':'2분 중계 미리보기 ↗';
+ $('#demoButton').textContent=demo?'데모 종료 ×':'1분 중계 미리보기 ↗';
 }
 function canvasDraw(timestamp){
  requestAnimationFrame(canvasDraw);
  if(!ctx||document.hidden||timestamp-lastDraw<33)return;lastDraw=timestamp;
  const w=canvas.width,h=canvas.height,match=displayMatch();
- const tick=match?(match.status==='LIVE'?Math.max(0,(now()-match.kickoff)/1000):match.status==='FINAL'?120:0):0;
- const tm=match?.status==='LIVE'?tick:timestamp/1100;
+ const tick=match?(match.status==='LIVE'?Math.max(0,(now()-match.kickoff)/1000):match.status==='FINAL'?MATCH_MS/1000:0):0;
+ const tm=match?.status==='LIVE'?tick*1.9:timestamp/740;
  const seed=Number(match?.seed||25),home=team(match?.home||'junja'),away=team(match?.away||'happy');
  // Stadium ambience, floodlights, and pixelated crowd tiers.
  ctx.fillStyle='#0b1824';ctx.fillRect(0,0,w,h);
@@ -274,7 +274,7 @@ function canvasDraw(timestamp){
  const ballX=.5+.35*Math.sin(tm*.36+seed*.003),ballY=.5+.32*Math.sin(tm*.72+seed*.001);
  const ball={x:ballX,y:ballY};
  if(match?.status==='LIVE'&&match.events){
-  const goal=[...match.events].filter(e=>e.kind==='GOAL').find(e=>Math.abs((e.minute/90*120)-tick)<2.7);
+  const goal=[...match.events].filter(e=>e.kind==='GOAL').find(e=>Math.abs((e.minute/90*(MATCH_MS/1000))-tick)<2.7);
   if(goal){ball.x=goal.side==='H'?.95:.05;ball.y=.5+.065*Math.sin(tm*2)}
  }
  const px=x=>lx+x*lw,py=y=>ly+y*lh;
@@ -345,13 +345,19 @@ $('#scheduleDate').addEventListener('change',()=>{if(!allSchedule)loadSchedule()
 $('#demoButton').addEventListener('click',()=>{
  if(demo){demo=null;renderBroadcast();return}
  if(status?.live?.length){toast('진행 중인 실제 경기를 시청해 줘!');return}
- demo={startedAt:now(),events:[
-  {minute:12,kind:'SHOT',side:'A',text:'위협적인 슈팅을 막아냅니다!'},
-  {minute:22,kind:'GOAL',side:'H',text:'준자의 선제골!'},
-  {minute:34,kind:'CORNER',side:'A',text:'코너킥 기회입니다'},
-  {minute:54,kind:'GOAL',side:'A',text:'햅피의 동점골!'},
-  {minute:69,kind:'SAVE',side:'H',text:'골키퍼 슈퍼 세이브!'},
-  {minute:83,kind:'GOAL',side:'H',text:'준자의 극적인 결승골!'}]};
+ const f=chooseBroadcast();
+ if(!f){toast('먼저 경기를 선택해 줘.',true);return}
+ // Exhibition uses the exact selected fixture; its goals are never the actual match outcome.
+ const h=team(f.home),a=team(f.away);
+ demo={startedAt:now(),seed:Math.abs([...String(f.id)].reduce((n,ch)=>(n*31+ch.charCodeAt(0))|0,1189)),
+  source:{id:f.id,home:f.home,away:f.away,round:f.round,venue:h.stadium,odds:f.odds},
+  events:[
+   {minute:11,kind:'SHOT',side:'A',text:a.short+'의 강력한 슈팅!'},
+   {minute:21,kind:'GOAL',side:'H',text:h.short+' 선제골!'},
+   {minute:33,kind:'CORNER',side:'A',text:a.short+' 코너킥 찬스'},
+   {minute:52,kind:'GOAL',side:'A',text:a.short+' 동점골!'},
+   {minute:68,kind:'SAVE',side:'H',text:h.short+' 골키퍼 슈퍼 세이브!'},
+   {minute:83,kind:'GOAL',side:'H',text:h.short+' 역전 결승골!'}]};
  renderBroadcast();
 });
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)refresh(true)});
