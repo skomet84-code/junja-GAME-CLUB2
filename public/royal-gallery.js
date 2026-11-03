@@ -25,7 +25,7 @@
  const credit=item=>!realPhoto(item)?'':
   '<div class="jrg-photo-credit">실차 참고 사진 · <a href="'+esc(media.sourceUrl(item))+'" target="_blank" rel="noopener noreferrer">'+esc(item.photoBy||'Wikimedia Commons')+'</a> · <a href="'+esc(media.licenseUrl(item))+'" target="_blank" rel="noopener noreferrer">'+esc(item.photoLicense||'라이선스')+'</a><p>게임 내 한정판은 가상 모델이며 사진 속 실제 차량과 사양이 다를 수 있습니다.</p></div>';
  const categoryName={
-  car:'슈퍼카 · 하이퍼카',watch:'하이엔드 워치',yacht:'프라이빗 요트',jet:'황실 전용기',
+  car:'슈퍼카 · 하이퍼카',watch:'하이엔드 워치',jewel:'하이주얼리 · 보석',yacht:'프라이빗 요트',jet:'황실 전용기',
   art:'로얄 예술품',estate:'럭셔리 에스테이트',vault:'프라이빗 금고',
   title:'황실 칭호',frame:'전설의 장식',costume:'왕실 의상',pet:'신화 수호수'
  };
@@ -54,7 +54,7 @@
  }
 
  const roomFor=item=>({
-  car:'motors',yacht:'fleet',jet:'fleet',watch:'jewels',frame:'jewels',
+  car:'motors',yacht:'fleet',jet:'fleet',watch:'jewels',jewel:'jewels',frame:'jewels',
   art:'relics',estate:'relics',vault:'relics',title:'heritage',costume:'heritage',pet:'heritage'
  })[item?.category]||'heritage';
  const grade=item=>({
