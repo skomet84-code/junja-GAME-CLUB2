@@ -15,11 +15,15 @@ const money=x=>{
 let current=null,teams=new Map(),dlg=null;
 const id=t=>t.receiptNumber||'JPL-'+t.seasonId+'-'+String(t.id).slice(-10).toUpperCase();
 const name=clubId=>teams.get(clubId)?.short||clubId;
-const lines=t=>t.legs.map((p,i)=>({
- seq:i+1,
- home:name(p.home),away:name(p.away),handicap:p.market==='HDP'?'H '+(p.line>0?'+':'')+p.line:'일반',
- choice:pickName[p.pick]||p.pick,odds:(p.odds100/100).toFixed(2),kickoff:dateTime(p.kickoff)
-}));
+const lines=t=>t.legs.map((p,i)=>{
+ const local=new Date(Number(p.kickoff)+9*3600000).toISOString();
+ return {
+  seq:i+1,
+  home:name(p.home),away:name(p.away),handicap:p.market==='HDP'?'H '+(p.line>0?'+':'')+p.line:'일반',
+  choice:pickName[p.pick]||p.pick,odds:(p.odds100/100).toFixed(2),kickoff:dateTime(p.kickoff),
+  kickoffDate:local.slice(5,7)+'/'+local.slice(8,10),kickoffTime:local.slice(11,16)
+ };
+});
 const net=t=>t.status==='WIN'?t.paid:t.status==='LOSE'||t.status==='FORFEITED'?'0':t.expectedNet??t.potential;
 const tax=t=>t.status==='WIN'?t.tax||'0':t.status==='LOSE'||t.status==='FORFEITED'?'0':t.expectedTax||'0';
 function init(){
@@ -45,13 +49,13 @@ function open(ticket,clubList=[]){
  teams=new Map(clubList.map(x=>[x.id,x]));
  const items=lines(ticket);
  const rows=items.map(l=>
-  '<tr><td><b>'+String(l.seq).padStart(2,'0')+'</b><small>'+esc(l.kickoff)+'</small></td><td><strong>'+esc(l.home)+'</strong><span>vs</span><strong>'+esc(l.away)+'</strong><small>'+esc(l.handicap)+'</small></td><td><b>'+esc(l.choice)+'</b></td><td>'+l.odds+'</td></tr>'
+  '<tr><td class="jpl-fixture-cell"><b>'+String(l.seq).padStart(2,'0')+'</b><small><em>'+esc(l.kickoffDate)+'</em><em>'+esc(l.kickoffTime)+'</em></small></td><td class="jpl-home-cell"><strong>'+esc(l.home)+'</strong></td><td class="jpl-away-cell"><strong>'+esc(l.away)+'</strong></td><td class="jpl-pick-cell"><b>'+esc(l.choice)+'</b><small>'+esc(l.handicap)+'</small></td><td class="jpl-odds-cell">'+l.odds+'</td></tr>'
  ).join('');
  document.getElementById('jplReceiptContent').innerHTML=
   '<article class="jpl-printed-ticket"><div class="jpl-printed-top"><div class="jpl-printed-logo">♛</div><div><h2>JPL MATCH PREDICTION</h2><p>OFFICIAL IN-GAME PURCHASE RECORD</p></div></div>'+
   '<div class="jpl-printed-stamp"><span>승무패 · '+ticket.legs.length+'경기 조합</span><strong>'+esc(outcomeText[ticket.status]||ticket.status)+'</strong></div>'+
   '<div class="jpl-printed-meta"><span>발권번호 <b>'+esc(id(ticket))+'</b></span><span>구매일시 <b>'+esc(dateTime(ticket.placedAt))+'</b></span></div>'+
-  '<table class="jpl-printed-lines"><thead><tr><th>경기</th><th>HOME / AWAY</th><th>선택</th><th>배당</th></tr></thead><tbody>'+rows+'</tbody></table>'+
+  '<table class="jpl-printed-lines"><thead><tr><th>경기</th><th>HOME</th><th>AWAY</th><th>선택</th><th>배당</th></tr></thead><tbody>'+rows+'</tbody></table>'+
   '<div class="jpl-printed-math"><div><span>선택경기 수</span><b>'+ticket.legs.length+'경기</b></div><div><span>총 적중 배당률</span><b>'+esc(ticket.totalOdds)+' 배</b></div><div><span>구매 게임머니</span><b>'+money(ticket.stake)+'</b></div><div><span>적중 시 총지급</span><b>'+money(ticket.potential)+'</b></div>'+
   (BigInt(tax(ticket))>0n?'<div><span>'+(ticket.status==='OPEN'?'예상 ':'')+'슬롯 잭팟 적립 (20%)</span><b>−'+money(tax(ticket))+'</b></div>':'')+
   '<div class="jpl-printed-total"><span>'+(ticket.status==='WIN'?'실제 지급':'적중 시 예상 실수령')+'</span><strong>'+money(net(ticket))+'</strong></div></div>'+
@@ -75,7 +79,7 @@ async function copy(){
 }
 function drawImage(){
  const t=current;if(!t)throw Error('구매표를 찾을 수 없어.');
- const rows=lines(t),W=930,scale=2,extra=BigInt(tax(t))>0n?1:0,H=770+rows.length*96+extra*53;
+ const rows=lines(t),W=930,scale=2,extra=BigInt(tax(t))>0n?1:0,H=745+rows.length*76+extra*53;
  const canvas=document.createElement('canvas');canvas.width=W*scale;canvas.height=H*scale;
  const c=canvas.getContext('2d');c.scale(scale,scale);
  c.fillStyle='#101827';c.fillRect(0,0,W,H);
@@ -94,16 +98,18 @@ function drawImage(){
  write('구매 '+dateTime(t.placedAt),73,278,21,false,'#56647b');
  write('발권 '+id(t),W-73,278,19,true,'#37425a','right');
  c.strokeStyle='#bbc3cc';c.setLineDash([10,7]);c.beginPath();c.moveTo(72,310);c.lineTo(W-72,310);c.stroke();c.setLineDash([]);
- write('순번',82,345,18,true);write('경기 / 핸디캡',173,345,18,true);write('선택',700,345,18,true);write('배당',W-82,345,18,true,'#152034','right');
+ write('경기',82,345,18,true);write('HOME',207,345,18,true);write('AWAY',442,345,18,true);write('선택',704,345,18,true);write('배당',W-82,345,18,true,'#152034','right');
  let y=382;
  rows.forEach(l=>{
-  c.fillStyle=l.seq%2?'#fffefa':'#f0f2f5';c.fillRect(65,y-25,W-130,83);
-  write(String(l.seq).padStart(2,'0'),82,y+13,21,true);
-  write(l.home+' vs '+l.away,173,y+8,25,true);
-  write(l.handicap+' · '+l.kickoff,173,y+35,17,false,'#647086');
-  write(l.choice,704,y+17,27,true,'#155a9d');
-  write(l.odds,W-82,y+17,25,true,'#152034','right');
-  y+=96;
+  c.fillStyle=l.seq%2?'#fffefa':'#f0f2f5';c.fillRect(65,y-25,W-130,66);
+  write(String(l.seq).padStart(2,'0'),82,y+7,21,true);
+  write(l.kickoffDate+' '+l.kickoffTime,82,y+28,14,false,'#647086');
+  write(l.home,207,y+11,23,true);
+  write(l.away,442,y+11,23,true);
+  write(l.choice,704,y+8,26,true,'#155a9d');
+  write(l.handicap,704,y+31,14,false,'#946b33');
+  write(l.odds,W-82,y+14,24,true,'#152034','right');
+  y+=76;
  });
  c.strokeStyle='#bbc3cc';c.setLineDash([10,7]);c.beginPath();c.moveTo(72,y-4);c.lineTo(W-72,y-4);c.stroke();c.setLineDash([]);
  let ty=y+42;
