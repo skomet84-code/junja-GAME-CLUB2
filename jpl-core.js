@@ -8,6 +8,12 @@ const MIN_STAKE=1000n,MAX_STAKE=1000000000000n,MAX_RETURN=1000000000000000000n;
 const TAX_THRESHOLD=10000000000000000n,TAX_RATE=20n; // 1경 G; 100x win or over 1경 gross.
 const KEY='jpl:v1:current',TICKET_PREFIX='jpl:v1:ticket:',ARCHIVE='jpl:v1:archive:';
 const HOURS=[12,15,18,21,23];
+const CLUB_SYMBOLS=Object.freeze({
+ junja:'♛',happy:'✦',ara:'🦅',pig:'🐗',tuna:'⚓',haehyun:'🌙',ubi:'⚔',
+ chacha:'🐓',wooni:'🐿',dodo:'🔱',bisha:'🦁',shasha:'🏹',dongdong:'🐺',
+ bbobbo:'♥',nada:'🪽',gogi:'🐂',haengju:'⚜',sugeon:'⚡',mint:'🌲',
+ hunt:'🦌',cherry:'🍒',hari:'◆',dupal:'🛡',saram:'🌟'
+});
 const ALL_CLUBS=Object.freeze([
  ['junja','레알 준자 CF','준자','JUN',95,92,'#e4c275','#f5f4eb','J','로얄 베르나베우'],
  ['happy','FC 햅피','햅피','HAP',94,90,'#9a2548','#2750ae','H','햅피 캄프 누'],
@@ -33,7 +39,7 @@ const ALL_CLUBS=Object.freeze([
  ['hari','하리 크리스털 FC','하리','HAR',75,81,'#345cbb','#a94456','H','하리 팰리스'],
  ['dupal','두팔 올림피크 FC','두팔','DUP',81,79,'#e79652','#163f62','D','두팔 올림피크 스타디움'],
  ['saram','사람 피닉스 유나이티드','사람','SAR',79,80,'#9c7ee8','#e6a768','S','사람 피닉스 아레나']
-].map(([id,name,short,code,attack,defense,primary,secondary,emblem,stadium])=>Object.freeze({id,name,short,code,attack,defense,primary,secondary,emblem,stadium})));
+].map(([id,name,short,code,attack,defense,primary,secondary,emblem,stadium])=>Object.freeze({id,name,short,code,attack,defense,primary,secondary,emblem,stadium,symbol:CLUB_SYMBOLS[id]})));
 const CLUBS=Object.freeze(ALL_CLUBS.slice(0,22));
 const RESERVES=Object.freeze(ALL_CLUBS.slice(22));
 const CLUB_MAP=new Map(ALL_CLUBS.map(c=>[c.id,c]));
@@ -263,7 +269,9 @@ function createJPL({db,exactWallet,now=Date.now,random=()=>crypto.randomBytes(4)
    .map(x=>x.ticket).sort((a,b)=>b.placedAt-a.placedAt).slice(0,40);
   return {ok:true,changed,serverNow:t,day:date,season:{id:season.id,number:season.number,
    startAt:season.startAt,endAt:season.endAt,totalGames:season.fixtures.length,finished:season.fixtures.filter(f=>f.finishedAt).length,
-   matchdays:93,relegationCount:2},
+   matchdays:93,relegationCount:2,
+    promotedFromLastSeason:season.number>1?(read(ARCHIVE+'S'+(season.number-1))?.promoted||[]):[],
+    relegatedFromLastSeason:season.number>1?(read(ARCHIVE+'S'+(season.number-1))?.relegated||[]):[]},
    rules:{minStake:String(MIN_STAKE),maxStake:String(MAX_STAKE),maxReturn:String(MAX_RETURN),maxLegs:10,durationMs:MATCH_MS,fixturesPerDay:5,virtual:true,jackpotTaxRatePct:20,jackpotTaxAtOdds:100,jackpotTaxAbove:String(TAX_THRESHOLD)},
    wallet:String(exactWallet.read(u)),clubs:(season.clubs||CLUBS.map(c=>c.id)).map(cid=>CLUB_MAP.get(cid)),reserves:(season.reserves||RESERVES.map(c=>c.id)).map(cid=>CLUB_MAP.get(cid)),table:tableFor(season),
    today:todayMatches.map(f=>fixturePublic(f,t)),
