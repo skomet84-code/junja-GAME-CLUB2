@@ -455,3 +455,47 @@
  #view-gallery .jrg-cinematic-entrance>img,
  #view-gallery .jrg-cinema-information>button{animation:none;transition:none}
 }
+
+
+/* On iPhone the main club HUD previously occupied ~3 stacked rows over the
+ * showroom. In these two museum screens keep a compact accessible brand/shop/
+ * balance bar, while the lobby retains its full HUD unchanged. */
+@media(max-width:700px){
+ .main-app:has(#view-shop.active)>.topbar,
+ .main-app:has(#view-gallery.active)>.topbar{
+   position:sticky;top:0;z-index:50;height:auto;min-height:53px;
+   padding:7px 9px max(7px,env(safe-area-inset-bottom,0px));
+   display:flex;flex-wrap:nowrap;justify-content:space-between;gap:7px;
+ }
+ .main-app:has(#view-shop.active)>.topbar #helpBtn,
+ .main-app:has(#view-shop.active)>.topbar #friendsBtn,
+ .main-app:has(#view-shop.active)>.topbar #jBankBtn,
+ .main-app:has(#view-shop.active)>.topbar #adminBtn,
+ .main-app:has(#view-shop.active)>.topbar #jstockHeaderProfit,
+ .main-app:has(#view-shop.active)>.topbar #profileBtn,
+ .main-app:has(#view-gallery.active)>.topbar #helpBtn,
+ .main-app:has(#view-gallery.active)>.topbar #friendsBtn,
+ .main-app:has(#view-gallery.active)>.topbar #jBankBtn,
+ .main-app:has(#view-gallery.active)>.topbar #adminBtn,
+ .main-app:has(#view-gallery.active)>.topbar #jstockHeaderProfit,
+ .main-app:has(#view-gallery.active)>.topbar #profileBtn{display:none!important}
+ .main-app:has(#view-shop.active)>.topbar .brand-inline,
+ .main-app:has(#view-gallery.active)>.topbar .brand-inline{margin:0;flex:0 0 auto;min-width:35px}
+ .main-app:has(#view-shop.active)>.topbar .brand-inline .mini-mark,
+ .main-app:has(#view-gallery.active)>.topbar .brand-inline .mini-mark{width:36px;height:36px;border-radius:10px}
+ .main-app:has(#view-shop.active)>.topbar #shopBtn,
+ .main-app:has(#view-gallery.active)>.topbar #shopBtn{
+   min-width:0;white-space:nowrap;font-size:11px;padding:10px 9px;border-radius:12px;flex:0 1 auto
+ }
+ .main-app:has(#view-shop.active)>.topbar .wallet-pill,
+ .main-app:has(#view-gallery.active)>.topbar .wallet-pill{
+   min-width:0;max-width:min(61vw,300px);margin-left:auto;padding:6px 9px;border-radius:12px;flex:0 1 auto
+ }
+ .main-app:has(#view-shop.active)>.topbar #walletBalance,
+ .main-app:has(#view-gallery.active)>.topbar #walletBalance{
+   display:block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+   font-size:clamp(10px,3vw,14px);line-height:1.3;
+ }
+ .main-app:has(#view-shop.active)>.topbar .wallet-pill>span,
+ .main-app:has(#view-gallery.active)>.topbar .wallet-pill>span{font-size:8px}
+}
