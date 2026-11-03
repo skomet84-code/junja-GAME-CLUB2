@@ -79,6 +79,22 @@ jobs:
           done
           cat /tmp/junja-v25-mobile.log
           exit 1
+      - name: Start dedicated isolated photo gallery test server
+        env:
+          PORT: '18081'
+          DATA_DIR: ${{ runner.temp }}/junja-royal-photo-mobile-data
+        run: |
+          npm start > /tmp/junja-royal-photo-mobile.log 2>&1 &
+          for i in {1..30}; do
+            if curl -fsS http://127.0.0.1:18081/ >/dev/null 2>&1; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/junja-royal-photo-mobile.log
+          exit 1
+      - name: Verify photoreal luxury shop and private museum on WebKit/Chromium
+        env:
+          BASE_URL: http://127.0.0.1:18081
+        run: node tests/royal-final-browser.mjs
       - name: Run Chromium and WebKit mobile smoke
         env:
           BASE_URL: http://127.0.0.1:18080
@@ -88,8 +104,12 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: junja-land-v25-mobile-evidence
-          path: /tmp/junja-v25-*.png
+          path: |
+            /tmp/junja-v25-*.png
+            /tmp/junja-royal-final-*.png
           if-no-files-found: ignore
       - name: Print mobile server log on failure
         if: failure()
-        run: cat /tmp/junja-v25-mobile.log || true
+        run: |
+          cat /tmp/junja-v25-mobile.log || true
+          cat /tmp/junja-royal-photo-mobile.log || true

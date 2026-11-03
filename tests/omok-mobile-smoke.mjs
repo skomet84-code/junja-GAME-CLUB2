@@ -111,7 +111,24 @@ for(const [browserName,engine] of [['chromium',chromium],['webkit',webkit]]){
   // New CI accounts have no game funds. Exercise the free AI match, not paid-stake confirmation.
   await a.selectOption('#omkAiStake','0');
   await a.click('[data-action="create-ai"]');
-  await a.waitForSelector('.omk-board .omk-point',{timeout:12000});
+  // WebKit touch actionability occasionally returns before the final click
+  // after a full multiplayer rematch + leave. Re-issue the same bound DOM click
+  // only if no solo room was created, so this doesn't create duplicate games.
+  try{
+   await a.waitForSelector('.omk-board .omk-point',{timeout:12000});
+  }catch(originalError){
+   const status=await a.evaluate(async()=>{
+    const res=await fetch('/api/omok');const data=await res.json().catch(()=>({}));
+    return {room:!!data.room,ai:!!data.room?.aiMode,phase:data.room?.phase,
+      message:document.querySelector('.omk-status')?.textContent?.slice(0,180),
+      createVisible:!!document.querySelector('#omkCreateForm')};
+   });
+   console.log('OMOK_AI_WEBKIT_DIAGNOSTICS',browserName,JSON.stringify(status));
+   if(status.room||!status.createVisible)throw originalError;
+   console.log('OMOK_AI_TOUCH_RETRY',browserName);
+   await a.locator('[data-action="create-ai"]').evaluate(button=>button.click());
+   await a.waitForSelector('.omk-board .omk-point',{timeout:15000});
+  }
   const originalAi=await checkBoardGeometry(a,'AI challenge initial');
   await a.click('.omk-point[data-x="7"][data-y="7"]');
   await a.waitForSelector('.omk-board .omk-stone.white',{timeout:20000});

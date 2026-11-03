@@ -23,7 +23,7 @@
  const imageTag=(item,alt='',eager=false)=>'<img src="'+esc(iconFor(item))+'" alt="'+esc(alt)+'" loading="'+(eager?'eager':'lazy')+'" decoding="async" referrerpolicy="no-referrer"'+
    (realPhoto(item)?' data-junja-photo="1" data-photo-fallback="'+esc(media.fallback(item))+'"':'')+'>';
  const credit=item=>!realPhoto(item)?'':
-  '<div class="jrg-photo-credit">실차 참고 사진 · <a href="'+esc(media.sourceUrl(item))+'" target="_blank" rel="noopener noreferrer">'+esc(item.photoBy||'Wikimedia Commons')+'</a> · <a href="'+esc(media.licenseUrl(item))+'" target="_blank" rel="noopener noreferrer">'+esc(item.photoLicense||'라이선스')+'</a><p>게임 내 한정판은 가상 모델이며 사진 속 실제 차량과 사양이 다를 수 있습니다.</p></div>';
+  '<div class="jrg-photo-credit">실차 참고 사진 · <a href="'+esc(media.sourceUrl(item))+'" target="_blank" rel="noopener noreferrer">'+esc(media.creditName(item))+'</a> · <a href="'+esc(media.licenseUrl(item))+'" target="_blank" rel="noopener noreferrer">'+esc(media.licenseName(item))+'</a><p>게임 내 한정판은 가상 모델이며 사진 속 실제 차량과 사양이 다를 수 있습니다.</p></div>';
  const categoryName={
   car:'슈퍼카 · 하이퍼카',watch:'하이엔드 워치',yacht:'프라이빗 요트',jet:'황실 전용기',
   art:'로얄 예술품',estate:'럭셔리 에스테이트',vault:'프라이빗 금고',
@@ -71,13 +71,21 @@
    const selected=items.find(x=>x.id===focusId)||shown[0]||items[0]||null;
    const filtered=filter==='all'?items:items.filter(x=>x.category===filter||(filter.startsWith('brand-')&&x.brand===filter.slice(6)));
    const badges='<span>✦ VERIFIED OWNERSHIP</span><span>♛ PRIVATE COLLECTION</span><span>◆ PERMANENT EXHIBITION</span>';
+   const photoMasterpiece=items.find(x=>x.id===focusId&&realPhoto(x))||shown.find(realPhoto)||items.find(realPhoto)||null;
    const left=shown[1]||null,center=shown[0]||null,right=shown[2]||null;
    const empties=3-shown.length;
    host.innerHTML=
      '<div class="jrg-museum-shell">'+
       '<div class="jrg-entry"><div class="jrg-entry-left"><small>JUNJA LAND · ROYAL PRIVATE MUSEUM</small><h1><span>♛</span> '+(own?'내 전시관':owner+'의 전시관')+'</h1><p>소유한 명품이 전설이 되는 곳. 세상에 단 하나뿐인 나만의 왕실 갤러리.</p></div><div class="jrg-entry-crest" aria-hidden="true"><span>J</span><small>EST. MMXXVI</small></div></div>'+
       '<div class="jrg-owner-ribbon"><div class="jrg-owner-avatar">♛</div><div class="jrg-owner-name"><small>OWNER OF THE PRIVATE COLLECTION</small><strong>'+owner+'</strong><span>'+esc(collector.tierIcon||'◇')+' '+esc(collector.tier||'NEW COLLECTOR')+'</span></div>'+
-       '<div class="jrg-stat-strip"><div><small>보유 작품</small><b>'+items.length+'<em> / '+Number(collector.totalItems||28)+'</em></b></div><div><small>전시 작품</small><b>'+shown.length+'<em> / 3</em></b></div><div><small>누적 컬렉션 가치</small><b class="jrg-spent">'+money(collector.spent)+'</b></div></div></div>'+
+       '<div class="jrg-stat-strip"><div><small>보유 작품</small><b>'+items.length+'<em> / '+Number(collector.totalItems||40)+'</em></b></div><div><small>전시 작품</small><b>'+shown.length+'<em> / 3</em></b></div><div><small>누적 명품 구매액</small><b class="jrg-spent">'+money(collector.spent)+'</b></div></div></div>'+
+      '<section class="jrg-cinematic-entrance '+(photoMasterpiece?'has-owned-photo':'')+'" aria-label="실사형 개인 명품 모터 갤러리">'+
+        (photoMasterpiece?imageTag(photoMasterpiece,photoMasterpiece.name+' 전시 중인 실차 참고 이미지',true):'<span class="jrg-cinema-silhouette" aria-hidden="true">♛</span>')+
+        '<div class="jrg-cinema-light"></div><div class="jrg-cinema-information"><small>MAISON JUNJA · MY PRIVATE COLLECTION</small>'+
+          '<strong>'+(photoMasterpiece?esc(photoMasterpiece.name):'THE PRIVATE MUSEUM')+'</strong>'+
+          '<p>'+(photoMasterpiece?esc(photoMasterpiece.brand?photoMasterpiece.brand.toUpperCase():'EXCLUSIVE COLLECTION')+' · '+money(photoMasterpiece.inscription?.paid||photoMasterpiece.price)+' · 정식 소장 인증':'구매한 명품을 이곳에서 전시하고, 친구에게 자랑해봐.')+'</p>'+
+          (photoMasterpiece?'<button type="button" data-jrg-focus="'+esc(photoMasterpiece.id)+'">◆ 작품 소장 증서 보기</button>':own?'<button type="button" data-go="shop">♛ 명품관에서 첫 작품 만나기</button>':'')+
+        '</div><div class="jrg-cinema-corner">JUNJA<br>EST. 2026</div></section>'+
       '<section class="jrg-hall '+(isPanorama(center)?'jrg-grand-garage':'')+'" aria-label="궁전형 로얄 전시실">'+
        '<div class="jrg-hall-heading"><span>THE GRAND GALLERY · JUNJA ROYAL PALACE</span><span>✦ PRIVATE MOTORS & ART ✦</span></div>'+
        '<div class="jrg-stage">'+stageSlot(left,'left',1)+stageSlot(center,'center',0)+stageSlot(right,'right',2)+
@@ -97,7 +105,7 @@
            '</div>':'<p class="jrg-readonly">방문자는 소장품을 감상할 수 있어. 전시는 소유주만 변경할 수 있어.</p>')+
            credit(selected)+
          '</div></section>')+
-      '<section class="jrg-inventory" id="jrgInventory"><div class="jrg-inventory-header"><div><small>YOUR ACQUISITIONS · COLLECTION VAULT</small><h2>소유 작품 갤러리</h2><p>구매가 확인된 작품만 이곳에 전시돼. 나만의 대표 작품을 골라봐.</p></div><span class="jrg-inventory-count">'+items.length+' / '+Number(collector.totalItems||28)+' COLLECTED</span></div>'+
+      '<section class="jrg-inventory" id="jrgInventory"><div class="jrg-inventory-header"><div><small>YOUR ACQUISITIONS · COLLECTION VAULT</small><h2>소유 작품 갤러리</h2><p>구매가 확인된 작품만 이곳에 전시돼. 나만의 대표 작품을 골라봐.</p></div><span class="jrg-inventory-count">'+items.length+' / '+Number(collector.totalItems||40)+' COLLECTED</span></div>'+
         '<nav class="jrg-filter-nav" aria-label="소장품 유형">'+[
           ['all','ALL'],['brand-rolls-royce','ROLLS-ROYCE'],['brand-bentley','BENTLEY'],['brand-aston-martin','ASTON MARTIN'],['car','🏎 슈퍼카'],['watch','⌚ 명품 시계'],['yacht','🛥 요트'],['jet','✈ 전용기'],['art','♛ 예술품'],['estate','럭셔리 부동산'],['vault','황실 금고'],['costume','왕실 의상'],['frame','왕실 장식'],['title','황실 칭호'],['pet','신화 수호수']
         ].map(([value,label])=>'<button type="button" data-jrg-filter="'+value+'" class="'+(filter===value?'active':'')+'">'+label+'</button>').join('')+'</nav>'+

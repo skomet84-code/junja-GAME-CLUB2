@@ -935,7 +935,7 @@ function json(res,status,data,extra={}){
 function securityHeaders(){return {
   'X-Content-Type-Options':'nosniff','X-Frame-Options':'SAMEORIGIN','Referrer-Policy':'same-origin',
   'Permissions-Policy':'camera=(), microphone=(), geolocation=()',
-  'Content-Security-Policy':"default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'; img-src 'self' data:; connect-src 'self'; manifest-src 'self'"
+  'Content-Security-Policy':"default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'; img-src 'self' data: https://commons.wikimedia.org https://upload.wikimedia.org; connect-src 'self'; manifest-src 'self'"
 };}
 function setSessionCookie(res,token,req){
   const secure=String(req.headers['x-forwarded-proto']||'').includes('https');

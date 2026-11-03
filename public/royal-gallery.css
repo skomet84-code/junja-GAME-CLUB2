@@ -354,3 +354,204 @@
  #view-gallery .jrg-photo-detail .jrg-selected-image>img{height:195px}
  #view-gallery .jrg-photo-detail .jrg-selected-image{min-height:212px}
 }
+
+
+/* JUNJA FINAL PRIVATE MOTOR MUSEUM · true licensed photographed artworks.
+   A true owner-only photographic hero sits above the independently managed three-piece collection. */
+#view-gallery .jrg-cinematic-entrance{
+ position:relative;isolation:isolate;height:clamp(360px,46vw,540px);overflow:hidden;
+ background:radial-gradient(ellipse at 48% 40%,#58356f,#0d0919 73%);
+ border:2px solid #dbb676;border-bottom:0;
+ box-shadow:0 17px 45px #07040fc4,inset 0 0 0 7px #d7b47712;
+}
+#view-gallery .jrg-cinematic-entrance:before{
+ position:absolute;content:"";z-index:3;inset:10px;pointer-events:none;
+ border:1px solid #ecc58374;
+}
+#view-gallery .jrg-cinematic-entrance:after{
+ position:absolute;content:"";z-index:2;inset:0;pointer-events:none;
+ background:linear-gradient(90deg,#0b0818e8 0,#0a0715a3 24%,transparent 60%,#0a061454 100%),
+ linear-gradient(0deg,#0c091bec 0%,transparent 43%),
+ linear-gradient(180deg,#1a102f83 0%,transparent 32%);
+}
+#view-gallery .jrg-cinematic-entrance>img{
+ position:absolute;inset:0;width:100%;height:100%;display:block;
+ object-fit:cover;object-position:center 48%;
+ filter:brightness(.83) saturate(1.12) contrast(1.06);
+ animation:none;
+}
+#view-gallery .jrg-cinema-light{
+ position:absolute;z-index:1;inset:0;pointer-events:none;
+ background:radial-gradient(ellipse at 55% 23%,#d9b4dd30,transparent 60%);
+}
+#view-gallery .jrg-cinema-information{
+ position:absolute;z-index:4;left:clamp(22px,4.3vw,65px);
+ bottom:clamp(27px,5vw,64px);right:24%;max-width:580px;color:#fff0cc;
+ text-shadow:0 3px 12px #080510;
+}
+#view-gallery .jrg-cinema-information>small{
+ display:block;color:#f2d497;font:700 11px Georgia,serif;letter-spacing:.19em;
+ margin-bottom:13px;
+}
+#view-gallery .jrg-cinema-information>strong{
+ display:block;font:800 clamp(30px,4.3vw,57px)/1.15 Georgia,'Noto Serif KR',serif;
+ color:#fff2cd;letter-spacing:-.03em;text-shadow:0 4px 12px #0b0517,0 0 16px #d3a4637d;
+}
+#view-gallery .jrg-cinema-information>p{font-size:14px;line-height:1.6;color:#e8d8eb;margin:12px 0 19px}
+#view-gallery .jrg-cinema-information>button{
+ background:linear-gradient(122deg,#fff3c7,#c69550);
+ color:#2a1928;font-size:13px;font-weight:850;padding:13px 23px;
+ border:1px solid #ffecb5;border-radius:9px;
+ box-shadow:0 6px 20px #130a1ed0;cursor:pointer;text-shadow:none;
+}
+#view-gallery .jrg-cinema-information>button:hover{filter:brightness(1.08)}
+#view-gallery .jrg-cinema-information>button:focus-visible{outline:3px solid #fff6e0;outline-offset:3px}
+#view-gallery .jrg-cinema-corner{
+ position:absolute;z-index:4;right:28px;top:23px;
+ text-align:right;color:#f5d7a0;font:700 16px/1.2 Georgia,serif;letter-spacing:.2em;
+ text-shadow:0 2px 10px #080410;
+}
+#view-gallery .jrg-cinema-silhouette{
+ position:absolute;inset:0;display:grid;place-items:center;
+ font-size:clamp(100px,20vw,280px);font-family:Georgia,serif;
+ color:#d9b47977;text-shadow:0 0 55px #d6a86d94;opacity:.8;
+}
+#view-gallery .jrg-cinematic-entrance:not(.has-owned-photo){background:
+ radial-gradient(circle at 70% 50%,#95709e90,transparent 42%),
+ url('/art/royal/garage-hall.svg') center/cover no-repeat;}
+#view-gallery .jrg-cinematic-entrance:not(.has-owned-photo)>img{display:none}
+#view-gallery .jrg-cinematic-entrance+.jrg-hall{margin-top:0;border-top:3px solid #b8915c;border-radius:0 0 21px 21px}
+#view-gallery .jrg-cinematic-entrance+.jrg-hall .jrg-stage{aspect-ratio:1400/750;min-height:340px}
+#view-gallery .jrg-entry{border-radius:20px 20px 0 0;margin-bottom:0}
+#view-gallery .jrg-owner-ribbon{border-bottom:0}
+#view-gallery .jrg-relic-promises{margin-top:12px}
+@media(max-width:800px){
+ #view-gallery .jrg-cinematic-entrance{height:350px}
+ #view-gallery .jrg-cinematic-entrance>img{object-position:center 56%}
+ #view-gallery .jrg-cinema-information{right:18px;bottom:30px;left:25px;max-width:95%}
+ #view-gallery .jrg-cinema-information>strong{font-size:clamp(29px,5.1vw,42px)}
+ #view-gallery .jrg-cinema-information>small{font-size:9px;letter-spacing:.13em}
+ #view-gallery .jrg-cinema-information>p{font-size:12px}
+ #view-gallery .jrg-cinema-corner{font-size:11px;right:22px}
+}
+@media(max-width:700px){
+ #view-gallery .jrg-cinematic-entrance{height:294px}
+ #view-gallery .jrg-cinematic-entrance:before{inset:6px}
+ #view-gallery .jrg-cinema-information{bottom:19px;left:15px;right:12px}
+ #view-gallery .jrg-cinema-information>small{font-size:8px;margin-bottom:7px}
+ #view-gallery .jrg-cinema-information>strong{font-size:clamp(24px,6.5vw,34px)}
+ #view-gallery .jrg-cinema-information>p{font-size:11px;line-height:1.4;margin:8px 0 11px}
+ #view-gallery .jrg-cinema-information>button{font-size:11px;padding:10px 13px}
+ #view-gallery .jrg-cinema-corner{font-size:8px;top:14px;right:14px}
+ #view-gallery .jrg-cinematic-entrance+.jrg-hall .jrg-stage{height:344px;min-height:0;aspect-ratio:auto}
+}
+@media(max-width:390px){
+ #view-gallery .jrg-cinematic-entrance{height:252px}
+ #view-gallery .jrg-cinema-information>strong{font-size:24px}
+ #view-gallery .jrg-cinematic-entrance+.jrg-hall .jrg-stage{height:316px}
+ #view-gallery .jrg-cinema-information>p{max-width:270px}
+}
+@media(prefers-reduced-motion:reduce){
+ #view-gallery .jrg-cinematic-entrance>img,
+ #view-gallery .jrg-cinema-information>button{animation:none;transition:none}
+}
+
+
+/* On iPhone the main club HUD previously occupied ~3 stacked rows over the
+ * showroom. In these two museum screens keep a compact accessible brand/shop/
+ * balance bar, while the lobby retains its full HUD unchanged. */
+@media(max-width:700px){
+ .main-app:has(#view-shop.active)>.topbar,
+ .main-app:has(#view-gallery.active)>.topbar{
+   position:sticky;top:0;z-index:50;height:auto;min-height:53px;
+   padding:7px 9px max(7px,env(safe-area-inset-bottom,0px));
+   display:flex;flex-wrap:nowrap;justify-content:space-between;gap:7px;
+ }
+ .main-app:has(#view-shop.active)>.topbar #helpBtn,
+ .main-app:has(#view-shop.active)>.topbar #friendsBtn,
+ .main-app:has(#view-shop.active)>.topbar #jBankBtn,
+ .main-app:has(#view-shop.active)>.topbar #adminBtn,
+ .main-app:has(#view-shop.active)>.topbar #jstockHeaderProfit,
+ .main-app:has(#view-shop.active)>.topbar #profileBtn,
+ .main-app:has(#view-gallery.active)>.topbar #helpBtn,
+ .main-app:has(#view-gallery.active)>.topbar #friendsBtn,
+ .main-app:has(#view-gallery.active)>.topbar #jBankBtn,
+ .main-app:has(#view-gallery.active)>.topbar #adminBtn,
+ .main-app:has(#view-gallery.active)>.topbar #jstockHeaderProfit,
+ .main-app:has(#view-gallery.active)>.topbar #profileBtn{display:none!important}
+ .main-app:has(#view-shop.active)>.topbar .brand-inline,
+ .main-app:has(#view-gallery.active)>.topbar .brand-inline{margin:0;flex:0 0 auto;min-width:35px}
+ .main-app:has(#view-shop.active)>.topbar .brand-inline .mini-mark,
+ .main-app:has(#view-gallery.active)>.topbar .brand-inline .mini-mark{width:36px;height:36px;border-radius:10px}
+ .main-app:has(#view-shop.active)>.topbar #shopBtn,
+ .main-app:has(#view-gallery.active)>.topbar #shopBtn{
+   min-width:0;white-space:nowrap;font-size:11px;padding:10px 9px;border-radius:12px;flex:0 1 auto
+ }
+ .main-app:has(#view-shop.active)>.topbar .wallet-pill,
+ .main-app:has(#view-gallery.active)>.topbar .wallet-pill{
+   min-width:0;max-width:min(61vw,300px);margin-left:auto;padding:6px 9px;border-radius:12px;flex:0 1 auto
+ }
+ .main-app:has(#view-shop.active)>.topbar #walletBalance,
+ .main-app:has(#view-gallery.active)>.topbar #walletBalance{
+   display:block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+   font-size:clamp(10px,3vw,14px);line-height:1.3;
+ }
+ .main-app:has(#view-shop.active)>.topbar .wallet-pill>span,
+ .main-app:has(#view-gallery.active)>.topbar .wallet-pill>span{font-size:8px}
+}
+
+
+/* Visual QA on 390px iPhone: old two-line luxury page title and unrelated
+ * global economy explanation pushed the actual car showroom below the fold.
+ * Keep luxury navigation concise while retaining full original general store. */
+@media(max-width:700px){
+ #view-shop.palace-mode>.view-head.boutique-head{
+  display:grid;grid-template-columns:36px minmax(0,1fr);
+  gap:10px;align-items:center;min-height:0;margin:0 0 8px;padding:9px 12px;
+  border-radius:10px;
+ }
+ #view-shop.palace-mode>.view-head.boutique-head>.back{
+  width:36px;height:36px;border-radius:10px;font-size:18px
+ }
+ #view-shop.palace-mode>.view-head.boutique-head>div{min-width:0}
+ #view-shop.palace-mode>.view-head.boutique-head small{
+  display:block;font-size:8px;letter-spacing:.07em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis
+ }
+ #view-shop.palace-mode>.view-head.boutique-head h2{
+  font-size:clamp(17px,5vw,20px);line-height:1.2;letter-spacing:-.025em;
+  white-space:nowrap;text-overflow:ellipsis;overflow:hidden;margin:3px 0 0;
+ }
+ #view-shop.palace-mode>.view-head.boutique-head>.boutique-badge{display:none}
+ #view-shop.palace-mode>.economy-notice{display:none}
+ #view-shop.palace-mode .jrp-wing-nav.jrp-wing-nav-three{margin:0 0 8px;padding:4px;min-height:0}
+ #view-shop.palace-mode .jrp-wing-nav-three button{min-height:46px;padding:5px 2px;font-size:10px}
+ #view-shop.palace-mode .jrp-wing-nav-three button small{font-size:7px}
+ #view-shop.palace-mode #royalBoutiqueRoot .jrp-opening{font-size:9px;padding:9px 11px}
+ #view-gallery>.view-head.jrg-view-head{
+  display:grid;grid-template-columns:36px minmax(0,1fr) auto;
+  gap:8px;align-items:center;min-height:0;
+  border-radius:10px;padding:9px 10px;margin-bottom:8px;
+ }
+ #view-gallery>.view-head.jrg-view-head>.back{width:36px;height:36px;font-size:16px;border-radius:10px}
+ #view-gallery>.view-head.jrg-view-head>div{min-width:0}
+ #view-gallery>.view-head.jrg-view-head small{
+  display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  font-size:8px;letter-spacing:.04em;line-height:1.3
+ }
+ #view-gallery>.view-head.jrg-view-head h2{
+  font-size:clamp(16px,5vw,21px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  letter-spacing:-.04em;line-height:1.22;margin:4px 0 0
+ }
+ #view-gallery>.view-head.jrg-view-head>.secondary{
+  min-width:0;max-width:94px;padding:9px 7px;font-size:10px;
+  line-height:1.25;white-space:normal
+ }
+ #view-gallery .jrg-entry{padding:17px 16px 16px}
+ #view-gallery .jrg-entry-left h1{font-size:clamp(25px,7vw,34px);margin:6px 0}
+ #view-gallery .jrg-entry-left p{font-size:10px;line-height:1.45}
+}
+@media(max-width:390px){
+ #view-shop.palace-mode>.view-head.boutique-head h2{font-size:17px}
+ #view-gallery>.view-head.jrg-view-head h2{font-size:16px}
+ #view-gallery>.view-head.jrg-view-head>.secondary{max-width:78px;font-size:9px}
+}
