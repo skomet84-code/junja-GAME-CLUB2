@@ -44,7 +44,7 @@ def fileinfo(name):
         if info.get('mime') and not info['mime'].startswith('image/'):return None
         author=clean(meta.get('Artist',{}).get('value','')) or 'Wikimedia Commons contributor'
         source=info.get('descriptionurl') or 'https://commons.wikimedia.org/wiki/File:'+quote(name.replace(' ','_'))
-        licenseurl=meta.get('LicenseUrl',{}).get('value','') or 'https://commons.wikimedia.org/wiki/Commons:Licensing'
+        licenseurl=(meta.get('LicenseUrl',{}).get('value','') or 'https://commons.wikimedia.org/wiki/Commons:Licensing').replace('http://creativecommons.org/','https://creativecommons.org/')
         photo=info.get('thumburl') or info.get('url')
         return {'source':source,'url':photo,'author':author,'license':lic,'licenseUrl':licenseurl,'filename':name}
     return None
