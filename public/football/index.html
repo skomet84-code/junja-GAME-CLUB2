@@ -6,12 +6,12 @@
 <meta name="theme-color" content="#0a111c">
 <meta name="description" content="JUNJA PREMIER LEAGUE — 22개 클럽, 매일 5경기, 실시간 60초 축구 시뮬레이션과 승무패 리그. 게임머니 전용.">
 <title>JUNJA PREMIER LEAGUE · 준자랜드</title>
-<link rel="stylesheet" href="/football/style.css?v=20261104-hdp-crest-v2">
+<link rel="stylesheet" href="/football/style.css?v=20261104-goal-timeline-v5">
 <link rel="stylesheet" href="/football/royal-premium.css?v=20261104-crest-large-v2">
-<link rel="stylesheet" href="/football/receipts.css?v=20261104-ticket-v1">
+<link rel="stylesheet" href="/football/receipts.css?v=20261104-receipt-cols-v5">
 <script defer src="/football/club-icons.js?v=20261104-royal-heraldic-v3"></script>
-<script defer src="/football/receipts.js?v=20261104-ticket-v1"></script>
-<script defer src="/football/game.js?v=20261104-60s-demo-fix-v4"></script>
+<script defer src="/football/receipts.js?v=20261104-receipt-cols-v5"></script>
+<script defer src="/football/game.js?v=20261104-finish-demo-goals-v5"></script>
 </head>
 <body>
 <header class="topnav">
@@ -58,10 +58,11 @@
     <div class="pitch-frame">
       <div class="stadium-head"><div><span class="signal"></span> JPL SPORTS · STADIUM CAM 01</div><span>2D LIVE SIMULATION</span></div>
       <canvas id="pitch" width="1100" height="620" aria-label="축구장 선수와 공 움직임 2D 중계 그래픽">실시간 축구 경기 시뮬레이션</canvas>
+      <div id="pitchFinalBanner" class="pitch-final-banner" role="status" aria-live="polite" hidden><span>FULL TIME · 90′</span><strong>경기 종료</strong><small id="pitchFinalScore"></small></div>
       <div class="pitch-corner"><span id="pitchHalf">PREVIEW</span><span id="pitchMinute">00'</span></div>
     </div>
     <div class="timeline">
-      <div class="match-progress"><div id="progressFill"></div><span class="halfmark">HT</span></div>
+      <div class="match-progress"><div id="progressFill"></div><span class="halfmark">HT</span><div id="goalMarkers" class="goal-markers" aria-label="득점 시간 기록"></div></div>
       <div class="ticker"><span class="ticker-icon">⚽</span><p id="commentary">선수들이 입장할 준비를 하고 있습니다. 경기 시간을 확인해 주세요.</p></div>
     </div>
     <div class="broadcast-footer"><div>실제 경기가 아닌 준자랜드 자체 가상 시뮬레이션입니다.</div><button id="demoButton" type="button" class="text-button">1분 중계 미리보기 <span>↗</span></button></div>
