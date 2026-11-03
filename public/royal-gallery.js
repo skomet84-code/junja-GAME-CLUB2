@@ -18,19 +18,16 @@
  };
  const asDate=n=>{if(!n)return '기록 없음';const d=new Date(Number(n));return Number.isFinite(d.getTime())?d.toLocaleDateString('ko-KR',{timeZone:'Asia/Seoul'}):'기록 없음'};
  const iconFor=item=>{
-   const id=String(item?.id||'');
-   if(id.includes('phoenix'))return '/art/royal/phoenix.svg';
-   if(id.includes('immortal'))return '/art/royal/immortal.svg';
-   if(id.includes('dragon'))return '/art/royal/dragon.svg';
-   if(id.includes('regalia')||id.includes('frame_royalboutique_royal'))return '/art/royal/regalia.svg';
-   if(id.includes('aura'))return '/art/royal/aura.svg';
-   if(id.includes('wings'))return '/art/royal/wings.svg';
-   if(id.includes('entry'))return '/art/royal/scepter.svg';
-   if(id.includes('title_royalboutique_gold'))return '/art/royal/noble.svg';
-   if(id.includes('diamond')||id.includes('frame_royalboutique'))return '/art/royal/gem.svg';
+   const art=String(item?.art||'');
+   if(/^[a-z-]{2,40}$/.test(art))return '/art/royal/'+art+'.svg';
    return '/art/royal/crown.svg';
  };
- const categoryName={title:'황실 칭호',frame:'전설의 장식',costume:'왕실 의상',pet:'신화 수호수'};
+ const categoryName={
+  car:'슈퍼카 · 하이퍼카',watch:'하이엔드 워치',yacht:'프라이빗 요트',jet:'황실 전용기',
+  art:'로얄 예술품',estate:'럭셔리 에스테이트',vault:'프라이빗 금고',
+  title:'황실 칭호',frame:'전설의 장식',costume:'왕실 의상',pet:'신화 수호수'
+ };
+ const isPanorama=i=>['car','jet','yacht'].includes(i?.category);
  let state=null,visitor=null,loading=false,busy=false,focusId='',filter='all',loadToken=0;
  const isOwner=()=>!visitor;
  const selectedIds=()=>Array.isArray(state?.collector?.showcase)?state.collector.showcase.map(x=>x.id):[];
@@ -47,7 +44,7 @@
  function stageSlot(item,where,index){
    const side=where==='center'?'center':'side';
    const chosen=item?item.id===focusId:false;
-   const className='jrg-object jrg-object-'+where+' '+side+(item?' occupied':' unoccupied')+(chosen?' chosen':'');
+   const className='jrg-object jrg-object-'+where+' '+side+(item?' occupied':' unoccupied')+(item&&isPanorama(item)?' jrg-wide-piece':'')+(chosen?' chosen':'');
    const content=item
      ?'<span class="jrg-piece-glow" aria-hidden="true"></span><img src="'+iconFor(item)+'" alt="" loading="eager"><span class="jrg-piece-frame"><strong>'+esc(item.name)+'</strong><small>'+(where==='center'?'SIGNATURE MASTERPIECE':'ROYAL COLLECTION')+'</small></span>'
      :'<span class="jrg-vacant-mark" aria-hidden="true">♛</span><span class="jrg-piece-frame"><strong>전시 대기</strong><small>EMPTY PEDESTAL</small></span>';
@@ -78,8 +75,8 @@
      '<div class="jrg-museum-shell">'+
       '<div class="jrg-entry"><div class="jrg-entry-left"><small>JUNJA LAND · ROYAL PRIVATE MUSEUM</small><h1><span>♛</span> '+(own?'내 전시관':owner+'의 전시관')+'</h1><p>소유한 명품이 전설이 되는 곳. 세상에 단 하나뿐인 나만의 왕실 갤러리.</p></div><div class="jrg-entry-crest" aria-hidden="true"><span>J</span><small>EST. MMXXVI</small></div></div>'+
       '<div class="jrg-owner-ribbon"><div class="jrg-owner-avatar">♛</div><div class="jrg-owner-name"><small>OWNER OF THE PRIVATE COLLECTION</small><strong>'+owner+'</strong><span>'+esc(collector.tierIcon||'◇')+' '+esc(collector.tier||'NEW COLLECTOR')+'</span></div>'+
-       '<div class="jrg-stat-strip"><div><small>보유 작품</small><b>'+items.length+'<em> / 11</em></b></div><div><small>전시 작품</small><b>'+shown.length+'<em> / 3</em></b></div><div><small>누적 컬렉션 가치</small><b class="jrg-spent">'+money(collector.spent)+'</b></div></div></div>'+
-      '<section class="jrg-hall" aria-label="궁전형 로얄 전시실">'+
+       '<div class="jrg-stat-strip"><div><small>보유 작품</small><b>'+items.length+'<em> / '+Number(collector.totalItems||28)+'</em></b></div><div><small>전시 작품</small><b>'+shown.length+'<em> / 3</em></b></div><div><small>누적 컬렉션 가치</small><b class="jrg-spent">'+money(collector.spent)+'</b></div></div></div>'+
+      '<section class="jrg-hall '+(isPanorama(center)?'jrg-grand-garage':'')+'" aria-label="궁전형 로얄 전시실">'+
        '<div class="jrg-hall-heading"><span>THE GRAND GALLERY · JUNJA ROYAL PALACE</span><span>✦ LUXURY MUSEUM ✦</span></div>'+
        '<div class="jrg-stage">'+stageSlot(left,'left',1)+stageSlot(center,'center',0)+stageSlot(right,'right',2)+
          '<div class="jrg-stage-inscription">JUNJA<br><span>PRIVATE COLLECTION</span></div>'+
@@ -94,12 +91,12 @@
            (own?'<div class="jrg-selected-actions">'+
              (selectedIds()[0]===selected.id?'<span class="jrg-current-primary">♛ 대표 작품으로 전시 중</span>':'<button type="button" class="jrg-primary-btn" data-jrg-primary="'+esc(selected.id)+'">♛ 대표 작품으로 전시</button>')+
              (isDisplayed(selected.id)?'<button type="button" class="jrg-outline-btn" data-jrg-remove="'+esc(selected.id)+'">전시에서 내리기</button>':'<button type="button" class="jrg-outline-btn" data-jrg-pin="'+esc(selected.id)+'">전시대에 올리기</button>')+
-             (selected.equipped?'<span class="jrg-equipped">✓ 현재 장착 중</span>':'<button type="button" class="jrg-outline-btn" data-jrg-equip="'+esc(selected.id)+'">꾸미기 아이템 장착</button>')+
+             (selected.displayOnly?'<span class="jrg-exhibit-only">◆ 전시 전용 소장품</span>':selected.equipped?'<span class="jrg-equipped">✓ 현재 장착 중</span>':'<button type="button" class="jrg-outline-btn" data-jrg-equip="'+esc(selected.id)+'">꾸미기 아이템 장착</button>')+
            '</div>':'<p class="jrg-readonly">방문자는 소장품을 감상할 수 있어. 전시는 소유주만 변경할 수 있어.</p>')+
          '</div></section>')+
-      '<section class="jrg-inventory" id="jrgInventory"><div class="jrg-inventory-header"><div><small>YOUR ACQUISITIONS · COLLECTION VAULT</small><h2>소유 작품 갤러리</h2><p>구매가 확인된 작품만 이곳에 전시돼. 나만의 대표 작품을 골라봐.</p></div><span class="jrg-inventory-count">'+items.length+' / 11 COLLECTED</span></div>'+
+      '<section class="jrg-inventory" id="jrgInventory"><div class="jrg-inventory-header"><div><small>YOUR ACQUISITIONS · COLLECTION VAULT</small><h2>소유 작품 갤러리</h2><p>구매가 확인된 작품만 이곳에 전시돼. 나만의 대표 작품을 골라봐.</p></div><span class="jrg-inventory-count">'+items.length+' / '+Number(collector.totalItems||28)+' COLLECTED</span></div>'+
         '<nav class="jrg-filter-nav" aria-label="소장품 유형">'+[
-          ['all','전체 작품'],['costume','왕실 의상'],['frame','왕실 장식'],['title','황실 칭호'],['pet','신화 수호수']
+          ['all','ALL'],['car','🏎 슈퍼카'],['watch','⌚ 명품 시계'],['yacht','🛥 요트'],['jet','✈ 전용기'],['art','♛ 예술품'],['estate','럭셔리 부동산'],['vault','황실 금고'],['costume','왕실 의상'],['frame','왕실 장식'],['title','황실 칭호'],['pet','신화 수호수']
         ].map(([value,label])=>'<button type="button" data-jrg-filter="'+value+'" class="'+(filter===value?'active':'')+'">'+label+'</button>').join('')+'</nav>'+
         '<div class="jrg-inventory-grid">'+(filtered.length?filtered.map(card).join(''):'<div class="jrg-inventory-empty">이 카테고리에는 아직 소장한 작품이 없어.</div>')+'</div>'+
         '<div class="jrg-museum-footer"><span>♛ THE JUNJA PRIVATE LEGACY · EST. 2026</span>'+(own?'<button data-go="shop" type="button">명품관으로 돌아가기</button>':'<button data-go="lobby" type="button">로비로 돌아가기</button>')+'</div>'+
@@ -150,7 +147,7 @@
  async function equip(id){
    if(!isOwner()||busy||!state)return;
    const item=allOwned().find(x=>x.id===id);
-   if(!item||item.equipped)return;
+   if(!item||item.equipped||item.displayOnly)return;
    busy=true;
    try{
      const data=await request('/api/shop/equip',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({category:item.category,itemId:id})});
