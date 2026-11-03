@@ -1717,7 +1717,7 @@ function rouletteSpin(user,rawBets){
     const profit=payout-totalBet,next=remaining+payout,t=now();
     db.prepare('UPDATE users SET balance=? WHERE id=?').run(next,user.id);
     const ledger=db.prepare('INSERT INTO ledger(user_id,amount,balance_after,type,memo,created_at) VALUES(?,?,?,?,?,?)');
-    ledger.run(user.id,-totalBet,remaining,'roulette_bet',`유럽식 룰렛 ${bets.length}개 베팅 · ${formatMoney(totalBet)}G`,t);
+    ledger.run(user.id,-totalBet,remaining,'roulette_bet',`유럽식 룰렛 ${bets.length}개 · ${formatMoney(totalBet)}G | ${bets.map(b=>`${b.kind}:${Array.isArray(b.target)?b.target.join('/'):b.target??'-'}:${b.amount}G`).join(', ')}`,t);
     if(payout>0n)ledger.run(user.id,payout,next,'roulette_win',`룰렛 ${number} ${color.toUpperCase()} · 지급 ${formatMoney(payout)}G`,t);
     db.prepare('UPDATE stats SET roulette_plays=roulette_plays+1,roulette_wins=roulette_wins+?,roulette_profit=? WHERE user_id=?').run(payout>0n?1:0,previousProfit+profit,user.id);
     result={number,color,index:ROULETTE_WHEEL.indexOf(number),bets:settled,totalBet:totalBet.toString(),payout:payout.toString(),profit:profit.toString()};

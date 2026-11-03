@@ -11,10 +11,10 @@ const large=29020401790482531n;
 function reset(balance=large){db.prepare('UPDATE users SET balance=? WHERE id=1').run(balance);db.exec('DELETE FROM ledger;UPDATE stats SET roulette_plays=0,roulette_wins=0,roulette_profit=0');}
 function balance(){return BigInt(db.prepare('SELECT CAST(balance AS TEXT) AS b FROM users').get().b)}
 function spin(bets){return ctx.rouletteSpin({id:1,balance:'0'},bets)}
-for(const [kind,target,number,mult] of [['red',null,1,2n],['red',null,2,0n],['straight',0,0,36n]]){
+for(const [kind,target,number,mult] of [['red',null,1,2n],['red',null,2,0n],['black',null,26,2n],['black',null,1,0n],['straight',26,26,36n],['straight',0,0,36n]]){
  reset();pocket=number;const r=spin([{kind,target,amount:String(large)}]);
- assert.equal(r.totalBet,String(large));assert.equal(r.payout,String(large*mult));assert.equal(balance(),large*mult);assert.equal(r.profit,String(large*(mult-1n)));JSON.stringify(r);
- const debit=db.prepare("SELECT CAST(amount AS TEXT) AS a,CAST(balance_after AS TEXT) AS b FROM ledger WHERE type='roulette_bet'").get();assert.equal(debit.a,String(-large));assert.equal(debit.b,'0');
+ assert.equal(r.totalBet,String(large));assert.equal(r.payout,String(large*mult));assert.equal(balance(),large*mult);assert.equal(r.profit,String(large*(mult-1n)));assert.equal(r.bets[0].won,mult>0n);assert.equal(r.bets[0].returned,String(large*mult));JSON.stringify(r);
+ const debit=db.prepare("SELECT CAST(amount AS TEXT) AS a,CAST(balance_after AS TEXT) AS b FROM ledger WHERE type='roulette_bet'").get();assert.equal(debit.a,String(-large));assert.equal(debit.b,'0');if(kind==='black')assert.match(db.prepare("SELECT memo FROM ledger WHERE type='roulette_bet'").get().memo,/black:-:/);if(mult>0n)assert.equal(db.prepare("SELECT count(*) AS n FROM ledger WHERE type='roulette_win'").get().n,1);
 }
 reset();pocket=1;const r=spin([{kind:'black',amount:'1000'},{kind:'red',amount:String(large-1000n)}]);assert.equal(r.totalBet,String(large));assert.equal(balance(),(large-1000n)*2n);
 for(const amount of ['999','-1000','1.5','NaN','1e18',String(large+1n),Number(large)]){
