@@ -4,7 +4,8 @@
 const crypto=require('node:crypto');
 const {addTradingFee}=require('./slot-jackpot-pool');
 const DAY=86400000,HOUR=3600000,KST=9*HOUR,MATCH_MS=60000;
-const MIN_STAKE=1000n,MAX_STAKE=1000000000000n,MAX_RETURN=1000000000000000000n;
+const MIN_STAKE=1000n,MAX_STAKE=1000000000000000n,MAX_RETURN=1000000000000000000n;
+const ANALYSIS_PRICE=1000000000000n,INSIGHT_PREFIX='jpl:v1:insight:';
 const TAX_THRESHOLD=10000000000000000n,TAX_RATE=20n; // 1경 G; 100x win or over 1경 gross.
 const KEY='jpl:v1:current',TICKET_PREFIX='jpl:v1:ticket:',ARCHIVE='jpl:v1:archive:';
 const HOURS=[12,15,18,21,23],MAX_LEGS=5;
@@ -50,6 +51,23 @@ const RESERVES=Object.freeze(ALL_CLUBS.slice(22));
 const CLUB_MAP=new Map(ALL_CLUBS.map(c=>[c.id,c]));
 function kstDate(ms){return new Date(ms+KST).toISOString().slice(0,10)}
 function nextKstDay(ms){return Math.floor((ms+KST)/DAY)*DAY-KST+DAY}
+// Pre-match scouting is fixture-specific, stable through refreshes and independent of the
+// randomly sampled final result. The paid report never reveals a score or simulation seed.
+function analysisFor(f,seasonId){
+ const source=crypto.createHash('sha256').update(['JPL-SCOUT-V1',seasonId,f.id,f.home,f.away,f.kickoff].join('|')).digest();
+ const create=(c,offset)=>({
+  clubId:c.id,
+  fitness:61+source[offset]%37,
+  condition:58+source[offset+1]%39,
+  motivation:57+source[offset+2]%42,
+  injured:source[offset+3]%3,
+  suspended:source[offset+4]%2,
+  form:['상승세','안정적','기복 있음'][source[offset+5]%3]
+ });
+ const home=create(CLUB_MAP.get(f.home),0),away=create(CLUB_MAP.get(f.away),8);
+ for(const item of [home,away])item.absent=item.injured+item.suspended;
+ return {matchId:f.id,seasonId,kickoff:f.kickoff,home,away,disclaimer:'가상 구단 분석 지표입니다. 경기 결과는 확률적이며 강팀이나 좋은 컨디션도 승리를 보장하지 않습니다.'};
+}
 function meanGoals(home,away){
  const h=CLUB_MAP.get(home),a=CLUB_MAP.get(away);
  const clamp=n=>Math.max(.35,Math.min(3.2,n));
@@ -144,8 +162,13 @@ function createJPL({db,exactWallet,now=Date.now,random=()=>crypto.randomBytes(4)
  }
  function kick(f){
   if(f.events)return false;
-  const [mh,ma]=meanGoals(f.home,f.away);
-  const hs=poissonSample(mh),as=poissonSample(ma),events=[];
+  const [baseHome,baseAway]=meanGoals(f.home,f.away);
+  const report=analysisFor(f,read(KEY)?.id||'S1');
+  const modifier=t=>Math.max(.75,Math.min(1.22,1+(t.fitness-79)*.003+
+    (t.condition-77)*.003+(t.motivation-77)*.002-t.absent*.026));
+  // Scouting indicators influence scoring opportunities modestly, not guaranteed outcomes.
+  const hs=poissonSample(Math.max(.35,baseHome*modifier(report.home)));
+  const as=poissonSample(Math.max(.35,baseAway*modifier(report.away))),events=[];
   const newGoal=(side,count)=>{
    for(let i=0;i<count;i++){
     const minute=randomInt(3,89);
@@ -169,6 +192,8 @@ function createJPL({db,exactWallet,now=Date.now,random=()=>crypto.randomBytes(4)
   for(const leg of legs){odds*=BigInt(leg.odds100);denom*=100n}
   return odds>=100n*denom;
  };
+ const unlockedForUser=(id,seasonId)=>db.prepare('SELECT key FROM game_state WHERE key LIKE ?')
+  .all(INSIGHT_PREFIX+seasonId+':'+id+':%').map(row=>row.key.slice((INSIGHT_PREFIX+seasonId+':'+id+':').length));
  const ticketsForSeason=seasonId=>db.prepare('SELECT key,value FROM game_state WHERE key LIKE ?')
   .all(TICKET_PREFIX+seasonId+':%').map(r=>({key:r.key,ticket:JSON.parse(r.value)}));
  const ticketsForUser=id=>db.prepare('SELECT value FROM game_state WHERE key LIKE ?')
@@ -290,11 +315,42 @@ function createJPL({db,exactWallet,now=Date.now,random=()=>crypto.randomBytes(4)
    matchdays:93,relegationCount:2,
     promotedFromLastSeason:season.number>1?(read(ARCHIVE+'S'+(season.number-1))?.promoted||[]):[],
     relegatedFromLastSeason:season.number>1?(read(ARCHIVE+'S'+(season.number-1))?.relegated||[]):[]},
-   rules:{minStake:String(MIN_STAKE),maxStake:String(MAX_STAKE),maxReturn:String(MAX_RETURN),maxLegs:MAX_LEGS,durationMs:MATCH_MS,fixturesPerDay:5,virtual:true,jackpotTaxRatePct:20,jackpotTaxAtOdds:100,jackpotTaxAbove:String(TAX_THRESHOLD)},
+   rules:{minStake:String(MIN_STAKE),maxStake:String(MAX_STAKE),maxReturn:String(MAX_RETURN),analysisPrice:String(ANALYSIS_PRICE),maxLegs:MAX_LEGS,durationMs:MATCH_MS,fixturesPerDay:5,virtual:true,jackpotTaxRatePct:20,jackpotTaxAtOdds:100,jackpotTaxAbove:String(TAX_THRESHOLD)},
    wallet:String(exactWallet.read(u)),clubs:(season.clubs||CLUBS.map(c=>c.id)).map(cid=>CLUB_MAP.get(cid)),reserves:(season.reserves||RESERVES.map(c=>c.id)).map(cid=>CLUB_MAP.get(cid)),table:tableFor(season),
    today:todayMatches.map(f=>fixturePublic(f,t)),
    upcoming:upcoming.map(f=>fixturePublic(f,t)),recent:recently.map(f=>fixturePublic(f,t)),
-   live:live.map(f=>fixturePublic(f,t)),tickets};
+   live:live.map(f=>fixturePublic(f,t)),tickets,analysisUnlocked:unlockedForUser(id,season.id)};
+ }
+ function analysis(id,matchId,purchase=false){
+  id=Number(id);
+  if(!Number.isSafeInteger(id)||id<1)throw Error('계정을 확인할 수 없습니다.');
+  const {season,changed}=advance(),f=season.fixtures.find(x=>x.id===String(matchId));
+  if(!f)throw Error('해당 시즌의 경기를 찾을 수 없습니다.');
+  const key=INSIGHT_PREFIX+season.id+':'+id+':'+f.id;
+  if(!purchase){
+   user(id);
+   const existing=read(key);
+   return {ok:true,changed,locked:!existing,alreadyPurchased:!!existing,price:String(ANALYSIS_PRICE),
+    matchId:f.id,seasonId:season.id,report:existing?analysisFor(f,season.id):null};
+  }
+  db.exec('BEGIN IMMEDIATE');
+  try{
+   const u=user(id),existing=read(key);
+   if(existing){
+    db.exec('COMMIT');
+    return {ok:true,changed,locked:false,alreadyPurchased:true,price:String(ANALYSIS_PRICE),wallet:String(exactWallet.read(u)),report:analysisFor(f,season.id)};
+   }
+   if(now()>=f.kickoff)throw Error('경기분석은 킥오프 전까지만 구매할 수 있습니다.');
+   const before=exactWallet.read(u);
+   if(before<ANALYSIS_PRICE)throw Error('경기분석 구매에는 1조 G가 필요합니다.');
+   const after=before-ANALYSIS_PRICE,m=exactWallet.mirror(after);
+   userSet.run(m,String(after),String(m),id);
+   ledger.run(id,exactWallet.mirror(-ANALYSIS_PRICE),m,String(-ANALYSIS_PRICE),String(after),
+    'jpl_analysis','JPL '+season.id+' '+f.id+' 경기분석 정보 구매',now());
+   save(key,{seasonId:season.id,matchId:f.id,userId:id,paid:String(ANALYSIS_PRICE),purchasedAt:now()});
+   db.exec('COMMIT');
+   return {ok:true,changed,locked:false,alreadyPurchased:false,price:String(ANALYSIS_PRICE),wallet:String(after),report:analysisFor(f,season.id)};
+  }catch(err){try{db.exec('ROLLBACK')}catch{}throw err}
  }
  function schedule(id){
   user(id);const {season,changed}=advance();
@@ -306,7 +362,7 @@ function createJPL({db,exactWallet,now=Date.now,random=()=>crypto.randomBytes(4)
   if(!Array.isArray(legs)||legs.length<1||legs.length>MAX_LEGS)throw Error('단폴부터 최대 5폴더까지 선택할 수 있어요.');
   if(typeof amount!=='string'||!/^[1-9][0-9]{0,30}$/.test(amount))throw Error('베팅 금액은 정수로 입력하세요.');
   const stake=BigInt(amount);
-  if(stake<MIN_STAKE||stake>MAX_STAKE)throw Error('베팅 금액은 1,000 G부터 최대 1조 G입니다.');
+  if(stake<MIN_STAKE||stake>MAX_STAKE)throw Error('베팅 금액은 1,000 G부터 최대 1,000조 G입니다.');
   if(typeof requestId!=='string'||!/^[A-Za-z0-9_-]{12,80}$/.test(requestId))throw Error('베팅 요청번호가 올바르지 않습니다.');
   advance(); // Start/finish matches and settle previously locked tickets before a new wager.
   db.exec('BEGIN IMMEDIATE');
@@ -350,6 +406,6 @@ function createJPL({db,exactWallet,now=Date.now,random=()=>crypto.randomBytes(4)
    db.exec('COMMIT');return {ok:true,duplicate:false,ticket,wallet:String(after)};
   }catch(err){try{db.exec('ROLLBACK')}catch{}throw err}
  }
- return {status,schedule,bet,tick:()=>advance().changed,clubs:CLUBS};
+ return {status,schedule,analysis,bet,tick:()=>advance().changed,clubs:CLUBS};
 }
-module.exports={createJPL,CLUBS,RESERVES,ALL_CLUBS,makeRoundRobin,createSchedule,createSeason,oddsFor,probabilities,handicapOddsFor,handicapLine,handicapResult,DAY,MATCH_MS,MIN_STAKE,MAX_STAKE,MAX_RETURN};
+module.exports={createJPL,CLUBS,RESERVES,ALL_CLUBS,makeRoundRobin,createSchedule,createSeason,oddsFor,probabilities,handicapOddsFor,handicapLine,handicapResult,DAY,MATCH_MS,MIN_STAKE,MAX_STAKE,MAX_RETURN,ANALYSIS_PRICE,analysisFor};
