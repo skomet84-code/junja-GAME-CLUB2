@@ -26,10 +26,10 @@ function notice(text,error=false){const n=$('#jbankNotice');if(n){n.textContent=
 async function request(path,options){const r=await fetch(path,{credentials:'same-origin',headers:{'Content-Type':'application/json'},...options});const d=await r.json().catch(()=>({}));if(!r.ok)throw Error(d.error||'은행 요청에 실패했습니다.');return d;}
 function rehabilitationStatus(d){
  if(d.lastRehabilitation)return '이미 개인회생을 이용했어요. 개인회생은 계정당 한 번만 가능합니다.';
- if(d.canRehabilitate)return '7일 초과 연체 후 자산 강제 매각을 마쳤지만 미상환 빚이 남아 신청할 수 있어요.';
- if(BigInt(d.outstanding||'0')===0n)return '현재 미상환 대출이 없습니다. 빚이 없으면 개인회생을 신청할 수 없어요.';
- if(!d.overdue)return '아직 상환기한 전입니다. 7일 초과 연체와 강제 자산 매각 이후에도 빚이 남아야 신청할 수 있어요.';
- return '연체 상태입니다. 자동 자산 매각이 완료되고도 빚이 남아야 신청할 수 있어요.';
+ if(d.canRehabilitate)return '미상환 신분·신용대출이 있다면 당일 즉시 신청할 수 있어요.';
+ if(d.rehabilitationBlockedReason)return d.rehabilitationBlockedReason;
+ if(BigInt(d.outstanding||'0')+BigInt(d.creditOutstanding||'0')===0n)return '미상환 대출이 없어 신청할 수 없어요.';
+ return '신청 가능 여부를 다시 확인해 주세요.';
 }
 function render(d){
  state=d;const debt=BigInt(d.outstanding),cash=BigInt(d.wallet),hasLoan=debt>0n,loanLocked=!d.canBorrow;
@@ -45,8 +45,8 @@ function render(d){
  '<p class="jbank-terms">📖 <b>대출 안내</b> — 게임머니 G 전용 · 원금 기준 일 0.1% 단리 · 이자 포함 7일 내 완납. 7일 초과 연체 시 현금·자유저축·적금·주식·코인·신분(99% 매각가) 순으로 자동 회수됩니다. 연체료는 없습니다.</p>'+
  (d.dueAt&&hasLoan?'<p class="jbank-terms">⏰ 상환 마감: '+new Date(d.dueAt).toLocaleString('ko-KR')+(d.overdue?' · <b>연체/강제 회수 대상</b>':'')+'</p>':'')+
  '<section class="jbank-rank-sale" id="jbankRehabilitation"><h3>🛟 개인회생 · 최후의 재출발</h3>'+
- '<p class="jbank-sale-caution">⚠️ 대출금과 이자는 7일 내 갚아야 해요. 7일 초과 연체 시 보유머니·저축·적금·주식·코인·신분이 순서대로 강제 매각될 수 있어요. 개인회생은 빚이 남았을 때만 쓸 수 있는 마지막 수단입니다.</p>'+
- '<p>개인회생 신청 시 남은 대출은 탕감되지만 <b>기존 보유머니·신분·예적금·주식·코인은 모두 초기화</b>돼요. 다시 시작할 게임머니 1,000억 G가 지급되며 <b>계정당 1회, 취소 불가</b>예요.</p>'+
+ '<p class="jbank-sale-caution">⚠️ 7일은 연체 강제매각 기준이야. 개인회생은 미상환 신분·신용대출이 있다면 당일 즉시 신청 가능해. 7일 초과 연체 시 자동 매각은 별도로 유지돼.</p>'+
+ '<p>개인회생 신청 시 신분·신용대출은 탕감되지만 <b>기존 보유머니·신분·예적금·주식·코인·명품·아이템은 모두 초기화</b>돼요. 다시 시작할 게임머니 1,000억 G가 지급되며 <b>계정당 1회, 취소 불가</b>예요.</p>'+
  '<p class="jbank-terms"><b>현재 '+(d.canRehabilitate?'신청 가능':'신청 불가')+'</b> · '+esc(rehabilitationStatus(d))+'</p>'+
  '<button class="jbank-submit" data-jbank-action="rehabilitation" type="button">🛟 개인회생 신청'+(d.canRehabilitate?' · 최종 확인':' · 신청 조건 확인')+'</button></section>'+
  (loanLocked?'<p class="jbank-blocked-reason">🔒 신분 대출 제한: '+esc(d.borrowBlockedReason||'현재 대출 신청 조건을 확인해 주세요.')+'</p>':'')+
@@ -141,10 +141,10 @@ async function sellRank(){
 async function rehabilitation(){
  if(busy||!state)return;
  if(!state.canRehabilitate){
-  alert('개인회생 신청 조건 안내\n\n'+rehabilitationStatus(state)+'\n\n빚을 7일 내 갚지 못하면 보유머니·저축·적금·주식·코인·신분이 강제 정리될 수 있습니다. 개인회생은 연체 후에도 빚이 남은 경우에만 신청 가능하며, 기존 자산이 초기화되고 계정당 1회만 이용할 수 있습니다.');
+  alert('개인회생 신청 조건 안내\n\n'+rehabilitationStatus(state)+'\n\n7일은 강제매각 기준이지 개인회생 대기기간이 아니야. 미상환 대출이 있다면 즉시 신청 가능하고 계정당 1회만 가능해.');
   return;
  }
- if(!confirm('개인회생을 신청하면 모든 신분/예적금/주식/코인과 기존 지갑 자산이 사라지고 남은 빚을 탕감한 뒤 1,000억 G로 다시 시작합니다. 계정당 한 번이며 취소할 수 없습니다.'))return;
+ if(!confirm('지금 개인회생을 신청할까? 모든 신분·신용대출은 탕감되지만 지갑·신분·예적금·주식·코인·명품·아이템이 초기화되고 1,000억 G로 다시 시작해. 계정당 1회, 취소 불가.'))return;
  const typed=prompt('확인하려면 개인회생 이라고 정확히 입력해줘.');
  if(typed!=='개인회생'){notice('확인 문구가 일치하지 않습니다.',true);return}
  busy=true;
