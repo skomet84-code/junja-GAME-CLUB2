@@ -8,7 +8,7 @@ const server=read('server.js'),app=read('public/app.js'),index=read('public/inde
 assert.match(server,/item\.collection!=='royalboutique'&&Number\.isSafeInteger\(item\.price\)&&item\.price>0\)item\.price\*=100/,'base shop x100 source means x10 over previous effective catalog');
 assert.match(server,/const SHOP_BY_ID/,'existing shop remains intact');
 assert.match(royal,/const recent=db\.prepare/,'royal recent purchases feed');
-assert.match(royal,/equipped:load\[item\.category\]===item\.id/,'equipped state from real loadout');
+assert.match(royal,/equipped:!item\.displayOnly&&load\[item\.category\]===item\.id/,'wearables equip from real loadout, cars only live in collector vault');
 assert.match(index,/id="view-shop" class="view palace-mode"/,'default royal gallery');
 assert.match(index,/id="junjaShopWingNav"/,'two distinct storefronts');
 assert.match(ui,/ROYAL ACQUIRED/,'cinematic acquisition overlay');
