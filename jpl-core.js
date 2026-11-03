@@ -2,11 +2,13 @@
 // JUNJA PREMIER LEAGUE — fictional G-only football season, never a real sporting event.
 // Server owns all fixtures, odds, results, wallets and betting settlement.
 const crypto=require('node:crypto');
+const {addTradingFee}=require('./slot-jackpot-pool');
 const DAY=86400000,HOUR=3600000,KST=9*HOUR,MATCH_MS=120000;
-const MIN_STAKE=1000n,MAX_STAKE=1000000000000n,MAX_RETURN=100000000000000n;
+const MIN_STAKE=1000n,MAX_STAKE=1000000000000n,MAX_RETURN=1000000000000000000n;
+const TAX_THRESHOLD=10000000000000000n,TAX_RATE=20n; // 1경 G; 100x win or over 1경 gross.
 const KEY='jpl:v1:current',TICKET_PREFIX='jpl:v1:ticket:',ARCHIVE='jpl:v1:archive:';
 const HOURS=[12,15,18,21,23];
-const CLUBS=Object.freeze([
+const ALL_CLUBS=Object.freeze([
  ['junja','레알 준자 CF','준자','JUN',95,92,'#e4c275','#f5f4eb','J','로얄 베르나베우'],
  ['happy','FC 햅피','햅피','HAP',94,90,'#9a2548','#2750ae','H','햅피 캄프 누'],
  ['ara','아라 유나이티드','아라','ARA',88,82,'#d84937','#f4ece2','A','아라 올드파크'],
@@ -28,15 +30,20 @@ const CLUBS=Object.freeze([
  ['mint','민트 포레스트','민트','MIN',77,82,'#28a891','#effaf5','M','민트 포레스트'],
  ['hunt','훈트 바이에른','훈트','HUN',89,87,'#c82c36','#f5efea','H','훈트 알리안츠'],
  ['cherry','체리 체스터 FC','체리','CHE',82,78,'#d1457c','#ffe6f2','C','체리 킹파크'],
- ['hari','하리 크리스털 FC','하리','HAR',75,81,'#345cbb','#a94456','H','하리 팰리스']
+ ['hari','하리 크리스털 FC','하리','HAR',75,81,'#345cbb','#a94456','H','하리 팰리스'],
+ ['dupal','두팔 올림피크 FC','두팔','DUP',81,79,'#e79652','#163f62','D','두팔 올림피크 스타디움'],
+ ['saram','사람 피닉스 유나이티드','사람','SAR',79,80,'#9c7ee8','#e6a768','S','사람 피닉스 아레나']
 ].map(([id,name,short,code,attack,defense,primary,secondary,emblem,stadium])=>Object.freeze({id,name,short,code,attack,defense,primary,secondary,emblem,stadium})));
-const CLUB_MAP=new Map(CLUBS.map(c=>[c.id,c]));
+const CLUBS=Object.freeze(ALL_CLUBS.slice(0,22));
+const RESERVES=Object.freeze(ALL_CLUBS.slice(22));
+const CLUB_MAP=new Map(ALL_CLUBS.map(c=>[c.id,c]));
 function kstDate(ms){return new Date(ms+KST).toISOString().slice(0,10)}
 function nextKstDay(ms){return Math.floor((ms+KST)/DAY)*DAY-KST+DAY}
 function meanGoals(home,away){
  const h=CLUB_MAP.get(home),a=CLUB_MAP.get(away);
- const clamp=n=>Math.max(.48,Math.min(2.72,n));
- return [clamp(1.42+.023*(h.attack-a.defense)+.22),clamp(1.22+.023*(a.attack-h.defense))];
+ const clamp=n=>Math.max(.35,Math.min(3.2,n));
+ // Strong clubs consistently generate more scoring opportunities; home advantage persists.
+ return [clamp(1.40+.041*(h.attack-a.defense)+.24),clamp(1.20+.041*(a.attack-h.defense))];
 }
 function probabilities(home,away){
  const [h,a]=meanGoals(home,away);
@@ -51,8 +58,26 @@ function oddsFor(home,away){
  const ps=probabilities(home,away);
  return Object.fromEntries(['H','D','A'].map(k=>[k,Math.max(108,Math.min(1850,Math.round(100/(ps[k]*1.075))))]));
 }
-function makeRoundRobin(){
- const n=CLUBS.length,a=CLUBS.map(c=>c.id),matches=[];let rotation=a.slice();
+function handicapLine(home,away){
+ const h=CLUB_MAP.get(home),a=CLUB_MAP.get(away);
+ const gap=(h.attack+h.defense-a.attack-a.defense)/2+3;
+ return gap>=20?-2:gap>=5?-1:gap<=-20?2:gap<=-5?1:-1;
+}
+function handicapResult(score,line){
+ const delta=score.home+line-score.away;
+ return delta>0?'H':delta<0?'A':'D';
+}
+function handicapOddsFor(home,away,line=handicapLine(home,away)){
+ const [h,a]=meanGoals(home,away),pm=m=>{const p=[Math.exp(-m)];for(let i=1;i<=15;i++)p[i]=p[i-1]*m/i;return p};
+ const hp=pm(h),ap=pm(a);const p={H:0,D:0,A:0};let total=0;
+ for(let i=0;i<hp.length;i++)for(let j=0;j<ap.length;j++){
+  const chance=hp[i]*ap[j];total+=chance;
+  p[handicapResult({home:i,away:j},line)]+=chance;
+ }
+ return Object.fromEntries(['H','D','A'].map(k=>[k,Math.max(108,Math.min(7000,Math.round(100/(p[k]/total*1.085))))]));
+}
+function makeRoundRobin(clubIds=CLUBS.map(c=>c.id)){
+ const n=clubIds.length,a=clubIds.slice(),matches=[];let rotation=a.slice();
  for(let r=0;r<2*(n-1);r++){
   for(let i=0;i<n/2;i++){
    let home=rotation[i],away=rotation[n-1-i];
@@ -64,8 +89,8 @@ function makeRoundRobin(){
  }
  return matches;
 }
-function createSchedule(startAt){
- const pending=makeRoundRobin(),fixtures=[];
+function createSchedule(startAt,clubIds=CLUBS.map(c=>c.id)){
+ const pending=makeRoundRobin(clubIds),fixtures=[];
  for(let day=0;pending.length;day++){
   const occupied=new Set();let slot=0;
   for(let i=0;i<pending.length&&slot<5;){
@@ -74,18 +99,19 @@ function createSchedule(startAt){
    occupied.add(m.home);occupied.add(m.away);pending.splice(i,1);
    fixtures.push({...m,id:'JPL-'+String(fixtures.length+1).padStart(3,'0'),
     day:day+1,kickoff:startAt+day*DAY+HOURS[slot]*HOUR,
-    odds:oddsFor(m.home,m.away),score:null,events:null,seed:null});
+    odds:oddsFor(m.home,m.away),handicap:{line:handicapLine(m.home,m.away),odds:handicapOddsFor(m.home,m.away)},score:null,events:null,seed:null});
    slot++;
   }
   if(!slot)throw Error('축구 일정 생성 실패');
  }
  return fixtures;
 }
-function createSeason(time,index=1){
+function createSeason(time,index=1,clubIds=CLUBS.map(c=>c.id),reserveIds=RESERVES.map(c=>c.id)){
+ if(clubIds.length!==22||new Set(clubIds).size!==22)throw Error('1부 축구팀은 정확히 22개여야 합니다.');
  const startAt=nextKstDay(time);
- const fixtures=createSchedule(startAt);
+ const fixtures=createSchedule(startAt,clubIds);
  return {id:'S'+index,number:index,startedAt:time,startAt,
-  endAt:fixtures[fixtures.length-1].kickoff+MATCH_MS,fixtures,champion:null};
+  endAt:fixtures[fixtures.length-1].kickoff+MATCH_MS,fixtures,clubs:clubIds.slice(),reserves:reserveIds.slice(),champion:null};
 }
 function createJPL({db,exactWallet,now=Date.now,random=()=>crypto.randomBytes(4).readUInt32BE()/4294967296}){
  const getKey=db.prepare('SELECT value FROM game_state WHERE key=?');
@@ -126,6 +152,12 @@ function createJPL({db,exactWallet,now=Date.now,random=()=>crypto.randomBytes(4)
   return true;
  }
  const resultOf=f=>f.score.home>f.score.away?'H':f.score.home<f.score.away?'A':'D';
+ const legResult=(f,leg)=>leg.market==='HDP'?handicapResult(f.score,leg.line??f.handicap?.line??0):resultOf(f);
+ const bettingTax=legs=>{
+  let odds=1n,denom=1n;
+  for(const leg of legs){odds*=BigInt(leg.odds100);denom*=100n}
+  return odds>=100n*denom;
+ };
  const ticketsForSeason=seasonId=>db.prepare('SELECT key,value FROM game_state WHERE key LIKE ?')
   .all(TICKET_PREFIX+seasonId+':%').map(r=>({key:r.key,ticket:JSON.parse(r.value)}));
  function settleTickets(s){
@@ -134,25 +166,29 @@ function createJPL({db,exactWallet,now=Date.now,random=()=>crypto.randomBytes(4)
   for(const {key,ticket} of ticketsForSeason(s.id)){
    if(ticket.status!=='OPEN')continue;
    const finished=ticket.legs.map(leg=>byId.get(leg.matchId));
-   const lose=ticket.legs.some((leg,i)=>finished[i]?.finishedAt&&resultOf(finished[i])!==leg.pick);
+   const lose=ticket.legs.some((leg,i)=>finished[i]?.finishedAt&&legResult(finished[i],leg)!==leg.pick);
    const complete=finished.every(f=>f?.finishedAt);
    if(!lose&&!complete)continue;
    ticket.status=lose?'LOSE':'WIN';ticket.settledAt=now();
    if(!lose){
     const u=userGet.get(ticket.userId);
     if(!u)throw Error('축구 당첨자 계정을 찾을 수 없습니다.');
-    const payout=BigInt(ticket.potential),next=exactWallet.read(u)+payout,m=exactWallet.mirror(next);
+    const gross=BigInt(ticket.potential);
+    const taxable=bettingTax(ticket.legs)||gross>TAX_THRESHOLD;
+    const tax=taxable?gross*TAX_RATE/100n:0n,payout=gross-tax;
+    if(tax>0n)addTradingFee(db,tax,ticket.settledAt);
+    const next=exactWallet.read(u)+payout,m=exactWallet.mirror(next);
     userSet.run(m,String(next),String(m),ticket.userId);
     ledger.run(ticket.userId,exactWallet.mirror(payout),m,String(payout),String(next),'jpl_win',
-      'JPL '+s.id+' '+ticket.legs.length+'폴더 적중 · 배당 '+ticket.totalOdds,ticket.settledAt);
-    ticket.paid=String(payout);
+      'JPL '+s.id+' '+ticket.legs.length+'폴더 적중 · 배당 '+ticket.totalOdds+' · 잭팟 적립 '+tax,ticket.settledAt);
+    ticket.gross=String(gross);ticket.tax=String(tax);ticket.paid=String(payout);
    }else ticket.paid='0';
    save(key,ticket);processed++;
   }
   return processed;
  }
  function tableFor(s){
-  const table=CLUBS.map(c=>({...c,played:0,won:0,drawn:0,lost:0,for:0,against:0,points:0,lastFive:[]}));
+  const table=(s.clubs||CLUBS.map(c=>c.id)).map(id=>CLUB_MAP.get(id)).map(c=>({...c,played:0,won:0,drawn:0,lost:0,for:0,against:0,points:0,lastFive:[]}));
   const map=new Map(table.map(t=>[t.id,t]));
   for(const f of s.fixtures){
    if(!f.finishedAt)continue;
@@ -168,10 +204,16 @@ function createJPL({db,exactWallet,now=Date.now,random=()=>crypto.randomBytes(4)
  }
  function nextSeason(s){
   const standings=tableFor(s),champion=standings[0]?.id;
+  const relegated=standings.slice(-2).map(c=>c.id);
+  const promoted=(s.reserves||RESERVES.map(c=>c.id)).slice(0,2);
+  if(promoted.length!==2||new Set(promoted).size!==2)throw Error('2군 승격팀이 2팀 필요합니다.');
+  const active=(s.clubs||CLUBS.map(c=>c.id)).filter(id=>!relegated.includes(id)).concat(promoted);
+  const reserves=(s.reserves||RESERVES.map(c=>c.id)).filter(id=>!promoted.includes(id)).concat(relegated);
   save(ARCHIVE+s.id,{id:s.id,number:s.number,startAt:s.startAt,endAt:s.endAt,champion,
-    table:standings,results:s.fixtures.map(f=>({id:f.id,home:f.home,away:f.away,score:f.score}))});
-  // Kick off new season after the old one is fully completed, never reset open tickets.
-  const fresh=createSeason(Math.max(now(),s.endAt),s.number+1);
+    relegated,promoted,table:standings,results:s.fixtures.map(f=>({id:f.id,home:f.home,away:f.away,score:f.score}))});
+  // Two relegated clubs swap with the two second-division clubs. The reserve pool
+  // becomes next season's Championship, allowing future promotion/return cycles.
+  const fresh=createSeason(Math.max(now(),s.endAt),s.number+1,active,reserves);
   save(KEY,fresh);
   return fresh;
  }
@@ -180,6 +222,10 @@ function createJPL({db,exactWallet,now=Date.now,random=()=>crypto.randomBytes(4)
   try{
    let s=read(KEY),changed=false;
    if(!s){s=createSeason(now());save(KEY,s);changed=true}
+   // Upgrade persisted pre-handicap schedules in place: never reroll a played match.
+   for(const f of s.fixtures)if(!f.handicap){
+    f.handicap={line:handicapLine(f.home,f.away),odds:handicapOddsFor(f.home,f.away)};changed=true;
+   }
    for(const f of s.fixtures){
     if(f.kickoff>now())break;
     if(!f.events){kick(f);changed=true}
@@ -203,7 +249,7 @@ function createJPL({db,exactWallet,now=Date.now,random=()=>crypto.randomBytes(4)
    home:visible.filter(e=>e.kind==='GOAL'&&e.side==='H').length,
    away:visible.filter(e=>e.kind==='GOAL'&&e.side==='A').length}:null;
   return {id:f.id,round:f.round,day:f.day,kickoff:f.kickoff,home:f.home,away:f.away,
-   odds:f.odds,status:finished?'FINAL':started?'LIVE':'SCHEDULED',
+   odds:f.odds,handicap:f.handicap,status:finished?'FINAL':started?'LIVE':'SCHEDULED',
    minute:finished?90:started?minute:0,score,events:visible,seed:started?f.seed:null,
    outcome:finished?resultOf(f):null};
  }
@@ -217,9 +263,9 @@ function createJPL({db,exactWallet,now=Date.now,random=()=>crypto.randomBytes(4)
    .map(x=>x.ticket).sort((a,b)=>b.placedAt-a.placedAt).slice(0,40);
   return {ok:true,changed,serverNow:t,day:date,season:{id:season.id,number:season.number,
    startAt:season.startAt,endAt:season.endAt,totalGames:season.fixtures.length,finished:season.fixtures.filter(f=>f.finishedAt).length,
-   matchdays:93},
-   rules:{minStake:String(MIN_STAKE),maxStake:String(MAX_STAKE),maxReturn:String(MAX_RETURN),maxLegs:10,durationMs:MATCH_MS,fixturesPerDay:5,virtual:true},
-   wallet:String(exactWallet.read(u)),clubs:CLUBS,table:tableFor(season),
+   matchdays:93,relegationCount:2},
+   rules:{minStake:String(MIN_STAKE),maxStake:String(MAX_STAKE),maxReturn:String(MAX_RETURN),maxLegs:10,durationMs:MATCH_MS,fixturesPerDay:5,virtual:true,jackpotTaxRatePct:20,jackpotTaxAtOdds:100,jackpotTaxAbove:String(TAX_THRESHOLD)},
+   wallet:String(exactWallet.read(u)),clubs:(season.clubs||CLUBS.map(c=>c.id)).map(cid=>CLUB_MAP.get(cid)),reserves:(season.reserves||RESERVES.map(c=>c.id)).map(cid=>CLUB_MAP.get(cid)),table:tableFor(season),
    today:todayMatches.map(f=>fixturePublic(f,t)),
    upcoming:upcoming.map(f=>fixturePublic(f,t)),recent:recently.map(f=>fixturePublic(f,t)),
    live:live.map(f=>fixturePublic(f,t)),tickets};
@@ -242,32 +288,36 @@ function createJPL({db,exactWallet,now=Date.now,random=()=>crypto.randomBytes(4)
    const u=user(id),s=read(KEY),key=TICKET_PREFIX+s.id+':'+id+':'+requestId;
    const previous=read(key);
    if(previous){
-    if(previous.stake!==String(stake)||JSON.stringify(previous.legs.map(x=>({matchId:x.matchId,pick:x.pick})))!==JSON.stringify(legs))
+    const norm=x=>({matchId:x.matchId,pick:x.pick,market:x.market||'NORMAL'});
+    if(previous.stake!==String(stake)||JSON.stringify(previous.legs.map(norm))!==JSON.stringify(legs.map(norm)))
      throw Error('이미 다른 베팅에 사용된 요청번호입니다.');
     db.exec('COMMIT');return {ok:true,duplicate:true,ticket:previous};
    }
    const byId=new Map(s.fixtures.map(f=>[f.id,f])),seen=new Set();
    const chosen=legs.map(x=>{
-    const matchId=String(x?.matchId||''),pick=String(x?.pick||'');
+    const matchId=String(x?.matchId||''),pick=String(x?.pick||''),market=String(x?.market||'NORMAL');
     const f=byId.get(matchId);
-    if(!f||!['H','D','A'].includes(pick))throw Error('경기와 승무패 선택을 확인하세요.');
+    if(!f||!['H','D','A'].includes(pick)||!['NORMAL','HDP'].includes(market))throw Error('경기와 승무패 선택을 확인하세요.');
     if(seen.has(matchId))throw Error('동일한 경기는 한 번만 선택할 수 있어요.');
     seen.add(matchId);
     if(now()>=f.kickoff)throw Error('킥오프한 경기는 베팅할 수 없어요.');
-    return {matchId,pick,odds100:f.odds[pick],home:f.home,away:f.away,kickoff:f.kickoff};
+    return {matchId,pick,market,line:market==='HDP'?f.handicap.line:0,odds100:market==='HDP'?f.handicap.odds[pick]:f.odds[pick],home:f.home,away:f.away,kickoff:f.kickoff};
    });
    let numerator=stake,denominator=1n;
    for(const leg of chosen){numerator*=BigInt(leg.odds100);denominator*=100n}
    const potential=numerator/denominator;
-   if(potential>MAX_RETURN)throw Error('예상 당첨금은 최대 100조 G입니다. 베팅금액이나 폴더 수를 낮춰주세요.');
+   if(potential>MAX_RETURN)throw Error('예상 당첨금은 최대 100경 G입니다. 베팅금액이나 폴더 수를 낮춰주세요.');
    const before=exactWallet.read(u);
    if(before<stake)throw Error('보유 게임머니가 부족합니다.');
    const after=before-stake,m=exactWallet.mirror(after);
    userSet.run(m,String(after),String(m),id);
    ledger.run(id,exactWallet.mirror(-stake),m,String(-stake),String(after),'jpl_bet',
     'JPL '+s.id+' '+chosen.length+'폴더 · 승무패 확정 배당',now());
+   const taxable=bettingTax(chosen)||potential>TAX_THRESHOLD;
+   const tax=taxable?potential*TAX_RATE/100n:0n;
    const ticket={id:requestId,seasonId:s.id,userId:id,placedAt:now(),status:'OPEN',
     legs:chosen,stake:String(stake),potential:String(potential),
+    expectedTax:String(tax),expectedNet:String(potential-tax),
     totalOdds:(Number(numerator/stake)/Number(denominator)).toFixed(2),paid:'0'};
    // Total decimal odds are display-only; all payouts use BigInt exact numerator above.
    save(key,ticket);
@@ -276,4 +326,4 @@ function createJPL({db,exactWallet,now=Date.now,random=()=>crypto.randomBytes(4)
  }
  return {status,schedule,bet,tick:()=>advance().changed,clubs:CLUBS};
 }
-module.exports={createJPL,CLUBS,makeRoundRobin,createSchedule,createSeason,oddsFor,probabilities,DAY,MATCH_MS,MIN_STAKE,MAX_STAKE,MAX_RETURN};
+module.exports={createJPL,CLUBS,RESERVES,ALL_CLUBS,makeRoundRobin,createSchedule,createSeason,oddsFor,probabilities,handicapOddsFor,handicapLine,handicapResult,DAY,MATCH_MS,MIN_STAKE,MAX_STAKE,MAX_RETURN};
