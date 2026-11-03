@@ -19,39 +19,97 @@
    if(!r.ok)throw Error(d.error||'요청을 완료하지 못했어.');
    return d;
  }
- const itemImage=i=>'<span class="jre-item-icon" aria-hidden="true">'+safe(i.icon)+'</span>';
- let royalBusy=false,adminBusy=false;
+
+ const showcaseArt=item=>{
+   const key=String(item?.id||'');
+   if(key.includes('dragon')||key.includes('immortal'))return '/art/royal/dragon.svg';
+   if(key.includes('wings'))return '/art/royal/wings.svg';
+   if(key.includes('diamond')||key.includes('frame_royalboutique'))return '/art/royal/gem.svg';
+   return '/art/royal/crown.svg';
+ };
+ const itemType=item=>{
+   if(item.id.includes('wings'))return 'CELESTIAL WINGS';
+   if(item.category==='frame')return 'ROYAL GEMSTONE';
+   if(item.category==='pet')return 'MYTHIC GUARDIAN';
+   if(item.category==='title')return 'NOBLE INSIGNIA';
+   return 'IMPERIAL CROWN';
+ };
+ const showTime=time=>{try{return new Date(Number(time)).toLocaleDateString('ko-KR',{timeZone:'Asia/Seoul'})}catch{return '—'}};
+ let royalBusy=false,adminBusy=false,royalState=null,selectedId='costume_royalboutique_phoenix',category='all',ownedOnly=false;
+ const filters=[{id:'all',label:'전체 컬렉션'},{id:'costume',label:'왕실 의상'},{id:'frame',label:'보석 · 오라'},{id:'pet',label:'신화 수호수'},{id:'title',label:'황실 칭호'}];
+ const pill=item=>item.stock!=null?'<span class="jrp-rare-pill">LIMITED '+item.stock+' · '+item.remaining+' LEFT</span>':'<span class="jrp-rare-pill">'+safe(item.rarity.toUpperCase())+' EDITION</span>';
+ function renderRoyal(){
+   if(!royal||!royalState)return;
+   const all=royalState.items||[];
+   const featured=all.find(i=>i.id===selectedId)||all[0];
+   if(!featured)return;
+   const tiles=all.filter(i=>(category==='all'||i.category===category)&&(!ownedOnly||i.owned));
+   const actionText=i=>i.owned?(i.equipped?'✓ 착용 중':'보유 상품 장착'):i.soldOut?'판매 완료':'컬렉션 소장하기';
+   const actionAttr=i=>i.owned?(i.equipped?'disabled':'data-jre-equip="'+safe(i.id)+'"'):i.soldOut?'disabled':'data-jre-buy="'+safe(i.id)+'"';
+   royal.innerHTML=
+    '<div class="jrp-opening"><span>MAISON JUNJA</span><span>THE PRIVATE COLLECTION · 2026</span></div>'+
+    '<section class="jrp-featured" aria-label="로얄 명품 특별 전시관">'+
+      '<div class="jrp-featured-copy"><div class="jrp-label"><i></i> EXCLUSIVE ROYAL SHOWROOM</div>'+
+        '<p class="jrp-serif">Wear the Legacy.</p>'+
+        '<h2>소유하는 순간,<br><em>전설이 된다.</em></h2>'+
+        '<p class="jrp-intro">JUNJA ROYAL PALACE · 왕관과 보석이 주인공이 되는 황실 전시장. 하나의 명품에 하나의 이름을 남겨봐.</p>'+
+        '<div class="jrp-featured-divider"></div><span class="jrp-featured-index">SIGNATURE OBJECT · NO. '+String(all.findIndex(x=>x.id===featured.id)+1).padStart(2,'0')+'</span>'+
+        '<h3>'+safe(featured.name)+'</h3><p class="jrp-featured-desc">'+safe(featured.desc)+'</p>'+
+        '<div class="jrp-featured-pills">'+pill(featured)+'<span class="jrp-outline-pill">평생 소장 · 구매자 각인</span></div>'+
+        '<div class="jrp-featured-foot"><div><small>EXCLUSIVE PRICE</small><strong>'+fmt(featured.price)+'</strong></div><button '+actionAttr(featured)+' type="button">'+actionText(featured)+'</button></div>'+
+      '</div>'+
+      '<div class="jrp-featured-art"><div class="jrp-art-arch"><div class="jrp-art-aura"></div><img src="'+showcaseArt(featured)+'" alt="'+safe(featured.name)+' 고급 일러스트"><div class="jrp-stage-plinth"></div></div><div class="jrp-art-caption"><span>JUNJA</span><b>ROYAL PALACE</b><small>EST. 2026</small></div></div>'+
+    '</section>'+
+    '<div class="jrp-promises"><span>✧ <b>SOULBOUND</b> 영구 소장</span><span>✦ <b>LIMITED</b> 실제 서버 재고</span><span>♛ <b>LEGACY</b> 소유주 기록</span></div>'+
+    '<div class="jrp-gallery-head"><div><small>01 / THE COLLECTION</small><h2>갤러리에서 고르는 나만의 명품</h2><p>상품을 선택하면 위 메인 쇼케이스에서 상세 정보를 감상할 수 있어.</p></div><button class="jrp-owned-toggle '+(ownedOnly?'selected':'')+'" data-jre-owned type="button">'+(ownedOnly?'✓ 내 소장품만 보는 중':'내 소장품만 보기')+'</button></div>'+
+    '<nav class="jrp-filters" aria-label="명품 카테고리">'+filters.map(f=>'<button type="button" class="'+(category===f.id?'selected':'')+'" data-jre-filter="'+f.id+'">'+f.label+'</button>').join('')+'</nav>'+
+    '<div class="jrp-gallery">'+(tiles.map(item=>'<article class="jrp-tile '+(item.id===featured.id?'selected ':'')+(item.stock!=null?'limited ':'')+(item.owned?'owned':'')+'">'+
+      '<button class="jrp-tile-preview" type="button" data-jre-select="'+safe(item.id)+'" aria-label="'+safe(item.name)+' 상세 전시 보기"><div class="jrp-tile-art"><img src="'+showcaseArt(item)+'" loading="lazy" alt=""></div><span class="jrp-tile-index">'+itemType(item)+'</span></button>'+
+      '<div class="jrp-tile-meta"><div><small>'+(item.stock!=null?'NUMBERED EDITION · '+item.remaining+'/'+item.stock:'PERMANENT COLLECTION')+'</small><h3>'+safe(item.name)+'</h3></div><b>'+fmt(item.price)+'</b></div>'+
+      '<div class="jrp-tile-actions"><button type="button" data-jre-select="'+safe(item.id)+'">자세히 보기</button><button type="button" '+actionAttr(item)+'>'+actionText(item)+'</button></div>'+
+    '</article>').join('')||'<div class="jrp-gallery-empty">해당 조건의 소장품이 없어.</div>')+'</div>'+
+    '<section class="jrp-social"><div class="jrp-social-heading"><small>02 / THE HALL OF FAME</small><h2>로얄 명예의 전당</h2><p>소유의 가치를 증명하는 이름들. 명품 소비 금액만으로 순위를 계산해.</p></div>'+
+    '<div class="jrp-social-columns"><div class="jrp-rank">'+
+     '<h3>♛ TOP COLLECTORS</h3>'+((royalState.ranking||[]).length?royalState.ranking.map(x=>'<div class="jrp-rank-row"><em>'+String(x.rank).padStart(2,'0')+'</em><span>'+safe(x.nickname)+'</span><b>'+fmt(x.spent)+'</b></div>').join(''):'<p>첫 로얄 컬렉터를 기다리는 중.</p>')+
+    '</div><div class="jrp-news"><h3>✧ RECENT ACQUISITIONS</h3>'+((royalState.recent||[]).length?royalState.recent.map(x=>'<div class="jrp-news-row"><b>'+safe(x.nickname)+'</b><span>'+safe(x.itemName)+' 소장</span><small>'+showTime(x.purchasedAt)+'</small></div>').join(''):'<p>아직 구매 기록이 없어.</p>')+'</div></div></section>'+
+    '<div class="jrp-disclaimer">게임 내 가상 재화로만 거래됩니다. 현금 환급·실물 교환 불가. 명품은 외형 및 수집용으로 승률이나 현금 가치에 영향을 주지 않아.</div>';
+ }
  async function loadRoyal(){
    if(!royal||royalBusy)return;royalBusy=true;
-   try{
-     const data=await get('/api/royal-economy');
-     royal.innerHTML='<div class="jre-hero"><div><small>PRIVATE COLLECTION · WHITE / GOLD / PURPLE</small><h2>♛ JUNJA ROYAL BOUTIQUE</h2><p>부의 끝에는 이름이 남는다. 고가 명품을 영구 소장하고 프로필·게임 아바타에서 과시해봐.</p><em>아이템 구매금액 전액 소멸 · 재판매 불가 · 승률 영향 없음</em></div><span class="jre-emblem">♛</span></div>'+
-       '<div class="jre-topline"><strong>ROYAL COLLECTION</strong><span>실시간 한정 수량 · 소유주 영구 각인</span></div>'+
-       '<div class="jre-products">'+data.items.map(i=>{
-         const sold=i.stock!=null&&i.remaining===0;
-         return '<article class="jre-product '+(i.stock?'jre-limited ':'')+(i.owned?'jre-owned':'')+'">'+itemImage(i)+
-           '<div class="jre-product-copy"><span class="jre-rarity">'+safe(i.rarity.toUpperCase())+(i.stock?' · LIMITED '+i.stock:'')+'</span><h3>'+safe(i.name)+'</h3><p>'+safe(i.desc)+'</p></div>'+
-           '<b class="jre-price">'+fmt(i.price)+'</b>'+
-           (i.inscription?'<p class="jre-inscription">각인 · '+safe(i.inscription.ownerNickname)+' · '+new Date(i.inscription.purchasedAt).toLocaleDateString('ko-KR')+'</p>':'')+
-           (i.stock?'<small class="jre-stock">남은 수량 '+i.remaining+' / '+i.stock+'</small>':'')+
-           '<button type="button" data-jre-buy="'+safe(i.id)+'" '+(i.owned||i.soldOut?'disabled':'')+'>'+
-             (i.owned?'✓ 소장 완료':sold?'품절':'명품 구매하기')+'</button></article>'
-       }).join('')+'</div>'+
-       '<div class="jre-leaderboard"><div><small>ROYAL HALL OF FAME</small><h3>로얄 명품 구매 누적 랭킹</h3><p>닉네임은 현재 이름으로 표시 · 명품 소비 누적액만 집계</p></div><div class="jre-ranks">'+(data.ranking.length?data.ranking.map(x=>'<div><b>'+x.rank+'위</b><span>'+safe(x.nickname)+'</span><strong>'+fmt(x.spent)+'</strong></div>').join(''):'<p>아직 첫 구매자가 없어.</p>')+'</div></div>';
-   }catch(e){royal.innerHTML='<div class="jre-error">명품관을 불러오지 못했어. '+safe(e.message)+' <button id="jreRetry" type="button">다시 불러오기</button></div>'}
+   try{royalState=await get('/api/royal-economy');renderRoyal();}
+   catch(e){royal.innerHTML='<div class="jrp-error">전시관을 불러오지 못했어. '+safe(e.message)+' <button data-jre-retry type="button">다시 불러오기</button></div>';}
    finally{royalBusy=false;}
  }
+ function celebrate(item,inscription){
+   const overlay=document.createElement('div');overlay.className='jrp-victory';overlay.setAttribute('role','dialog');overlay.setAttribute('aria-modal','true');
+   overlay.innerHTML='<div class="jrp-victory-card"><span class="jrp-victory-glow"></span><small>MAISON JUNJA · AUTHENTIC ACQUISITION</small><div class="jrp-victory-art"><img alt="" src="'+showcaseArt(item)+'"></div><h2>ROYAL ACQUIRED</h2><h3>'+safe(item.name)+'</h3><p>이 명품은 이제 너만의 역사야.</p><div class="jrp-victory-sign">소유주 · '+safe(inscription?.ownerNickname||'ROYAL COLLECTOR')+'<br>구매가 · '+fmt(inscription?.paid||item.price)+'</div><button class="jrp-victory-done" type="button">컬렉션 돌아가기</button></div>';
+   function close(){overlay.remove();}
+   overlay.querySelector('.jrp-victory-done').addEventListener('click',close);
+   overlay.addEventListener('click',e=>{if(e.target===overlay)close()});
+   document.body.appendChild(overlay);overlay.querySelector('button')?.focus();
+ }
  async function buy(id,button){
-   if(button.disabled)return;
-   const name=button.closest('.jre-product')?.querySelector('h3')?.textContent||'이 아이템';
-   if(!confirm(name+'을 구매할까?\n결제한 게임머니는 완전히 소멸하고 환불되지 않아.'))return;
-   button.disabled=true;
+   if(button.disabled||!royalState)return;
+   const item=royalState.items.find(x=>x.id===id);if(!item)return;
+   if(!confirm(item.name+'을(를) '+fmt(item.price)+'에 구매할까?\n결제 금액은 게임 내에서 소멸하며 이 상품은 영구 소장돼.'))return;
+   const buttons=royal.querySelectorAll('[data-jre-buy]');
+   buttons.forEach(x=>x.disabled=true);
    try{
      const d=await get('/api/royal-economy/buy',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({itemId:id})});
      document.dispatchEvent(new CustomEvent('jbank:wallet-change',{detail:{balance:d.balance,user:d.user}}));
+     await loadRoyal();celebrate(d.item,d.inscription);
+     if(typeof window.loadShop==='function')await window.loadShop();
+   }catch(e){alert(e.message);await loadRoyal();}
+ }
+ async function equip(id,button){
+   if(button.disabled||!royalState)return;
+   const item=royalState.items.find(x=>x.id===id);if(!item||!item.owned)return;
+   button.disabled=true;
+   try{
+     const d=await get('/api/shop/equip',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({category:item.category,itemId:id})});
+     if(d.user)document.dispatchEvent(new CustomEvent('jbank:wallet-change',{detail:{user:d.user}}));
      await loadRoyal();
      if(typeof window.loadShop==='function')await window.loadShop();
-     alert('구매 완료! '+name+'이(가) 자동 장착됐어.\n소유주 각인이 저장됐어.');
    }catch(e){alert(e.message);await loadRoyal();}
  }
  async function loadEconomy(){
@@ -77,8 +135,13 @@
    finally{adminBusy=false;}
  }
  royal?.addEventListener('click',e=>{
-   const buyBtn=e.target.closest('[data-jre-buy]');if(buyBtn)return buy(buyBtn.dataset.jreBuy,buyBtn);
-   if(e.target.closest('#jreRetry'))loadRoyal();
+   const b=e.target.closest('button');if(!b)return;
+   if(b.dataset.jreBuy)return buy(b.dataset.jreBuy,b);
+   if(b.dataset.jreEquip)return equip(b.dataset.jreEquip,b);
+   if(b.dataset.jreSelect){selectedId=b.dataset.jreSelect;renderRoyal();royal.querySelector('.jrp-featured')?.scrollIntoView({behavior:'smooth',block:'start'});return;}
+   if(b.dataset.jreFilter){category=b.dataset.jreFilter;renderRoyal();return;}
+   if(b.hasAttribute('data-jre-owned')){ownedOnly=!ownedOnly;renderRoyal();return;}
+   if(b.hasAttribute('data-jre-retry'))loadRoyal();
  });
  economy?.addEventListener('click',e=>{if(e.target.closest('#jreEconomyReload'))loadEconomy()});
  const shopView=document.getElementById('view-shop'),adminView=document.getElementById('view-admin');
@@ -88,4 +151,14 @@
    new MutationObserver(()=>{const next=el.classList.contains('active');if(next&&!active)loader();active=next}).observe(el,{attributes:true,attributeFilter:['class']});
  }
  observe(shopView,loadRoyal);observe(adminView,loadEconomy);
+ const wings=document.getElementById('junjaShopWingNav');
+ wings?.addEventListener('click',event=>{
+   const btn=event.target.closest('[data-shop-wing]');if(!btn||!shopView)return;
+   const showPalace=btn.dataset.shopWing==='palace';
+   shopView.classList.toggle('palace-mode',showPalace);
+   shopView.classList.toggle('store-mode',!showPalace);
+   wings.querySelectorAll('[data-shop-wing]').forEach(x=>{x.classList.toggle('active',x===btn);x.setAttribute('aria-pressed',String(x===btn));});
+   if(showPalace&&!royalState)loadRoyal();
+   document.querySelector('#view-shop .view-head')?.scrollIntoView({behavior:'smooth',block:'start'});
+ });
 })();

@@ -33,7 +33,7 @@ async function api(url,body){
   let royal=shop.items.filter(x=>x.collection==='royalclub');
   assert.equal(royal.length,6);
   assert.ok(royal.every(x=>x.rankTier===5&&!x.rankShopUnlocked));
-  assert.deepEqual(royal.map(x=>x.price).sort((a,b)=>a-b),[300000000000000,300000000000000,500000000000000,500000000000000,800000000000000,800000000000000]);
+  assert.deepEqual(royal.map(x=>x.price).sort((a,b)=>a-b),[3000000000000000,3000000000000000,5000000000000000,5000000000000000,8000000000000000,8000000000000000]);
 
   await stop();
   const original=118925832869123457n;

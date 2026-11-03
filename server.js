@@ -413,7 +413,7 @@ const SHOP_ITEMS = [
   {id:'char_m_cosmos',category:'character',gender:'M',asset:'/art/v26/characters/char_m_cosmos.webp',name:'코스모스 레이',icon:'★',rarity:'legendary',price:450000000,desc:'별빛 블루 수트와 코스믹 오라가 흐르는 캐릭터'},
   {id:'char_m_emperor',category:'character',gender:'M',asset:'/art/v26/characters/char_m_emperor.webp',name:'엠퍼러 J',icon:'J♛',rarity:'mythic',price:650000000,desc:'황제 골드와 J 시그니처를 결합한 신화급 남캐'},
   {id:'char_m_royal',category:'character',gender:'M',asset:'/art/v26/characters/char_m_royal.webp',name:'로열 아르카나',icon:'✧',rarity:'mythic',price:800000000,desc:'퍼플 젬과 아르카나 무드의 최상위 로열 캐릭터'},
-  {id:'char_m_junja',category:'character',gender:'M',asset:'/art/v26/characters/char_m_junja.webp',name:'JUNJA KING',icon:'♛',rarity:'prestige',price:1000000000,desc:'10억 G 프레스티지. 왕관·골드 오라를 가진 남캐 최종 컬렉션',featured:true},
+  {id:'char_m_junja',category:'character',gender:'M',asset:'/art/v26/characters/char_m_junja.webp',name:'JUNJA KING',icon:'♛',rarity:'prestige',price:1000000000,desc:'1000억 G 프레스티지. 왕관·골드 오라를 가진 남캐 최종 컬렉션',featured:true},
 
   {id:'char_f_aria',category:'character',gender:'F',asset:'/art/v26/characters/char_f_aria.webp',name:'아리아',icon:'♥',rarity:'rare',price:5000000,desc:'핑크 리본과 단발 헤어의 밝고 세련된 여성 캐릭터'},
   {id:'char_f_yuna',category:'character',gender:'F',asset:'/art/v26/characters/char_f_yuna.webp',name:'유나',icon:'✦',rarity:'rare',price:8000000,desc:'블루 퍼플 드레스와 롱헤어의 청순 VIP'},
@@ -429,7 +429,7 @@ const SHOP_ITEMS = [
   {id:'char_f_seraph',category:'character',gender:'F',asset:'/art/v26/characters/char_f_seraph.webp',name:'세라프',icon:'☼',rarity:'legendary',price:450000000,desc:'화이트 골드 드레스와 천상 오라의 세라프'},
   {id:'char_f_empress',category:'character',gender:'F',asset:'/art/v26/characters/char_f_empress.webp',name:'엠프레스 J',icon:'J♛',rarity:'mythic',price:650000000,desc:'황제 크라운과 J 시그니처를 가진 신화급 여성 캐릭터'},
   {id:'char_f_venus',category:'character',gender:'F',asset:'/art/v26/characters/char_f_venus.webp',name:'비너스 로열',icon:'✦',rarity:'mythic',price:800000000,desc:'로즈 젬과 로열 드레스의 최상위 여성 캐릭터'},
-  {id:'char_f_junja',category:'character',gender:'F',asset:'/art/v26/characters/char_f_junja.webp',name:'JUNJA EMPRESS',icon:'♕',rarity:'prestige',price:1000000000,desc:'10억 G 프레스티지. 황금 왕관과 오라를 가진 여캐 최종 컬렉션',featured:true},
+  {id:'char_f_junja',category:'character',gender:'F',asset:'/art/v26/characters/char_f_junja.webp',name:'JUNJA EMPRESS',icon:'♕',rarity:'prestige',price:1000000000,desc:'1000억 G 프레스티지. 황금 왕관과 오라를 가진 여캐 최종 컬렉션',featured:true},
 
   {id:'char_m_blade',category:'character',gender:'M',asset:'/art/v29/characters/char_m_blade.png',name:'블레이드 렌',icon:'⚔',rarity:'mythic',price:120000000,desc:'JUNJA LAND 신규 프리미엄 컬렉션 캐릭터'},
   {id:'char_m_sirius',category:'character',gender:'M',asset:'/art/v29/characters/char_m_sirius.png',name:'시리우스',icon:'✦',rarity:'mythic',price:180000000,desc:'JUNJA LAND 신규 프리미엄 컬렉션 캐릭터'},
@@ -543,7 +543,7 @@ const SHOP_ITEMS = [
 SHOP_ITEMS.push(...ROYAL_ITEMS);
 const SHOP_PERKS={char_m_junja:{slotLuckPct:.4,dailyBonusPct:2},char_f_junja:{slotLuckPct:.4,dailyBonusPct:2},char_m_royal:{slotLuckPct:.2},char_f_empress:{slotLuckPct:.2},frame_legend:{slotLuckPct:.3},frame_junjaroyal:{slotLuckPct:.2},pet_guardian:{slotLuckPct:.3,dailyBonusPct:2},pet_phoenix:{slotLuckPct:.15},title_thejunja:{dailyBonusPct:1}};
 for(const item of SHOP_ITEMS){
-  if(Number.isSafeInteger(item.price)&&item.price>0)item.price*=10; // Existing purchases not repriced.
+  if(item.collection!=='royalboutique'&&Number.isSafeInteger(item.price)&&item.price>0)item.price*=100; // Prior x10 plus a new x10; already owned items unchanged.
   if(SHOP_PERKS[item.id])item.perk={...SHOP_PERKS[item.id]};
 }
 const SHOP_BY_ID = Object.fromEntries(SHOP_ITEMS.map(x=>[x.id,Object.freeze({...x})]));
