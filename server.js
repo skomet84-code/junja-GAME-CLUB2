@@ -15,6 +15,7 @@ const {createCasinoCollateral}=require('./casino-collateral');
 const {createJStocks}=require('./j-stock-core');
 const {createKospiReference}=require('./j-stock-kospi-reference');
 const {createJCoins}=require('./j-coin-core');
+const {createJPL}=require('./jpl-core');
 const {BASE:SLOT_POOL_BASE,output:slotPoolOutput,readPool:readSlotJackpotPool}=require('./slot-jackpot-pool');
 const {combinedInvestmentRanking}=require('./j-investment-ranking');
 const { DatabaseSync } = require('./persistent-db');
@@ -840,6 +841,16 @@ const jCredit=createJCredit({db,exactWallet,now,kstDate,items:ROYAL_ITEMS,royalM
 jBank.setCredit(jCredit);
 royalEconomy.setBank(jBank);
 const casinoCollateral=createCasinoCollateral({db,exactWallet,jBank,levels:SOCIAL_RANKS,now});
+const jpl=createJPL({db,exactWallet,now});
+// A single persistent server clock settles fictional matches even without viewers.
+let jplTickBusy=false;
+setInterval(async()=>{
+ if(jplTickBusy)return;
+ jplTickBusy=true;
+ try{if(jpl.tick()){await db.flush();pushRefresh();}}
+ catch(e){console.error('[JPL] football tick:',e.message)}
+ finally{jplTickBusy=false}
+},15000).unref();
 let bankCollectionsBusy=false;
 async function checkOverdueBanks(){
   if(bankCollectionsBusy)return;bankCollectionsBusy=true;let changed=false;
@@ -2341,6 +2352,25 @@ const server=http.createServer(async(req,res)=>{
       const token=parseCookies(req).sid;if(token)db.prepare('DELETE FROM sessions WHERE token=?').run(token);return json(res,200,{ok:true},{'Set-Cookie':'sid=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0'});
     }
     if(url.pathname==='/api/me'&&req.method==='GET'){const u=requireAuth(req,res);if(!u)return;const includePresence=url.searchParams.get('presence')==='1';return json(res,200,{user:u,online:onlineCount(),presence:includePresence?presenceSnapshot():[]});}
+    if(url.pathname==='/api/jpl/status'&&req.method==='GET'){
+      const u=requireAuth(req,res);if(!u)return;
+      try{const d=jpl.status(u.id);if(d.changed)await db.flush();return json(res,200,d);}
+      catch(e){return json(res,400,{error:e.message})}
+    }
+    if(url.pathname==='/api/jpl/schedule'&&req.method==='GET'){
+      const u=requireAuth(req,res);if(!u)return;
+      try{const d=jpl.schedule(u.id);if(d.changed)await db.flush();return json(res,200,d);}
+      catch(e){return json(res,400,{error:e.message})}
+    }
+    if(url.pathname==='/api/jpl/bet'&&req.method==='POST'){
+      const u=requireAuth(req,res);if(!u)return;
+      if(!rateLimit('jpl-bet:'+u.id,12,60000))return json(res,429,{error:'축구 베팅 요청이 너무 빠릅니다.'});
+      try{
+        const b=await readBody(req),d=jpl.bet(u.id,b.legs,b.amount,b.requestId);
+        await db.flush();pushRefresh();
+        return json(res,200,{...d,user:userPublic(u.id)});
+      }catch(e){return json(res,400,{error:e.message})}
+    }
     if(url.pathname==='/api/jstock'&&req.method==='GET'){
       const u=requireAuth(req,res);if(!u)return;
       try{const status=withInvestmentRanking(jStocks.status(u.id),u.id,'stock');if(status.changed)await db.flush();return json(res,200,status);}
