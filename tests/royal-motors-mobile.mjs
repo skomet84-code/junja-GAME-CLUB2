@@ -43,11 +43,11 @@ for(const [engineName,engine] of runs){
  if(result.photos.length!==6||result.photos.some(x=>!x.loaded)||result.photos.some(x=>!x.src.includes('/art/royal/cinematic/')))throw Error(engineName+' broken six-room cinematic images '+JSON.stringify(result.photos));
  // The store now uses original 3D art scenes for all six halls; individual photos remain credited in item detail.
  await page.evaluate(()=>go('gallery'));
- await page.waitForSelector('#view-gallery.active .jrg-object img',{timeout:12000});
+ await page.waitForSelector('#view-gallery.active .jrg-object .jrp-product-art',{timeout:12000});
  await page.waitForTimeout(1400);
  const gallery=await page.evaluate(()=>({
    title:document.querySelector('#view-gallery h1')?.textContent,
-   photos:[...document.querySelectorAll('#view-gallery .jrg-object.occupied img')].map(x=>({loaded:x.complete&&x.naturalWidth>0,fallback:x.classList.contains('jrp-media-fallback')})),
+   photos:[...document.querySelectorAll('#view-gallery .jrg-object.occupied .jrp-product-art')].map(x=>({loaded:getComputedStyle(x).backgroundImage.includes('-showroom.webp')&&x.getBoundingClientRect().width>0&&x.getBoundingClientRect().height>0,accessibility:!!x.getAttribute('aria-label')})),
    owned:document.querySelectorAll('#view-gallery .jrg-vault-piece').length,
    roomCount:document.querySelectorAll('#view-gallery .jrg-room').length,
    privateSerials:[...document.querySelectorAll('#view-gallery .jrg-vault-piece-top strong')].map(x=>x.textContent.trim()),
@@ -56,7 +56,7 @@ for(const [engineName,engine] of runs){
  }));
  console.log('REAL_LUXURY_MUSEUM_'+engineName.toUpperCase(),JSON.stringify(gallery));
  await page.screenshot({path:'/tmp/junja-royal-gallery-'+engineName+'.png',fullPage:true});
- if(gallery.errors.length||gallery.owned!==3||gallery.roomCount!==5||gallery.photos.length!==3||gallery.photos.some(x=>!x.loaded)||gallery.overflow>8||gallery.privateSerials.length!==3||gallery.privateSerials.some(x=>!x.startsWith('№ ')))throw Error(engineName+' museum visual regression '+JSON.stringify(gallery));
+ if(gallery.errors.length||gallery.owned!==3||gallery.roomCount!==5||gallery.photos.length!==3||gallery.photos.some(x=>!x.loaded||!x.accessibility)||gallery.overflow>8||gallery.privateSerials.length!==3||gallery.privateSerials.some(x=>!x.startsWith('№ ')))throw Error(engineName+' museum visual regression '+JSON.stringify(gallery));
  await page.locator('.jrg-vault-certificate-btn').first().click();
  await page.waitForSelector('#view-gallery .jrg-certificate-dialog');
  const cert=await page.locator('#view-gallery .jrg-certificate-dialog').innerText();
