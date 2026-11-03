@@ -67,4 +67,21 @@ assert.throws(()=>royal.updateShowcase(1,[item.id,item.id]),/최대 3개/);
 assert.throws(()=>royal.updateShowcase(1,[ROYAL_ITEMS[0].id]),/구매한 명품/);
 assert.equal(db.prepare('SELECT balance_exact FROM users WHERE id=1').get().balance_exact,beforePin,'showcase must not spend money');
 royal.updateShowcase(1,[item.id]);
+
+// Gallery reads only certified royal ownership; never return wallet or credentials.
+const publicMuseum=royal.gallery(1);
+assert.equal(publicMuseum.nickname,'member1');
+assert.equal(publicMuseum.public,true);
+assert.equal(publicMuseum.items.length,1);
+assert.equal(publicMuseum.items[0].id,item.id);
+assert.equal(publicMuseum.items[0].inscription.ownerNickname,'member1');
+assert.equal(publicMuseum.collector.showcase[0].id,item.id);
+assert.equal(Object.hasOwn(publicMuseum,'balance'),false);
+assert.equal(Object.hasOwn(publicMuseum,'username'),false);
+assert.equal(royal.gallery(4).items.length,0);
+assert.equal(royal.gallery(999),null);
+db.prepare('UPDATE users SET is_disabled=1 WHERE id=4').run();
+assert.equal(royal.gallery(4),null);
+assert.equal(db.prepare('SELECT balance_exact FROM users WHERE id=1').get().balance_exact,beforePin,
+  'public museum views must never modify wallet balances');
 console.log('ROYAL ECONOMY TESTS OK');
