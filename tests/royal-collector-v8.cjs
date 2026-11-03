@@ -9,7 +9,7 @@ const index=read('public/index.html');
 for(const pattern of [/jrg-collector-passport/,/jrg-room-grid/,/jrg-vault-piece/,/jrg-vault-art/,/jrg-vault-certificate-btn/,/jrg-certificate-dialog/,/jrg-cert-facts/,/jrg-brand-heritage/,/data-jrg-sort/,/data-jrg-certificate/,/data-jrg-primary/,/data-jrg-pin/,/data-jrg-remove/,/data-jrg-focus/,/data-jrg-equip/])assert.match(museum,pattern,'new personal museum feature '+pattern);
 for(const pattern of [/ownerRecords=/,/ownedCatalogValue/,/collectionNo/,/acquiredAt/,/brandSets/,/ROOM_DEFS/])assert.match(backend,pattern,'backed by server ownership '+pattern);
 assert.match(museum,/게임 안에서만 유효한 가상 소장 증서/,'certificate must not imply real car ownership');
-assert.match(museum,/개인 수집 순번/,'number is personal, not an official manufacturer's serial');
+assert.match(museum,/개인 수집 순번/,"number is personal, not an official manufacturer's serial");
 assert.match(museum,/return '<article class="jrg-vault-piece/,'owned pieces use museum frames instead of storefront cards');
 const card=museum.slice(museum.indexOf(' function card('),museum.indexOf(' function certificate('));
 assert(!/money\(/.test(card),'collection holdings cannot show shop price as primary item metadata');
