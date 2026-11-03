@@ -26,7 +26,7 @@ const css=read('public/royal-economy.css');
 const gc=read('public/royal-gallery.css');
 assert.match(media,/Special:FilePath/,'source photos are backed by Commons file links');
 assert.match(media,/data-junja-photo/,'photographic fallback image interception');
-assert.match(media,/data-photo-fallback/,'local art survives lost photo connections');
+assert.match(media,/dataset\.photoFallback/,'local art survives lost photo connections');
 assert.match(store,/jrp-motors-hero/,'photo-first featured showroom');
 assert.match(store,/jrp-motors-photo-row/,'three original brand models in showcase');
 assert.match(store,/jrp-brand-nav/,'brand strip');
