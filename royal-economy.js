@@ -18,8 +18,8 @@ const ROYAL_ITEMS=Object.freeze([
  {id:'pet_royalboutique_immortal',category:'pet',name:'불멸의 황제 수호수',icon:'🦅',rarity:'sovereign',price:P(600),collection:'royalboutique',art:'immortal',desc:'최상위 영구 소장품 · 승률 및 경제 혜택 없음'},
  // Prestige exhibition objects. These are collectible luxury exhibits, NOT wearable avatars.
  // Never add display-only categories to user_loadout or any game perk.
- {id:'watch_royalboutique_aurora',category:'watch',name:'로열 오로라 워치',icon:'⌚',rarity:'prestige',price:P(1),collection:'royalboutique',art:'watch',displayOnly:true,desc:'핑크 골드와 자수정 다이얼의 하이엔드 타임피스'},
- {id:'watch_royalboutique_infinity',category:'watch',name:'인피니티 다이아 워치',icon:'⌚',rarity:'mythic',price:P(15),collection:'royalboutique',art:'watch-diamond',displayOnly:true,desc:'다이아몬드 베젤과 보랏빛 무브먼트의 왕실 시계'},
+ {id:'watch_royalboutique_aurora',category:'watch',name:'로열 오로라 워치',icon:'⌚',rarity:'prestige',price:P(1),collection:'royalboutique',art:'watch',displayOnly:true,photoFile:"Rolex Datejust ref. 16013, seconda metà anni '70-primi '80.jpg",photoBy:"EMore98",photoLicense:"CC BY-SA 4.0",desc:'핑크 골드와 자수정 다이얼의 하이엔드 타임피스'},
+ {id:'watch_royalboutique_infinity',category:'watch',name:'인피니티 다이아 워치',icon:'⌚',rarity:'mythic',price:P(15),collection:'royalboutique',art:'watch-diamond',displayOnly:true,photoFile:"Rolex Datejust con quadrante Wimbledon.jpg",photoBy:"EMore98",photoLicense:"CC BY-SA 4.0",desc:'다이아몬드 베젤과 보랏빛 무브먼트의 왕실 시계'},
  {id:'art_royalboutique_lion',category:'art',name:'황금 사자 조각상',icon:'🦁',rarity:'prestige',price:P(5),collection:'royalboutique',art:'lion',displayOnly:true,desc:'황금 사자가 제국의 입구를 지키는 전용 예술 작품'},
  {id:'art_royalboutique_globe',category:'art',name:'다이아 황실 지구본',icon:'🌐',rarity:'mythic',price:P(55),collection:'royalboutique',art:'globe',displayOnly:true,desc:'자수정과 금속으로 만든 세계 유일의 황실 지구본'},
  {id:'art_royalboutique_throne',category:'art',name:'갓준자 황금 왕좌',icon:'♛',rarity:'sovereign',price:P(250),collection:'royalboutique',art:'throne',displayOnly:true,desc:'진열하는 순간 제국의 주인임을 증명하는 왕좌'},
@@ -28,13 +28,25 @@ const ROYAL_ITEMS=Object.freeze([
  {id:'car_royalboutique_phantom',category:'car',name:'다이아 팬텀 리무진',icon:'🚘',rarity:'mythic',price:P(90),collection:'royalboutique',art:'limousine',displayOnly:true,desc:'별빛 실내와 다이아몬드 라디에이터의 황실 리무진'},
  {id:'car_royalboutique_emperor',category:'car',name:'황금 제왕 하이퍼카',icon:'🏎️',rarity:'sovereign',price:P(300),collection:'royalboutique',art:'car-hyper',displayOnly:true,stock:9,desc:'전 서버 9대 한정 · 황금 제왕의 하이퍼카'},
  {id:'car_royalboutique_eclipse',category:'car',name:'이클립스 원오브원',icon:'🏎️',rarity:'sovereign',price:P(1000),collection:'royalboutique',art:'car-eclipse',displayOnly:true,stock:1,desc:'전 서버 단 1대 · 유일 소유주의 이름을 새기는 컬렉터카'},
- {id:'yacht_royalboutique_midnight',category:'yacht',name:'미드나잇 로얄 요트',icon:'🛥️',rarity:'mythic',price:P(110),collection:'royalboutique',art:'yacht',displayOnly:true,desc:'달빛 위를 항해하는 프라이빗 럭셔리 요트'},
- {id:'yacht_royalboutique_sovereign',category:'yacht',name:'소버린 메가 요트',icon:'🛥️',rarity:'sovereign',price:P(480),collection:'royalboutique',art:'yacht-mega',displayOnly:true,desc:'전용 헬리패드와 황금 데크가 있는 최상급 메가 요트'},
- {id:'jet_royalboutique_noir',category:'jet',name:'로열 느와르 프라이빗 제트',icon:'✈️',rarity:'mythic',price:P(180),collection:'royalboutique',art:'jet',displayOnly:true,desc:'블랙 퍼플 외장과 골드 스트라이프의 황실 전용기'},
- {id:'jet_royalboutique_royal',category:'jet',name:'갓준자 시그니처 제트',icon:'✈️',rarity:'sovereign',price:P(700),collection:'royalboutique',art:'jet-gold',displayOnly:true,desc:'전용기 컬렉션의 정점 · 제국 문장을 새긴 한정 기체'},
+ {id:'yacht_royalboutique_midnight',category:'yacht',name:'미드나잇 로얄 요트',icon:'🛥️',rarity:'mythic',price:P(110),collection:'royalboutique',art:'yacht',displayOnly:true,photoFile:"Yacht Eclipse.jpg",photoBy:"Frankkaribik",photoLicense:"CC BY-SA 4.0",desc:'달빛 위를 항해하는 프라이빗 럭셔리 요트'},
+ {id:'yacht_royalboutique_sovereign',category:'yacht',name:'소버린 메가 요트',icon:'🛥️',rarity:'sovereign',price:P(480),collection:'royalboutique',art:'yacht-mega',displayOnly:true,photoFile:"Megayacht Eclipse.jpg",photoBy:"Otto Domes",photoLicense:"CC BY-SA 4.0",desc:'전용 헬리패드와 황금 데크가 있는 최상급 메가 요트'},
+ {id:'jet_royalboutique_noir',category:'jet',name:'로열 느와르 프라이빗 제트',icon:'✈️',rarity:'mythic',price:P(180),collection:'royalboutique',art:'jet',displayOnly:true,photoFile:"Gulfstream G650.JPG",photoBy:"TeWeBs",photoLicense:"CC BY-SA 4.0",desc:'블랙 퍼플 외장과 골드 스트라이프의 황실 전용기'},
+ {id:'jet_royalboutique_royal',category:'jet',name:'갓준자 시그니처 제트',icon:'✈️',rarity:'sovereign',price:P(700),collection:'royalboutique',art:'jet-gold',displayOnly:true,photoFile:"EC-MLR Gulfstream G650 SCQ 02.jpg",photoBy:"Bene Riobó",photoLicense:"CC BY-SA 4.0",desc:'전용기 컬렉션의 정점 · 제국 문장을 새긴 한정 기체'},
  {id:'estate_royalboutique_penthouse',category:'estate',name:'스카이 로얄 펜트하우스',icon:'🏙️',rarity:'sovereign',price:P(700),collection:'royalboutique',art:'penthouse',displayOnly:true,desc:'도시 정상에 빛나는 스카이 프라이빗 레지던스'},
  {id:'estate_royalboutique_island',category:'estate',name:'골든 프라이빗 아일랜드',icon:'🏝️',rarity:'sovereign',price:P(10000),collection:'royalboutique',art:'island',displayOnly:true,stock:3,desc:'전 서버 3개 한정 · 독점 섬과 개인 항구'},
- {id:'vault_royalboutique_imperial',category:'vault',name:'황제의 금고',icon:'🔐',rarity:'sovereign',price:P(1000),collection:'royalboutique',art:'vault',displayOnly:true,desc:'수천 개의 보석이 내장된 황실 기념 금고 · 장식용'}
+ {id:'vault_royalboutique_imperial',category:'vault',name:'황제의 금고',icon:'🔐',rarity:'sovereign',price:P(1000),collection:'royalboutique',art:'vault',displayOnly:true,desc:'수천 개의 보석이 내장된 황실 기념 금고 · 장식용'},
+ {id:'car_royalboutique_rr_ghost',category:'car',name:'롤스로이스 고스트 로얄 블랙',brand:'rolls-royce',model:'Ghost',icon:'🚘',rarity:'prestige',price:P(1),collection:'royalboutique',art:'limousine',displayOnly:true,photoFile:'RR Ghost.jpg',photoBy:'MrWalkr',photoLicense:'CC BY-SA 4.0',desc:'롤스로이스 고스트 실차를 모티브로 만든 준자랜드 블랙 로얄 컬렉션'},
+ {id:'car_royalboutique_rr_phantom',category:'car',name:'롤스로이스 팬텀 임페리얼',brand:'rolls-royce',model:'Phantom VIII',icon:'🚘',rarity:'mythic',price:P(10),collection:'royalboutique',art:'limousine',displayOnly:true,photoFile:'Rolls-Royce Phantom VIII Black (36).jpg',photoBy:'Damian B Oh',photoLicense:'CC BY-SA 4.0',desc:'상징적인 판테온 그릴, 밤의 궁전과 어울리는 황실 세단'},
+ {id:'car_royalboutique_rr_cullinan',category:'car',name:'롤스로이스 컬리넌 퍼플 에디션',brand:'rolls-royce',model:'Cullinan',icon:'🚘',rarity:'mythic',price:P(30),collection:'royalboutique',art:'limousine',displayOnly:true,photoFile:'Rolls-Royce Cullinan (1).jpg',photoBy:'Mathious Ier',photoLicense:'CC0 1.0',desc:'컬리넌을 모티브로 만든 준자랜드 자수정 황실 SUV 콘셉트'},
+ {id:'car_royalboutique_rr_one',category:'car',name:'롤스로이스 원오브원 준자 에디션',brand:'rolls-royce',model:'Phantom VIII concept',icon:'🚘',rarity:'sovereign',price:P(300),collection:'royalboutique',art:'limousine',displayOnly:true,photoFile:'Rolls-Royce Phantom VIII Black (45).jpg',photoBy:'Damian B Oh',photoLicense:'CC BY-SA 4.0',stock:3,desc:'서버 3대 한정 · 팬텀 실차 이미지 기반의 준자랜드 가상 시그니처'},
+ {id:'car_royalboutique_bentley_gt',category:'car',name:'벤틀리 컨티넨탈 GT 로얄',brand:'bentley',model:'Continental GT',icon:'🚘',rarity:'prestige',price:P(3),collection:'royalboutique',art:'car-gold',displayOnly:true,photoFile:'Bentley Continental GT (45672160794).jpg',photoBy:'Guillaume Vachey',photoLicense:'CC0 1.0',desc:'플라잉 B의 품격과 그랜드 투어링의 역동성을 담은 황실 컬렉션'},
+ {id:'car_royalboutique_bentley_spur',category:'car',name:'벤틀리 플라잉스퍼 시그니처',brand:'bentley',model:'Flying Spur',icon:'🚘',rarity:'mythic',price:P(15),collection:'royalboutique',art:'car-gold',displayOnly:true,photoFile:'Bentley Flying Spur (1).jpg',photoBy:'Mathious Ier',photoLicense:'CC0 1.0',desc:'정숙한 럭셔리 세단의 디테일을 황금빛 진열장에 담다'},
+ {id:'car_royalboutique_bentley_bentayga',category:'car',name:'벤틀리 벤테이가 블랙 퍼플',brand:'bentley',model:'Bentayga',icon:'🚘',rarity:'mythic',price:P(40),collection:'royalboutique',art:'car-gold',displayOnly:true,photoFile:'Bentley bentayga.jpg',photoBy:'Iorisrandombses5001',photoLicense:'CC0 1.0',desc:'벤테이가 실차 이미지를 기반으로 재해석한 황실 SUV 컬렉션'},
+ {id:'car_royalboutique_bentley_emperor',category:'car',name:'벤틀리 블랙라벨 황제 에디션',brand:'bentley',model:'Continental GT concept',icon:'🚘',rarity:'sovereign',price:P(500),collection:'royalboutique',art:'car-gold',displayOnly:true,photoFile:'Bentley Conti GT Image.jpg',photoBy:'MrWalkr',photoLicense:'CC BY-SA 4.0',stock:5,desc:'서버 5대 한정 · 준자랜드 전용 가상 블랙라벨 황제 에디션'},
+ {id:'car_royalboutique_aston_db12',category:'car',name:'애스턴마틴 DB12 로얄 퍼플',brand:'aston-martin',model:'DB12',icon:'🚘',rarity:'prestige',price:P(5),collection:'royalboutique',art:'car-purple',displayOnly:true,photoFile:'2024 Aston Martin DB12.jpg',photoBy:'Calreyn88',photoLicense:'CC BY-SA 4.0',desc:'유려한 그랜드 투어러의 우아함을 담은 가상 퍼플 사양'},
+ {id:'car_royalboutique_aston_vantage',category:'car',name:'애스턴마틴 밴티지 골드라인',brand:'aston-martin',model:'Vantage V8',icon:'🚘',rarity:'mythic',price:P(12),collection:'royalboutique',art:'car-purple',displayOnly:true,photoFile:'2024 Aston Martin V8 Vantage.jpg',photoBy:'MrWalkr',photoLicense:'CC BY-SA 4.0',desc:'섬세한 곡선과 스포티한 차체의 프리미엄 스포츠카'},
+ {id:'car_royalboutique_aston_dbs',category:'car',name:'애스턴마틴 DBS 시그니처',brand:'aston-martin',model:'DBS Superleggera',icon:'🚘',rarity:'mythic',price:P(25),collection:'royalboutique',art:'car-purple',displayOnly:true,photoFile:'Aston dbs.jpg',photoBy:'Saschaporsche',photoLicense:'CC BY-SA 4.0',desc:'DBS 슈퍼레제라의 존재감을 기념하는 황실 시그니처'},
+ {id:'car_royalboutique_aston_valhalla',category:'car',name:'애스턴마틴 발할라 갓준자 에디션',brand:'aston-martin',model:'Valhalla',icon:'🚘',rarity:'sovereign',price:P(700),collection:'royalboutique',art:'car-purple',displayOnly:true,photoFile:'2026 Aston Martin Valhalla.jpg',photoBy:'MrWalkr',photoLicense:'CC BY-SA 4.0',stock:3,desc:'서버 3대 한정 · 발할라 실차 사진을 사용하는 준자랜드 가상 하이퍼카'}
 ]);
 function createRoyalEconomy({db,exactWallet,now,getAssets}){
  const itemMap=new Map(ROYAL_ITEMS.map(item=>[item.id,item]));
@@ -108,7 +120,7 @@ function createRoyalEconomy({db,exactWallet,now,getAssets}){
    return {
      tier:tier.name,tierIcon:tier.icon,spent:String(spent),ownedCount:owned.length,
      nextTier:next?.name||null,nextAt:next?String(next.min):null,totalItems:ROYAL_ITEMS.length,
-     showcase:chosen.map(id=>{const item=allowed.get(id);return {id:item.id,name:item.name,icon:item.icon,art:item.art,displayOnly:!!item.displayOnly,rarity:item.rarity,price:item.price,category:item.category,equipped:!item.displayOnly&&equipped[item.category]===id}}),
+     showcase:chosen.map(id=>{const item=allowed.get(id);return {id:item.id,name:item.name,icon:item.icon,art:item.art,brand:item.brand||null,model:item.model||null,photoFile:item.photoFile||null,photoBy:item.photoBy||null,photoLicense:item.photoLicense||null,displayOnly:!!item.displayOnly,rarity:item.rarity,price:item.price,category:item.category,equipped:!item.displayOnly&&equipped[item.category]===id}}),
      equipped:ROYAL_ITEMS.filter(x=>!x.displayOnly&&equipped[x.category]===x.id&&allowed.has(x.id)).map(x=>({id:x.id,name:x.name,icon:x.icon}))
    };
  }
@@ -143,7 +155,7 @@ function createRoyalEconomy({db,exactWallet,now,getAssets}){
      const info=decorate(item,uid);
      const note=info.inscription;
      return {
-       id:item.id,name:item.name,category:item.category,rarity:item.rarity,icon:item.icon,art:item.art,displayOnly:!!item.displayOnly,
+       id:item.id,name:item.name,category:item.category,rarity:item.rarity,icon:item.icon,art:item.art,brand:item.brand||null,model:item.model||null,photoFile:item.photoFile||null,photoBy:item.photoBy||null,photoLicense:item.photoLicense||null,displayOnly:!!item.displayOnly,
        price:item.price,desc:item.desc,owned:true,equipped:!item.displayOnly&&load[item.category]===item.id,
        stock:item.stock??null,
        inscription:note?{itemId:item.id,itemName:item.name,ownerNickname:user.nickname,

@@ -355,9 +355,9 @@ async function openFriendsHub(prefill=''){
 function royalCollectorProfile(royal){
  if(!royal)return '';
  const collector=royal.collector||royal,items=Array.isArray(collector.showcase)?collector.showcase:[];
- const iconFor=x=>/^[a-z-]{2,40}$/.test(x?.art||'')?x.art:'crown';
+ const iconFor=x=>window.JunjaRoyalMedia?.picture(x)||('/art/royal/'+(/^[a-z-]{2,40}$/.test(x?.art||'')?x.art:'crown')+'.svg');
  const fmtRoyal=v=>{try{const n=BigInt(String(v??0));if(n>=10n**16n)return (n/(10n**16n)).toLocaleString('ko-KR')+'경 G';if(n>=10n**12n)return (n/(10n**12n)).toLocaleString('ko-KR')+'조 G';return n.toLocaleString('ko-KR')+' G'}catch{return '0 G'}};
- return '<section class="royal-public-display"><div class="royal-public-title"><small>JUNJA ROYAL · COLLECTOR PROFILE</small><h3>♛ '+html(collector.tier||'NEW COLLECTOR')+'</h3><p>명품 '+Number(collector.ownedCount||0)+'종 소장 · 누적 '+fmtRoyal(collector.spent)+'</p></div><div class="royal-public-items">'+(items.length?items.map((x,i)=>'<div class="royal-public-item"><img alt="" src="/art/royal/'+iconFor(x)+'.svg"><b>'+html(x.name)+'</b><small>'+(i===0?'대표 명품':'전시 명품')+'</small></div>').join(''):'<p>아직 전시한 로얄 명품이 없어.</p>')+'</div></section>';
+ return '<section class="royal-public-display"><div class="royal-public-title"><small>JUNJA ROYAL · COLLECTOR PROFILE</small><h3>♛ '+html(collector.tier||'NEW COLLECTOR')+'</h3><p>명품 '+Number(collector.ownedCount||0)+'종 소장 · 누적 '+fmtRoyal(collector.spent)+'</p></div><div class="royal-public-items">'+(items.length?items.map((x,i)=>'<div class="royal-public-item"><img alt="" src="'+html(iconFor(x))+'" referrerpolicy="no-referrer"'+(x.photoFile?' data-junja-photo="1" data-photo-fallback="'+html(window.JunjaRoyalMedia?.fallback(x)||'/art/royal/crown.svg')+'"':'')+'><b>'+html(x.name)+'</b><small>'+(i===0?'대표 명품':'전시 명품')+'</small></div>').join(''):'<p>아직 전시한 로얄 명품이 없어.</p>')+'</div></section>';
 }
 async function openProfile(){
   await refreshMe();
