@@ -56,6 +56,19 @@ function createRoyalEconomy({db,exactWallet,now,getAssets}){
  const getInscription=db.prepare('SELECT value FROM game_state WHERE key=?');
  const purchaseKey=(uid,id)=>'royal:inscription:'+uid+':'+id;
  const kstDay=(at)=>new Date(at+9*3600000).toISOString().slice(0,10);
+ // A personal collection number is the owner's acquisition order, NEVER an
+ // official manufacturer serial or a server-wide limited-edition number.
+ const inventoryOrder=db.prepare('SELECT item_id,purchased_at FROM user_inventory WHERE user_id=? ORDER BY purchased_at ASC,item_id ASC');
+ const ownerRecords=uid=>new Map(inventoryOrder.all(uid).filter(row=>itemMap.has(row.item_id)).map((row,i)=>[
+   row.item_id,{collectionNo:i+1,acquiredAt:row.purchased_at||null}
+ ]));
+ const ROOM_DEFS=Object.freeze([
+  {id:'motors',name:'THE MOTOR HALL',label:'로얄 모터스',categories:['car']},
+  {id:'fleet',name:'THE PRIVATE FLEET',label:'요트 · 전용기',categories:['jet','yacht']},
+  {id:'jewels',name:'THE JEWEL VAULT',label:'시계 · 보석',categories:['watch','frame']},
+  {id:'relics',name:'THE IMPERIAL ARTS',label:'황실 예술품',categories:['art','vault','estate']},
+  {id:'heritage',name:'THE HERITAGE WING',label:'왕실 유산',categories:['title','costume','pet']}
+ ]);
  function decorate(item,uid){
    if(item.collection!=='royalboutique')return {};
    const sold=Number(inventoryCount.get(item.id)?.n||0);
@@ -119,6 +132,16 @@ function createRoyalEconomy({db,exactWallet,now,getAssets}){
    }
    return {
      tier:tier.name,tierIcon:tier.icon,spent:String(spent),ownedCount:owned.length,
+     ownedCatalogValue:String(owned.reduce((total,item)=>total+readExact(item.price),0n)),
+     rooms:ROOM_DEFS.map(room=>({
+       id:room.id,name:room.name,label:room.label,
+       owned:owned.filter(item=>room.categories.includes(item.category)).length,
+       total:ROYAL_ITEMS.filter(item=>room.categories.includes(item.category)).length
+     })),
+     brandSets:['rolls-royce','bentley','aston-martin'].map(brand=>({
+       brand,total:ROYAL_ITEMS.filter(item=>item.brand===brand).length,
+       owned:owned.filter(item=>item.brand===brand).length
+     })),
      nextTier:next?.name||null,nextAt:next?String(next.min):null,totalItems:ROYAL_ITEMS.length,
      showcase:chosen.map(id=>{const item=allowed.get(id);return {id:item.id,name:item.name,icon:item.icon,art:item.art,brand:item.brand||null,model:item.model||null,photoFile:item.photoFile||null,photoBy:item.photoBy||null,photoLicense:item.photoLicense||null,displayOnly:!!item.displayOnly,rarity:item.rarity,price:item.price,category:item.category,equipped:!item.displayOnly&&equipped[item.category]===id}}),
      equipped:ROYAL_ITEMS.filter(x=>!x.displayOnly&&equipped[x.category]===x.id&&allowed.has(x.id)).map(x=>({id:x.id,name:x.name,icon:x.icon}))
@@ -143,7 +166,8 @@ function createRoyalEconomy({db,exactWallet,now,getAssets}){
    const load=db.prepare('SELECT title,frame,costume,pet FROM user_loadout WHERE user_id=?').get(uid)||{};
    const recent=db.prepare("SELECT u.nickname,l.memo,l.created_at AS purchasedAt FROM ledger l JOIN users u ON u.id=l.user_id WHERE l.type='royal_boutique_purchase' ORDER BY l.id DESC LIMIT 8").all()
     .map(r=>({nickname:r.nickname,itemName:String(r.memo||'').split(' · ')[1]||'로얄 명품',purchasedAt:r.purchasedAt}));
-   return {nickname:db.prepare('SELECT nickname FROM users WHERE id=?').get(uid)?.nickname||'',items:ROYAL_ITEMS.map(item=>({...item,owned:!!owns.get(uid,item.id),equipped:load[item.category]===item.id,...decorate(item,uid)})),collector:collector(uid),ranking:rank(),recent,serverNow:now()};
+   const records=ownerRecords(uid);
+   return {nickname:db.prepare('SELECT nickname FROM users WHERE id=?').get(uid)?.nickname||'',items:ROYAL_ITEMS.map(item=>({...item,owned:!!owns.get(uid,item.id),equipped:!item.displayOnly&&load[item.category]===item.id,...(records.get(item.id)||{}),...decorate(item,uid)})),collector:collector(uid),ranking:rank(),recent,serverNow:now()};
  }
 
  // Read-only public museum: only owned royal collectibles, no wallet or private user data.
@@ -151,13 +175,15 @@ function createRoyalEconomy({db,exactWallet,now,getAssets}){
    const user=db.prepare('SELECT id,nickname,is_disabled FROM users WHERE id=?').get(uid);
    if(!user||user.is_disabled)return null;
    const load=db.prepare('SELECT title,frame,costume,pet FROM user_loadout WHERE user_id=?').get(uid)||{};
+   const records=ownerRecords(uid);
    const items=ROYAL_ITEMS.filter(item=>owns.get(uid,item.id)).map(item=>{
      const info=decorate(item,uid);
      const note=info.inscription;
+     const certificate=records.get(item.id)||{};
      return {
        id:item.id,name:item.name,category:item.category,rarity:item.rarity,icon:item.icon,art:item.art,brand:item.brand||null,model:item.model||null,photoFile:item.photoFile||null,photoBy:item.photoBy||null,photoLicense:item.photoLicense||null,displayOnly:!!item.displayOnly,
        price:item.price,desc:item.desc,owned:true,equipped:!item.displayOnly&&load[item.category]===item.id,
-       stock:item.stock??null,
+       stock:item.stock??null,collectionNo:certificate.collectionNo||null,acquiredAt:certificate.acquiredAt||null,
        inscription:note?{itemId:item.id,itemName:item.name,ownerNickname:user.nickname,
          purchasedAt:note.purchasedAt,paid:note.paid}:null
      };
