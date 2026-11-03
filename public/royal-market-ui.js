@@ -46,7 +46,7 @@
    '<section class="jrm-exchange" aria-label="준자 명품 거래소">'+
     '<header class="jrm-hero"><div><small>MAISON JUNJA · PRIVATE EXCHANGE</small><h2>THE ROYAL <em>EXCHANGE</em></h2><p>소장 가치의 다음 이야기. 인증된 소유권만 거래되는 프라이빗 경매장.</p><span>♛ CERTIFIED OWNERSHIP · J-BANK · LIVE AUCTION</span></div><button type="button" data-jrm-refresh>시세 · 경매 새로고침 ↻</button></header>'+
     (error?'<p class="jrm-message error">'+esc(error)+'</p>':'')+(success?'<p class="jrm-message success">'+esc(success)+'</p>':'')+
-    '<div class="jrm-info-strip"><span>경매 시간 <b>24시간</b></span><span>낙찰 판매 수수료 <b>8%</b></span><span>은행 즉시 매입 <b>정가의 50%</b></span><span>최소 입찰 상승 <b>5%</b></span></div>'+
+    '<div class="jrm-info-strip"><span>경매 시간 <b>24시간</b></span><span>낙찰 판매 수수료 <b>8%</b></span><span>은행 즉시 매입 <b>정가의 75%</b></span><span>최소 입찰 상승 <b>5%</b></span></div>'+
     '<section class="jrm-owner-section"><div class="jrm-section-title"><small>01 / PRIVATE VAULT</small><h3>내 소장품 판매</h3><p>내 컬렉션에서 작품을 선택해 경매하거나 J-BANK에 즉시 매각할 수 있어.</p></div>'+
     (owned.length?'<div class="jrm-owned-grid">'+owned.map(ownedCard).join('')+'</div>'+
      (selected?'<div class="jrm-appraisal"><div class="jrm-appraisal-head"><span>SELECTED MASTERPIECE</span><strong>'+esc(selected.name)+'</strong><small>'+esc(initials(selected))+'</small></div>'+
