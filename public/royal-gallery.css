@@ -424,3 +424,169 @@
  #view-gallery .jrg-hall.jrg-grand-garage .jrg-stage{height:430px!important}
  #view-gallery .jrg-view-head h2{font-size:17px!important}
 }
+
+
+/* JUNJA PRIVATE COLLECTION V8 — not a store. Personal provenance ledger,
+ * curated exhibit halls and gallery-size archival frames, scoped to museum. */
+#view-gallery{--v8-gold:#eed0a0;--v8-golddeep:#b28550;--v8-paper:#fff5d6;--v8-velvet:#24132e;--v8-plum:#3c254b;--v8-muted:#c5afc9}
+#view-gallery .jrg-entry-v8{border-radius:20px 20px 0 0;background:radial-gradient(ellipse at 89% 0,#b185c55a,transparent 45%),linear-gradient(115deg,#160f23,#392347 61%,#170f24)}
+#view-gallery .jrg-entry-v8 h1{font-size:clamp(28px,4.8vw,52px);letter-spacing:-.05em}
+#view-gallery .jrg-entry-v8 h1 span{font-size:.88em}
+#view-gallery .jrg-collector-passport{position:relative;display:grid;grid-template-columns:1fr minmax(0,1.35fr);align-items:center;gap:24px;padding:22px 27px 31px;min-width:0;overflow:hidden;background:radial-gradient(circle at 9% 85%,#8d548a40,transparent 48%),linear-gradient(125deg,#2f1c3c,#160e22 56%,#2f1b3b);border:1px solid #bc905c;box-shadow:inset 0 0 0 5px #efd19a08,0 18px 30px #04030982}
+#view-gallery .jrg-collector-passport:before{content:"";position:absolute;inset:8px;border:1px solid #d9b78349;pointer-events:none}
+#view-gallery .jrg-passport-profile{display:flex;align-items:center;gap:16px;min-width:0}
+#view-gallery .jrg-passport-seal{display:grid;place-items:center;width:82px;height:82px;flex:0 0 82px;border-radius:50%;background:radial-gradient(circle at 50% 20%,#8663a2,#2a1732 75%);border:5px double #e9c78a;box-shadow:0 0 0 5px #24162b,0 0 0 6px #c09b6660,0 0 33px #d9ad6170;font:bold 48px Georgia,serif;color:#fce0a7}
+#view-gallery .jrg-passport-profile>div:last-child{min-width:0}
+#view-gallery .jrg-passport-profile small{font:700 10px Georgia,serif;letter-spacing:.16em;color:#cfa56e}
+#view-gallery .jrg-passport-profile h2{font:800 clamp(22px,2.8vw,32px)/1.22 Georgia,'Noto Serif KR',serif;color:#fff0c9;letter-spacing:-.02em;margin:9px 0 7px;overflow-wrap:anywhere}
+#view-gallery .jrg-passport-profile span{display:inline-block;font:700 11px Georgia,serif;letter-spacing:.1em;color:#e8c987}
+#view-gallery .jrg-passport-stats{display:grid;grid-template-columns:1fr 1fr 1.45fr;gap:6px;min-width:0}
+#view-gallery .jrg-passport-stats>div{min-width:0;padding:10px 12px;border-left:1px solid #c5a27657}
+#view-gallery .jrg-passport-stats small{display:block;font:700 9px Georgia,serif;letter-spacing:.07em;color:#c7a8d4}
+#view-gallery .jrg-passport-stats strong{display:block;margin:9px 0;color:#fbe1a5;font:bold clamp(18px,2.6vw,26px) Georgia,serif;line-height:1.2;overflow-wrap:anywhere}
+#view-gallery .jrg-passport-stats strong em{font:500 13px Georgia,serif;color:#b5a1c4}
+#view-gallery .jrg-passport-stats>div:last-child strong{font-size:clamp(14px,2vw,22px)}
+#view-gallery .jrg-passport-stats span{display:block;font-size:10px;line-height:1.4;color:#b7a6bf}
+#view-gallery .jrg-passport-note{grid-column:1/-1;margin-top:0;padding-top:11px;border-top:1px solid #a37d5c60;text-align:center;font:600 9px Georgia,'Noto Sans KR',serif;letter-spacing:.05em;color:#ac95b5}
+#view-gallery .jrg-relic-promises{margin:11px 0 27px}
+#view-gallery .jrg-selected-panel{margin:28px 0 42px}
+#view-gallery .jrg-selected-info .jrg-selected-rarity{background:#7b567b39;border-color:#f4d4a5;color:#f4ddb7}
+#view-gallery .jrg-selected-info .jrg-certificate{background:#9c7957a1}
+#view-gallery .jrg-selected-actions .jrg-primary-btn{padding:13px 18px}
+#view-gallery .jrg-vault{position:relative;max-width:1260px;overflow:visible;padding:0 0 20px;margin:40px 0 0}
+#view-gallery .jrg-vault:before{content:"";position:absolute;inset:-13px -2px auto;height:1px;background:linear-gradient(90deg,transparent,#eac180,transparent)}
+#view-gallery .jrg-vault-header{display:flex;gap:18px;justify-content:space-between;align-items:end;padding:28px 3px 18px;border-bottom:1px solid #bd925f7e}
+#view-gallery .jrg-vault-header small{font:700 10px Georgia,serif;letter-spacing:.24em;color:#debc84}
+#view-gallery .jrg-vault-header h2{font:800 clamp(27px,3.7vw,44px)/1.16 Georgia,'Noto Serif KR',serif;color:#ffe7b1;margin:7px 0 9px;letter-spacing:-.045em;text-shadow:0 0 18px #e5be7252}
+#view-gallery .jrg-vault-header p{font-size:12px;line-height:1.55;color:#c4aecf;margin:0}
+#view-gallery .jrg-vault-header>strong{border:1px solid #caa16c;background:#39233f;border-radius:50px;padding:12px 18px;color:#f3d7a0;font:750 11px Georgia,serif;letter-spacing:.08em;white-space:nowrap}
+#view-gallery .jrg-room-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:9px;margin:24px 0 25px;min-width:0}
+#view-gallery .jrg-room{position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:13px;min-width:0;min-height:187px;padding:17px 13px 15px;border:1px solid #826680;border-radius:12px;overflow:hidden;text-align:left;color:#e9d1ac;background:radial-gradient(ellipse at 75% 10%,#704f8c77,transparent 63%),linear-gradient(145deg,#31203d,#130e20);box-shadow:0 9px 22px #08051182}
+#view-gallery .jrg-room:before{content:"";position:absolute;inset:6px;border:1px solid #a889676b;border-radius:8px;pointer-events:none}
+#view-gallery .jrg-room.has-collection{border-color:#dcb779}
+#view-gallery .jrg-room.active,#view-gallery .jrg-room:hover{border-color:#ffebb7;background:radial-gradient(ellipse at 70% 0%,#865a9699,transparent 62%),#3c2849}
+#view-gallery .jrg-room-symbol{display:grid;place-items:center;width:41px;height:41px;border:1px solid #d9ad70;border-radius:50%;background:#22142c;box-shadow:0 0 20px #daa6674f;font:26px Georgia,serif;color:#f2cd80}
+#view-gallery .jrg-room-info{display:flex;flex-direction:column;gap:6px;min-width:0;flex:1}
+#view-gallery .jrg-room-info small{font:600 8px Georgia,serif;letter-spacing:.09em;color:#b59ac5}
+#view-gallery .jrg-room-info strong{font-size:14px;color:#ffdfa5;overflow-wrap:anywhere}
+#view-gallery .jrg-room-info em{font:600 9px Georgia,serif;color:#c9b2d2;letter-spacing:.08em;font-style:normal}
+#view-gallery .jrg-room-progress{display:block;width:100%;height:3px;border-radius:3px;background:#8a678648;overflow:hidden}
+#view-gallery .jrg-room-progress>span{display:block;height:100%;border-radius:3px;background:linear-gradient(90deg,#9d6a3d,#f9dfa7)}
+#view-gallery .jrg-brand-heritage{display:grid;grid-template-columns:1fr minmax(0,2.1fr);gap:15px;align-items:center;background:linear-gradient(120deg,#21152c,#311c3d,#151021);border:1px solid #b39067;border-radius:13px;padding:20px 22px;margin:5px 0 29px}
+#view-gallery .jrg-brand-heritage small{font:700 9px Georgia,serif;letter-spacing:.14em;color:#d5ad71}
+#view-gallery .jrg-brand-heritage h3{font-size:18px;color:#f9dba2;margin:7px 0}
+#view-gallery .jrg-brand-heritage>div:last-child{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:13px}
+#view-gallery .jrg-brand-progress{min-width:0;display:grid;grid-template-columns:1fr auto;gap:6px}
+#view-gallery .jrg-brand-progress>span{font:700 10px Georgia,serif;letter-spacing:.02em;color:#f1dbb4;overflow-wrap:anywhere}
+#view-gallery .jrg-brand-progress>b{font:700 10px Georgia,serif;color:#dfbc83}
+#view-gallery .jrg-brand-progress>div{grid-column:1/-1;height:4px;border-radius:3px;overflow:hidden;background:#7c57894f}
+#view-gallery .jrg-brand-progress>div>i{display:block;height:100%;background:linear-gradient(90deg,#af7e49,#f1d89e)}
+#view-gallery .jrg-vault-toolbar{display:flex;justify-content:space-between;align-items:center;gap:15px;flex-wrap:wrap;padding:8px 0 20px}
+#view-gallery .jrg-vault-tabs{display:flex;gap:7px;flex:1;min-width:0;overflow-x:auto;scrollbar-width:thin}
+#view-gallery .jrg-vault-tabs button{white-space:nowrap;border:1px solid #826786;border-radius:999px;background:#2a1b35;color:#d3b8d9;font-size:11px;font-weight:750;padding:11px 14px;min-height:40px}
+#view-gallery .jrg-vault-tabs button.active{background:linear-gradient(110deg,#ffe9b7,#c39253);border-color:#ffe0aa;color:#261827}
+#view-gallery .jrg-vault-sort{display:flex;gap:5px;align-items:center;flex-shrink:0}
+#view-gallery .jrg-vault-sort>span{color:#a894b8;font-size:10px;margin-right:5px}
+#view-gallery .jrg-vault-sort button{padding:8px 10px;font-size:10px;background:#21162b;color:#b7a6c3;border:1px solid #826888;border-radius:7px}
+#view-gallery .jrg-vault-sort button.active{color:#f1d49e;border-color:#d4ae7b;background:#3c284a}
+#view-gallery .jrg-vault-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;align-items:stretch}
+#view-gallery .jrg-vault-grid.jrg-vault-sparse{grid-template-columns:repeat(2,minmax(0,1fr))}
+#view-gallery .jrg-vault-piece{position:relative;isolation:isolate;overflow:hidden;min-width:0;display:flex;flex-direction:column;border:1px solid #c19a62;border-radius:12px;background:radial-gradient(ellipse at 50% 13%,#9c6cb24f,transparent 57%),linear-gradient(#3b2245,#1a1025 58%,#110c19);box-shadow:0 16px 30px #0302099e,inset 0 0 0 5px #e7c28b0c}
+#view-gallery .jrg-vault-piece:before{content:"";position:absolute;inset:7px 7px auto;height:70%;border:1px solid #c9ab787d;border-radius:9px;pointer-events:none;z-index:1}
+#view-gallery .jrg-vault-piece.signature{border:2px solid #f5d9a2;box-shadow:0 18px 45px #07030eb0,0 0 20px #cda2604f,inset 0 0 0 5px #efc99318}
+#view-gallery .jrg-vault-piece.active{border-color:#fce9b8}
+#view-gallery .jrg-vault-piece-top{position:relative;display:flex;justify-content:space-between;align-items:center;gap:6px;padding:16px 17px 8px;z-index:2;font:700 9px Georgia,serif;letter-spacing:.08em;color:#cfac7a}
+#view-gallery .jrg-vault-piece-top>strong{border:1px solid #e1bc82;border-radius:5px;padding:6px 9px;background:#291b32;color:#ffe0a5;font:800 15px Georgia,serif;white-space:nowrap}
+#view-gallery .jrg-vault-art{position:relative;display:block;width:100%;height:245px;padding:3px 12px 0;border:0;background:transparent;text-align:center;overflow:hidden}
+#view-gallery .jrg-vault-image-backdrop{position:absolute;inset:0;background:radial-gradient(ellipse at 50% 38%,#ddb67843,transparent 68%),linear-gradient(90deg,#100b1c88,transparent 35%,transparent 65%,#100b1c88)}
+#view-gallery .jrg-vault-art img{position:relative;z-index:2;display:block;width:100%;height:88%;object-fit:contain;filter:drop-shadow(0 12px 10px #0905109d) drop-shadow(0 0 11px #c9a17b59);transition:transform .25s}
+#view-gallery .jrg-vault-piece.photo-piece .jrg-vault-art img{object-fit:cover;object-position:center;filter:none;border:2px solid #c9a36f;border-radius:7px;box-shadow:0 11px 22px #090514ac}
+#view-gallery .jrg-vault-art:hover img{transform:scale(1.025)}
+#view-gallery .jrg-vault-art-engrave{position:absolute;z-index:3;bottom:10px;left:24px;right:24px;font:700 11px Georgia,serif;letter-spacing:.16em;color:#f6d18f;text-shadow:0 2px 8px #0b0812;background:#140d21a9;border:1px solid #bb965b7a;border-radius:4px;padding:8px}
+#view-gallery .jrg-vault-piece-foot{position:relative;flex:1;padding:17px 19px 18px;border-top:2px double #b68c5680;background:linear-gradient(145deg,#26162f,#1b1225 72%,#120d1b)}
+#view-gallery .jrg-vault-grade{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:5px;font:700 9px Georgia,'Noto Sans KR',serif;letter-spacing:.05em;color:#e6c58d}
+#view-gallery .jrg-vault-grade>small{color:#d1abdb;font-size:10px;font-weight:700}
+#view-gallery .jrg-vault-piece-foot h3{font:800 clamp(17px,1.8vw,23px)/1.3 Georgia,'Noto Serif KR',serif;color:#ffe6b6;margin:11px 0 13px;letter-spacing:-.02em}
+#view-gallery .jrg-vault-provenance{display:flex;flex-direction:column;gap:5px;border-top:1px solid #9476557f;padding-top:11px;color:#bba8c9;font-size:10px;line-height:1.5}
+#view-gallery .jrg-vault-provenance b{color:#efce98}
+#view-gallery .jrg-vault-certificate-btn{display:flex;justify-content:space-between;align-items:center;width:100%;padding:12px 14px;margin-top:14px;border:1px solid #e4c08a;border-radius:7px;color:#1f1427;background:linear-gradient(100deg,#fff0c7,#c79658 74%,#f3d6a3);font-size:12px;font-weight:850;box-shadow:0 8px 14px #06030b62}
+#view-gallery .jrg-vault-certificate-btn>span{font-size:18px;font-weight:500}
+#view-gallery .jrg-vault-piece.jrg-grade-sovereign{border-color:#fff0ce;box-shadow:0 0 23px #f9e4bd51,0 15px 30px #07040ba6}
+#view-gallery .jrg-vault-piece.jrg-grade-mythic{border-color:#d8b4f3}
+#view-gallery .jrg-vault-piece.jrg-grade-mythic .jrg-vault-grade>span{color:#e9c6ff}
+#view-gallery .jrg-vault-foot{display:flex;justify-content:space-between;align-items:center;gap:11px;flex-wrap:wrap;padding:22px 3px 4px;margin-top:25px;border-top:1px solid #c5a3747a;color:#c9ac80;font:700 9px Georgia,serif;letter-spacing:.11em}
+#view-gallery .jrg-vault-foot button{border:1px solid #e0ba7f;background:#32213c;color:#f5dfb0;padding:11px 18px;border-radius:8px;font-size:12px;font-weight:800}
+#view-gallery .jrg-certificate-overlay{position:fixed;z-index:99999;inset:0;display:flex;justify-content:center;align-items:flex-start;overflow-y:auto;padding:clamp(16px,6vh,46px) 13px;background:#090610e9;backdrop-filter:blur(9px);-webkit-backdrop-filter:blur(9px)}
+#view-gallery .jrg-certificate-dialog{position:relative;isolation:isolate;width:min(100%,590px);margin:auto 0;padding:30px clamp(20px,4vw,42px) 32px;text-align:center;border:9px double #d6ad72;border-radius:7px;background:radial-gradient(ellipse at 50% 11%,#6c467a73,transparent 57%),linear-gradient(130deg,#2d1e3b,#130c21);box-shadow:0 0 0 1px #fff4d4,0 24px 80px #000c}
+#view-gallery .jrg-certificate-dialog:before{content:"";position:absolute;inset:12px;border:1px solid #eed19a5a;pointer-events:none;z-index:-1}
+#view-gallery .jrg-cert-close{position:absolute;right:10px;top:9px;width:38px;height:38px;display:grid;place-items:center;border:1px solid #cfb183;border-radius:50%;background:#321f3e;color:#ffe9be}
+#view-gallery .jrg-cert-crest{margin:8px 0 6px;font:60px Georgia,serif;color:#f5cc86;text-shadow:0 0 20px #e2b56791}
+#view-gallery .jrg-certificate-dialog>small{display:block;font:700 10px Georgia,serif;letter-spacing:.17em;color:#d4b57c}
+#view-gallery .jrg-certificate-dialog h2{font:750 clamp(28px,5vw,42px)/1.1 Georgia,serif;color:#fff1c9;margin:12px 0 17px;letter-spacing:.08em;text-shadow:0 0 14px #eabd7570}
+#view-gallery .jrg-certificate-dialog h2 em{font-size:.58em;font-style:normal;letter-spacing:.19em;color:#dfbe87}
+#view-gallery .jrg-cert-picture{height:245px;padding:8px;border:2px solid #d9b179;background:#120c1d;box-shadow:inset 0 0 0 5px #c3a06c22,0 10px 24px #06030bab}
+#view-gallery .jrg-cert-picture img{width:100%;height:100%;object-fit:contain}
+#view-gallery .jrg-cert-picture img[data-junja-photo]{object-fit:cover}
+#view-gallery .jrg-cert-rarity{display:block;margin:17px 0 6px;font:700 10px Georgia,serif;letter-spacing:.08em;color:#e4bf87}
+#view-gallery .jrg-certificate-dialog h3{margin:5px 0 18px;color:#fff0ca;font:800 clamp(20px,4vw,29px)/1.3 Georgia,'Noto Serif KR',serif}
+#view-gallery .jrg-cert-facts{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:#a7865d7a;border:1px solid #a7865d7a;border-radius:8px;overflow:hidden}
+#view-gallery .jrg-cert-facts>div{display:flex;flex-direction:column;gap:7px;align-items:flex-start;padding:12px 15px;background:#20152c;text-align:left}
+#view-gallery .jrg-cert-facts>div span{color:#ad9abd;font-size:10px}
+#view-gallery .jrg-cert-facts>div strong{color:#f2d5a3;font-size:13px;overflow-wrap:anywhere}
+#view-gallery .jrg-cert-fineprint{font-size:10px;line-height:1.65;color:#aa94b6;margin:15px 0}
+#view-gallery .jrg-cert-done{display:block;width:100%;margin-top:14px;padding:14px;color:#241729;background:linear-gradient(115deg,#fff2cd,#c29053);border:1px solid #ffe5af;border-radius:8px;font-weight:850}
+#view-gallery .jrg-certificate-dialog .jrg-photo-credit{text-align:left}
+@media(max-width:1080px){
+ #view-gallery .jrg-room-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+ #view-gallery .jrg-vault-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:700px){
+ #view-gallery .jrg-entry-v8{padding:24px 18px}
+ #view-gallery .jrg-entry-v8 h1{font-size:clamp(24px,6vw,32px)}
+ #view-gallery .jrg-entry-v8 .jrg-entry-crest{flex-basis:64px;height:64px}
+ #view-gallery .jrg-collector-passport{grid-template-columns:1fr;gap:16px;padding:19px 13px 21px}
+ #view-gallery .jrg-passport-profile{gap:13px}
+ #view-gallery .jrg-passport-seal{width:57px;height:57px;flex:0 0 57px;font-size:35px;border-width:3px;box-shadow:0 0 0 3px #201429,0 0 0 4px #ad8a5b62,0 0 20px #ca9b5c5a}
+ #view-gallery .jrg-passport-profile h2{font-size:22px}
+ #view-gallery .jrg-passport-profile small{font-size:9px}
+ #view-gallery .jrg-passport-stats{grid-template-columns:.85fr .85fr 1.3fr}
+ #view-gallery .jrg-passport-stats>div{padding:8px 6px;border-left:1px solid #9c75556e}
+ #view-gallery .jrg-passport-stats small{font-size:8px}
+ #view-gallery .jrg-passport-stats strong{font-size:21px;margin:8px 0}
+ #view-gallery .jrg-passport-stats>div:last-child strong{font-size:14px}
+ #view-gallery .jrg-passport-stats span{font-size:9px}
+ #view-gallery .jrg-passport-note{font-size:8px;line-height:1.5}
+ #view-gallery .jrg-vault-header{flex-direction:column;align-items:flex-start;padding:19px 3px}
+ #view-gallery .jrg-vault-header h2{font-size:29px}
+ #view-gallery .jrg-vault-header>strong{padding:8px 11px;font-size:9px}
+ #view-gallery .jrg-room-grid{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;gap:10px;padding:0 1px 11px;margin:21px 0}
+ #view-gallery .jrg-room{flex:0 0 49%;min-height:167px;scroll-snap-align:start;padding:13px 12px 12px}
+ #view-gallery .jrg-room-symbol{width:35px;height:35px;font-size:22px}
+ #view-gallery .jrg-room-info strong{font-size:12px}
+ #view-gallery .jrg-brand-heritage{grid-template-columns:1fr;gap:12px;padding:15px 13px}
+ #view-gallery .jrg-brand-heritage>div:last-child{gap:8px}
+ #view-gallery .jrg-brand-progress>span{font-size:9px}
+ #view-gallery .jrg-vault-toolbar{display:block;padding-bottom:16px}
+ #view-gallery .jrg-vault-tabs{padding:2px 0 9px;overflow-x:auto}
+ #view-gallery .jrg-vault-tabs button{padding:10px 12px}
+ #view-gallery .jrg-vault-sort{padding:4px 0}
+ #view-gallery .jrg-vault-grid,#view-gallery .jrg-vault-grid.jrg-vault-sparse{grid-template-columns:minmax(0,1fr);gap:18px}
+ #view-gallery .jrg-vault-piece{max-width:100%;border-width:2px}
+ #view-gallery .jrg-vault-piece-top{padding:16px 18px 10px}
+ #view-gallery .jrg-vault-art{height:265px;padding:4px 15px}
+ #view-gallery .jrg-vault-piece-foot{padding:17px 17px 18px}
+ #view-gallery .jrg-vault-piece-foot h3{font-size:22px}
+ #view-gallery .jrg-vault-provenance{font-size:11px}
+ #view-gallery .jrg-vault-certificate-btn{min-height:48px}
+ #view-gallery .jrg-certificate-dialog{margin:auto 0;padding:27px 15px 24px;border-width:6px}
+ #view-gallery .jrg-cert-picture{height:188px}
+ #view-gallery .jrg-cert-facts>div{padding:11px 10px}
+ #view-gallery .jrg-cert-facts>div strong{font-size:12px}
+}
+@media(max-width:390px){
+ #view-gallery .jrg-room{flex-basis:57%}
+ #view-gallery .jrg-vault-art{height:240px}
+ #view-gallery .jrg-passport-stats strong{font-size:19px}
+ #view-gallery .jrg-cert-picture{height:172px}
+}
+@media(prefers-reduced-motion:reduce){#view-gallery .jrg-vault-art img{transition:none}}
