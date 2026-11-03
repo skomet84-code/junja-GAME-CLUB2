@@ -136,6 +136,15 @@ function createOverdue({db,exactWallet,now,kstDate,levels,read,project,store,emp
      db.prepare("DELETE FROM game_state WHERE key IN (?,?)").run('jstock:portfolio:'+id,'jcoin:portfolio:'+id);
      const creditKey='jcredit:account:'+id,credit=readJson(creditKey);
      if(credit)writeJson(creditKey,{...credit,principal:'0',interest:'0',asOf:kstDate(),closedAt:at,rehabilitationAt:at});
+     // Open football prediction tickets are financial claims. Forfeit them when
+     // the owner elects a one-time total asset reset, before any future payout.
+     for(const row of db.prepare('SELECT key,value FROM game_state WHERE key LIKE ?')
+       .all('jpl:v1:ticket:%:'+id+':%')){
+      const ticket=JSON.parse(row.value);
+      if(ticket.status!=='OPEN'||Number(ticket.userId)!==id)continue;
+      ticket.status='FORFEIT';ticket.settledAt=at;ticket.forfeitedAt=at;ticket.paid='0';
+      writeJson(row.key,ticket);
+     }
      // Owned inventory and certificates are forfeited atomically with loan forgiveness.
      for(const row of db.prepare('SELECT key,value FROM game_state WHERE key LIKE ?').all('royal:certificate:holder:'+id+':%')){
       const serial=JSON.parse(row.value),serialKey='royal:certificate:serial:'+serial,cert=readJson(serialKey);
