@@ -28,12 +28,27 @@ const symbols={
 };
 const escape=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const color=s=>/^#[0-9a-fA-F]{6}$/.test(String(s))?s:'#977e55';
+let drawn=0;
 function badge(c,cls='',id=''){
  if(!c)return '<span class="crest placeholder">?</span>';
  const icon=symbols[c.id]||symbols.saram;
- return '<span '+(id?'id="'+escape(id)+'" ':'')+'class="crest '+escape(cls)+'" title="'+escape(c.name)+'" style="--primary:'+color(c.primary)+';--secondary:'+color(c.secondary)+'" data-club="'+escape(c.id)+'">'+
-  '<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" fill="none" stroke="#fff8df" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round">'+icon+'</svg>'+
-  '<small>'+escape(c.code)+'</small></span>';
+ const grad='jplg'+(++drawn),gloss='jplb'+drawn,stars=Number(c.attack)>=90?3:Number(c.attack)>=83?2:1;
+ const primary=color(c.primary),secondary=color(c.secondary);
+ const starsHTML=Array.from({length:stars},(_,i)=>
+  '<path d="M'+(40-(stars-1)*7+i*14)+' 13l1.8 3.2 3.6.5-2.7 2.6.7 3.6-3.4-1.7-3.4 1.7.6-3.6-2.5-2.6 3.6-.5Z" fill="#ffebac" stroke="none"/>').join('');
+ return '<span '+(id?'id="'+escape(id)+'" ':'')+'class="crest '+escape(cls)+'" title="'+escape(c.name)+'" style="--primary:'+primary+';--secondary:'+secondary+'" data-club="'+escape(c.id)+'">'+
+  '<svg viewBox="0 0 80 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">'+
+  '<defs><linearGradient id="'+grad+'" x1="0" y1="0" x2=".85" y2="1"><stop stop-color="'+primary+'"/><stop offset=".52" stop-color="'+secondary+'"/><stop offset="1" stop-color="'+primary+'"/></linearGradient>'+
+  '<linearGradient id="'+gloss+'" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#fff5cb"/><stop offset=".38" stop-color="#e6c781"/><stop offset="1" stop-color="#805826"/></linearGradient></defs>'+
+  '<path d="M40 3 72 9 72 55Q70 80 40 95 10 80 8 55V9Z" fill="#131a20" stroke="url(#'+gloss+')" stroke-width="4.5"/>'+
+  '<path d="M40 9 66 15V54Q64 75 40 87 16 75 14 54V15Z" fill="url(#'+grad+')" stroke="#fff3cf" stroke-width="1.5" stroke-opacity=".85"/>'+
+  '<path d="M40 9 40 87Q16 75 14 54V15Z" fill="#020b14" fill-opacity=".35"/>'+
+  '<path d="M16 24H64M16 66Q40 81 64 66" fill="none" stroke="#f4daa6" stroke-width="1.4" stroke-opacity=".8"/>'+
+  '<g>'+starsHTML+'</g>'+
+  '<g transform="translate(8 12)" fill="none" stroke="#fff9e8" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round" style="filter:drop-shadow(0 1px 2px #000a)">'+icon+'</g>'+
+  '<path d="M14 78Q40 93 66 78L64 90Q40 101 16 90Z" fill="#09151b" stroke="#ddba76" stroke-width="1"/>'+
+  '<text x="40" y="90" font-family="Arial,sans-serif" font-size="9" font-weight="900" letter-spacing="1.5" text-anchor="middle" fill="#ffe1a3">'+escape(c.code)+'</text>'+
+  '</svg></span>';
 }
 window.JPLCrests={badge,clubCount:Object.keys(symbols).length};
 })();

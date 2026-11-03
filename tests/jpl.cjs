@@ -13,6 +13,15 @@ const add=(id,amount)=>db.prepare('INSERT INTO users(id,balance,balance_exact,ba
 add(1,1000000000000000n);add(2,1000000000000000n);add(3,1000000000000000n);
 const names=['준자','햅피','아라','돼지','참치','해현','유비','차차','우니','도도','비샤','샤샤','동동','뽀뽀','나다','고기','행주','수건','민트','훈트','체리','하리'];
 assert.equal(CLUBS.length,22);
+assert.equal(MATCH_MS,60000,'90-minute match sim completes in 60 real seconds');
+const gameSource=fs.readFileSync('public/football/game.js','utf8');
+assert.ok(gameSource.includes('home:demo.source.home,away:demo.source.away'),'demo follows selected real fixture clubs');
+assert.ok(gameSource.includes('source:{id:f.id,home:f.home,away:f.away'),'preview snapshots selected fixture');
+assert.ok(!gameSource.includes("home:'junja',away:'happy'"),'demo must never force 준자 vs 햅피');
+assert.ok(gameSource.includes("const tm=match?.status==='LIVE'?tick*1.9"),'live players move faster');
+assert.ok(gameSource.includes('Math.abs((e.minute/90*(MATCH_MS/1000))'),'goal animation uses current shortened duration');
+assert.equal(CLUBS.find(c=>c.id==='junja').name,'준자 마드리드 CF');
+assert.equal(CLUBS.find(c=>c.id==='happy').name,'햅피 바르셀로나 FC');
 assert.equal(RESERVES.length,2,'two second-division promotion clubs');
 assert.deepEqual(RESERVES.map(c=>c.short),['두팔','사람']);
 assert.equal(handicapResult({home:3,away:1},-1),'H','3:1 minus1 is home handicap win');

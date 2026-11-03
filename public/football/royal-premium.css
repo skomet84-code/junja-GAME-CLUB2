@@ -299,3 +299,114 @@ footer{border-color:#d7c39d33}
 @media(prefers-reduced-motion:reduce){
   .welcome-action{transition:none}
 }
+
+/* 2026-11-04 / JPL ROYAL CREST AND TEAM TYPOGRAPHY — mobile-first */
+.crest,.fixture-team .crest,.score-club .crest,.table-team .crest,.league-transition .crest{
+  position:relative;
+  flex-shrink:0;
+  overflow:visible;
+  background:transparent!important;
+  clip-path:none!important;
+  border:0!important;
+  filter:drop-shadow(0 6px 6px #000b)!important;
+}
+.crest:before{display:none!important}
+.crest svg{
+  display:block;position:relative;z-index:2;
+  width:100%!important;height:100%!important;
+  overflow:visible!important;stroke:none!important;
+  fill:none;filter:none!important
+}
+.crest svg path,.crest svg circle{vector-effect:none!important}
+.crest small{display:none!important}
+.scoreboard{min-height:177px;gap:23px}
+.score-club{gap:15px;min-width:0}
+.score-club .crest{width:72px;height:87px}
+.score-club h3{
+  color:#fff2d3;font-size:clamp(15px,1.55vw,21px);
+  line-height:1.28;letter-spacing:-.035em;
+  font-weight:900;word-break:keep-all
+}
+.score-club small{color:#e5cf9e;letter-spacing:.15em;font-size:11px}
+.fixture-main{grid-template-columns:100px minmax(0,1fr) 118px}
+.fixture-team{gap:12px}
+.fixture-team .crest{width:45px;height:55px}
+.fixture-team-label{
+  display:flex!important;flex-direction:column;
+  min-width:0;white-space:normal!important;
+  overflow:visible!important;text-overflow:clip!important;
+  line-height:1.25;align-items:flex-start;gap:4px;
+}
+.fixture-team.away .fixture-team-label{align-items:flex-end;text-align:right}
+.fixture-team-label b{
+  display:block;font-weight:900;color:#fff7de;
+  font-size:18px;line-height:1.2;white-space:nowrap
+}
+.fixture-team-label small{
+  display:block;font-size:10px;font-weight:700;
+  color:#c9d4cd;line-height:1.25;word-break:keep-all;
+}
+.fixture-vs{font-size:18px;color:#d1b57e}
+.table-team .crest{width:36px;height:44px}
+.table-team{gap:11px;min-width:190px}
+.table-team b{font-size:14px;color:#f8ebd7}
+.league-transition .crest{width:36px;height:45px}
+@media(max-width:1180px){
+ .fixture-main{grid-template-columns:77px minmax(0,1fr) 93px;gap:8px}
+ .fixture-team{gap:7px}
+ .fixture-team .crest{width:38px;height:48px}
+ .fixture-team-label b{font-size:14px}
+ .fixture-team-label small{font-size:9px}
+ .fixture-vs{font-size:15px}
+}
+@media(max-width:650px){
+ .scoreboard{
+  grid-template-columns:minmax(0,1fr) 80px minmax(0,1fr);
+  gap:6px;min-height:178px;
+  padding:19px 8px 16px;
+ }
+ .score-club,.score-club.away{
+  gap:6px;justify-content:center;align-items:center;
+  text-align:center!important;min-width:0
+ }
+ .score-club.home{flex-direction:column}
+ .score-club.away{flex-direction:column-reverse}
+ .score-club .crest{width:59px!important;height:72px!important}
+ .score-club>div{min-width:0;width:100%}
+ .score-club small{font-size:8px}
+ .score-club h3{
+  font-size:13px!important;
+  line-height:1.35!important;
+  margin:3px 0 0;
+  white-space:normal;overflow-wrap:break-word
+ }
+ .score-box{min-width:75px}
+ .main-score{font-size:39px!important}
+ .clock-label{font-size:9px;white-space:nowrap}
+ .fixture-main{grid-template-columns:minmax(0,1fr) auto;gap:8px 6px}
+ .fixture-time{grid-column:1/-1}
+ .fixture-match{grid-column:1;grid-row:2;grid-template-columns:minmax(0,1fr) 20px minmax(0,1fr);gap:5px}
+ .fixture-right{grid-column:2;grid-row:2}
+ .fixture-team{gap:5px}
+ .fixture-team .crest{width:40px!important;height:48px!important}
+ .fixture-team-label{gap:3px}
+ .fixture-team-label b{font-size:15px!important}
+ .fixture-team-label small{font-size:9px!important;line-height:1.22}
+ .fixture-vs{font-size:14px}
+ .watch-btn{font-size:9px;padding:8px 6px}
+ .table-team{min-width:156px;gap:8px}
+ .table-team .crest{width:29px!important;height:37px!important}
+ .table-team b{font-size:12px}
+ .league-transition .crest{width:29px;height:37px}
+}
+@media(max-width:395px){
+ .scoreboard{grid-template-columns:minmax(0,1fr) 67px minmax(0,1fr);gap:4px}
+ .score-club .crest{width:54px!important;height:67px!important}
+ .score-club h3{font-size:12px!important}
+ .main-score{font-size:35px!important}
+ .fixture-match{grid-template-columns:minmax(0,1fr) 16px minmax(0,1fr);gap:3px}
+ .fixture-team .crest{width:36px!important;height:44px!important}
+ .fixture-team-label b{font-size:14px!important}
+ .fixture-team-label small{font-size:8px!important}
+ .watch-btn{font-size:8px;padding:6px 5px}
+}
