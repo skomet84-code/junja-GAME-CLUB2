@@ -759,11 +759,11 @@ function shopState(userId){
   const load=ensureLoadout(userId),owned=inventoryIds(userId),u=db.prepare('SELECT is_admin FROM users WHERE id=?').get(userId),happy=isHappyUser(userId),shopTier=Number(socialRankPerksForUser(userId).shopTier||0);
   if(u?.is_admin)for(const item of SHOP_ITEMS)if(item.adminOnly)owned.add(item.id);
   if(happy)owned.add('char_f_happy_exclusive');
-  return {items:SHOP_ITEMS.filter(x=>x.collection!=='royalboutique'&&(!x.adminOnly||u?.is_admin)&&(!x.happyOnly||happy)).map(x=>({...x,owned:owned.has(x.id),equipped:load[x.category]===x.id,rankShopUnlocked:shopTier>=Number(x.rankTier||0),rankShopTier:shopTier})),loadout:cosmeticsPublic(userId,true),ownedCount:owned.size,rankShopTier:shopTier,rankShopUnlocked:shopTier>0};
+  return {items:SHOP_ITEMS.filter(x=>x.collection!=='royalboutique'&&(!x.adminOnly||u?.is_admin)&&(!x.happyOnly||happy)).map(x=>({...x,owned:owned.has(x.id),equipped:load[x.category]===x.id,rankShopUnlocked:shopTier>=Number(x.rankTier||0),rankShopTier:shopTier})),loadout:cosmeticsPublic(userId,true),ownedCount:owned.size,rankShopTier:shopTier,rankShopUnlocked:shopTier>0,financing:(()=>{const b=jBank.status(userId);return {available:b.available,canBorrow:b.canBorrow,minLoan:b.minLoan,loanLimit:b.loanLimit,outstanding:b.outstanding,dailyInterestPct:b.dailyInterestPct}})()};
 }
-function buyShopItem(userId,itemId){
+function buyShopItem(userId,itemId,options={}){
   const item=SHOP_BY_ID[String(itemId||'')];if(!item)throw new Error('존재하지 않는 상점 아이템입니다.');
-   if(item.collection==='royalboutique')return royalEconomy.buy(userId,item);
+   if(item.collection==='royalboutique')return royalEconomy.buy(userId,item,options);
   if(item.adminOnly)throw new Error('GOD JUNJA는 갓준자 관리자 전용 캐릭터입니다.');
   if(item.happyOnly)throw new Error('HAPPY 캐릭터는 햅피 전용 캐릭터입니다.');
   if(Number(item.rankTier||0)>Number(socialRankPerksForUser(userId).shopTier||0))throw new Error(`현재 신분으로는 구매할 수 없는 신분 전용 아이템입니다.`);
@@ -782,18 +782,25 @@ function buyShopItem(userId,itemId){
   }
   db.exec('BEGIN IMMEDIATE');
   try{
-    const u=db.prepare('SELECT balance FROM users WHERE id=?').get(userId);if(!u)throw new Error('사용자를 찾을 수 없습니다.');
-    if(u.balance<item.price)throw new Error(`게임머니가 부족합니다. ${formatMoney(item.price)}G가 필요합니다.`);
-    const next=u.balance-item.price,t=now();
-    db.prepare('UPDATE users SET balance=? WHERE id=?').run(next,userId);
+    const u=db.prepare('SELECT balance,balance_exact,balance_base FROM users WHERE id=?').get(userId);
+    if(!u)throw new Error('사용자를 찾을 수 없습니다.');
+    const price=BigInt(item.price),before=exactWallet.read(u);
+    let loanAmount='0';
+    if(before<price){
+      if(options.loanPurchase!==true)throw new Error('게임머니가 부족해. 구매 시 은행 대출구매를 선택할 수 있어.');
+      loanAmount=jBank.borrowForPurchase(userId,String(price),item.name).loanAmount;
+    }
+    const next=before+BigInt(loanAmount)-price,t=now(),mirror=exactWallet.mirror(next);
+    if(next<0n)throw new Error('구매 금액이 대출한도를 초과해.');
+    db.prepare('UPDATE users SET balance=?,balance_exact=?,balance_base=? WHERE id=?').run(mirror,String(next),String(mirror),userId);
     db.prepare('INSERT INTO user_inventory(user_id,item_id,purchase_price,purchased_at) VALUES(?,?,?,?)').run(userId,item.id,item.price,t);
     ensureLoadout(userId);
     if(LOADOUT_FIELDS.has(item.category))db.prepare(`UPDATE user_loadout SET ${item.category}=? WHERE user_id=?`).run(item.id,userId);
-    db.prepare('INSERT INTO ledger(user_id,amount,balance_after,type,memo,created_at) VALUES(?,?,?,?,?,?)').run(userId,-item.price,next,'shop_purchase',`JUNJA BOUTIQUE · ${item.name} 구매 · 자동 장착`,t);
+    db.prepare('INSERT INTO ledger(user_id,amount,balance_after,amount_exact,balance_after_exact,type,memo,created_at) VALUES(?,?,?,?,?,?,?,?)').run(userId,exactWallet.mirror(-price),mirror,String(-price),String(next),'shop_purchase',`JUNJA BOUTIQUE · ${item.name} 구매 · 자동 장착`,t);
     const ownedNow=!!db.prepare('SELECT 1 FROM user_inventory WHERE user_id=? AND item_id=?').get(userId,item.id);
     const loadNow=ensureLoadout(userId);
     if(!ownedNow||LOADOUT_FIELDS.has(item.category)&&loadNow[item.category]!==item.id)throw new Error('구매 저장 검증에 실패했습니다. 결제는 취소됩니다.');
-    db.exec('COMMIT');return {balance:next,item};
+    db.exec('COMMIT');return {balance:String(next),item,loanAmount};
   }catch(e){try{db.exec('ROLLBACK')}catch{};throw e;}
 }
 function equipShopItem(userId,category,itemId){
@@ -828,6 +835,7 @@ const SOCIAL_RANKS = [
 ];
 const RANK_RESALE_LEGACY_COSTS=Object.freeze(["0","1000000000","10000000000","100000000000","500000000000","1000000000000","3000000000000","5000000000000","10000000000000","30000000000000","100000000000000","300000000000000","10000000000000000","1000000000000000000"]);
 const jBank=createJBank({db,exactWallet,levels:SOCIAL_RANKS,legacyRankCosts:RANK_RESALE_LEGACY_COSTS,now,kstDate});
+royalEconomy.setBank(jBank);
 const casinoCollateral=createCasinoCollateral({db,exactWallet,jBank,levels:SOCIAL_RANKS,now});
 let bankCollectionsBusy=false;
 async function checkOverdueBanks(){
@@ -2427,7 +2435,7 @@ const server=http.createServer(async(req,res)=>{
       const u=requireAuth(req,res);if(!u)return;
       if(!rateLimit('royal_buy:'+u.id,12,60000))return json(res,429,{error:'구매 요청을 너무 빠르게 반복하고 있습니다.'});
       try{
-        const body=await readBody(req),receipt=royalEconomy.buy(u.id,String(body.itemId||''));
+        const body=await readBody(req),receipt=royalEconomy.buy(u.id,String(body.itemId||''),{loanPurchase:body.loanPurchase===true});
         await db.flush();pushRefresh();
         return json(res,200,{ok:true,...receipt,user:userPublic(u.id)});
       }catch(e){return json(res,400,{error:e.message});}
@@ -2443,7 +2451,7 @@ const server=http.createServer(async(req,res)=>{
     if(url.pathname==='/api/shop'&&req.method==='GET'){const u=requireAuth(req,res);if(!u)return;return json(res,200,{...shopState(u.id),user:userPublic(u.id)});}
     if(url.pathname==='/api/shop/buy'&&req.method==='POST'){
       const u=requireAuth(req,res);if(!u)return;if(!rateLimit('shop_buy:'+u.id,20,60000))return json(res,429,{error:'구매를 너무 빠르게 반복하고 있어. 잠시 후 다시 시도해줘.'});
-      const b=await readBody(req);try{const r=buyShopItem(u.id,b.itemId);await db.flush();pushRefresh();return json(res,200,{ok:true,item:r.item,user:userPublic(u.id),state:shopState(u.id)});}catch(e){return json(res,400,{error:e.message});}
+      const b=await readBody(req);try{const r=buyShopItem(u.id,b.itemId,{loanPurchase:b.loanPurchase===true});await db.flush();pushRefresh();return json(res,200,{ok:true,item:r.item,user:userPublic(u.id),state:shopState(u.id)});}catch(e){return json(res,400,{error:e.message});}
     }
     if(url.pathname==='/api/shop/equip'&&req.method==='POST'){
       const u=requireAuth(req,res);if(!u)return;const b=await readBody(req);try{const cosmetics=equipShopItem(u.id,b.category,b.itemId);await db.flush();pushRefresh();return json(res,200,{ok:true,cosmetics,user:userPublic(u.id),state:shopState(u.id)});}catch(e){return json(res,400,{error:e.message});}
