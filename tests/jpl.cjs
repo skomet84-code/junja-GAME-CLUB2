@@ -18,7 +18,15 @@ const gameSource=fs.readFileSync('public/football/game.js','utf8');
 assert.ok(gameSource.includes('home:demo.source.home,away:demo.source.away'),'demo follows selected real fixture clubs');
 assert.ok(gameSource.includes('source:{id:f.id,home:f.home,away:f.away'),'preview snapshots selected fixture');
 assert.ok(!gameSource.includes("home:'junja',away:'happy'"),'demo must never force 준자 vs 햅피');
-assert.ok(gameSource.includes("const tm=match?.status==='LIVE'?tick*1.9"),'live players move faster');
+assert.ok(gameSource.includes("const tm=playing?tick*1.9"),'live players move faster');
+assert.ok(gameSource.includes('createDemoEvents(h,a)'),'exhibition independently generates goals rather than using actual result');
+assert.ok(gameSource.includes("const finishedVisual=match?.status==='FINAL'"),'finished fixture freezes motion');
+assert.ok(gameSource.includes("$('#goalMarkers').innerHTML"),'goals are positioned on the 90-minute timeline');
+const receiptSource=fs.readFileSync('public/football/receipts.js','utf8');
+assert.ok(receiptSource.includes('<th>HOME</th><th>AWAY</th>'),'receipt has separate home and away columns');
+assert.ok(receiptSource.includes("jpl-home-cell")&&receiptSource.includes("jpl-away-cell"),'compact home and away table cells');
+const footballHtml=fs.readFileSync('public/football/index.html','utf8');
+assert.ok(footballHtml.includes('id="pitchFinalBanner"')&&footballHtml.includes('id="goalMarkers"'),'full-time overlay and goal markers are mounted');
 assert.ok(gameSource.includes('Math.abs((e.minute/90*(MATCH_MS/1000))'),'goal animation uses current shortened duration');
 assert.equal(CLUBS.find(c=>c.id==='junja').name,'준자 마드리드 CF');
 assert.equal(CLUBS.find(c=>c.id==='happy').name,'햅피 바르셀로나 FC');
@@ -236,4 +244,4 @@ assert.equal(preservedTomorrow.upcoming[0].kickoff,Date.parse('2026-11-05T12:00:
 assert.equal(preservedTomorrow.tickets[0].status,'OPEN');
 console.log('JPL_LAUNCH_TICKETS_OK: same-day 5 matches, strict five-fold limit, persistent receipts and no reschedule of purchased bets');
 
-console.log('JPL_OK: 22 clubs, 42 rounds, 462 home-away fixtures, 5/day, 120s broadcast, pre-kickoff odds lock, exact BigInt single/parlay betting, 1x settlement and two relegated + promoted clubs, 3-way handicap & shared 20% jackpot levy');
+console.log('JPL_OK: 22 clubs, 42 rounds, 462 home-away fixtures, 5/day, 60s broadcast, pre-kickoff odds lock, exact BigInt single/parlay betting, 1x settlement and two relegated + promoted clubs, 3-way handicap & shared 20% jackpot levy');
