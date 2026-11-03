@@ -6,7 +6,7 @@
 (()=>{
  const scenes=Object.freeze({
   car:'car',watch:'watch',yacht:'yacht',jet:'jet',estate:'estate',
-  title:'jewelry',costume:'jewelry',pet:'jewelry',frame:'jewelry',vault:'jewelry',art:'jewelry'
+  title:'jewelry',costume:'jewelry',pet:'jewelry',frame:'jewelry',jewel:'jewelry',vault:'jewelry',art:'jewelry'
  });
  // Museum hall artwork focal points (0..1 source image coordinates).
  const focus=Object.freeze({
