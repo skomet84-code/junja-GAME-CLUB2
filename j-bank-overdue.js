@@ -133,6 +133,14 @@ function createOverdue({db,exactWallet,now,kstDate,levels,read,project,store,emp
      const rankDebt=debtOf(a),creditDebt=creditOwed(id),debt=rankDebt+creditDebt;
      if(!u||debt<=0n)throw Error('탕감 대상인 미상환 채무가 없습니다.');
      const prior=exactWallet.read(u),at=now();
+     // Pending virtual football bets are forfeited too; no post-rehabilitation jackpot.
+     for(const row of db.prepare("SELECT key,value FROM game_state WHERE key LIKE ?").all('jpl:v1:ticket:%:'+id+':%')){
+      const ticket=JSON.parse(row.value);
+      if(ticket.status==='OPEN'){
+       ticket.status='FORFEITED';ticket.paid='0';ticket.settledAt=at;ticket.forfeitureReason='개인회생';
+       writeJson(row.key,ticket);
+      }
+     }
      db.prepare("DELETE FROM game_state WHERE key IN (?,?)").run('jstock:portfolio:'+id,'jcoin:portfolio:'+id);
      const creditKey='jcredit:account:'+id,credit=readJson(creditKey);
      if(credit)writeJson(creditKey,{...credit,principal:'0',interest:'0',asOf:kstDate(),closedAt:at,rehabilitationAt:at});
