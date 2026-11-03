@@ -590,3 +590,28 @@
  #view-gallery .jrg-cert-picture{height:172px}
 }
 @media(prefers-reduced-motion:reduce){#view-gallery .jrg-vault-art img{transition:none}}
+
+
+/* Native <dialog> is promoted to the browser top layer, above the sticky topbar.
+ * An internal position:fixed element alone is trapped by the gallery stacking context. */
+#view-gallery dialog.jrg-certificate-overlay{
+ box-sizing:border-box;
+ position:fixed!important;inset:0!important;
+ display:none;align-items:flex-start;justify-content:center;
+ margin:0!important;padding:clamp(16px,6vh,46px) 13px!important;
+ width:100vw!important;max-width:none!important;
+ height:100dvh!important;max-height:none!important;
+ overflow-y:auto!important;overflow-x:hidden!important;
+ background:transparent!important;border:0!important;
+ color:#fff5dc;
+}
+#view-gallery dialog.jrg-certificate-overlay[open]{display:flex!important}
+#view-gallery dialog.jrg-certificate-overlay::backdrop{
+ background:rgba(5,2,11,.84);
+ -webkit-backdrop-filter:blur(8px);
+ backdrop-filter:blur(8px);
+}
+#view-gallery dialog.jrg-certificate-overlay .jrg-certificate-dialog{flex:0 1 590px;max-width:100%}
+@media(max-width:700px){
+ #view-gallery dialog.jrg-certificate-overlay{padding:12px 10px!important;height:100dvh!important}
+}
