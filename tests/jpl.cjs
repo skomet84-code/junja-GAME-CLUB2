@@ -53,14 +53,16 @@ for(const [day,fixtures] of byDay){
 const p=probabilities('junja','happy');
 assert.ok(Math.abs(p.H+p.D+p.A-1)<.000001);
 assert.ok(p.H>0&&p.D>0&&p.A>0);
-let clock=Date.parse('2026-11-04T12:00:00+09:00');
+let clock=Date.parse('2026-11-04T03:15:00+09:00');
 const jpl=createJPL({db,exactWallet,now:()=>clock,random:()=>.48});
 const first=jpl.status(1);
 assert.equal(first.changed,true);
 assert.equal(first.season.id,'S1');
 assert.equal(first.season.totalGames,462);
 assert.equal(first.season.matchdays,93);
-assert.equal(first.today.length,0,'first kick-off tomorrow');
+assert.equal(first.today.length,5,'five matches on launch day (Nov 4 KST)');
+assert.equal(first.upcoming[0].kickoff,Date.parse('2026-11-04T12:00:00+09:00'),'opening kickoff at noon today');
+assert.equal(first.rules.maxLegs,5,'server advertises maximum five-fold combinations');
 assert.equal(first.upcoming.length,20);
 assert.equal(first.upcoming[0].score,null,'unplayed result is private');
 assert.equal(first.upcoming[0].seed,null,'outcome random seed not available before kick-off');
@@ -73,6 +75,7 @@ assert.ok(fs.readFileSync('public/football/game.js','utf8').includes('requestAni
 assert.equal(jpl.status(1).changed,false);
 const match=first.upcoming[0],second=first.upcoming[1],third=first.upcoming[2];
 const before=balanceOf(1),betId='jpl_bet_user1_000001';
+assert.throws(()=>jpl.bet(1,first.upcoming.slice(0,6).map(m=>({matchId:m.id,pick:'H'})),'1000000','jpl_six_legs_invalid'),/최대 5폴더/,'six-leg wager rejected by server');
 const wager=jpl.bet(1,[{matchId:match.id,pick:'H'}],'1000000',betId);
 assert.equal(wager.duplicate,false);assert.equal(balanceOf(1),before-1000000n);
 assert.equal(wager.ticket.status,'OPEN');assert.equal(wager.ticket.potential,String(1000000n*BigInt(match.odds.H)/100n));
@@ -135,6 +138,8 @@ clock=firstEnd+DAY+1000;
 const next=jpl.status(1);
 assert.equal(next.season.number,2,'season rolls only after the full 462-match season');
 assert.equal(next.season.finished,0);
+assert.ok(next.tickets.some(t=>t.id===betId),'last season purchases remain visible after promotion/relegation');
+assert.ok(next.tickets.find(t=>t.id===betId)?.receiptNumber,'each ticket has a stable receipt number');
 assert.ok(db.prepare("SELECT value FROM game_state WHERE key='jpl:v1:archive:S1'").get(),'old champions and results archived');
 
 // Verify the actual 21st/22nd league places are relegated and the named reserves promoted.
@@ -189,5 +194,37 @@ assert.equal(readTicket(3,'tax_no_pay').paid,'0');
 const afterTaxJackpot=readPool(db);
 jpl.tick();
 assert.equal(readPool(db),afterTaxJackpot,'no double jackpot levy after repeat tick');
+
+
+// Migration regression: existing launch-day season incorrectly scheduled for tomorrow.
+// Re-date only when unsold, never alter an already bought ticket's kickoff.
+function legacyEngine(withSoldTicket){
+ const native=new DatabaseSync(':memory:');
+ native.exec('CREATE TABLE users(id INTEGER PRIMARY KEY,balance INTEGER,balance_exact TEXT,balance_base TEXT,is_disabled INTEGER DEFAULT 0);CREATE TABLE game_state(key TEXT PRIMARY KEY,value TEXT,updated_at INTEGER);CREATE TABLE ledger(id INTEGER PRIMARY KEY AUTOINCREMENT,user_id INTEGER,amount INTEGER,balance_after INTEGER,amount_exact TEXT,balance_after_exact TEXT,type TEXT,memo TEXT,created_at INTEGER)');
+ const wrapped={exec:q=>native.exec(q),prepare:q=>{const stmt=native.prepare(q);stmt.setReadBigInts(true);return stmt}};
+ native.prepare('INSERT INTO users(id,balance,balance_exact,balance_base) VALUES(?,?,?,?)').run(1,100000, '100000', '100000');
+ const now=Date.parse('2026-11-04T03:15:00+09:00');
+ const legacy=createSeason(now);
+ legacy.startAt+=DAY;legacy.endAt+=DAY;
+ for(const f of legacy.fixtures)f.kickoff+=DAY;
+ native.prepare('INSERT INTO game_state(key,value,updated_at) VALUES(?,?,?)').run('jpl:v1:current',JSON.stringify(legacy),now);
+ if(withSoldTicket){
+  native.prepare('INSERT INTO game_state(key,value,updated_at) VALUES(?,?,?)').run(
+   'jpl:v1:ticket:S1:1:existing_ticket_1111',
+   JSON.stringify({userId:1,id:'existing_ticket_1111',seasonId:'S1',status:'OPEN',stake:'1000',placedAt:now,
+    legs:[{matchId:legacy.fixtures[0].id,pick:'H',market:'NORMAL',odds100:legacy.fixtures[0].odds.H}],
+    potential:'1000',totalOdds:'1.00',paid:'0'}),now);
+ }
+ const eng=createJPL({db:wrapped,exactWallet,now:()=>now,random:()=>.5});
+ return eng.status(1);
+}
+const fixedToday=legacyEngine(false);
+assert.equal(fixedToday.today.length,5,'unbet original season moves from tomorrow to today');
+assert.equal(fixedToday.upcoming[0].kickoff,Date.parse('2026-11-04T12:00:00+09:00'));
+const preservedTomorrow=legacyEngine(true);
+assert.equal(preservedTomorrow.today.length,0,'old booked fixtures are not silently moved');
+assert.equal(preservedTomorrow.upcoming[0].kickoff,Date.parse('2026-11-05T12:00:00+09:00'));
+assert.equal(preservedTomorrow.tickets[0].status,'OPEN');
+console.log('JPL_LAUNCH_TICKETS_OK: same-day 5 matches, strict five-fold limit, persistent receipts and no reschedule of purchased bets');
 
 console.log('JPL_OK: 22 clubs, 42 rounds, 462 home-away fixtures, 5/day, 120s broadcast, pre-kickoff odds lock, exact BigInt single/parlay betting, 1x settlement and two relegated + promoted clubs, 3-way handicap & shared 20% jackpot levy');
