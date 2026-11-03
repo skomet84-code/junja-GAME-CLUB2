@@ -91,10 +91,10 @@ function renderTable(){
 function renderTickets(){
  if(!status)return;
  $('#ticketList').innerHTML=status.tickets.length?status.tickets.map(t=>{
-  const stat=t.status==='OPEN'?'진행 대기':t.status==='WIN'?'적중':t.status==='FORFEITED'?'회생 소멸':'미적중';
+  const stat=t.status==='OPEN'?'진행 대기':t.status==='WIN'?'적중':t.status==='FORFEIT'?'회생 소멸':'미적중';
   const legs=t.legs.map(l=>'<div class="ticket-leg"><span>'+esc(team(l.home).short)+' – '+esc(team(l.away).short)+'</span><span class="pick">'+numbers[l.pick]+' '+esc(names[l.pick])+' · '+(l.market==='HDP'?'핸디캡 '+(l.line>0?'+':'')+l.line+' · ':'')+(l.odds100/100).toFixed(2)+'</span></div>').join('');
   return '<article class="ticket-card"><div class="ticket-head"><div><strong>JPL '+esc(t.seasonId)+' · '+t.legs.length+'폴더</strong><small> &nbsp;'+esc(shortDate(t.placedAt))+' '+esc(time(t.placedAt))+'</small></div><span class="ticket-status '+t.status+'">'+stat+'</span></div>'+
-   '<div class="ticket-legs">'+legs+'</div><div class="ticket-footer"><span>베팅 <b>'+fmtMoney(t.stake)+'</b></span><span>확정 배당 <b>'+esc(t.totalOdds)+'x</b></span><span>'+(t.status==='WIN'?'실수령':'예상 실수령')+' <b>'+fmtMoney(t.status==='LOSE'||t.status==='FORFEITED'?'0':t.status==='WIN'?t.paid:t.expectedNet||t.potential)+'</b></span>'+(BigInt(t.tax||t.expectedTax||'0')>0n?'<span>잭팟 적립 <b>'+fmtMoney(t.tax||t.expectedTax)+'</b></span>':'')+'</div></article>';
+   '<div class="ticket-legs">'+legs+'</div><div class="ticket-footer"><span>베팅 <b>'+fmtMoney(t.stake)+'</b></span><span>확정 배당 <b>'+esc(t.totalOdds)+'x</b></span><span>'+(t.status==='WIN'?'실수령':'예상 실수령')+' <b>'+fmtMoney(t.status==='LOSE'||t.status==='FORFEIT'?'0':t.status==='WIN'?t.paid:t.expectedNet||t.potential)+'</b></span>'+((t.status==='WIN'||t.status==='OPEN')&&BigInt(t.tax||t.expectedTax||'0')>0n?'<span>'+(t.status==='WIN'?'잭팟 적립 ':'예상 잭팟 적립 ')+'<b>'+fmtMoney(t.tax||t.expectedTax)+'</b></span>':'')+'</div></article>';
  }).join(''):'<div class="fixture-message">아직 승부예측 티켓이 없어. 첫 경기를 선택해 봐!</div>';
 }
 function renderSlip(){
