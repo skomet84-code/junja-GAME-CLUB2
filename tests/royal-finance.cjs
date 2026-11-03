@@ -25,7 +25,7 @@ assert(cheap&&costly);
 assert.equal(royal.catalog(1).financing.canBorrow,true);
 assert.equal(bank.purchaseQuote(1,cheap.price).eligible,true);
 assert.equal(bank.purchaseQuote(1,cheap.price).loanAmount,String(G/2n));
-assert.throws(()=>royal.buy(1,cheap.id),/게임머니가 부족/);
+assert.throws(()=>royal.buy(1,cheap.id),/게임머니.*부족/);
 assert.equal(bank.status(1).outstanding,'0','no involuntary loan');
 const receipt=royal.buy(1,cheap.id,{loanPurchase:true});
 assert.equal(receipt.loanAmount,String(G/2n));
