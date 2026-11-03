@@ -7,7 +7,8 @@
 <meta name="description" content="JUNJA PREMIER LEAGUE — 22개 클럽, 매일 5경기, 실시간 120초 축구 시뮬레이션과 승무패 리그. 게임머니 전용.">
 <title>JUNJA PREMIER LEAGUE · 준자랜드</title>
 <link rel="stylesheet" href="/football/style.css?v=20261104-kickoff-v1">
-<script defer src="/football/game.js?v=20261104-kickoff-v1"></script>
+<script defer src="/football/club-icons.js?v=20261104-symbol-v2"></script>
+<script defer src="/football/game.js?v=20261104-hdp-tax-promo-v2"></script>
 </head>
 <body>
 <header class="topnav">
@@ -67,8 +68,8 @@
     <div class="fixture-help"><span>1</span> 홈 승 <span>X</span> 무승부 <span>2</span> 원정 승 · 배당은 접수 시 고정 · 킥오프 시 베팅 마감</div>
    </section>
    <section class="panel table-panel" id="standings">
-    <div class="panel-heading"><div><span class="section-overline">LEAGUE TABLE</span><h2>ROYAL <span class="highlight">STANDINGS</span></h2></div><small>승점 → 골득실 → 다득점</small></div>
-    <div class="table-scroll"><table class="league-table"><thead><tr><th>순위</th><th>클럽</th><th>경기</th><th>승</th><th>무</th><th>패</th><th>득실</th><th>승점</th><th>최근</th></tr></thead><tbody id="tableBody"><tr><td colspan="9">시즌 정보를 불러오는 중...</td></tr></tbody></table></div>
+    <div class="panel-heading"><div><span class="section-overline">LEAGUE TABLE</span><h2>ROYAL <span class="highlight">STANDINGS</span></h2></div><small>승점 → 골득실 → 다득점 · 최하위 2팀 강등</small></div>
+    <div class="table-scroll"><table class="league-table"><thead><tr><th>순위</th><th>클럽</th><th>경기</th><th>승</th><th>무</th><th>패</th><th>득실</th><th>승점</th><th>최근</th></tr></thead><tbody id="tableBody"><tr><td colspan="9">시즌 정보를 불러오는 중...</td></tr></tbody></table></div><div class="league-transition" id="leagueTransition"><span>2부 승격 대기</span><b>두팔 올림피크 FC · 사람 피닉스 유나이티드</b><small>시즌 종료 후 21·22위 강등, 대기 중인 두 팀 승격</small></div>
    </section>
    <section class="panel schedule-panel" id="schedule">
     <div class="panel-heading"><div><span class="section-overline">SEASON FIXTURE LIST</span><h2>42라운드 <span class="highlight">전체 일정</span></h2></div><span class="round-chip">462 MATCHES</span></div>
@@ -83,19 +84,19 @@
   <aside class="bet-rail">
    <section class="panel bet-slip" id="betSlip">
     <div class="slip-heading"><div><span class="section-overline">OFFICIAL MATCH PREDICTION</span><h2>MY <em>BET SLIP</em></h2></div><div class="slip-count" id="slipCount">0</div></div>
-    <p class="slip-description">한 경기만 선택하거나, 여러 경기를 묶어 배당을 높여봐.</p>
+    <p class="slip-description">일반 승무패와 핸디캡 승무패 중 골라봐. 한 경기만 또는 최대 10경기 조합 가능해.</p>
     <div id="slipPicks" class="slip-picks"><div class="slip-empty"><span>⚽</span><b>아직 선택된 경기가 없어</b><small>경기 목록에서 1 / X / 2 배당을 눌러봐.</small></div></div>
     <div class="slip-divider"></div>
     <div class="slip-number"><span>총 조합 배당률</span><strong id="totalOdds">0.00 <small>x</small></strong></div>
     <label class="amount-label" for="stake">베팅할 게임머니 G</label>
     <div class="amount-input"><input type="text" inputmode="numeric" id="stake" value="1000000" aria-label="베팅 게임머니"><span>G</span></div>
     <div class="quick-amounts"><button type="button" data-stake="1000000">100만</button><button type="button" data-stake="100000000">1억</button><button type="button" data-stake="10000000000">100억</button><button type="button" data-stake="1000000000000">1조</button></div>
-    <div class="potential"><span>예상 당첨금</span><strong id="potential">0 G</strong><small>적중 시 원금 포함 · 총 지급 상한 100조 G</small></div>
+    <div class="potential"><span>예상 당첨금</span><strong id="potential">0 G</strong><small id="taxPreview">100배 이상 또는 적중금 1경 초과 시 20% 잭팟 적립 · 예상 실수령 표시</small></div>
     <button type="button" class="place-bet" id="placeBet" disabled>경기를 선택해 주세요</button>
     <button type="button" class="clear-slip" id="clearSlip">전체 선택 지우기</button>
     <p class="responsible">JUNJA LAND · 게임머니 전용<br>현금 가치·충전·환전·상품 교환 없음</p>
    </section>
-   <div class="rules-mini"><strong>HOW TO PLAY</strong><div><span>01</span> 예측하고 싶은 경기의 승/무/패 선택</div><div><span>02</span> 단폴 또는 최대 10폴더 조합</div><div><span>03</span> 경기 시작 전 베팅 확정</div><div><span>04</span> 120초 경기를 관전하고 자동 정산</div></div>
+   <div class="rules-mini"><strong>HOW TO PLAY</strong><div><span>01</span> 예측하고 싶은 경기의 승/무/패 선택</div><div><span>02</span> 단폴·핸디캡 또는 최대 10폴더 조합</div><div><span>03</span> 경기 시작 전 베팅 확정</div><div><span>04</span> 120초 경기를 관전하고 자동 정산</div></div>
   </aside>
  </div>
  <footer><div class="footer-brand">♛ JUNJA <b>PREMIER LEAGUE</b></div><div>© JUNJA CLUB · VIRTUAL FOOTBALL WORLD · ALL RESULTS ARE FICTIONAL</div><a href="/">JUNJA CLUB 복귀 ↑</a></footer>
