@@ -83,9 +83,21 @@ jobs:
         env:
           BASE_URL: http://127.0.0.1:18080
         run: node tests/v25-mobile-smoke.mjs
+      - name: Start independent royal visual test server (separate registration limits)
+        env:
+          PORT: '18081'
+          DATA_DIR: ${{ runner.temp }}/junja-royal-mobile-data
+        run: |
+          npm start > /tmp/junja-royal-mobile.log 2>&1 &
+          for i in {1..30}; do
+            if curl -fsS http://127.0.0.1:18081/ >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/junja-royal-mobile.log
+          exit 1
       - name: Validate luxury motor showroom & private museum on Chromium and WebKit
         env:
-          BASE_URL: http://127.0.0.1:18080
+          BASE_URL: http://127.0.0.1:18081
         run: node tests/royal-motors-mobile.mjs
       - name: Upload mobile screenshots
         if: always()
