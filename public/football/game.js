@@ -229,7 +229,7 @@ function canvasDraw(timestamp){
  requestAnimationFrame(canvasDraw);
  if(!ctx||document.hidden||timestamp-lastDraw<33)return;lastDraw=timestamp;
  const w=canvas.width,h=canvas.height,match=displayMatch();
- const tick=match?(match.status==='LIVE'?Math.max(0,(now()-match.kickoff)/1000):match.status==='FINAL'?MATCH_MS/1000:0):0;
+ const tick=match?(match.status==='LIVE'?Math.min(MATCH_MS/1000,Math.max(0,(now()-match.kickoff)/1000)):match.status==='FINAL'?MATCH_MS/1000:0):0;
  const tm=match?.status==='LIVE'?tick*1.9:timestamp/740;
  const seed=Number(match?.seed||25),home=team(match?.home||'junja'),away=team(match?.away||'happy');
  // Stadium ambience, floodlights, and pixelated crowd tiers.
@@ -268,34 +268,53 @@ function canvasDraw(timestamp){
  ctx.fillStyle='#f2f3da';ctx.beginPath();ctx.arc(lx+lw*.112,ly+lh/2,3.8,0,7);ctx.arc(lx+lw*.888,ly+lh/2,3.8,0,7);ctx.fill();
  ctx.strokeStyle='#d9eee19a';ctx.lineWidth=1;ctx.beginPath();ctx.arc(lx+lw*.112,ly+lh/2,64,-.92,.92);ctx.stroke();
  ctx.beginPath();ctx.arc(lx+lw*.888,ly+lh/2,64,Math.PI-.92,Math.PI+.92);ctx.stroke();
- // Deterministic stadium player movement, only the authoritative score comes from the server.
- const base=[[.08,.5],[.23,.13],[.23,.38],[.23,.62],[.23,.87],[.41,.16],[.41,.4],[.41,.6],[.41,.84],[.61,.35],[.61,.65]];
- const advance=match?.status==='LIVE'?1:0.22;
- const ballX=.5+.35*Math.sin(tm*.36+seed*.003),ballY=.5+.32*Math.sin(tm*.72+seed*.001);
- const ball={x:ballX,y:ballY};
- if(match?.status==='LIVE'&&match.events){
-  const goal=[...match.events].filter(e=>e.kind==='GOAL').find(e=>Math.abs((e.minute/90*(MATCH_MS/1000))-tick)<2.7);
-  if(goal){ball.x=goal.side==='H'?.95:.05;ball.y=.5+.065*Math.sin(tm*2)}
+ // Movement is a fast, deterministic broadcast illustration; server score remains authoritative.
+ const base=[[.06,.5],[.21,.14],[.21,.37],[.21,.63],[.21,.86],[.37,.18],[.37,.43],[.37,.57],[.37,.82],[.60,.36],[.60,.66]];
+ const playing=match?.status==='LIVE';
+ const motion=playing?1:.42;
+ const possession=Math.sin(tm*.49+seed*.002)>0?'H':'A';
+ const ball={
+  x:.50+.40*Math.sin(tm*.59+seed*.004),
+  y:.50+.33*Math.sin(tm*1.27+seed*.003)
+ };
+ if(playing&&match.events?.length){
+  const goal=match.events.filter(e=>e.kind==='GOAL')
+   .find(e=>Math.abs((e.minute/90*(MATCH_MS/1000))-tick)<1.2);
+  if(goal){ball.x=goal.side==='H'?.955:.045;ball.y=.50+.07*Math.sin(tm*4)}
  }
  const px=x=>lx+x*lw,py=y=>ly+y*lh;
  function player(side,i){
   const hside=side==='H',p=base[i],bx=hside?p[0]:1-p[0],by=hside?p[1]:1-p[1];
-  const rx=Math.sin(tm*(.7+i*.021)+i*2.2+(hside?0:5))*.016*advance+(ball.x-bx)*.04*advance;
-  const ry=Math.cos(tm*(.65+i*.04)+i*1.8)*.024*advance+(ball.y-by)*.035*advance;
-  const xx=px(Math.max(.018,Math.min(.982,bx+rx))),yy=py(Math.max(.025,Math.min(.975,by+ry)));
+  const chase=.06+(.13+.095*Math.sin(i*2.15+tm*.78))*(i===0?.1:1)*(side===possession?1.25:1);
+  const dx=(Math.sin(tm*(1.12+i*.055)+i*2.23+(hside?0:4.5))*.049+(ball.x-bx)*chase)*motion;
+  const dy=(Math.cos(tm*(1.18+i*.061)+i*1.43)*.067+(ball.y-by)*chase*.8)*motion;
+  const xx=px(Math.max(.025,Math.min(.975,bx+dx))),yy=py(Math.max(.04,Math.min(.96,by+dy)));
   const c=hside?home:away,fill=c.primary||'#eee';
-  ctx.fillStyle='#0009';ctx.beginPath();ctx.ellipse(xx+2,yy+9,9,4,0,0,7);ctx.fill();
-  ctx.beginPath();ctx.arc(xx,yy,10,0,Math.PI*2);ctx.fillStyle=fill;ctx.shadowBlur=8;ctx.shadowColor=fill;ctx.fill();ctx.shadowBlur=0;
-  ctx.strokeStyle=hside?'#f8dca9':'#e3ebf8';ctx.lineWidth=2;ctx.stroke();
-  ctx.fillStyle=hside&&fill==='#e4c275'?'#192332':'#ffffff';
-  ctx.font='bold 10px Arial';ctx.textAlign='center';ctx.fillText(String(i+1),xx,yy+3.5);
+  ctx.fillStyle='#0009';ctx.beginPath();ctx.ellipse(xx+3,yy+12,13,5,0,0,7);ctx.fill();
+  if(playing){
+   ctx.strokeStyle=hside?'#ecd5a32b':'#d5e2ff24';ctx.lineWidth=5;
+   ctx.beginPath();ctx.moveTo(xx,yy);ctx.lineTo(xx-8*Math.sin(tm*1.25+i),yy+6);ctx.stroke();
+  }
+  ctx.beginPath();ctx.arc(xx,yy,13.3,0,Math.PI*2);ctx.fillStyle=fill;
+  ctx.shadowBlur=9;ctx.shadowColor=fill;ctx.fill();ctx.shadowBlur=0;
+  ctx.strokeStyle='#f9eed7';ctx.lineWidth=2.5;ctx.stroke();
+  ctx.fillStyle=hside&&fill==='#e4c275'?'#132332':'#fffdf2';
+  ctx.font='bold 12px Arial';ctx.textAlign='center';ctx.fillText(String(i+1),xx,yy+4);
  }
  for(let i=0;i<11;i++)player('H',i);
  for(let i=0;i<11;i++)player('A',i);
- const bx=px(ball.x),by=py(ball.y),bounce=2.4*Math.abs(Math.sin(tm*8));
- ctx.fillStyle='#0006';ctx.beginPath();ctx.ellipse(bx+2,by+7,8,3,0,0,7);ctx.fill();
- ctx.fillStyle='#fffff6';ctx.beginPath();ctx.arc(bx,by-bounce,7,0,7);ctx.fill();
- ctx.fillStyle='#172438';ctx.beginPath();ctx.arc(bx,by-bounce,2.8,0,7);ctx.fill();
+ const bx=px(ball.x),by=py(ball.y),bounce=3.8*Math.abs(Math.sin(tm*10));
+ const vx=.40*.59*Math.cos(tm*.59+seed*.004),vy=.33*1.27*Math.cos(tm*1.27+seed*.003);
+ if(playing){
+  for(let k=3;k>=1;k--){
+   ctx.beginPath();ctx.arc(bx-vx*32*k,by-vy*21*k-bounce,Math.max(1,6-k*1.4),0,Math.PI*2);
+   ctx.fillStyle='rgba(253,240,196,'+(.08+(3-k)*.055)+')';ctx.fill();
+  }
+ }
+ ctx.fillStyle='#0008';ctx.beginPath();ctx.ellipse(bx+3,by+9,10,4.5,0,0,7);ctx.fill();
+ ctx.shadowColor='#fff2cd';ctx.shadowBlur=playing?13:4;
+ ctx.fillStyle='#fffdf5';ctx.beginPath();ctx.arc(bx,by-bounce,8.3,0,7);ctx.fill();
+ ctx.shadowBlur=0;ctx.fillStyle='#15253b';ctx.beginPath();ctx.arc(bx,by-bounce,3.3,0,7);ctx.fill();
  ctx.textAlign='left';ctx.fillStyle='#e6efefcc';ctx.font='bold 14px Arial';ctx.fillText('JPL / MATCH ENGINE',X+5,h-21);
  ctx.textAlign='right';ctx.fillStyle='#d8bd83';ctx.fillText(match?.demo?'EXHIBITION  ·  NOT FOR BETTING':'JUNJA PREMIER LEAGUE',w-X-5,h-21);
 }
