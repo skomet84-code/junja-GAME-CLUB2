@@ -1,0 +1,301 @@
+/* JPL ROYAL STADIUM — premium visual system.
+   Design-only layer: preserves live match / odds / tickets / settlement JS. */
+:root{
+  --bg:#070a0d;--panel:#131a1e;--panel2:#1a252a;
+  --gold:#f0ce91;--muted:#a2adb0;--txt:#fff7e8;
+  --line:rgba(240,207,151,.16);
+}
+html{scroll-padding-top:85px}
+body{
+  background:radial-gradient(ellipse 95% 500px at 50% -15%,#3b3123 0%,transparent 75%),
+             radial-gradient(ellipse 45% 750px at 100% 48%,#16352d 0%,transparent 87%),#070a0d;
+  color:var(--txt);
+}
+.topnav{background:rgba(7,10,12,.95);border-bottom-color:#d8b98140;box-shadow:0 7px 28px #0009}
+.topnav-inner{min-height:84px}
+.brand-shield{background:linear-gradient(148deg,#fbe6b8 0%,#dfb66d 42%,#835723 100%);box-shadow:0 5px 20px #c99b4c35}
+.topnav-brand strong{color:#f7e8c6}
+.topnav-brand small{color:#b5a17c}
+.wallet-top b{color:#f1d69d}
+.page{max-width:1440px}
+.welcome{
+  isolation:isolate;
+  grid-template-columns:1fr;
+  position:relative;
+  min-height:440px;
+  margin:22px 0 18px;
+  padding:55px 55px 46px;
+  border:1px solid #d9b88069;
+  border-radius:20px;
+  background-image:linear-gradient(90deg,rgba(5,10,12,.98) 0%,rgba(7,13,17,.86) 32%,rgba(7,15,16,.37) 67%,rgba(4,8,10,.34) 100%),url('/football/royal-stadium.svg');
+  background-size:cover;
+  background-position:center 58%;
+  box-shadow:0 30px 65px #000a,0 0 0 5px #c8a76d0c,inset 0 0 120px #0007;
+}
+.welcome:before{
+  content:"";position:absolute;inset:9px;border:1px solid rgba(244,211,151,.22);
+  border-radius:12px;pointer-events:none;z-index:1;
+}
+.welcome:after{
+  content:"";position:absolute;inset:0;
+  background:linear-gradient(0deg,rgba(2,8,10,.8),transparent 28%),
+    radial-gradient(ellipse 42% 110% at 86% 53%,rgba(244,204,137,.12),transparent 80%);
+  border-radius:inherit;pointer-events:none;z-index:0;
+}
+.welcome-copy{position:relative;z-index:2;max-width:min(690px,65%);text-shadow:0 2px 15px #000b}
+.welcome .eyebrow{font-size:12px;letter-spacing:.25em;color:#efd4a1}
+.welcome .live-led{background:#e8bd78;box-shadow:0 0 17px #ffe2a3}
+.welcome h1{font-size:clamp(43px,4.8vw,75px);line-height:1.16;margin:16px 0 20px;letter-spacing:-.065em;text-wrap:balance}
+.welcome h1 em{color:#f4d29a;text-shadow:0 0 32px #ad854a45}
+.welcome p{font-size:14px;line-height:2.1;color:#e1e8e2;max-width:570px}
+.welcome-chips{margin-top:25px;gap:8px}
+.welcome-chips span{
+  border:1px solid #ffe0a649;border-radius:50px;
+  padding:7px 13px;background:#030a0bbb;
+  color:#d5dbd5;backdrop-filter:blur(12px)
+}
+.welcome-chips b{color:#f4d498}
+.welcome-symbol{display:none!important}
+.welcome-action{
+  display:inline-flex;align-items:center;justify-content:space-between;gap:32px;
+  margin-top:24px;min-height:52px;padding:13px 19px 13px 23px;
+  border:1px solid #ffe2b2;border-radius:8px;
+  background:linear-gradient(114deg,#f7dda2,#dbb168 48%,#bf8f4b);
+  color:#191812;box-shadow:0 9px 25px #08090899,0 1px 0 #fff4cf70 inset;
+  font-size:14px;font-weight:900;letter-spacing:-.02em;
+  text-shadow:none;transition:transform .2s,filter .2s
+}
+.welcome-action:hover{transform:translateY(-2px);filter:brightness(1.08)}
+.welcome-action span{font-size:20px;line-height:1}
+.welcome-edition{
+  position:absolute;z-index:2;bottom:29px;right:35px;
+  font:800 11px 'Barlow Condensed',sans-serif;
+  letter-spacing:.28em;color:#f0d59f;text-shadow:0 3px 10px #000
+}
+.welcome-edition:before{content:"";display:inline-block;width:37px;height:1px;background:#d2ae6d;vertical-align:middle;margin-right:12px}
+.quick-stats{
+  margin:0 0 23px;gap:9px;border:0;border-radius:0;
+  background:transparent;overflow:visible
+}
+.quick-stats>div{
+  position:relative;min-height:98px;
+  border:1px solid rgba(230,201,151,.25)!important;border-radius:12px;
+  padding:18px 20px;background:linear-gradient(155deg,#1c2528d9,#0e1417);
+  box-shadow:inset 0 1px #ffffff09,0 9px 23px #0004
+}
+.quick-stats>div:before{
+  content:"";position:absolute;inset:0 auto 0 0;width:2px;border-radius:8px;
+  background:linear-gradient(180deg,transparent,#e8c58e,transparent);opacity:.7
+}
+.quick-stats small{color:#b5aaa0;letter-spacing:.14em}
+.quick-stats strong{color:#f8efe0;font-size:26px}
+.quick-stats strong span{color:#b5aaa0}
+.section-nav{
+  gap:8px;margin-bottom:20px;padding:0 0 6px;
+  border-bottom:1px solid #d6bb8740
+}
+.section-nav button{
+  min-height:42px;border:1px solid transparent;border-radius:7px 7px 0 0;
+  color:#bec6c3;font-size:12px;padding:10px 17px
+}
+.section-nav button:hover,.section-nav .nav-current{
+  color:#fce1a9;background:linear-gradient(180deg,#d4b47b2b,#d4b47b0b);
+  border-color:#d8b8785c;border-bottom-color:#edcd93
+}
+.layout{gap:21px}
+.main-column{gap:20px}
+.panel{
+  background:linear-gradient(160deg,#182226,#0e1519 70%);
+  border:1px solid #d8b77c33;border-radius:16px;
+  box-shadow:0 20px 40px #0007,inset 0 1px 0 #ffffff08;
+}
+.panel-heading{padding:25px 26px 20px}
+.panel-heading h2{font-size:31px;color:#fff3de;letter-spacing:.005em}
+.section-overline,.eyebrow{color:#d7b77c}
+.onair{border-radius:50px;border-color:#d0b78945;background:#181f20}
+.scoreboard{
+  background:linear-gradient(95deg,#20362fa9,#131c22 48%,#26332ba9),
+             url('/football/royal-stadium.svg') center 61%/cover;
+  border-color:#ddc28a3d;padding:25px 30px;
+  min-height:150px
+}
+.score-club h3{color:#fffbf0}
+.score-club .crest{filter:drop-shadow(0 6px 6px #0009)}
+.main-score{color:#fff5da;text-shadow:0 2px 17px #000c}
+.pitch-frame{border-top:1px solid #d3b67e5c}
+.stadium-head{background:#07100fb5;left:10px;right:10px;top:10px;padding:5px 8px;border-radius:4px}
+.timeline{background:linear-gradient(90deg,#172825,#101a1b)}
+.ticker-icon{color:#f5ce86}
+.fixture-panel{border-color:#d5b37f55}
+.fixture-tabs{gap:8px}
+.fixture-tabs button{
+  border:1px solid #ccb18134;border-radius:50px;
+  background:#111a1d;color:#c6cec9;padding:8px 16px
+}
+.fixture-tabs button.active{background:linear-gradient(120deg,#f6dfaf,#c79d5e);color:#151816;border-color:#f7d69b}
+.fixtures-list{gap:12px;padding:0 18px 18px}
+.fixture-item{
+  position:relative;overflow:hidden;padding:19px 18px;
+  background:radial-gradient(ellipse 300px 110px at 50% 0%,#31514847,transparent 100%),
+             linear-gradient(135deg,#182529,#101719);
+  border:1px solid #dbc08d41;border-radius:13px;
+  box-shadow:0 10px 22px #0005,inset 0 1px #ffffff09
+}
+.fixture-item:before{
+  content:"";position:absolute;top:0;left:18px;right:18px;height:1px;
+  background:linear-gradient(90deg,transparent,#f3da9f64,transparent);
+}
+.fixture-time b{color:#f5d5a0;font-size:22px}
+.fixture-time small{color:#a8b6b0}
+.fixture-team .crest{filter:drop-shadow(0 4px 5px #000a)}
+.fixture-team>span{color:#f4eee0}
+.fixture-vs{color:#c5b69a}
+.watch-btn{
+  padding:9px 13px;color:#f7d69e;
+  background:#1f2928;border:1px solid #dcc08c69;border-radius:7px
+}
+.watch-btn:hover{background:#394034}
+.market-rows{border-top-color:#dec59835}
+.market-label{color:#e5d4ad}
+.market-label.hdp{color:#efbb78}
+.odds-row button{
+  border-radius:8px;border-color:#b8af9352;background:linear-gradient(160deg,#1e292a,#111a1e);
+  color:#e3e9dd;padding:10px 13px
+}
+.odds-row button span{color:#dbcaa9}
+.odds-row button b{font-size:19px;color:#fff0cc}
+.odds-row button.active{
+  background:linear-gradient(130deg,#edc986,#9a7136);
+  color:#171714;border-color:#ffe4b0;box-shadow:0 0 0 2px #d4b5774a
+}
+.odds-row button.active b,.odds-row button.active span{color:#171714}
+.league-table thead{background:#25302b}
+.league-table tbody tr:first-child{background:#b48b4824}
+.league-table td{border-color:#e6d1a01b}
+.ticket-card{border-radius:11px;background:#101b1b;border-color:#dcc08b44}
+.ticket-head{background:linear-gradient(95deg,#263c33,#1c2527)}
+.ticket-status{border-radius:50px}
+.ticket-footer{background:#172322}
+.bet-slip{
+  border:1px solid #e7c58b75;
+  background:linear-gradient(165deg,#2b302b,#182321 38%,#10191a 100%);
+  box-shadow:0 18px 36px #0008,inset 0 1px #f0d69b24
+}
+.slip-heading{padding:25px 22px 0}
+.slip-heading h2{color:#f8f0e1}
+.slip-description{color:#b5c5be;line-height:1.85}
+.slip-count{width:41px;height:41px;border-radius:50%;background:#eac98c;box-shadow:0 0 0 5px #e9ce9e21}
+.slip-empty{
+  border:1px dashed #cbb58b69;background:radial-gradient(circle at 50% 0%,#2b45376b,transparent 70%),#0d191a;
+  padding:27px 8px 30px;border-radius:10px
+}
+.slip-empty>span{font-size:35px}
+.pick-line{background:#172622;border-color:#d2b98064;border-radius:9px}
+.amount-input{background:#0a1515;border-color:#d2b77a8f;border-radius:8px}
+.quick-amounts button{border-radius:6px;background:#27302f;color:#f0e8d5}
+.potential{background:#f2ca7b12}
+.place-bet{border-radius:9px;box-shadow:0 9px 22px #0005}
+.ticket-receipt-button{border-radius:0 0 10px 10px}
+.rules-mini{color:#a4b2ac}
+footer{border-color:#d7c39d33}
+@media(max-width:970px){
+  .bet-rail{position:static}
+}
+@media(max-width:650px){
+  html{scroll-padding-top:70px}
+  .topnav-inner{min-height:66px;padding:8px 11px;gap:8px}
+  .topnav-brand strong{font-size:13px}
+  .wallet-top{min-width:94px}
+  .wallet-top b{font-size:13px}
+  .page{padding:0 11px 32px}
+  .welcome{
+    display:flex;align-items:flex-end;
+    min-height:335px;margin:12px 0 11px;padding:27px 19px 26px;
+    border-radius:14px;
+    background-image:linear-gradient(0deg,#040909 2%,#061012e8 45%,#06131460 82%),
+      linear-gradient(90deg,#061012c0,#06101222),url('/football/royal-stadium.svg');
+    background-size:cover;background-position:61% center;
+    box-shadow:0 11px 26px #0008;
+  }
+  .welcome:before{inset:6px;border-radius:9px}
+  .welcome:after{background:linear-gradient(0deg,#040809,transparent 26%)}
+  .welcome-copy{max-width:100%;width:100%}
+  .welcome .eyebrow{font-size:9px;letter-spacing:.12em}
+  .welcome h1{font-size:clamp(32px,8vw,43px);margin:9px 0;line-height:1.21;letter-spacing:-.065em}
+  .welcome p{font-size:10px;line-height:1.75;max-width:310px}
+  .welcome-chips{margin-top:11px;gap:5px}
+  .welcome-chips span{padding:4px 8px;font-size:8px}
+  .welcome-chips b{font-size:11px}
+  .welcome-action{min-height:42px;margin-top:14px;padding:9px 14px 9px 17px;font-size:12px;gap:28px}
+  .welcome-edition{right:15px;top:17px;bottom:auto;font-size:7px;letter-spacing:.18em}
+  .welcome-edition:before{width:13px;margin-right:4px}
+  .quick-stats{margin:0 0 14px;gap:6px}
+  .quick-stats>div{min-height:69px;padding:10px 11px;border-radius:9px}
+  .quick-stats strong{font-size:18px;line-height:1.5}
+  .quick-stats small{font-size:8px}
+  .section-nav{gap:4px;margin-bottom:13px}
+  .section-nav button{min-height:37px;padding:7px 11px;font-size:10px}
+  /* On phones: show fixtures -> ticket -> live broadcast -> standings, instead of empty ticket first. */
+  .layout{display:flex;flex-direction:column;gap:11px}
+  .main-column{display:contents}
+  .fixture-panel{order:1}
+  .bet-rail{order:2;display:block;width:100%}
+  .broadcast{order:3}
+  .table-panel{order:4}
+  .schedule-panel{order:5}
+  .tickets-panel{order:6}
+  .panel{border-radius:12px}
+  .panel-heading{padding:17px 14px 13px}
+  .panel-heading h2{font-size:24px}
+  .fixture-tabs{margin:0 12px 12px}
+  .fixtures-list{padding:0 9px 10px;gap:10px}
+  .fixture-item{padding:13px 11px;border-radius:10px}
+  .fixture-main{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px 10px}
+  .fixture-time{grid-column:1/-1;display:flex;align-items:baseline;gap:7px;flex-direction:row}
+  .fixture-time b{font-size:20px}
+  .fixture-time small{font-size:10px}
+  .fixture-match{grid-column:1;grid-row:2;grid-template-columns:minmax(0,1fr) 21px minmax(0,1fr);gap:4px}
+  .fixture-right{grid-column:2;grid-row:2}
+  .fixture-team{gap:5px}
+  .fixture-team .crest{width:27px;height:33px}
+  .fixture-team .crest i{font-size:12px}
+  .fixture-team .crest small{font-size:6px;bottom:5px}
+  .fixture-team>span{font-size:10px;white-space:normal;line-height:1.24}
+  .fixture-vs{font-size:13px}
+  .watch-btn{padding:7px 8px;font-size:9px}
+  .market-rows{margin-top:12px;padding-top:12px}
+  .market-row{grid-template-columns:72px 1fr;gap:5px}
+  .market-label{font-size:10px}
+  .market-row .odds-row{gap:5px}
+  .market-row .odds-row button{padding:9px 8px;min-height:39px}
+  .market-row .odds-row button span{font-size:14px}
+  .market-row .odds-row button b{font-size:17px}
+  .scoreboard{padding:16px 9px;gap:5px;min-height:114px}
+  .score-club .crest{width:36px;height:44px}
+  .score-club h3{font-size:11px}
+  .score-box{min-width:68px}
+  .main-score{font-size:36px}
+  .score-club{gap:5px}
+  .match-meta{font-size:9px}
+  .slip-heading{padding:18px 14px 0}
+  .slip-heading h2{font-size:25px}
+  .slip-description{padding:6px 14px 12px}
+  .slip-empty{padding:17px 8px 20px}
+  .slip-empty>span{font-size:27px}
+  .potential strong{font-size:24px}
+  .rules-mini{display:none}
+  .ticket-card{margin:0 9px 10px}
+}
+@media(max-width:370px){
+  .wallet-top{min-width:72px}
+  .wallet-top b{font-size:11px}
+  .topnav-brand strong{font-size:11px}
+  .welcome h1{font-size:30px}
+  .market-row{grid-template-columns:66px 1fr}
+  .market-row .odds-row button{padding:7px 4px}
+  .fixture-team .crest{width:23px;height:30px}
+  .fixture-team>span{font-size:9px}
+}
+@media(prefers-reduced-motion:reduce){
+  .welcome-action{transition:none}
+}

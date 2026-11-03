@@ -31,3 +31,30 @@
  .football-jpl .jpl-tile-copy strong{font-size:21px}
  .football-jpl .jpl-tile-copy{max-width:75%}
 }
+
+/* Same original night-stadium identity as the in-game JPL venue. */
+#view-lobby .game-grid .football-jpl{
+  background-image:linear-gradient(100deg,#080f12f5 0%,#0b1818d8 36%,#101b1a4a 72%,#0811104d 100%),url('/football/royal-stadium.svg')!important;
+  background-size:cover!important;background-position:center 56%!important;
+  border:1px solid #e1c28b99!important;border-radius:18px!important;
+  box-shadow:0 20px 50px #000b,inset 0 0 0 1px #f7d9a21b!important
+}
+.football-jpl .jpl-art{display:none!important}
+.football-jpl .jpl-glow{opacity:.34}
+.football-jpl .jpl-tile-copy{max-width:70%;padding:32px 29px}
+.football-jpl .jpl-kicker{color:#f5d7a0;text-shadow:0 2px 10px #000}
+.football-jpl .jpl-tile-copy strong{font-size:clamp(27px,3vw,40px);color:#fff6e5;line-height:1.1}
+.football-jpl .jpl-tile-copy p{color:#e3e9dd}
+.football-jpl .jpl-entry{
+  border:1px solid #ffe3b0;background:linear-gradient(110deg,#f4dda7,#c8964c);
+  border-radius:8px;box-shadow:0 7px 23px #0009
+}
+@media(max-width:820px){
+ #view-lobby .game-grid .football-jpl{min-height:219px;background-position:61% center!important}
+ .football-jpl .jpl-tile-copy{max-width:78%;padding:21px 18px;min-height:219px}
+ .football-jpl .jpl-tile-copy strong{font-size:28px;line-height:1.17}
+ .football-jpl .jpl-tile-copy p{font-size:10px}
+}
+@media(max-width:390px){
+ .football-jpl .jpl-tile-copy strong{font-size:23px}
+}
