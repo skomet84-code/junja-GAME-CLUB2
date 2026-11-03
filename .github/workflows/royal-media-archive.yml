@@ -2,24 +2,12 @@ name: Archive Royal Luxury Photo Assets
 
 on:
   workflow_dispatch:
-  pull_request:
-    branches: [main]
-    paths:
-      - scripts/sync-royal-media.cjs
-      - scripts/optimize-royal-photos.py
-      - .github/workflows/royal-media-archive.yml
-  push:
-    branches:
-      - feat/royal-visual-qa-v7-20261103
-    paths:
-      - scripts/sync-royal-media.cjs
-      - .github/workflows/royal-media-archive.yml
 
 permissions:
   contents: write
 
 concurrency:
-  group: junja-royal-archive-${{ github.head_ref || github.ref_name }}
+  group: junja-royal-archive-${{ github.ref_name }}
   cancel-in-progress: false
 
 jobs:
@@ -29,7 +17,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: feat/royal-visual-qa-v7-20261103
+          ref: main
           persist-credentials: true
       - uses: actions/setup-node@v4
         with:
@@ -50,11 +38,11 @@ jobs:
           # Another allowed edit may have advanced this branch while we compressed.
           # Recompute from the latest remote state instead of rebasing generated
           # manifest and JPEG files (which creates unnecessary merge conflicts).
-          git fetch origin feat/royal-visual-qa-v7-20261103
-          git reset --hard origin/feat/royal-visual-qa-v7-20261103
+          git fetch origin main
+          git reset --hard origin/main
           python scripts/optimize-royal-photos.py
           git add public/art/royal/photos/
           if ! git diff --staged --quiet; then
             git commit -m 'assets(royal): compressed CC photos cached locally for iOS gallery'
-            git push origin HEAD:feat/royal-visual-qa-v7-20261103
+            git push origin HEAD:main
           fi
