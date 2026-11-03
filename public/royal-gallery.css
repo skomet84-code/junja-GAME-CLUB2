@@ -205,3 +205,15 @@
  .jrg-relic-promises>span{font-size:7px}
 }
 @media(prefers-reduced-motion:reduce){.jrg-object img,.jrg-selected-image img{animation:none}.jrg-object,.jrg-collection-card,.jrg-card-art img{transition:none}}
+
+/* Unobtrusive third wing: open a full separate museum without replacing shop state. */
+#view-shop .jrp-wing-nav.jrp-wing-nav-three{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+#view-shop .jrp-wing-nav-three .jrp-gallery-entry{color:#f8e1b3;border:1px solid #b68d5c;background:linear-gradient(150deg,#4a3058,#261d30);box-shadow:inset 0 0 0 1px #eed3a023}
+#view-shop .jrp-wing-nav-three .jrp-gallery-entry:hover{background:linear-gradient(125deg,#6d4679,#352440);border-color:#f5d396}
+#view-shop .jrp-collector-links [data-go="gallery"]{background:linear-gradient(125deg,#eec77e,#ac7545);color:#201522;border:1px solid #f6dcaa;font-weight:900;box-shadow:0 5px 17px #e0ac5a40}
+#profileContent [data-go="gallery"],#friendLookupResult [data-go="gallery"]{border:1px solid #e6c083!important;background:linear-gradient(110deg,#644077,#332345)!important;color:#fce4b1!important;box-shadow:0 4px 18px #9e6fbc44}
+@media(max-width:590px){
+ #view-shop .jrp-wing-nav.jrp-wing-nav-three{padding:5px;gap:3px}
+ #view-shop .jrp-wing-nav-three button{font-size:11px;letter-spacing:-.01em;min-height:58px;padding:7px 4px}
+ #view-shop .jrp-wing-nav-three button small{font-size:8px;letter-spacing:0}
+}
