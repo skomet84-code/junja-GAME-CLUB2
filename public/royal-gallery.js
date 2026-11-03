@@ -20,12 +20,13 @@
  const iconFor=item=>{
    const id=String(item?.id||'');
    if(id.includes('phoenix'))return '/art/royal/phoenix.svg';
-   if(id.includes('immortal'))return '/art/royal/dragon.svg';
+   if(id.includes('immortal'))return '/art/royal/immortal.svg';
    if(id.includes('dragon'))return '/art/royal/dragon.svg';
    if(id.includes('regalia')||id.includes('frame_royalboutique_royal'))return '/art/royal/regalia.svg';
-   if(id.includes('aura'))return '/art/royal/gem.svg';
+   if(id.includes('aura'))return '/art/royal/aura.svg';
    if(id.includes('wings'))return '/art/royal/wings.svg';
    if(id.includes('entry'))return '/art/royal/scepter.svg';
+   if(id.includes('title_royalboutique_gold'))return '/art/royal/noble.svg';
    if(id.includes('diamond')||id.includes('frame_royalboutique'))return '/art/royal/gem.svg';
    return '/art/royal/crown.svg';
  };
