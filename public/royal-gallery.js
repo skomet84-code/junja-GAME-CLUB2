@@ -20,6 +20,7 @@
  const media=window.JunjaRoyalMedia;
  const iconFor=item=>media?.picture(item)||('/art/royal/'+String(item?.art||'crown')+'.svg');
  const realPhoto=item=>!!media?.isPhoto(item);
+ const cinematicScene=item=>media?.scene(item)||'/art/royal/cinematic/jewelry-showroom.webp';
  const imageTag=(item,alt='',eager=false)=>'<img src="'+esc(iconFor(item))+'" alt="'+esc(alt)+'" loading="'+(eager?'eager':'lazy')+'" decoding="async" referrerpolicy="no-referrer"'+
    (realPhoto(item)?' data-junja-photo="1" data-photo-fallback="'+esc(media.fallback(item))+'" data-photo-remote="'+esc(media.remote(item))+'"':'')+'>';
  const credit=item=>!realPhoto(item)?'':
@@ -85,7 +86,7 @@
    return '<article class="jrg-vault-piece '+(selected?'active ':'')+(primary?'signature ':'')+(realPhoto(item)?'photo-piece ':'')+'jrg-grade-'+esc(item.rarity||'prestige')+'">'+
     '<div class="jrg-vault-piece-top"><span>JUNJA · PRIVATE COLLECTION</span><strong>'+esc(serial(item))+'</strong></div>'+
     '<button type="button" class="jrg-vault-art" data-jrg-focus="'+esc(item.id)+'" aria-label="'+esc(item.name)+' 소장품 상세 보기">'+
-      '<span class="jrg-vault-image-backdrop"></span>'+imageTag(item,item.name+' 컬렉션 소장품')+
+      '<span class="jrg-vault-image-backdrop jrg-cinematic-card-backdrop" style="background-image:linear-gradient(0deg,rgba(9,5,18,.76),rgba(9,5,18,.2)),url('+esc(cinematicScene(item))+')"></span>'+imageTag(item,item.name+' 컬렉션 소장품')+
       '<span class="jrg-vault-art-engrave">'+esc(item.brand?item.brand.toUpperCase():categoryName[item.category]||'ROYAL COLLECTION')+'</span>'+
     '</button>'+
     '<div class="jrg-vault-piece-foot"><div class="jrg-vault-grade"><span>'+esc(grade(item))+'</span><small>'+esc(status)+'</small></div>'+
@@ -103,7 +104,7 @@
     '<button class="jrg-cert-close" type="button" data-jrg-dismiss="1" aria-label="소장 증서 닫기">✕</button>'+
     '<div class="jrg-cert-crest">♛</div><small>JUNJA LAND · PRIVATE OWNERSHIP RECORD</small>'+
     '<h2>CERTIFICATE<br><em>OF COLLECTION</em></h2>'+
-    '<div class="jrg-cert-picture">'+imageTag(item,item.name+' 사진')+'</div>'+
+    '<div class="jrg-cert-picture jrg-cinematic-certificate" style="--jrg-cinema-image:url('+esc(cinematicScene(item))+')">'+imageTag(item,item.name+' 사진')+'</div>'+
     '<span class="jrg-cert-rarity">'+esc(grade(item))+'</span>'+
     '<h3>'+esc(item.name)+'</h3>'+
     '<div class="jrg-cert-facts">'+
@@ -150,14 +151,14 @@
      '<div class="jrg-passport-note">♛ JUNJA REGISTERED COLLECTION · 게임 내 가상 수집품 / 현금 및 실물 교환 불가</div></section>'+
     '<section class="jrg-hall '+(isPanorama(center)?'jrg-grand-garage':'')+'" aria-label="대표 컬렉션 황실 전시실">'+
      '<div class="jrg-hall-heading"><span>THE GRAND PRIVATE SHOWROOM</span><span>✦ THE LEGACY OF '+owner+' ✦</span></div>'+
-     '<div class="jrg-stage">'+stageSlot(left,'left',1)+stageSlot(center,'center',0)+stageSlot(right,'right',2)+
+     '<div class="jrg-stage jrg-cinematic-stage" style="--jrg-cinema-image:url('+esc(cinematicScene(selected||center))+')">'+stageSlot(left,'left',1)+stageSlot(center,'center',0)+stageSlot(right,'right',2)+
       '<div class="jrg-stage-inscription">JUNJA<br><span>PRIVATE COLLECTION</span></div></div>'+
      '<div class="jrg-hall-foot"><span>♛ '+owner+' · '+esc(collector.tier||'NEW COLLECTOR')+'</span><span>'+shown.length+' / 3 PRIVATE EXHIBITS</span></div></section>'+
     '<div class="jrg-relic-promises">'+badges+'</div>'+
     (!items.length?
      '<section class="jrg-empty-state"><div class="jrg-empty-crown">♛</div><h2>나만의 컬렉션을 시작해봐</h2><p>아직 구매한 로얄 명품이 없어. 첫 작품을 소장하면 이 궁전과 소장 증서에 네 이름이 새겨져.</p>'+(own?'<button type="button" data-go="shop">첫 로얄 컬렉션 만나기</button>':'')+'</section>':
      '<section class="jrg-selected-panel '+(realPhoto(selected)?'jrg-photo-detail':'')+'" aria-label="대표 소장품 상세">'+
-      '<div class="jrg-selected-image"><span>PRIVATE COLLECTION · '+esc(serial(selected))+'</span>'+imageTag(selected,selected.name+' 소장품 사진',true)+'</div>'+
+      '<div class="jrg-selected-image jrg-cinematic-selected" style="--jrg-cinema-image:url('+esc(cinematicScene(selected))+')"><span>PRIVATE COLLECTION · '+esc(serial(selected))+'</span>'+imageTag(selected,selected.name+' 소장품 사진',true)+'</div>'+
       '<div class="jrg-selected-info"><small>OWNER REGISTERED · ROYAL COLLECTION</small>'+
        '<h2>'+esc(selected.name)+'</h2><span class="jrg-selected-rarity">'+esc(grade(selected))+'</span>'+
        '<p>'+esc(selected.desc||'영구 소장하는 준자랜드 로얄 컬렉션')+'</p>'+
