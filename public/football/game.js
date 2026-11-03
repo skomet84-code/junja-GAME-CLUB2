@@ -190,6 +190,19 @@ function selectWatch(id){
  watchId=id;demo=null;renderBroadcast();renderFixtures();
  $('#broadcast').scrollIntoView({behavior:'smooth',block:'start'});
 }
+// Exhibition goals are generated locally and are never read from the authoritative league result.
+function createDemoEvents(h,a){
+ const events=[{minute:11,kind:'SHOT',side:'A',text:a.short+'의 강력한 슈팅!'},
+  {minute:44,kind:'CORNER',side:'H',text:h.short+'의 코너킥 찬스'},
+  {minute:72,kind:'SAVE',side:'A',text:a.short+' 골키퍼 슈퍼 세이브!'}];
+ const goals=Math.floor(Math.random()*5);
+ for(let i=0;i<goals;i++){
+  const minute=8+Math.floor(Math.random()*80),side=Math.random()<.5?'H':'A';
+  const scorer=side==='H'?h.short:a.short;
+  events.push({minute,kind:'GOAL',side,text:scorer+' 득점!'});
+ }
+ return events.sort((x,y)=>x.minute-y.minute);
+}
 function displayMatch(){
  if(demo){
   const elapsed=Math.min(MATCH_MS,now()-demo.startedAt);
@@ -223,6 +236,16 @@ function renderBroadcast(){
   latest?(latest.minute+'분 · '+team(latest.side==='H'?f.home:f.away).short+' · '+latest.text):
   finished?'풀타임! 경기 결과와 예측 적중금을 확인해 봐.':'선수들이 피치 위에서 공격을 전개하고 있어!';
  $('#progressFill').style.width=finished?'100%':live?f.minute/90*100+'%':'0%';
+ // Draw every announced goal at its exact 90-minute match-time position.
+ $('#goalMarkers').innerHTML=(f.events||[]).filter(e=>e.kind==='GOAL'&&Number.isFinite(Number(e.minute)))
+  .map(e=>{
+   const minute=Math.max(0,Math.min(90,Number(e.minute)));
+   const scorer=e.side==='H'?h.short:a.short;
+   return '<span class="goal-marker '+(e.side==='H'?'home':'away')+'" style="left:'+(minute/90*100).toFixed(2)+'%" title="'+esc(scorer+' · '+minute+'분 골')+'" aria-label="'+esc(scorer+' '+minute+'분 골')+'"><b>⚽</b><small>'+minute+'′</small></span>';
+  }).join('');
+ const finalBanner=$('#pitchFinalBanner');
+ finalBanner.hidden=!finished;
+ if(finished)$('#pitchFinalScore').textContent=h.short+' '+f.score.home+' : '+f.score.away+' '+a.short;
  $('#demoButton').textContent=demo?'데모 종료 ×':'1분 중계 미리보기 ↗';
 }
 function canvasDraw(timestamp){
@@ -230,7 +253,9 @@ function canvasDraw(timestamp){
  if(!ctx||document.hidden||timestamp-lastDraw<33)return;lastDraw=timestamp;
  const w=canvas.width,h=canvas.height,match=displayMatch();
  const tick=match?(match.status==='LIVE'?Math.min(MATCH_MS/1000,Math.max(0,(now()-match.kickoff)/1000)):match.status==='FINAL'?MATCH_MS/1000:0):0;
- const tm=match?.status==='LIVE'?tick*1.9:timestamp/740;
+ const finishedVisual=match?.status==='FINAL'||match?.status==='LIVE'&&now()>=match.kickoff+MATCH_MS;
+ const playing=match?.status==='LIVE'&&!finishedVisual;
+ const tm=playing?tick*1.9:finishedVisual?MATCH_MS/1000*1.9:timestamp/740;
  const seed=Number(match?.seed||25),home=team(match?.home||'junja'),away=team(match?.away||'happy');
  // Stadium ambience, floodlights, and pixelated crowd tiers.
  ctx.fillStyle='#0b1824';ctx.fillRect(0,0,w,h);
@@ -270,8 +295,7 @@ function canvasDraw(timestamp){
  ctx.beginPath();ctx.arc(lx+lw*.888,ly+lh/2,64,Math.PI-.92,Math.PI+.92);ctx.stroke();
  // Movement is a fast, deterministic broadcast illustration; server score remains authoritative.
  const base=[[.06,.5],[.21,.14],[.21,.37],[.21,.63],[.21,.86],[.37,.18],[.37,.43],[.37,.57],[.37,.82],[.60,.36],[.60,.66]];
- const playing=match?.status==='LIVE';
- const motion=playing?1:.42;
+ const motion=playing||finishedVisual?1:.42;
  const possession=Math.sin(tm*.49+seed*.002)>0?'H':'A';
  const ball={
   x:.50+.40*Math.sin(tm*.59+seed*.004),
@@ -321,6 +345,7 @@ function canvasDraw(timestamp){
 function updateLiveClock(){
  if(!status)return;
  const f=displayMatch();if(!f)return;
+ if(!demo&&f.status==='LIVE'&&now()>=f.kickoff+MATCH_MS&&!loading){refresh(true);return}
  if(f.status==='LIVE'||f.status==='SCHEDULED'&&now()>=f.kickoff||demo)renderBroadcast();
 }
 async function refresh(force=false){
@@ -368,15 +393,9 @@ $('#demoButton').addEventListener('click',()=>{
  if(!f){toast('먼저 경기를 선택해 줘.',true);return}
  // Exhibition uses the exact selected fixture; its goals are never the actual match outcome.
  const h=team(f.home),a=team(f.away);
- demo={startedAt:now(),seed:Math.abs([...String(f.id)].reduce((n,ch)=>(n*31+ch.charCodeAt(0))|0,1189)),
+ demo={startedAt:now(),seed:Math.floor(Math.random()*2147483647),
   source:{id:f.id,home:f.home,away:f.away,round:f.round,venue:h.stadium,odds:f.odds},
-  events:[
-   {minute:11,kind:'SHOT',side:'A',text:a.short+'의 강력한 슈팅!'},
-   {minute:21,kind:'GOAL',side:'H',text:h.short+' 선제골!'},
-   {minute:33,kind:'CORNER',side:'A',text:a.short+' 코너킥 찬스'},
-   {minute:52,kind:'GOAL',side:'A',text:a.short+' 동점골!'},
-   {minute:68,kind:'SAVE',side:'H',text:h.short+' 골키퍼 슈퍼 세이브!'},
-   {minute:83,kind:'GOAL',side:'H',text:h.short+' 역전 결승골!'}]};
+  events:createDemoEvents(h,a)};
  renderBroadcast();
 });
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)refresh(true)});
