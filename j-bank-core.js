@@ -222,6 +222,38 @@ function createJBank({db,exactWallet,levels,legacyRankCosts=null,now,kstDate}){
   }catch(e){try{db.exec('ROLLBACK');}catch{}throw e;}
  }
 
- return {status,owed,rankResaleBasis:purchasedRankBasis,limits:LIMITS,...Object.fromEntries(['installmentOpen','installmentPay','installmentClaim','installmentCancel'].map(kind=>[kind,(id,raw,key)=>change(id,kind,raw,key)])),deposit:(id,amount,key)=>change(id,'deposit',amount,key),withdraw:(id,amount,key)=>change(id,'withdraw',amount,key),borrow:(id,amount,key)=>change(id,'borrow',amount,key),repay:(id,amount,key)=>change(id,'repay',amount,key),sellRank,forceCasinoSale,enforceOverdue:overdue.enforce,rehabilitation:overdue.rehabilitation};
+ // Loan-financed purchases run inside the caller's BEGIN IMMEDIATE transaction.
+ // The loan and item transfer must commit or roll back together; never leave an
+ // involuntary loan when an item is sold out or the purchase fails.
+ function purchaseQuote(id,rawPrice){
+  const price=BigInt(String(rawPrice)),u=db.prepare('SELECT id,is_disabled,balance,balance_exact,balance_base FROM users WHERE id=?').get(id);
+  if(!u||u.is_disabled)throw Error('계정 상태를 확인할 수 없습니다.');
+  const balance=exactWallet.read(u),shortage=price>balance?price-balance:0n;
+  const statusNow=status(id);
+  const minimum=shortage>MIN_LOAN?shortage:MIN_LOAN;
+  const activeCollateral=!!db.prepare("SELECT 1 FROM room_escrow WHERE user_id=? AND game LIKE 'casino_%' LIMIT 1").get(id);
+  const eligible=shortage>0n&&statusNow.canBorrow&&!activeCollateral&&minimum<=BigInt(statusNow.available);
+  return {eligible,shortage:String(shortage),loanAmount:String(eligible?minimum:0n),
+   available:String(statusNow.available),minLoan:String(MIN_LOAN),outstanding:String(statusNow.outstanding),
+   wallet:String(balance),dailyInterestPct:statusNow.dailyInterestPct,dueDays:7,blockedByCollateral:activeCollateral};
+ }
+ function borrowForPurchase(id,rawPrice,itemName){
+  // Must only be called inside an existing transaction after ownership/rank checks.
+  const q=purchaseQuote(id,rawPrice);
+  if(!q.eligible)throw Error('현재 J-BANK 대출 한도로는 구매할 수 없어. 기존 대출·적금·담보 상태를 확인해줘.');
+  const amount=BigInt(q.loanAmount),u=db.prepare('SELECT id,balance,balance_exact,balance_base,rank_level FROM users WHERE id=?').get(id);
+  const record=project(read(id,kstDate()),kstDate()),level=Math.max(0,Math.min(levels.length-1,Number(u.rank_level||0)));
+  if(BigInt(record.principal)+BigInt(record.interest)>0n||record.installment||amount>BigInt(LIMITS[level]))throw Error('은행 대출 조건이 변경됐어. 다시 확인해줘.');
+  record.principal=String(amount);record.interest='0';record.openedAt=now();record.closedAt=0;
+  record.number=Number(record.number||0)+1;record.totalBorrowed=String(BigInt(record.totalBorrowed)+amount);
+  const after=exactWallet.read(u)+amount,mirror=exactWallet.mirror(after),at=now();
+  db.prepare('UPDATE users SET balance=?,balance_exact=?,balance_base=? WHERE id=?').run(mirror,String(after),String(mirror),id);
+  store(id,record);
+  db.prepare('INSERT INTO ledger(user_id,amount,balance_after,amount_exact,balance_after_exact,type,memo,created_at) VALUES(?,?,?,?,?,?,?,?)')
+   .run(id,exactWallet.mirror(amount),mirror,String(amount),String(after),'jbank_purchase_loan',
+    'J-BANK 아이템 대출구매 · '+String(itemName||'명품 구매').slice(0,55),at);
+  return {loanAmount:String(amount),afterLoanBalance:String(after)};
+ }
+  return {status,owed,purchaseQuote,borrowForPurchase,rankResaleBasis:purchasedRankBasis,limits:LIMITS,...Object.fromEntries(['installmentOpen','installmentPay','installmentClaim','installmentCancel'].map(kind=>[kind,(id,raw,key)=>change(id,kind,raw,key)])),deposit:(id,amount,key)=>change(id,'deposit',amount,key),withdraw:(id,amount,key)=>change(id,'withdraw',amount,key),borrow:(id,amount,key)=>change(id,'borrow',amount,key),repay:(id,amount,key)=>change(id,'repay',amount,key),sellRank,forceCasinoSale,enforceOverdue:overdue.enforce,rehabilitation:overdue.rehabilitation};
 }
 module.exports={createJBank,LIMITS,RATE_BP,SELL_RATE_BP};
