@@ -84,10 +84,10 @@ function createRoyalMarket({db,exactWallet,now,items}){
   const item=itemBy(itemId);
   return String(valueOf(item.price)*BANK_BUYBACK_PCT/100n);
  }
- function bankSell(uid,itemId){
+ // Shared atomic redemption path: called from normal bank sell and from
+ // overdue asset-credit collection inside its already-open SQL transaction.
+ function bankSellInTransaction(uid,itemId){
   const item=itemBy(itemId);
-  db.exec('BEGIN IMMEDIATE');
-  try{
    goodUser(uid);
    if(!owning(uid,item.id))throw Error('본인이 소장한 물품만 은행에 매각할 수 있어.');
    if(activeFor(uid,item.id))throw Error('경매 진행 중인 작품이야. 먼저 경매를 취소해줘.');
@@ -100,8 +100,13 @@ function createRoyalMarket({db,exactWallet,now,items}){
    cert.history.push({type:'BANK_REDEMPTION',at:t,from:user(uid)?.nickname||'컬렉터',to:'J-BANK',price:String(amount)});
    put(certKey(cert.serial),cert,t);
    const balance=wallet(uid,amount,'royal_bank_buyback','J-BANK 명품 즉시 매입 · '+item.name,t);
-   db.exec('COMMIT');
    return {ok:true,itemId:item.id,name:item.name,received:String(amount),balance,serial:cert.serial};
+ }
+ function bankSell(uid,itemId){
+  db.exec('BEGIN IMMEDIATE');
+  try{
+   const result=bankSellInTransaction(uid,itemId);
+   db.exec('COMMIT');return result;
   }catch(err){try{db.exec('ROLLBACK')}catch{}throw err}
  }
  function list(uid,itemId,opening){
@@ -238,6 +243,6 @@ function createRoyalMarket({db,exactWallet,now,items}){
   return {owner:current.nickname,owned,active,history,now:now(),rules:{
    durationHours:24,minimumBid:'10000000000000000',sellerFeePct:Number(MARKET_FEE_PCT),bankBuybackPct:Number(BANK_BUYBACK_PCT),minimumRaisePct:5,maxListingsPerUser:10}};
  }
- return {bankSell,bankOffer,list,bid,cancel,market,settleExpired,activeFor,certificate};
+ return {bankSell,bankSellInTransaction,bankOffer,list,bid,cancel,market,settleExpired,activeFor,certificate};
 }
 module.exports={createRoyalMarket};
