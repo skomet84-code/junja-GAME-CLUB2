@@ -26,8 +26,19 @@ CREATE TABLE ledger(id INTEGER PRIMARY KEY,user_id INTEGER,amount INTEGER,balanc
 `);
 const start=Date.parse('2026-11-03T12:00:00+09:00'),huge='10000000000000000000000';
 for(let id=1;id<=5;id++)db.prepare('INSERT INTO users(id,nickname,balance,balance_exact,balance_base) VALUES(?,?,?,?,?)').run(id,'member'+id,100,huge,'100');
+// Regression: retired fantasy purchases must disappear from inventory, outfit and showcase.
+db.prepare('INSERT INTO user_inventory(user_id,item_id,purchase_price,purchased_at) VALUES(?,?,?,?)').run(5,'frame_royalboutique_aura',30,start-5);
+db.prepare('INSERT INTO user_inventory(user_id,item_id,purchase_price,purchased_at) VALUES(?,?,?,?)').run(5,'costume_royalboutique_wings',50,start-4);
+db.prepare('INSERT INTO user_loadout(user_id,frame,costume) VALUES(?,?,?)').run(5,'frame_royalboutique_aura','costume_royalboutique_wings');
+db.prepare('INSERT INTO game_state(key,value,updated_at) VALUES(?,?,?)').run('royal:showcase:5',JSON.stringify(['frame_royalboutique_aura','costume_royalboutique_wings']),start);
 const royal=createRoyalEconomy({db,exactWallet,now:()=>start,getAssets:()=>({bank:{savings:{total:'100'},installment:{principal:'10'},outstanding:'20'},stock:{marketValue:'30'},coin:{marketValue:'40'}})});
 assert.equal(ROYAL_ITEMS.length,49);
+assert.equal(ROYAL_ITEMS.filter(x=>x.category==='jewel').length,11,'eleven product-matched jewellery replacements');
+assert(ROYAL_ITEMS.every(x=>!['title','costume','frame','pet'].includes(x.category)),'no fantasy wearable in luxury showroom');
+assert.equal(db.prepare('SELECT COUNT(*) AS n FROM user_inventory WHERE user_id=5').get().n,0,'retired fantasy owned inventory removed');
+assert.deepEqual(db.prepare('SELECT frame,costume FROM user_loadout WHERE user_id=5').get(),{frame:null,costume:null},'retired wearable loadout cleared');
+assert.deepEqual(JSON.parse(db.prepare("SELECT value FROM game_state WHERE key='royal:showcase:5'").get().value),[],'stale display selections cleared');
+assert(royal.catalog(5).items.filter(x=>x.category==='jewel').every(x=>!x.owned),'retired purchases cannot convert to new jewellery');
 assert(ROYAL_ITEMS.every(item=>BigInt(item.price)>=10n**16n),'all boutique prices must start at 1경');
 assert.equal(new Set(ROYAL_ITEMS.map(x=>x.id)).size,49,'no duplicate catalog items');
 assert.equal(ROYAL_ITEMS.filter(x=>x.brand&&x.photoFile).length,12,'licensed brand vehicle photos');
@@ -115,7 +126,7 @@ const carMuseum=royal.gallery(3);
 assert.equal(carMuseum.items.length,2,'real owner has phoenix and car, not generic catalog');
 assert.deepEqual(carMuseum.items.map(x=>x.collectionNo).sort((a,b)=>a-b),[1,2],'personal sequential numbered holdings');
 assert.equal(carMuseum.collector.rooms.find(x=>x.id==='motors').owned,1);
-assert.equal(carMuseum.collector.rooms.find(x=>x.id==='heritage').owned,1);
+assert.equal(carMuseum.collector.rooms.find(x=>x.id==='jewels').owned,1);
 assert.equal(carMuseum.collector.ownedCatalogValue,String(BigInt(item.price)+BigInt(newCar.price)));
 assert.equal(royal.catalog(3).items.find(x=>x.id===newCar.id).collectionNo,carMuseum.items.find(x=>x.id===newCar.id).collectionNo,'self and public certificate numbers match');
 assert.equal(royal.gallery(3).collector.ownedCatalogValue,royal.catalog(3).collector.ownedCatalogValue,'public collection worth must not inspect private wallet');
