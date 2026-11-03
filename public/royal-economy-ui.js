@@ -22,6 +22,9 @@
 
  const showcaseArt=item=>{
    const key=String(item?.id||'');
+   if(key.includes('phoenix'))return '/art/royal/phoenix.svg';
+   if(key.includes('regalia')||key.includes('frame_royalboutique_royal'))return '/art/royal/regalia.svg';
+   if(key.includes('entry'))return '/art/royal/scepter.svg';
    if(key.includes('dragon')||key.includes('immortal'))return '/art/royal/dragon.svg';
    if(key.includes('wings'))return '/art/royal/wings.svg';
    if(key.includes('diamond')||key.includes('frame_royalboutique'))return '/art/royal/gem.svg';
