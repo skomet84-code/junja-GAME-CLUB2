@@ -1,11 +1,11 @@
 (()=>{'use strict';
 const $=s=>document.querySelector(s);
 const $$=s=>[...document.querySelectorAll(s)];
-const HOUR=3600000,KST=9*HOUR,MATCH_MS=60000,MAX_RETURN=1000000000000000000n,TAX_LIMIT=10000000000000000n;
+const HOUR=3600000,KST=9*HOUR,MATCH_MS=60000,MAX_STAKE=1000000000000000n,MAX_RETURN=1000000000000000000n,TAX_LIMIT=10000000000000000n,ANALYSIS_PRICE=1000000000000n;
 const names={H:'홈 승',D:'무승부',A:'원정 승'},numbers={H:'1',D:'X',A:'2'};
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 let status=null,clubs=new Map(),selection=new Map(),fixtureTab='today',watchId=null,allSchedule=null,serverOffset=0,loading=false,betting=false,demo=null;
-let canvas=$('#pitch'),ctx=canvas?.getContext('2d'),lastDraw=0,toastTimer=null,scheduleBusy=false;
+let canvas=$('#pitch'),ctx=canvas?.getContext('2d'),lastDraw=0,toastTimer=null,scheduleBusy=false,analysisBusy=false;
 const now=()=>Date.now()+serverOffset;
 const dateKey=ms=>new Date(Number(ms)+KST).toISOString().slice(0,10);
 const time=ms=>new Date(Number(ms)).toLocaleTimeString('ko-KR',{timeZone:'Asia/Seoul',hour:'2-digit',minute:'2-digit',hour12:false});
@@ -69,6 +69,8 @@ function fixtureHTML(f){
   (f.status==='SCHEDULED'?'<div class="market-rows"><div class="market-row"><span class="market-label">일반 승무패</span><div class="odds-row" aria-label="일반 승무패 배당">'+oddButtons('NORMAL',f.odds)+'</div></div>'+
    '<div class="market-row"><span class="market-label hdp">핸디캡 '+(handicap.line>0?'+':'')+handicap.line+'</span><div class="odds-row" aria-label="핸디캡 승무패 배당">'+oddButtons('HDP',handicap.odds)+'</div></div></div>':
    '<div class="odds-row fixture-finished"><small>'+labelStatus(f)+' · '+(f.status==='LIVE'?f.minute+'분':'90분')+' · 배당 마감</small></div>')+
+  '<div class="fixture-analysis-cta"><button type="button" data-analyze="'+esc(f.id)+'" '+(f.status==='SCHEDULED'&&!status?.analysisUnlocked?.includes(f.id)&&now()>=f.kickoff?'disabled':'')+'>'+
+  (status?.analysisUnlocked?.includes(f.id)?'🔓 양 팀 경기분석 다시보기':'🔎 양 팀 경기분석 열람 · 1조 G')+'</button><small>체력 · 컨디션 · 결장자 · 동기부여</small></div>'+
   '</article>';
 }
 function renderFixtures(){
@@ -76,6 +78,51 @@ function renderFixtures(){
  $$('.fixture-tabs button').forEach(b=>b.classList.toggle('active',b.dataset.fixtureTab===fixtureTab));
  const items=fixtureTab==='today'?status.today:fixtureTab==='recent'?status.recent:status.upcoming;
  $('#fixturesList').innerHTML=items?.length?items.map(fixtureHTML).join(''):'<div class="fixture-message">이 날짜에 등록된 경기가 없어요. 다음 경기 탭을 확인해줘.</div>';
+}
+function buildAnalysisCard(side,stats){
+ const club=team(stats.clubId),rows=[
+  ['체력',stats.fitness],['컨디션',stats.condition],['동기부여',stats.motivation]
+ ];
+ return '<section class="jpl-scout-team '+side+'"><div class="jpl-scout-team-head">'+badge(club)+'<div><small>'+(side==='home'?'HOME':'AWAY')+'</small><h3>'+esc(club.name)+'</h3></div></div>'+
+  '<div class="jpl-scout-metrics">'+rows.map(([label,value])=>'<div class="jpl-scout-metric"><div><span>'+esc(label)+'</span><strong>'+value+'<small>/100</small></strong></div><div class="jpl-scout-meter"><i style="width:'+Math.max(0,Math.min(100,value))+'%"></i></div></div>').join('')+'</div>'+
+  '<div class="jpl-scout-absences"><span>🚑 결장자 <b>'+stats.absent+'명</b></span><small>부상 '+stats.injured+'명 · 징계 '+stats.suspended+'명</small></div>'+
+  '<div class="jpl-scout-form">최근 흐름 <b>'+esc(stats.form)+'</b></div></section>';
+}
+function showAnalysis(report){
+ const h=team(report.home.clubId),a=team(report.away.clubId);
+ $('#jplAnalysisContent').innerHTML=
+  '<div class="jpl-scout-match"><span>'+esc(h.short)+'</span><b>VS</b><span>'+esc(a.short)+'</span></div>'+
+  '<div class="jpl-scout-grid">'+buildAnalysisCard('home',report.home)+buildAnalysisCard('away',report.away)+'</div>'+
+  '<p class="jpl-scout-note">이 지표는 경기의 득점 가능성에 일부 반영되지만, 최종 스코어와 승패는 경기 중 확률적으로 결정됩니다.</p>';
+ const dlg=$('#jplAnalysisDialog');if(!dlg.open)dlg.showModal();
+}
+async function openAnalysis(matchId){
+ if(analysisBusy)return;
+ analysisBusy=true;
+ try{
+  const query='/api/jpl/analysis?matchId='+encodeURIComponent(matchId);
+  const firstResponse=await fetch(query,{credentials:'same-origin',cache:'no-store'});
+  const first=await firstResponse.json();
+  if(!firstResponse.ok)throw Error(first.error||'경기분석을 불러오지 못했어.');
+  let data=first;
+  if(first.locked){
+   const fixture=findFixture(matchId);
+   if(!fixture||fixture.status!=='SCHEDULED'||now()>=fixture.kickoff)throw Error('경기 시작 전까지만 분석을 구매할 수 있어.');
+   if(BigInt(status?.wallet||'0')<ANALYSIS_PRICE)throw Error('1조 G가 부족해. 지갑 잔액을 확인해 줘.');
+   if(!confirm(team(fixture.home).short+' vs '+team(fixture.away).short+' 경기분석을 1조 G에 구매할까?\n구매한 경기의 양 팀 정보는 추가 결제 없이 다시 볼 수 있어.'))return;
+   const bought=await fetch('/api/jpl/analysis',{method:'POST',credentials:'same-origin',
+    headers:{'Content-Type':'application/json'},body:JSON.stringify({matchId})});
+   data=await bought.json();
+   if(!bought.ok)throw Error(data.error||'경기분석 구매에 실패했어.');
+   if(status&&data.wallet)status.wallet=data.wallet;
+   if(status&&!status.analysisUnlocked?.includes(matchId))status.analysisUnlocked=[...(status.analysisUnlocked||[]),matchId];
+   renderFixtures();renderTop();
+   toast(data.alreadyPurchased?'구매한 경기분석을 열었어.':'1조 G 결제 완료! 경기분석을 열었어.');
+  }
+  if(!data.report)throw Error('경기분석 데이터가 없어. 다시 시도해 줘.');
+  showAnalysis(data.report);
+ }catch(e){toast(e.message||'경기분석 오류',true)}
+ finally{analysisBusy=false}
 }
 function renderTable(){
  if(!status)return;
@@ -113,11 +160,11 @@ function renderSlip(){
  const taxed=!!picks.length&&(mult>=100n*denom||payout>TAX_LIMIT),tax=taxed?payout/5n:0n;
  $('#taxPreview').textContent=taxed?'예상 총 적중금 '+fmtMoney(payout)+' · 슬롯 잭팟 적립 20% '+fmtMoney(tax):
   '100배 이상 또는 적중금 1경 G 초과 시 20%가 슬롯 잭팟에 적립돼.';
- const within=valid&&stake>=1000n&&stake<=1000000000000n&&payout<=MAX_RETURN;
+ const within=valid&&stake>=1000n&&stake<=MAX_STAKE&&payout<=MAX_RETURN;
  $('#potential').textContent=picks.length&&valid?fmtMoney(payout-tax):'0 G';
  const button=$('#placeBet');
  button.disabled=betting||!picks.length||!within;
- button.textContent=betting?'베팅 접수 중...':!picks.length?'경기를 선택해 주세요':!valid||stake<1000n?'최소 1,000 G부터':stake>1000000000000n?'베팅 한도 1조 G':payout>MAX_RETURN?'예상 당첨금 100경 G 초과':'승무패 '+picks.length+'폴더 · '+fmtMoney(stake)+' 베팅 확정';
+ button.textContent=betting?'베팅 접수 중...':!picks.length?'경기를 선택해 주세요':!valid||stake<1000n?'최소 1,000 G부터':stake>MAX_STAKE?'베팅 한도 1,000조 G':payout>MAX_RETURN?'예상 당첨금 100경 G 초과':'승무패 '+picks.length+'폴더 · '+fmtMoney(stake)+' 베팅 확정';
 }
 function setPick(matchId,pick,market='NORMAL'){
  if(!['H','D','A'].includes(pick)||!['NORMAL','HDP'].includes(market))return;
@@ -146,7 +193,7 @@ async function placeBet(){
  for(const leg of legs){product*=BigInt(leg.odds100);scale*=100n}
  const potential=product/scale,untaxed=product>=stake*scale*100n||potential>TAX_LIMIT;
  const tax=untaxed?potential/5n:0n;
- if(stake<1000n||stake>1000000000000n||potential>MAX_RETURN){toast('베팅 한도 또는 예상 당첨금 한도를 확인해 줘.',true);return}
+ if(stake<1000n||stake>MAX_STAKE||potential>MAX_RETURN){toast('베팅 상한 1,000조 또는 예상 적중금 100경 한도를 확인해 줘.',true);return}
  if(stake>BigInt(status.wallet)){toast('게임머니가 부족해.',true);return}
  if(!confirm(legs.length+'폴더에 '+fmtMoney(stake)+'를 베팅할까?\n모두 적중하면 '+fmtMoney(potential-tax)+' 실수령!'+(tax?'\n슬롯 잭팟 적립 20%: '+fmtMoney(tax):'')+'\n킥오프 전 확정되며 취소할 수 없어.'))return;
  betting=true;renderSlip();
@@ -367,6 +414,8 @@ async function refresh(force=false){
  finally{loading=false}
 }
 document.addEventListener('click',e=>{
+ const closeAnalysis=e.target.closest('[data-close-analysis]');if(closeAnalysis){$('#jplAnalysisDialog').close();return}
+ const analyze=e.target.closest('[data-analyze]');if(analyze){openAnalysis(analyze.dataset.analyze);return}
  const view=e.target.closest('[data-ticket-receipt]');
  if(view){
   const [seasonId,receiptId]=view.dataset.ticketReceipt.split('|');
