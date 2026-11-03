@@ -86,6 +86,7 @@
     '<div class="jrp-social-columns"><div class="jrp-rank">'+
      '<h3>♛ TOP COLLECTORS</h3>'+((royalState.ranking||[]).length?royalState.ranking.map(x=>'<div class="jrp-rank-row"><em>'+String(x.rank).padStart(2,'0')+'</em><button type="button" class="jrp-rank-visit" data-go="gallery" data-visit-royal="'+safe(x.nickname)+'">'+safe(x.nickname)+' · 전시관</button><b>'+fmt(x.spent)+'</b></div>').join(''):'<p>첫 로얄 컬렉터를 기다리는 중.</p>')+
     '</div><div class="jrp-news"><h3>✧ RECENT ACQUISITIONS</h3>'+((royalState.recent||[]).length?royalState.recent.map(x=>'<div class="jrp-news-row"><b>'+safe(x.nickname)+'</b><span>'+safe(x.itemName)+' 소장</span><small>'+showTime(x.purchasedAt)+'</small></div>').join(''):'<p>아직 구매 기록이 없어.</p>')+'</div></div></section>'+
+    '<details class="jrp-all-photo-credits"><summary>실차 사진 촬영자 및 라이선스 확인 (Wikimedia Commons)</summary><div class="jrp-all-photo-list">'+all.filter(x=>isRealPhoto(x)).map(x=>'<p><b>'+safe(x.name)+'</b> · '+photoCredit(x)+'</p>').join('')+'</div></details>'+
     '<div class="jrp-disclaimer">게임 속 가상 컬렉션입니다. 실물 차량·현금으로 교환되지 않으며 차량 제조사와 제휴·후원 관계가 없습니다. 실차 이미지는 참고 사진으로, 게임 내 가상 특별 에디션의 실제 사양과 다를 수 있습니다. 사진 출처와 라이선스는 상품 상세에서 확인할 수 있습니다.</div>';
  }
  async function loadRoyal(){
