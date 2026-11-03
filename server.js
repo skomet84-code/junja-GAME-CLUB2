@@ -10,6 +10,7 @@ const {ROYAL_ITEMS,createRoyalEconomy}=require('./royal-economy');
 const {createRoyalMarket}=require('./royal-market');
 const echoReward=require('./echo-rewards');
 const {createJBank}=require('./j-bank-core');
+const {createJCredit}=require('./j-credit');
 const {createCasinoCollateral}=require('./casino-collateral');
 const {createJStocks}=require('./j-stock-core');
 const {createKospiReference}=require('./j-stock-kospi-reference');
@@ -835,17 +836,22 @@ const SOCIAL_RANKS = [
 ];
 const RANK_RESALE_LEGACY_COSTS=Object.freeze(["0","1000000000","10000000000","100000000000","500000000000","1000000000000","3000000000000","5000000000000","10000000000000","30000000000000","100000000000000","300000000000000","10000000000000000","1000000000000000000"]);
 const jBank=createJBank({db,exactWallet,levels:SOCIAL_RANKS,legacyRankCosts:RANK_RESALE_LEGACY_COSTS,now,kstDate});
+const jCredit=createJCredit({db,exactWallet,now,kstDate,items:ROYAL_ITEMS,royalMarket});
+jBank.setCredit(jCredit);
 royalEconomy.setBank(jBank);
 const casinoCollateral=createCasinoCollateral({db,exactWallet,jBank,levels:SOCIAL_RANKS,now});
 let bankCollectionsBusy=false;
 async function checkOverdueBanks(){
   if(bankCollectionsBusy)return;bankCollectionsBusy=true;let changed=false;
   try{
-    const rows=db.prepare("SELECT key FROM game_state WHERE key LIKE 'jbank:account:%'").all();
-    for(const row of rows){
-      const id=Number(String(row.key).split(':').pop());
-      try{if(jBank.enforceOverdue(id).processed)changed=true;}
-      catch(e){console.error('[J-BANK] overdue liquidation deferred',id,e.message);}
+    const rows=db.prepare("SELECT key FROM game_state WHERE key LIKE 'jbank:account:%' OR key LIKE 'jcredit:account:%'").all();
+    const ids=new Set(rows.map(row=>Number(String(row.key).split(':').pop())).filter(Number.isSafeInteger));
+    for(const id of ids){
+      try{
+        // Make forced sales use the same up-to-date market as ordinary trading.
+        jStocks.status(id);jCoins.status(id);
+        if(jBank.enforceOverdue(id).processed)changed=true;
+      }catch(e){console.error('[J-BANK] overdue liquidation deferred',id,e.message);}
     }
     if(changed){await db.flush();pushRefresh();}
   }finally{bankCollectionsBusy=false;}
@@ -2362,9 +2368,25 @@ const server=http.createServer(async(req,res)=>{
     if(url.pathname==='/api/jbank'&&req.method==='GET'){
       const u=requireAuth(req,res);if(!u)return;
       try{
+        // Refresh price snapshots before estimating total assets or foreclosing.
+        jStocks.status(u.id);jCoins.status(u.id);
         const recovered=jBank.enforceOverdue(u.id);
         if(recovered.processed){await db.flush();pushRefresh();}
         return json(res,200,{ok:true,...jBank.status(u.id)});
+      }catch(e){return json(res,400,{error:e.message});}
+    }
+    if((url.pathname==='/api/jcredit/borrow'||url.pathname==='/api/jcredit/repay')&&req.method==='POST'){
+      const u=requireAuth(req,res);if(!u)return;
+      if(!rateLimit('jcredit:'+u.id,8,60000))return json(res,429,{error:'신용대출 요청이 너무 빠릅니다.'});
+      try{
+        // Asset quotes must be initialized OUTSIDE the bank's atomic transaction.
+        jStocks.status(u.id);jCoins.status(u.id);
+        const recovered=jBank.enforceOverdue(u.id);
+        if(recovered.processed){await db.flush();pushRefresh();}
+        const b=await readBody(req),action=url.pathname.endsWith('/borrow')?'borrow':'repay';
+        const result=jCredit[action](u.id,b.amount,b.requestId);
+        await db.flush();pushRefresh();
+        return json(res,200,{ok:true,duplicate:result.duplicate,status:jBank.status(u.id),user:userPublic(u.id)});
       }catch(e){return json(res,400,{error:e.message});}
     }
     if(url.pathname==='/api/jbank/rehabilitation'&&req.method==='POST'){
