@@ -221,3 +221,56 @@
 #view-shop .jrp-rank-visit{flex:1;min-width:0;text-align:left;border:0;border-bottom:1px solid #d9b57a75;background:transparent;color:#f3dfb9;font-size:12px;padding:8px 4px;cursor:pointer;overflow-wrap:anywhere}
 #view-shop .jrp-rank-visit:hover{color:#fff7d9;text-shadow:0 0 13px #dcbf73}
 #view-shop .jrp-rank-visit:focus-visible{outline:2px solid #f4d28c;outline-offset:2px}
+
+
+/* ROYAL COLLECTION V5 — automotive gallery is a real illustrated garage, not an icon plinth. */
+#view-gallery .jrg-hall.jrg-grand-garage .jrg-stage{
+  background:#140f23 url('/art/royal/garage-hall.svg') no-repeat center center;
+  background-size:100% 100%;
+}
+#view-gallery .jrg-hall.jrg-grand-garage .jrg-stage-inscription{opacity:.72;color:#ffdfa1}
+#view-gallery .jrg-object.jrg-wide-piece img{
+  width:124%;
+  max-width:none;
+  height:76%;
+  object-fit:contain;
+  filter:drop-shadow(0 23px 12px #05030ac7) drop-shadow(0 0 15px #e2bf9c6e);
+}
+#view-gallery .jrg-object.jrg-wide-piece.jrg-object-center img{width:148%;height:82%}
+#view-gallery .jrg-grand-garage .jrg-object-center{
+  width:43%;left:28.5%;height:48%;bottom:18%;
+}
+#view-gallery .jrg-grand-garage .jrg-object-left{width:22%;left:8%;bottom:18%;height:39%}
+#view-gallery .jrg-grand-garage .jrg-object-right{width:22%;right:8%;bottom:18%;height:39%}
+#view-gallery .jrg-selected-actions .jrg-exhibit-only{
+  display:inline-flex;align-items:center;padding:11px 13px;border-radius:9px;
+  color:#ffe0a7;background:#3c2850;border:1px solid #be976a;
+  font-size:11px;font-weight:800;
+}
+#view-gallery .jrg-inventory-count{color:#f8dda4}
+#view-gallery .jrg-inventory-grid{grid-template-columns:repeat(4,minmax(0,1fr))}
+#view-gallery .jrg-card-art{background:radial-gradient(circle at 50% 45%,#9774ba53,transparent 61%),linear-gradient(#402b4a,#17101f)}
+#view-gallery .jrg-card-art img{max-width:109%;width:100%;height:100%;filter:drop-shadow(0 10px 8px #080410c8)}
+#view-gallery .jrg-filter-nav{scrollbar-width:thin;flex-wrap:nowrap}
+#view-gallery .jrg-filter-nav button{flex:0 0 auto;white-space:nowrap}
+#view-gallery .jrg-selected-image{background:radial-gradient(ellipse at 50% 48%,#b88cce50,transparent 67%),url('/art/royal/garage-hall.svg') center/cover no-repeat}
+#view-gallery .jrg-selected-image img{width:92%;max-width:100%;height:295px}
+@media(max-width:960px){
+ #view-gallery .jrg-inventory-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+@media(max-width:700px){
+ #view-gallery .jrg-inventory-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+ #view-gallery .jrg-object.jrg-wide-piece img{width:116%;height:72%}
+ #view-gallery .jrg-object.jrg-wide-piece.jrg-object-center img{width:148%;height:77%}
+ #view-gallery .jrg-grand-garage .jrg-object-center{width:39%;left:30.5%;height:42%;bottom:20%}
+ #view-gallery .jrg-grand-garage .jrg-object-left{width:26%;left:4%;height:32%;bottom:19%}
+ #view-gallery .jrg-grand-garage .jrg-object-right{width:26%;right:4%;height:32%;bottom:19%}
+ #view-gallery .jrg-selected-image img{height:250px}
+ #view-gallery .jrg-card-art img{width:100%;height:100%}
+}
+@media(max-width:390px){
+ #view-gallery .jrg-grand-garage .jrg-object-center{height:39%;bottom:19%}
+ #view-gallery .jrg-grand-garage .jrg-object-left,
+ #view-gallery .jrg-grand-garage .jrg-object-right{height:29%}
+ #view-gallery .jrg-selected-image img{height:205px}
+}
