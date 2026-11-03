@@ -83,14 +83,6 @@ jobs:
         env:
           BASE_URL: http://127.0.0.1:18080
         run: node tests/v25-mobile-smoke.mjs
-      - name: Diagnose licensed luxury photo CDN reachability
-        run: |
-          for URL in \
-            'https://commons.wikimedia.org/wiki/Special:FilePath/Rolls-Royce%20Phantom%20VIII%20Black%20%2836%29.jpg?width=1024' \
-            'https://upload.wikimedia.org/wikipedia/commons/thumb/8/8a/Rolls-Royce_Phantom_VIII_Black_%2836%29.jpg/960px-Rolls-Royce_Phantom_VIII_Black_%2836%29.jpg' \
-            'https://commons.wikimedia.org/w/api.php?action=query&titles=File:Rolls-Royce_Phantom_VIII_Black_(36).jpg&prop=imageinfo&iiprop=url&iiurlwidth=960&format=json'; do
-            curl -L -sS -A 'JUNJA-Land-Media-Validator/1.0 (luxury photo attribution audit)' --max-time 14 -o /tmp/junja-media-test -w 'PHOTO_CDN %{http_code} %{content_type} %{size_download} bytes %{url_effective}\n' "$URL" || true
-          done
       - name: Validate luxury motor showroom & private museum on Chromium and WebKit
         env:
           BASE_URL: http://127.0.0.1:18080
