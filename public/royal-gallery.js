@@ -23,7 +23,7 @@
  const imageTag=(item,alt='',eager=false)=>'<img src="'+esc(iconFor(item))+'" alt="'+esc(alt)+'" loading="'+(eager?'eager':'lazy')+'" decoding="async" referrerpolicy="no-referrer"'+
    (realPhoto(item)?' data-junja-photo="1" data-photo-fallback="'+esc(media.fallback(item))+'"':'')+'>';
  const credit=item=>!realPhoto(item)?'':
-  '<div class="jrg-photo-credit">실차 참고 사진 · <a href="'+esc(media.sourceUrl(item))+'" target="_blank" rel="noopener noreferrer">'+esc(item.photoBy||'Wikimedia Commons')+'</a> · <a href="'+esc(media.licenseUrl(item))+'" target="_blank" rel="noopener noreferrer">'+esc(item.photoLicense||'라이선스')+'</a><p>게임 내 한정판은 가상 모델이며 사진 속 실제 차량과 사양이 다를 수 있습니다.</p></div>';
+  '<div class="jrg-photo-credit">실차 참고 사진 · <a href="'+esc(media.sourceUrl(item))+'" target="_blank" rel="noopener noreferrer">'+esc(media.creditName(item))+'</a> · <a href="'+esc(media.licenseUrl(item))+'" target="_blank" rel="noopener noreferrer">'+esc(media.licenseName(item))+'</a><p>게임 내 한정판은 가상 모델이며 사진 속 실제 차량과 사양이 다를 수 있습니다.</p></div>';
  const categoryName={
   car:'슈퍼카 · 하이퍼카',watch:'하이엔드 워치',yacht:'프라이빗 요트',jet:'황실 전용기',
   art:'로얄 예술품',estate:'럭셔리 에스테이트',vault:'프라이빗 금고',
