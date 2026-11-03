@@ -27,9 +27,9 @@ CREATE TABLE ledger(id INTEGER PRIMARY KEY,user_id INTEGER,amount INTEGER,balanc
 const start=Date.parse('2026-11-03T12:00:00+09:00'),huge='10000000000000000000000';
 for(let id=1;id<=5;id++)db.prepare('INSERT INTO users(id,nickname,balance,balance_exact,balance_base) VALUES(?,?,?,?,?)').run(id,'member'+id,100,huge,'100');
 const royal=createRoyalEconomy({db,exactWallet,now:()=>start,getAssets:()=>({bank:{savings:{total:'100'},installment:{principal:'10'},outstanding:'20'},stock:{marketValue:'30'},coin:{marketValue:'40'}})});
-assert.equal(ROYAL_ITEMS.length,40);
+assert.equal(ROYAL_ITEMS.length,49);
 assert(ROYAL_ITEMS.every(item=>BigInt(item.price)>=10n**16n),'all boutique prices must start at 1경');
-assert.equal(new Set(ROYAL_ITEMS.map(x=>x.id)).size,40,'no duplicate catalog items');
+assert.equal(new Set(ROYAL_ITEMS.map(x=>x.id)).size,49,'no duplicate catalog items');
 assert.equal(ROYAL_ITEMS.filter(x=>x.brand&&x.photoFile).length,12,'licensed brand vehicle photos');
 assert.deepEqual([...new Set(ROYAL_ITEMS.filter(x=>x.brand).map(x=>x.brand))].sort(),['aston-martin','bentley','rolls-royce']);
 assert(ROYAL_ITEMS.filter(x=>x.category==='car').length>=5);
