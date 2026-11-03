@@ -545,3 +545,12 @@
  #royalBoutiqueRoot .jrp-motors-photo-row .jrp-motors-photo.is-center{height:264px!important}
  #royalBoutiqueRoot .jrp-motors-photo-row .jrp-motors-photo:not(.is-center){height:138px!important}
 }
+
+/* V13 · certified finite collector inventory */
+#royalBoutiqueRoot .jrp-item-owners{display:flex;flex-wrap:wrap;gap:5px 8px;align-items:center;margin:9px 0;padding:7px 9px;border:1px solid rgba(197,156,99,.33);background:rgba(17,10,23,.68);border-radius:7px;font-size:11px;line-height:1.5}
+#royalBoutiqueRoot .jrp-item-owners span{color:#c9b098;font-size:10px;white-space:nowrap}
+#royalBoutiqueRoot .jrp-item-owners strong{color:#ffe5b5;font-size:11px;overflow-wrap:anywhere}
+#royalBoutiqueRoot .jrp-hall-product .jrp-rare-pill{display:inline-block;font-size:11px;margin:7px 0}
+#royalBoutiqueRoot .jrp-tile .jrp-item-owners{margin:8px 0 0}
+#royalBoutiqueRoot .jrp-featured .jrp-item-owners{max-width:460px;margin-bottom:13px}
+@media(max-width:600px){#royalBoutiqueRoot .jrp-item-owners{font-size:10px;padding:6px 7px}}
