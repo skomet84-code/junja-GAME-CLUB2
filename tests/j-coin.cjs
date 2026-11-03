@@ -111,4 +111,26 @@ assert.match(uiElements.get('#jcoinClock').textContent,/01:1[45] 남음/,'server
 assert.equal(ui.historyPoints([100,100,100],600,170).points.length,3,'flat price history supported');
 console.log('JCOIN_UI_CHART_TIMER_OK: synchronized countdown, 15-minute quote series, mobile sparklines');
 
+// Production one-time price adjustment: each target is relative to its price when launched.
+const campaignBase=coin.status(1).stocks;
+const baseMoon=BigInt(campaignBase.find(x=>x.id==='MOON').price);
+const baseJunja=BigInt(campaignBase.find(x=>x.id==='JJC').price);
+const campaign=coin.startAdjustment();
+assert.equal(campaign.step,0);
+assert.deepEqual(campaign.targetPct,{MOON:-57,JJC:132});
+assert.equal(coin.startAdjustment().startedAt,campaign.startedAt,'a restart may not repeat the 2-hour event');
+now+=60*60000;
+let special=coin.status(1);
+assert.equal(BigInt(special.stocks.find(x=>x.id==='MOON').price),baseMoon*7150n/10000n,'one hour MOON -28.5%');
+assert.equal(BigInt(special.stocks.find(x=>x.id==='JJC').price),baseJunja*16600n/10000n,'one hour JJC +66%');
+assert.equal(special.temporaryAdjustment.step,4);
+now+=60*60000;
+special=coin.status(1);
+assert.equal(BigInt(special.stocks.find(x=>x.id==='MOON').price),baseMoon*4300n/10000n,'two hour MOON -57%');
+assert.equal(BigInt(special.stocks.find(x=>x.id==='JJC').price),baseJunja*23200n/10000n,'two hour JJC +132%');
+assert.equal(special.temporaryAdjustment.step,8);
+assert.equal(special.temporaryAdjustment.complete,true);
+assert.equal(coin.startAdjustment().startedAt,campaign.startedAt,'one-time event cannot restart after completion');
+assert.equal(special.stocks.find(x=>x.id==='MOON').history.length<=49,true);
+console.log('JCOIN_TWO_HOUR_ADJUSTMENT_OK: -57% MOON, +132% JJC, exact staged ticks and idempotent restart');
 console.log('J-COIN 15-minute tick, fractional orders, fees and idempotency OK');
