@@ -7,6 +7,7 @@
 <meta name="description" content="JUNJA PREMIER LEAGUE — 22개 클럽, 매일 5경기, 실시간 120초 축구 시뮬레이션과 승무패 리그. 게임머니 전용.">
 <title>JUNJA PREMIER LEAGUE · 준자랜드</title>
 <link rel="stylesheet" href="/football/style.css?v=20261104-hdp-crest-v2">
+<link rel="stylesheet" href="/football/royal-premium.css?v=20261104-stadium-v1">
 <link rel="stylesheet" href="/football/receipts.css?v=20261104-ticket-v1">
 <script defer src="/football/club-icons.js?v=20261104-symbol-v2"></script>
 <script defer src="/football/receipts.js?v=20261104-ticket-v1"></script>
@@ -25,16 +26,18 @@
  <div id="authNotice" class="auth-notice" hidden><h2>준자랜드 입장이 필요해</h2><p>축구 리그는 준자랜드 회원 전용이야. 먼저 로그인해줘.</p><a href="/">준자랜드 로그인하기</a></div>
  <section class="welcome">
   <div class="welcome-copy"><div class="eyebrow"><span class="live-led"></span> JUNJA SPORTS NETWORK · JPL 2026</div><h1>이곳은<br><em>우리들의</em> 프리미어 리그.</h1><p>22개 라이벌 클럽. 42라운드. 매일 다섯 번의 킥오프.<br>승리의 순간을 지켜보고, 승무패를 예측해 봐.</p>
+    <a class="welcome-action" href="#fixtures">오늘의 5경기 확인 <span aria-hidden="true">↗</span></a>
     <div class="welcome-chips"><span><b>22</b> CLUBS</span><span><b>462</b> FIXTURES</span><span><b>120 SEC</b> LIVE MATCH</span></div>
   </div>
+  <div class="welcome-edition" aria-hidden="true">JPL · ROYAL MATCHDAY 2026</div>
   <div class="welcome-symbol" aria-hidden="true"><div class="crest-orbit orbit-one"></div><div class="crest-orbit orbit-two"></div><div class="welcome-crown">♛</div><div class="welcome-ball"><svg viewBox="0 0 100 100" width="112" height="112"><circle cx="50" cy="50" r="44" fill="#e8e9df" stroke="#c4cabf" stroke-width="2"/><path d="M50 25 67 38 60 59 40 59 33 38Z" fill="#101b2c"/><path d="M50 25V8M33 38 13 31M40 59 29 79M60 59 71 79M67 38 88 31" stroke="#101b2c" stroke-width="5"/><circle cx="50" cy="50" r="44" fill="none" stroke="#101b2c" stroke-width="1.5"/></svg></div><div class="welcome-symbol-caption">GLORY IS EARNED</div></div>
  </section>
  <div class="quick-stats" id="quickStats">
   <div><small>CURRENT SEASON</small><strong id="statSeason">01</strong></div><div><small>COMPLETED MATCHES</small><strong id="statPlayed">0 <span>/ 462</span></strong></div><div><small>NEXT KICK-OFF</small><strong id="statNext">—</strong></div><div><small>LEAGUE LEADER</small><strong id="statLeader">—</strong></div>
  </div>
  <nav class="section-nav" aria-label="축구 메뉴">
-  <button type="button" data-scroll="broadcast" class="nav-current">LIVE MATCH</button>
-  <button type="button" data-scroll="fixtures">오늘의 경기</button>
+  <button type="button" data-scroll="fixtures" class="nav-current">오늘의 경기</button>
+  <button type="button" data-scroll="broadcast">LIVE MATCH</button>
   <button type="button" data-scroll="standings">리그 순위</button>
   <button type="button" data-scroll="schedule">시즌 일정</button>
   <button type="button" data-scroll="tickets">내 승부예측</button>
