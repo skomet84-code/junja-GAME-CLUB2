@@ -39,7 +39,8 @@ function transact(record,kind,text,requestId,at,debt,balance){
  if(!a||a.id!==text)throw Error('진행 중인 적금 계좌가 변경됐습니다. 은행을 다시 열어 주세요.');
  const v=view(a,at);
  if(kind==='installmentPay'){
-  if(debt>0n)throw Error('대출을 완납해야 적금을 납입할 수 있습니다.');
+  // Repayments and installment contributions may coexist for a plan opened
+  // before the loan; retain one-payment-per-KST-day and wallet balance checks.
   if(!v.canPay)throw Error(v.matured?'만기일이 지났습니다. 만기 수령해 주세요.':v.complete?'모든 회차의 납입이 완료됐습니다.':v.paidToday?'오늘은 이미 납입했습니다. 한국시간 기준 하루 1회만 가능합니다.':'이번 회차는 이미 납입했거나 납입 가능 기간이 아닙니다.');
   const amount=BigInt(a.amount);if(amount>balance)throw Error('게임머니 잔액이 부족합니다.');
   a.payments.push({slot:kstDay(at)-kstDay(a.openedAt),at});
