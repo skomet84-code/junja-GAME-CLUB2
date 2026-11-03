@@ -1,0 +1,52 @@
+.ticket-receipt-button{width:calc(100% - 24px);margin:0 12px 13px;padding:11px 12px;border:1px solid #dbb97583;border-radius:6px;color:#f5d69c;background:linear-gradient(110deg,#27364c,#132335);font-size:12px;font-weight:900;text-align:center;transition:background .16s}
+.ticket-receipt-button:hover{background:#334c64}
+.jpl-receipt-dialog{color:#e8edf4;box-sizing:border-box;max-width:min(93vw,650px);width:100%;max-height:93dvh;overflow:auto;overscroll-behavior:contain;padding:0;border:1px solid #b49b6e66;border-radius:16px;background:#0d1727;box-shadow:0 24px 80px #000b}
+.jpl-receipt-dialog::backdrop{background:rgba(0,5,17,.86);backdrop-filter:blur(5px)}
+.jpl-receipt-shell{padding:14px}
+.jpl-receipt-toolbar{display:flex;align-items:center;justify-content:space-between;gap:10px;color:#edcb89;font-weight:900;letter-spacing:.07em;padding:5px 5px 13px;font-size:13px}
+.jpl-receipt-toolbar button{color:white;font-size:27px;border:1px solid #ffffff30;border-radius:7px;background:#ffffff11;height:36px;width:36px;display:grid;place-items:center;line-height:1}
+.jpl-printed-ticket{background:#faf9f6;color:#162233;padding:25px 22px 13px;border-top:7px solid #dcbb80;box-shadow:0 0 20px #0002;position:relative}
+.jpl-printed-ticket:after{content:'';position:absolute;left:0;right:0;bottom:-5px;height:10px;background:linear-gradient(135deg,#faf9f6 25%,transparent 25%) 0 0/16px 16px repeat-x}
+.jpl-printed-top{display:flex;align-items:center;gap:12px;border-bottom:1px dashed #a9b3bd;padding-bottom:15px}
+.jpl-printed-logo{font-size:34px;color:#b18a47}
+.jpl-printed-top h2{font:900 23px/1.1 'Barlow Condensed','Noto Sans KR',sans-serif;margin:0;letter-spacing:.045em}
+.jpl-printed-top p{font:700 10px 'Barlow Condensed',sans-serif;letter-spacing:.14em;color:#758093;margin:5px 0 0}
+.jpl-printed-stamp{display:flex;align-items:center;justify-content:space-between;background:#edf0f5;padding:10px 11px;margin:15px 0;font-size:13px;font-weight:800;gap:10px}
+.jpl-printed-stamp strong{color:#94691c}
+.jpl-printed-meta{display:flex;flex-direction:column;gap:3px;color:#626e7d;font-size:11px;margin-bottom:14px;word-break:break-all}
+.jpl-printed-meta b{color:#27344a;font-weight:900}
+.jpl-printed-lines{width:100%;border-collapse:collapse;font-size:12px}
+.jpl-printed-lines thead{background:#263849;color:#fff}
+.jpl-printed-lines th{padding:8px 5px;text-align:left;font-size:10px;letter-spacing:.01em}
+.jpl-printed-lines th:nth-last-child(-n+2){text-align:center}
+.jpl-printed-lines td{padding:10px 5px;border-bottom:1px dashed #c3c8cb;vertical-align:middle}
+.jpl-printed-lines td:first-child{white-space:nowrap;color:#596779}
+.jpl-printed-lines td:first-child b{display:block;font-size:13px;color:#1d334a}
+.jpl-printed-lines td:first-child small{display:block;max-width:108px;font-size:9px}
+.jpl-printed-lines td:nth-child(2) strong{display:block;font-weight:900}
+.jpl-printed-lines td:nth-child(2) span{font-size:10px;color:#7d8694}
+.jpl-printed-lines td:nth-child(2) small{display:block;color:#935e22;font-weight:800}
+.jpl-printed-lines td:nth-last-child(-n+2){text-align:center;font-weight:900}
+.jpl-printed-lines td:nth-last-child(2){font-size:17px;color:#1c6aae}
+.jpl-printed-math{padding:16px 0 0}
+.jpl-printed-math>div{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:7px;font-size:12px;color:#546273}
+.jpl-printed-math b{color:#233246;font-size:15px;font-variant-numeric:tabular-nums;text-align:right}
+.jpl-printed-math .jpl-printed-total{background:#e7c991;margin:14px -7px 0;padding:12px 10px;color:#142139;font-weight:900;border-radius:4px}
+.jpl-printed-math .jpl-printed-total strong{font-size:19px;color:#17263a;text-align:right;font-variant-numeric:tabular-nums}
+.jpl-printed-footer{text-align:center;padding-top:15px;color:#78828b;font:800 9px/1.8 'Noto Sans KR',sans-serif}
+.jpl-receipt-actions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;padding:18px 0 0}
+.jpl-receipt-actions button{min-height:43px;border:1px solid #dfc48766;border-radius:7px;background:#26364a;color:#f4e0b7;font-weight:900;font-size:12px}
+.jpl-receipt-actions button:last-child{background:linear-gradient(125deg,#ead69d,#b58b43);color:#121d2b}
+.jpl-receipt-note{text-align:center;color:#8094ad;font-size:10px;padding:4px}
+@media(max-width:560px){
+ .jpl-receipt-dialog{max-width:96vw;max-height:96dvh;border-radius:10px}
+ .jpl-receipt-shell{padding:9px}
+ .jpl-printed-ticket{padding:15px 10px 12px}
+ .jpl-printed-top h2{font-size:19px}
+ .jpl-printed-lines td{padding:9px 2px}
+ .jpl-printed-lines td:first-child small{max-width:75px;font-size:8px}
+ .jpl-printed-lines td:nth-child(2) strong{font-size:11px}
+ .jpl-printed-math .jpl-printed-total strong{font-size:16px}
+ .jpl-receipt-actions{gap:5px}
+ .jpl-receipt-actions button{font-size:10px;padding:8px 4px}
+}
