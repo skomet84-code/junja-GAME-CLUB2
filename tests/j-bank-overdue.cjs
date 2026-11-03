@@ -65,11 +65,13 @@ bank.setCredit({
  status:id=>({outstanding:bank.baseOwed(id).toString()}),enforce:()=>({processed:false})
 });
 assert.equal(bank.status(4).canRehabilitate,true,'credit-only immediate eligibility');
+put('jpl:v1:ticket:S1:4:rehabopen_123456',{id:'rehabopen_123456',userId:4,status:'OPEN',stake:'1000000',potential:'2000000',paid:'0'});
 put('royal:auction:lot:test',{status:'OPEN',sellerId:4,bidderId:3});
 assert.equal(bank.status(4).canRehabilitate,false,'open auction locks immediate rehabilitation');
 assert.throws(()=>bank.rehabilitation(4,'개인회생','rehab_blocked_bid_123'),/경매/);
 db.prepare("DELETE FROM game_state WHERE key='royal:auction:lot:test'").run();
 const creditRehab=bank.rehabilitation(4,'개인회생','rehab_credit_only_123');
+assert.equal(get('jpl:v1:ticket:S1:4:rehabopen_123456').status,'FORFEIT','open football wagers must be forfeited when all assets reset');
 assert.equal(creditRehab.creditDebtForgiven,'3100000');
 assert.equal(bank.status(4).creditOutstanding,'0');
 assert.equal(cash(4),100000000000n);
