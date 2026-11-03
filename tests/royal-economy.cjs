@@ -43,6 +43,7 @@ assert.deepEqual(JSON.parse(db.prepare("SELECT value FROM game_state WHERE key='
 assert(royal.catalog(5).items.filter(x=>x.category==='jewel').every(x=>!x.owned),'retired purchases cannot convert to new jewellery');
 assert(ROYAL_ITEMS.every(item=>BigInt(item.price)>=10n**16n),'all boutique prices must start at 1경');
 assert.equal(new Set(ROYAL_ITEMS.map(x=>x.id)).size,49,'no duplicate catalog items');
+assert(ROYAL_ITEMS.every(x=>Number.isInteger(x.stock)&&x.stock>=1&&x.stock<=3),'every luxury piece has only one to three real copies');
 assert.equal(ROYAL_ITEMS.filter(x=>x.brand&&x.photoFile).length,12,'licensed brand vehicle photos');
 assert.deepEqual([...new Set(ROYAL_ITEMS.filter(x=>x.brand).map(x=>x.brand))].sort(),['aston-martin','bentley','rolls-royce']);
 assert(ROYAL_ITEMS.filter(x=>x.category==='car').length>=5);
@@ -55,6 +56,7 @@ const p1=royal.buy(1,item.id);
 assert.equal(p1.inscription.ownerNickname,'member1');
 assert.equal(p1.balance,String(BigInt(huge)-BigInt(item.price)));
 assert.equal(royal.catalog(1).items.find(x=>x.id===item.id).remaining,2);
+assert.deepEqual(royal.catalog(1).items.find(x=>x.id===item.id).owners,['member1'],'buyer nickname must appear in public item registry');
 assert.throws(()=>royal.buy(1,item.id),/이미 영구 소장/);
 assert.equal(db.prepare('SELECT count(*) AS n FROM ledger').get().n,1);
 royal.buy(2,item.id);royal.buy(3,item.id);
