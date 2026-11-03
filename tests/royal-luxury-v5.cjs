@@ -39,7 +39,7 @@ assert.match(css,/@media\(max-width:760px\)/,'responsive storefront');
 assert.match(gallery,/isPanorama/,'category-aware personal museum');
 assert.match(gallery,/selected\.displayOnly/,'cannot equip display item');
 assert.match(galleryCss,/garage-hall\.svg/,'actual illustrated garage for car owners');
-assert.match(app,/x\.art/,'show real art on user profiles');
+assert.match(app,/x\?\.art/,'show real art on user profiles');
 assert.match(server,/if\(!item\.displayOnly\)db\.prepare\('UPDATE user_loadout/,'never attach supercars to avatar loadout');
 for(const file of ['royal-economy.css','royal-economy-ui.js','royal-gallery.js','royal-gallery.css'])assert.match(index,new RegExp(file.replace(/\./g,'\\.')+'\\?v=20261103-maison-v5'),'cache-bust '+file);
 console.log('ROYAL_LUXURY_V5_OK: 28 unique pieces, 1경 floor, image-first shop and gallery, safe purchases');
