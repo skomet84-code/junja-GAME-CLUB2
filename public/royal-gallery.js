@@ -97,6 +97,12 @@
  function certificate(item){
   if(!item)return '';
   const paid=item.inscription?.paid!=null?money(item.inscription.paid):'구매가 기록 없음';
+  const doc=item.certificate||{};
+  const history=Array.isArray(doc.history)?doc.history:[];
+  const provenance='<section class="jrg-cert-provenance"><h4>THE PROVENANCE · 소유권 이력</h4>'+
+    (history.length?history.map(entry=>'<div><b>'+esc(entry.type==='FIRST_ACQUISITION'?'최초 발행':entry.type==='AUCTION_TRANSFER'?'공식 경매 이전':entry.type==='BANK_REDEMPTION'?'J-BANK 매입':'소유권 기록')+'</b>'+
+     esc(asDate(entry.at))+' · '+esc(entry.from?entry.from+' → ':'')+esc(entry.to||'준자랜드 컬렉터')+' · '+esc(money(entry.price||'0'))+'</div>').join('')
+     :'<div>기존 소장 기록을 통해 소유권이 확인됐어.</div>')+'</section>';
   const mark=item.stock!=null?'서버 한정 발행 · '+item.stock+'점':'준자랜드 영구 소장품';
   return '<dialog class="jrg-certificate-overlay" aria-label="소장 증서 보기">'+
    '<section class="jrg-certificate-dialog" role="dialog" aria-modal="true" aria-label="'+esc(item.name)+' 게임 내 소장 증서">'+
@@ -107,13 +113,17 @@
     '<span class="jrg-cert-rarity">'+esc(grade(item))+'</span>'+
     '<h3>'+esc(item.name)+'</h3>'+
     '<div class="jrg-cert-facts">'+
-      '<div><span>소장 등록번호</span><strong>'+esc(serial(item))+'</strong></div>'+
+      '<div><span>개인 소장순번</span><strong>'+esc(serial(item))+'</strong></div>'+
+      '<div><span>고유 소유권 인증번호</span><strong>'+esc(doc.serial||'인증 대기')+'</strong></div>'+
+      '<div><span>최초 등록 소유주</span><strong>'+esc(doc.originalOwner||state?.nickname||'컬렉터')+'</strong></div>'+
+      '<div><span>소유권 이전 횟수</span><strong>'+Number(doc.transfers||0)+'회</strong></div>'+
       '<div><span>등록 소유자</span><strong>'+esc(state?.nickname||'로얄 컬렉터')+'</strong></div>'+
       '<div><span>최초 획득일</span><strong>'+acquired(item)+'</strong></div>'+
       '<div><span>구매 당시 금액</span><strong>'+paid+'</strong></div>'+
       '<div><span>컬렉션 등급</span><strong>'+esc(grade(item))+'</strong></div>'+
       '<div><span>전시 상태</span><strong>'+(selectedIds()[0]===item.id?'대표 전시':isDisplayed(item.id)?'전시 중':'보관 중')+'</strong></div>'+
     '</div>'+
+    provenance+
     '<p class="jrg-cert-fineprint">'+esc(mark)+' · 해당 번호는 소유자의 개인 수집 순번이며 제조사 차량 번호나 전 서버 희귀번호를 의미하지 않습니다. 게임 안에서만 유효한 가상 소장 증서입니다.</p>'+
     credit(item)+
     '<button type="button" class="jrg-cert-done" data-jrg-dismiss="1">소장 증서 닫기</button>'+
@@ -166,8 +176,9 @@
        (own?
         (selectedIds()[0]===selected.id?'<span class="jrg-current-primary">대표 전시 중</span>':'<button type="button" class="jrg-outline-btn" data-jrg-primary="'+esc(selected.id)+'">대표 컬렉션 지정</button>')+
         (isDisplayed(selected.id)?'<button type="button" class="jrg-outline-btn" data-jrg-remove="'+esc(selected.id)+'">전시관에서 보관실로</button>':'<button type="button" class="jrg-outline-btn" data-jrg-pin="'+esc(selected.id)+'">전시실에 올리기</button>')+
-        (selected.displayOnly?'<span class="jrg-exhibit-only">◆ 영구 소장 · 전시 전용</span>':selected.equipped?'<span class="jrg-equipped">✓ 현재 장착</span>':'<button type="button" class="jrg-outline-btn" data-jrg-equip="'+esc(selected.id)+'">꾸미기 아이템 장착</button>')
-       :'<p class="jrg-readonly">소유주의 작품을 감상하고 있어. 전시 변경은 소유주만 가능해.</p>')+'</div>'+
+        (selected.listed?'<span class="jrg-exhibit-only">◆ 경매 출품 중</span>':selected.displayOnly?'<span class="jrg-exhibit-only">◆ 인증된 소장 명품</span>':selected.equipped?'<span class="jrg-equipped">✓ 현재 장착</span>':'<button type="button" class="jrg-outline-btn" data-jrg-equip="'+esc(selected.id)+'">꾸미기 아이템 장착</button>')
+       :'<p class="jrg-readonly">소유주의 작품을 감상하고 있어. 전시 변경은 소유주만 가능해.</p>')+
+       (own?'<button type="button" class="jrg-outline-btn" data-jrg-trade="'+esc(selected.id)+'">♛ 경매 등록 · J-BANK 매각</button>':'')+'</div>'+
        credit(selected)+
       '</div></section>')+
     '<section class="jrg-vault" id="jrgInventory"><div class="jrg-vault-header"><div><small>THE PERSONAL COLLECTION VAULT</small><h2>나의 소장 보관실</h2><p>이곳의 모든 작품은 '+owner+'의 실제 게임 내 소장 기록이야.</p></div><strong>'+items.length+' PIECES OWNED</strong></div>'+
@@ -249,6 +260,7 @@
    if(b.dataset.jrgPin){updateShowcase('pin',b.dataset.jrgPin);return;}
    if(b.dataset.jrgRemove){updateShowcase('remove',b.dataset.jrgRemove);return;}
    if(b.dataset.jrgEquip){equip(b.dataset.jrgEquip);return;}
+   if(b.dataset.jrgTrade){window.JunjaRoyalMarket?.openFor(b.dataset.jrgTrade);return;}
    if(b.hasAttribute('data-jrg-retry'))load();
  });
  document.addEventListener('keydown',event=>{if(event.key==='Escape'&&certificateId&&view.classList.contains('active')){certificateId='';render();}});
