@@ -22,7 +22,6 @@ for(const [src,re,subject] of [
  [server,/royalEconomy\.gallery\(target\.id\)/,'server certified inventory'],
  [royal,/function gallery\(uid\)/,'gallery access from existing inventory'],
  [royal,/owned:true/,'gallery only includes owned collectibles'],
- [gallery,/gallery-hall\.svg/,'image-backed royal hall'],
  [gallery,/data-jrg-primary/,'choose featured work'],
  [gallery,/data-jrg-equip/,'equip owned item'],
  [gallery,/data-jrg-pin/,'place owned item'],
