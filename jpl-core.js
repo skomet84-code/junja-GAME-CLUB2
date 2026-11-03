@@ -7,7 +7,12 @@ const DAY=86400000,HOUR=3600000,KST=9*HOUR,MATCH_MS=120000;
 const MIN_STAKE=1000n,MAX_STAKE=1000000000000n,MAX_RETURN=1000000000000000000n;
 const TAX_THRESHOLD=10000000000000000n,TAX_RATE=20n; // 1경 G; 100x win or over 1경 gross.
 const KEY='jpl:v1:current',TICKET_PREFIX='jpl:v1:ticket:',ARCHIVE='jpl:v1:archive:';
-const HOURS=[12,15,18,21,23];
+const HOURS=[12,15,18,21,23],MAX_LEGS=5;
+const kstMidnight=ms=>Math.floor((ms+KST)/DAY)*DAY-KST;
+const openingDay=ms=>{
+ const start=kstMidnight(ms);
+ return ms<start+23*HOUR?start:start+DAY;
+};
 const CLUB_SYMBOLS=Object.freeze({
  junja:'♛',happy:'✦',ara:'🦅',pig:'🐗',tuna:'⚓',haehyun:'🌙',ubi:'⚔',
  chacha:'🐓',wooni:'🐿',dodo:'🔱',bisha:'🦁',shasha:'🏹',dongdong:'🐺',
@@ -114,7 +119,7 @@ function createSchedule(startAt,clubIds=CLUBS.map(c=>c.id)){
 }
 function createSeason(time,index=1,clubIds=CLUBS.map(c=>c.id),reserveIds=RESERVES.map(c=>c.id)){
  if(clubIds.length!==22||new Set(clubIds).size!==22)throw Error('1부 축구팀은 정확히 22개여야 합니다.');
- const startAt=nextKstDay(time);
+ const startAt=openingDay(time);
  const fixtures=createSchedule(startAt,clubIds);
  return {id:'S'+index,number:index,startedAt:time,startAt,
   endAt:fixtures[fixtures.length-1].kickoff+MATCH_MS,fixtures,clubs:clubIds.slice(),reserves:reserveIds.slice(),champion:null};
@@ -166,6 +171,10 @@ function createJPL({db,exactWallet,now=Date.now,random=()=>crypto.randomBytes(4)
  };
  const ticketsForSeason=seasonId=>db.prepare('SELECT key,value FROM game_state WHERE key LIKE ?')
   .all(TICKET_PREFIX+seasonId+':%').map(r=>({key:r.key,ticket:JSON.parse(r.value)}));
+ const ticketsForUser=id=>db.prepare('SELECT value FROM game_state WHERE key LIKE ?')
+  .all(TICKET_PREFIX+'%:'+id+':%')
+  .map(r=>JSON.parse(r.value)).filter(t=>Number(t.userId)===Number(id))
+  .sort((a,b)=>Number(b.placedAt)-Number(a.placedAt)).slice(0,100);
  function settleTickets(s){
   let processed=0;
   const byId=new Map(s.fixtures.map(f=>[f.id,f]));
@@ -228,6 +237,16 @@ function createJPL({db,exactWallet,now=Date.now,random=()=>crypto.randomBytes(4)
   try{
    let s=read(KEY),changed=false;
    if(!s){s=createSeason(now());save(KEY,s);changed=true}
+   // Correct the inaugural tomorrow-only fixture bug without breaking sold slips.
+   // Reschedule only an entirely unplayed, unbet season, on its launch KST day.
+   if(s.number===1&&s.startAt===nextKstDay(s.startedAt)&&
+      kstDate(s.startedAt)===kstDate(now())&&
+      now()<kstMidnight(now())+23*HOUR&&
+      s.fixtures.every(f=>!f.events&&!f.finishedAt)&&ticketsForSeason(s.id).length===0){
+    s.startAt-=DAY;s.endAt-=DAY;
+    for(const f of s.fixtures)f.kickoff-=DAY;
+    s.migratedKickoffsToTodayAt=now();changed=true;
+   }
    // Upgrade persisted pre-handicap schedules in place: never reroll a played match.
    for(const f of s.fixtures)if(!f.handicap){
     f.handicap={line:handicapLine(f.home,f.away),odds:handicapOddsFor(f.home,f.away)};changed=true;
@@ -265,14 +284,13 @@ function createJPL({db,exactWallet,now=Date.now,random=()=>crypto.randomBytes(4)
   const upcoming=season.fixtures.filter(f=>f.kickoff>=t).slice(0,20);
   const recently=season.fixtures.filter(f=>f.finishedAt).slice(-12).reverse();
   const live=season.fixtures.filter(f=>f.kickoff<=t&&t<f.kickoff+MATCH_MS);
-  const tickets=ticketsForSeason(season.id).filter(x=>x.ticket.userId===Number(id))
-   .map(x=>x.ticket).sort((a,b)=>b.placedAt-a.placedAt).slice(0,40);
+  const tickets=ticketsForUser(id);
   return {ok:true,changed,serverNow:t,day:date,season:{id:season.id,number:season.number,
    startAt:season.startAt,endAt:season.endAt,totalGames:season.fixtures.length,finished:season.fixtures.filter(f=>f.finishedAt).length,
    matchdays:93,relegationCount:2,
     promotedFromLastSeason:season.number>1?(read(ARCHIVE+'S'+(season.number-1))?.promoted||[]):[],
     relegatedFromLastSeason:season.number>1?(read(ARCHIVE+'S'+(season.number-1))?.relegated||[]):[]},
-   rules:{minStake:String(MIN_STAKE),maxStake:String(MAX_STAKE),maxReturn:String(MAX_RETURN),maxLegs:10,durationMs:MATCH_MS,fixturesPerDay:5,virtual:true,jackpotTaxRatePct:20,jackpotTaxAtOdds:100,jackpotTaxAbove:String(TAX_THRESHOLD)},
+   rules:{minStake:String(MIN_STAKE),maxStake:String(MAX_STAKE),maxReturn:String(MAX_RETURN),maxLegs:MAX_LEGS,durationMs:MATCH_MS,fixturesPerDay:5,virtual:true,jackpotTaxRatePct:20,jackpotTaxAtOdds:100,jackpotTaxAbove:String(TAX_THRESHOLD)},
    wallet:String(exactWallet.read(u)),clubs:(season.clubs||CLUBS.map(c=>c.id)).map(cid=>CLUB_MAP.get(cid)),reserves:(season.reserves||RESERVES.map(c=>c.id)).map(cid=>CLUB_MAP.get(cid)),table:tableFor(season),
    today:todayMatches.map(f=>fixturePublic(f,t)),
    upcoming:upcoming.map(f=>fixturePublic(f,t)),recent:recently.map(f=>fixturePublic(f,t)),
@@ -285,7 +303,7 @@ function createJPL({db,exactWallet,now=Date.now,random=()=>crypto.randomBytes(4)
  function bet(id,legs,amount,requestId){
   id=Number(id);
   if(!Number.isSafeInteger(id)||id<1)throw Error('계정을 확인할 수 없습니다.');
-  if(!Array.isArray(legs)||legs.length<1||legs.length>10)throw Error('단폴부터 최대 10폴더까지 선택할 수 있어요.');
+  if(!Array.isArray(legs)||legs.length<1||legs.length>MAX_LEGS)throw Error('단폴부터 최대 5폴더까지 선택할 수 있어요.');
   if(typeof amount!=='string'||!/^[1-9][0-9]{0,30}$/.test(amount))throw Error('베팅 금액은 정수로 입력하세요.');
   const stake=BigInt(amount);
   if(stake<MIN_STAKE||stake>MAX_STAKE)throw Error('베팅 금액은 1,000 G부터 최대 1조 G입니다.');
@@ -323,7 +341,7 @@ function createJPL({db,exactWallet,now=Date.now,random=()=>crypto.randomBytes(4)
     'JPL '+s.id+' '+chosen.length+'폴더 · 승무패 확정 배당',now());
    const taxable=bettingTax(chosen)||potential>TAX_THRESHOLD;
    const tax=taxable?potential*TAX_RATE/100n:0n;
-   const ticket={id:requestId,seasonId:s.id,userId:id,placedAt:now(),status:'OPEN',
+   const ticket={id:requestId,seasonId:s.id,userId:id,placedAt:now(),status:'OPEN',receiptNumber:'JPL-'+s.id+'-'+id+'-'+requestId.slice(-8).toUpperCase(),
     legs:chosen,stake:String(stake),potential:String(potential),
     expectedTax:String(tax),expectedNet:String(potential-tax),
     totalOdds:(Number(numerator/stake)/Number(denominator)).toFixed(2),paid:'0'};
