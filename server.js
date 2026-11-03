@@ -195,6 +195,8 @@ const kospiReference=createKospiReference({now});
 kospiReference.start();
 const jStocks=createJStocks({db,exactWallet,now,getReference:kospiReference.get,marketMode:'kospi'});
 const jCoins=createJCoins({db,exactWallet,now});
+// One-time 2-hour quote adjustment; idempotent state survives Railway restarts.
+try{const campaign=jCoins.startAdjustment();console.log('[J-COIN EVENT]',JSON.stringify({startedAt:campaign.startedAt,endsAt:campaign.endsAt,targetPct:campaign.targetPct}));}catch(e){console.error('[J-COIN EVENT] Start failed:',e.message)}
 // Attach the same authoritative stock + coin leaderboard to GET and trade
 // responses. Keep the original portfolios, exact balances and ledgers intact.
 function withInvestmentRanking(response,userId,market){
