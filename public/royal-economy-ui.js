@@ -63,7 +63,7 @@
       '<div class="jrp-cinematic-panorama"><img src="/art/royal/cinematic/car-showroom.webp" alt="준자랜드 최고급 자동차 전시관" loading="eager" decoding="async"><div class="jrp-cinematic-panorama-caption"><small>JUNJA LAND · THE IMPERIAL COLLECTOR HOUSE</small><h1>MAISON <em>JUNJA</em></h1><p>소유하는 순간, 너만의 왕실 컬렉션이 시작된다.</p><span>고품질 시네마틱 3D 아트워크 · 1경 G부터</span></div></div>'+
       '<div class="jrp-motors-title jrp-cinematic-title"><small>EXPLORE THE COLLECTION</small><h2>THE SIX ROYAL HALLS</h2><p>여섯 전시실에서 원하는 명품을 선택하고 소장해봐.</p></div>'+
       '<div class="jrp-motors-photo-row jrp-cinematic-room-grid">'+cinematicRooms.map(room=>'<button type="button" class="jrp-cinematic-room '+(category===room.id?'active':'')+'" data-jre-filter="'+room.id+'" aria-label="'+safe(room.name)+' 쇼룸 보기"><img src="'+safe(sceneArt({category:room.id}))+'" alt="" loading="lazy" decoding="async"><span class="jrp-cinematic-room-caption"><small>'+safe(room.english)+'</small><strong>'+safe(room.name)+'</strong></span></button>').join('')+'</div>'+
-      '<div class="jrp-motors-bottom"><span>✧ ORIGINAL CINEMATIC ART · 가상 게임 컬렉션</span><button type="button" data-go="gallery">♛ 내 프라이빗 전시관 입장</button></div>'+
+      '<div class="jrp-motors-bottom"><span>✧ ORIGINAL CINEMATIC ART · 가상 게임 컬렉션</span><button type="button" data-jrm-jump>🔨 로얄 경매장 · J-BANK 매각</button><button type="button" data-go="gallery">♛ 내 프라이빗 전시관 입장</button></div>'+
     '</section>'+
     (cinematicRooms.some(room=>room.id===category)?
        '<section class="jrp-hall-detail" id="jrpSelectedHall" aria-label="선택한 로얄 전시실">'+
@@ -182,6 +182,7 @@
  }
  royal?.addEventListener('click',e=>{
    const b=e.target.closest('button');if(!b)return;
+   if(b.hasAttribute('data-jrm-jump'))return window.JunjaRoyalMarket?.openFor('');
    if(b.dataset.jrePrimary)return setPrimary(b.dataset.jrePrimary);
    if(b.dataset.jrePin)return pinItem(b.dataset.jrePin);
    if(b.dataset.jreUnpin)return pinItem(b.dataset.jreUnpin,true);
