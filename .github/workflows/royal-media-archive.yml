@@ -6,6 +6,7 @@ on:
     branches: [main]
     paths:
       - scripts/sync-royal-media.cjs
+      - scripts/optimize-royal-photos.py
       - .github/workflows/royal-media-archive.yml
   push:
     branches:
@@ -32,6 +33,10 @@ jobs:
       - name: Download and audit Creative Commons full-photo thumbnails
         continue-on-error: true
         run: node scripts/sync-royal-media.cjs
+      - name: Compress high-res car photos and remove camera EXIF
+        run: |
+          python -m pip install --quiet Pillow
+          python scripts/optimize-royal-photos.py
       - name: Verify photo assets, publish cache to same feature branch
         run: |
           echo "ARCHIVED_PHOTO_FILES $(find public/art/royal/photos -type f -name '*.jpg' | wc -l)"
@@ -40,6 +45,7 @@ jobs:
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add public/art/royal/photos/
           if ! git diff --staged --quiet; then
-            git commit -m 'assets(royal): pin licensed automobile photos locally for iOS gallery'
+            git commit -m 'assets(royal): compressed CC photos cached locally for iOS gallery'
+            git pull --rebase origin feat/royal-visual-qa-v7-20261103
             git push origin HEAD:feat/royal-visual-qa-v7-20261103
           fi
