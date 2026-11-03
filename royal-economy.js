@@ -199,8 +199,10 @@ function createRoyalEconomy({db,exactWallet,now,getAssets}){
  }
  function catalog(uid){
    const load=db.prepare('SELECT title,frame,costume,pet FROM user_loadout WHERE user_id=?').get(uid)||{};
-   const recent=db.prepare("SELECT u.nickname,l.memo,l.created_at AS purchasedAt FROM ledger l JOIN users u ON u.id=l.user_id WHERE l.type='royal_boutique_purchase' ORDER BY l.id DESC LIMIT 8").all()
-    .map(r=>({nickname:r.nickname,itemName:String(r.memo||'').split(' · ')[1]||'로얄 명품',purchasedAt:r.purchasedAt}));
+   const retiredNames=new Set(['황금빛 귀족','다이아몬드 황제','로얄 프로필 액자','순금 황제관','황금 신룡','황실의 귀환','황제의 오라','신화의 날개','THE ROYAL 문장','불사조 황제관','불멸의 황제 수호수']);
+   const recent=db.prepare("SELECT u.nickname,l.memo,l.created_at AS purchasedAt FROM ledger l JOIN users u ON u.id=l.user_id WHERE l.type='royal_boutique_purchase' ORDER BY l.id DESC LIMIT 80").all()
+    .map(r=>({nickname:r.nickname,itemName:String(r.memo||'').split(' · ')[1]||'로얄 명품',purchasedAt:r.purchasedAt}))
+    .filter(r=>!retiredNames.has(r.itemName)).slice(0,8);
    const records=ownerRecords(uid);
    return {nickname:db.prepare('SELECT nickname FROM users WHERE id=?').get(uid)?.nickname||'',items:ROYAL_ITEMS.map(item=>({...item,owned:!!owns.get(uid,item.id),equipped:!item.displayOnly&&load[item.category]===item.id,...(records.get(item.id)||{}),...decorate(item,uid)})),collector:collector(uid),ranking:rank(),recent,serverNow:now()};
  }
