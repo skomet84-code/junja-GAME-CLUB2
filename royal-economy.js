@@ -34,7 +34,19 @@ const ROYAL_ITEMS=Object.freeze([
  {id:'jet_royalboutique_royal',category:'jet',name:'갓준자 시그니처 제트',icon:'✈️',rarity:'sovereign',price:P(700),collection:'royalboutique',art:'jet-gold',displayOnly:true,desc:'전용기 컬렉션의 정점 · 제국 문장을 새긴 한정 기체'},
  {id:'estate_royalboutique_penthouse',category:'estate',name:'스카이 로얄 펜트하우스',icon:'🏙️',rarity:'sovereign',price:P(700),collection:'royalboutique',art:'penthouse',displayOnly:true,desc:'도시 정상에 빛나는 스카이 프라이빗 레지던스'},
  {id:'estate_royalboutique_island',category:'estate',name:'골든 프라이빗 아일랜드',icon:'🏝️',rarity:'sovereign',price:P(10000),collection:'royalboutique',art:'island',displayOnly:true,stock:3,desc:'전 서버 3개 한정 · 독점 섬과 개인 항구'},
- {id:'vault_royalboutique_imperial',category:'vault',name:'황제의 금고',icon:'🔐',rarity:'sovereign',price:P(1000),collection:'royalboutique',art:'vault',displayOnly:true,desc:'수천 개의 보석이 내장된 황실 기념 금고 · 장식용'}
+ {id:'vault_royalboutique_imperial',category:'vault',name:'황제의 금고',icon:'🔐',rarity:'sovereign',price:P(1000),collection:'royalboutique',art:'vault',displayOnly:true,desc:'수천 개의 보석이 내장된 황실 기념 금고 · 장식용'},
+ {id:'car_royalboutique_rr_ghost',category:'car',name:'롤스로이스 고스트 로얄 블랙',brand:'rolls-royce',model:'Ghost',icon:'🚘',rarity:'prestige',price:P(1),collection:'royalboutique',art:'limousine',displayOnly:true,photoFile:'RR Ghost.jpg',photoBy:'MrWalkr',photoLicense:'CC BY-SA 4.0',desc:'롤스로이스 고스트 실차를 모티브로 만든 준자랜드 블랙 로얄 컬렉션'},
+ {id:'car_royalboutique_rr_phantom',category:'car',name:'롤스로이스 팬텀 임페리얼',brand:'rolls-royce',model:'Phantom VIII',icon:'🚘',rarity:'mythic',price:P(10),collection:'royalboutique',art:'limousine',displayOnly:true,photoFile:'Rolls-Royce Phantom VIII Black (36).jpg',photoBy:'Damian B Oh',photoLicense:'CC BY-SA 4.0',desc:'상징적인 판테온 그릴, 밤의 궁전과 어울리는 황실 세단'},
+ {id:'car_royalboutique_rr_cullinan',category:'car',name:'롤스로이스 컬리넌 퍼플 에디션',brand:'rolls-royce',model:'Cullinan',icon:'🚘',rarity:'mythic',price:P(30),collection:'royalboutique',art:'limousine',displayOnly:true,photoFile:'Rolls-Royce Cullinan (1).jpg',photoBy:'Mathious Ier',photoLicense:'CC0 1.0',desc:'컬리넌을 모티브로 만든 준자랜드 자수정 황실 SUV 콘셉트'},
+ {id:'car_royalboutique_rr_one',category:'car',name:'롤스로이스 원오브원 준자 에디션',brand:'rolls-royce',model:'Phantom VIII concept',icon:'🚘',rarity:'sovereign',price:P(300),collection:'royalboutique',art:'limousine',displayOnly:true,photoFile:'Rolls-Royce Phantom VIII Black (45).jpg',photoBy:'Damian B Oh',photoLicense:'CC BY-SA 4.0',stock:3,desc:'서버 3대 한정 · 팬텀 실차 이미지 기반의 준자랜드 가상 시그니처'},
+ {id:'car_royalboutique_bentley_gt',category:'car',name:'벤틀리 컨티넨탈 GT 로얄',brand:'bentley',model:'Continental GT',icon:'🚘',rarity:'prestige',price:P(3),collection:'royalboutique',art:'car-gold',displayOnly:true,photoFile:'Bentley Continental GT (45672160794).jpg',photoBy:'Guillaume Vachey',photoLicense:'CC0 1.0',desc:'플라잉 B의 품격과 그랜드 투어링의 역동성을 담은 황실 컬렉션'},
+ {id:'car_royalboutique_bentley_spur',category:'car',name:'벤틀리 플라잉스퍼 시그니처',brand:'bentley',model:'Flying Spur',icon:'🚘',rarity:'mythic',price:P(15),collection:'royalboutique',art:'car-gold',displayOnly:true,photoFile:'Bentley Flying Spur (1).jpg',photoBy:'Mathious Ier',photoLicense:'CC0 1.0',desc:'정숙한 럭셔리 세단의 디테일을 황금빛 진열장에 담다'},
+ {id:'car_royalboutique_bentley_bentayga',category:'car',name:'벤틀리 벤테이가 블랙 퍼플',brand:'bentley',model:'Bentayga',icon:'🚘',rarity:'mythic',price:P(40),collection:'royalboutique',art:'car-gold',displayOnly:true,photoFile:'Bentley bentayga.jpg',photoBy:'Iorisrandombses5001',photoLicense:'CC0 1.0',desc:'벤테이가 실차 이미지를 기반으로 재해석한 황실 SUV 컬렉션'},
+ {id:'car_royalboutique_bentley_emperor',category:'car',name:'벤틀리 블랙라벨 황제 에디션',brand:'bentley',model:'Continental GT concept',icon:'🚘',rarity:'sovereign',price:P(500),collection:'royalboutique',art:'car-gold',displayOnly:true,photoFile:'Bentley Conti GT Image.jpg',photoBy:'MrWalkr',photoLicense:'CC BY-SA 4.0',stock:5,desc:'서버 5대 한정 · 준자랜드 전용 가상 블랙라벨 황제 에디션'},
+ {id:'car_royalboutique_aston_db12',category:'car',name:'애스턴마틴 DB12 로얄 퍼플',brand:'aston-martin',model:'DB12',icon:'🚘',rarity:'prestige',price:P(5),collection:'royalboutique',art:'car-purple',displayOnly:true,photoFile:'2024 Aston Martin DB12.jpg',photoBy:'Calreyn88',photoLicense:'CC BY-SA 4.0',desc:'유려한 그랜드 투어러의 우아함을 담은 가상 퍼플 사양'},
+ {id:'car_royalboutique_aston_vantage',category:'car',name:'애스턴마틴 밴티지 골드라인',brand:'aston-martin',model:'Vantage V8',icon:'🚘',rarity:'mythic',price:P(12),collection:'royalboutique',art:'car-purple',displayOnly:true,photoFile:'2024 Aston Martin V8 Vantage.jpg',photoBy:'MrWalkr',photoLicense:'CC BY-SA 4.0',desc:'섬세한 곡선과 스포티한 차체의 프리미엄 스포츠카'},
+ {id:'car_royalboutique_aston_dbs',category:'car',name:'애스턴마틴 DBS 시그니처',brand:'aston-martin',model:'DBS Superleggera',icon:'🚘',rarity:'mythic',price:P(25),collection:'royalboutique',art:'car-purple',displayOnly:true,photoFile:'Aston dbs.jpg',photoBy:'Saschaporsche',photoLicense:'CC BY-SA 4.0',desc:'DBS 슈퍼레제라의 존재감을 기념하는 황실 시그니처'},
+ {id:'car_royalboutique_aston_valhalla',category:'car',name:'애스턴마틴 발할라 갓준자 에디션',brand:'aston-martin',model:'Valhalla',icon:'🚘',rarity:'sovereign',price:P(700),collection:'royalboutique',art:'car-purple',displayOnly:true,photoFile:'2026 Aston Martin Valhalla.jpg',photoBy:'MrWalkr',photoLicense:'CC BY-SA 4.0',stock:3,desc:'서버 3대 한정 · 발할라 실차 사진을 사용하는 준자랜드 가상 하이퍼카'}
 ]);
 function createRoyalEconomy({db,exactWallet,now,getAssets}){
  const itemMap=new Map(ROYAL_ITEMS.map(item=>[item.id,item]));
@@ -108,7 +120,7 @@ function createRoyalEconomy({db,exactWallet,now,getAssets}){
    return {
      tier:tier.name,tierIcon:tier.icon,spent:String(spent),ownedCount:owned.length,
      nextTier:next?.name||null,nextAt:next?String(next.min):null,totalItems:ROYAL_ITEMS.length,
-     showcase:chosen.map(id=>{const item=allowed.get(id);return {id:item.id,name:item.name,icon:item.icon,art:item.art,displayOnly:!!item.displayOnly,rarity:item.rarity,price:item.price,category:item.category,equipped:!item.displayOnly&&equipped[item.category]===id}}),
+     showcase:chosen.map(id=>{const item=allowed.get(id);return {id:item.id,name:item.name,icon:item.icon,art:item.art,brand:item.brand||null,model:item.model||null,photoFile:item.photoFile||null,photoBy:item.photoBy||null,photoLicense:item.photoLicense||null,displayOnly:!!item.displayOnly,rarity:item.rarity,price:item.price,category:item.category,equipped:!item.displayOnly&&equipped[item.category]===id}}),
      equipped:ROYAL_ITEMS.filter(x=>!x.displayOnly&&equipped[x.category]===x.id&&allowed.has(x.id)).map(x=>({id:x.id,name:x.name,icon:x.icon}))
    };
  }
@@ -143,7 +155,7 @@ function createRoyalEconomy({db,exactWallet,now,getAssets}){
      const info=decorate(item,uid);
      const note=info.inscription;
      return {
-       id:item.id,name:item.name,category:item.category,rarity:item.rarity,icon:item.icon,art:item.art,displayOnly:!!item.displayOnly,
+       id:item.id,name:item.name,category:item.category,rarity:item.rarity,icon:item.icon,art:item.art,brand:item.brand||null,model:item.model||null,photoFile:item.photoFile||null,photoBy:item.photoBy||null,photoLicense:item.photoLicense||null,displayOnly:!!item.displayOnly,
        price:item.price,desc:item.desc,owned:true,equipped:!item.displayOnly&&load[item.category]===item.id,
        stock:item.stock??null,
        inscription:note?{itemId:item.id,itemName:item.name,ownerNickname:user.nickname,
