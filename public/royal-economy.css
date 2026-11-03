@@ -162,3 +162,109 @@
  .jrp-featured-foot button{width:100%}.jrp-filters button{font-size:11px;padding:8px 11px}
 }
 @media(prefers-reduced-motion:reduce){.jrp-art-arch img,.jrp-victory-card{animation:none}.jrp-tile,.jrp-tile img{transition:none}}
+
+
+/* MAISON JUNJA V3 — gold-on-amethyst collector palace, responsive and accessible */
+#view-shop.palace-mode{background:radial-gradient(ellipse at 50% 8%,#352046 0%,#0f0c17 68%)}
+#view-shop.palace-mode .boutique-head{border:1px solid #c79b5980;background:linear-gradient(95deg,#1b1226,#30213d 55%,#180f23);border-radius:14px;padding:15px;margin-bottom:13px}
+#view-shop.palace-mode .boutique-head h2{color:#f3d391;font-family:Georgia,'Noto Serif KR',serif;letter-spacing:.03em}
+#view-shop.palace-mode .boutique-head small{color:#ceb889}
+#royalBoutiqueRoot{--jrp-lux-gold:#f1cc82;--jrp-lux-lilac:#d5b3ff;--jrp-ink:#160f21}
+.jrp-palace-intro{display:grid;grid-template-columns:1.4fr .6fr;position:relative;overflow:hidden;min-height:184px;align-items:center;padding:27px 32px;background:radial-gradient(circle at 86% 38%,#b37ce376,transparent 32%),linear-gradient(105deg,#23142e 0%,#422550 62%,#1d142c 100%);border:1px solid #c49460;box-shadow:inset 0 0 0 4px #edd0a00b,0 12px 34px #08050bb0}
+.jrp-palace-intro:before{content:'';position:absolute;inset:8px;border:1px solid #e4bd7140;pointer-events:none}
+.jrp-palace-word{position:relative;z-index:2}
+.jrp-palace-word small{font-size:10px;letter-spacing:.23em;color:#e5c08a}
+.jrp-palace-word h1{font-family:Georgia,'Noto Serif KR',serif;line-height:1.03;margin:9px 0;color:#ffe6a3;font-size:clamp(39px,6.3vw,66px);letter-spacing:.035em;text-shadow:0 0 17px #f8c15b80,0 3px 3px #140b16}
+.jrp-palace-word p{font-size:14px;color:#ead4f4;margin:10px 0 0}
+.jrp-palace-scene{position:relative;z-index:2;display:flex;justify-content:center;align-items:center;gap:8px;color:#eac783;text-shadow:0 0 23px #e9b36b}
+.jrp-palace-scene b{font-size:94px;line-height:1;filter:drop-shadow(0 0 13px #deb26d);animation:jrp-hover 5s ease-in-out infinite}
+.jrp-palace-scene span{font-size:25px;color:#c49afa}
+.jrp-collector{position:relative;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:16px;align-items:center;background:linear-gradient(110deg,#22152c,#15101e);border:1px solid #ac7f4e;border-radius:0 0 17px 17px;padding:20px 21px;margin-bottom:15px;box-shadow:0 18px 36px #09060b80}
+.jrp-collector-identity{min-width:0}
+.jrp-collector-identity>small,.jrp-collection-topline{font-size:10px;color:#cfa766;letter-spacing:.17em;font-weight:800}
+.jrp-collector-name{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:9px}
+.jrp-collector-name strong{font-family:Georgia,serif;color:#ffe3a0;font-size:19px;text-shadow:0 0 9px #d69f60a0}
+.jrp-collector-name span{font-size:13px;color:#e9d9ed}
+.jrp-collector-identity p{font-size:12px;line-height:1.6;color:#bcb1cc;margin:9px 0 12px}
+.jrp-collector-links{display:flex;gap:6px;flex-wrap:wrap}
+.jrp-collector-links button{background:#392746;border:1px solid #ad865d;color:#f4d9ad;font-size:11px;padding:10px 11px;border-radius:8px;cursor:pointer}
+.jrp-collector-links button:first-child{background:linear-gradient(125deg,#f0d49b,#ba8749);color:#281e2d;font-weight:800}
+.jrp-collector-showcase{min-width:0;background:#140e1dcc;border:1px solid #bc95645c;border-radius:12px;padding:12px}
+.jrp-collection-topline{display:flex;justify-content:space-between;gap:8px;font-size:11px}
+.jrp-collection-topline small{letter-spacing:normal;font-size:10px;color:#b3a1bd;font-weight:500}
+.jrp-collector-slots{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:11px}
+.jrp-collector-slot{min-width:0;position:relative;display:flex;flex-direction:column;gap:4px;align-items:center;justify-content:center;text-align:center;min-height:112px;border:1px solid #af865f66;border-radius:10px;background:radial-gradient(circle at 50% 37%,#805eab55,transparent 70%),#1d1625}
+.jrp-collector-slot img{height:65px;max-width:92%;object-fit:contain;filter:drop-shadow(0 1px 9px #c69b5d90)}
+.jrp-collector-slot b{font-size:10px;color:#f1d4a4;line-height:1.3;margin:0 5px;overflow-wrap:anywhere}
+.jrp-collector-slot.empty>span{font-size:30px;color:#b896a4}
+.jrp-collector-slot.empty>small{font-size:10px;color:#ab94ab}
+.jrp-collector-slot button{position:absolute;right:3px;top:3px;border:1px solid #c39976;border-radius:50%;width:23px;height:23px;cursor:pointer;color:#f6dab8;background:#36223d}
+.jrp-featured{border-color:#e4bd76;box-shadow:inset 0 0 0 5px #d5a86610,0 14px 45px #0b0714be}
+.jrp-featured-copy h2{font-family:'Noto Serif KR',Georgia,serif;color:#fff6eb}
+.jrp-featured-art{background:radial-gradient(ellipse at 50% 48%,#ac83cc41,transparent 64%)}
+.jrp-featured-pin{width:100%;margin-top:10px}
+.jrp-featured-pin .jrp-pin-action{min-height:37px;width:100%;border-radius:8px;background:#301e3f;border:1px solid #d7b183;color:#f8dfac;font-weight:800;cursor:pointer}
+.jrp-featured-pin .jrp-pin-action.selected{border-color:#cfaefa;color:#ebd3ff;background:#443059}
+.jrp-gallery .jrp-tile{background:radial-gradient(circle at 70% 10%,#5133665b,transparent 70%),linear-gradient(#211827,#15101d)}
+.jrp-tile.owned:after{content:'✓ OWNED';position:absolute;pointer-events:none;z-index:2;left:8px;top:8px;color:#1b1922;background:linear-gradient(135deg,#f9e6b0,#bc9256);border-radius:7px;padding:5px 7px;font-size:9px;font-weight:900}
+.jrp-tile-actions .jrp-pin-action{grid-column:1 / -1;min-height:32px;background:#372246!important;color:#f1d4ff!important;border-color:#9572ba!important}
+.jrp-tile-actions .jrp-pin-action.selected{background:#534164!important;color:#fae4ba!important}
+.jrp-collection-tiers{margin-top:39px;border:1px solid #a77d4d;border-radius:17px;padding:21px;background:radial-gradient(circle at 89% 0%,#77428e65,transparent 58%),linear-gradient(135deg,#24152e,#140f20)}
+.jrp-tier-head small{font-size:10px;letter-spacing:.16em;color:#e1b97c}
+.jrp-tier-head h2{font-size:24px;color:#f8dfb7;margin:6px 0}
+.jrp-tier-head p{margin:0;font-size:12px;color:#baacc6}
+.jrp-tier-track{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:7px;margin-top:19px}
+.jrp-tier-step{border:1px solid #795d70;border-radius:10px;background:linear-gradient(#3d2843,#201626);padding:13px 4px;text-align:center;min-width:0}
+.jrp-tier-step span{font-size:30px;display:block;line-height:1.1;filter:drop-shadow(0 0 8px #c39a78)}
+.jrp-tier-step b{font:700 10px Georgia,serif;color:#f6ddb2;display:block;overflow-wrap:anywhere;margin:7px 0}
+.jrp-tier-step small{font-size:10px;color:#e0b46f}
+.jrp-tier-step.current{border:2px solid #f2d182;box-shadow:0 0 16px #e7b76c7d;background:linear-gradient(#61436a,#2d1c32)}
+.jrp-next-tier{font-size:11px;color:#d6bfd7;margin:13px 0 0}
+.jrp-palace-intro,.jrp-collector,.jrp-collection-tiers{isolation:isolate}
+@media(max-width:760px){
+ .jrp-palace-intro{min-height:156px;padding:22px 19px;grid-template-columns:1fr 92px}
+ .jrp-palace-word small{font-size:8px;letter-spacing:.11em}
+ .jrp-palace-word h1{font-size:42px}
+ .jrp-palace-word p{font-size:12px}
+ .jrp-palace-scene b{font-size:58px}
+ .jrp-collector{grid-template-columns:1fr;padding:14px;gap:10px}
+ .jrp-collector-slot{min-height:100px}
+ .jrp-collector-slot img{height:54px}
+ .jrp-tier-step{padding:9px 2px}
+ .jrp-tier-step span{font-size:23px}
+ .jrp-tier-step b{font-size:9px}
+ .jrp-tier-head h2{font-size:19px}
+}
+@media(max-width:390px){
+ .jrp-palace-intro{grid-template-columns:1fr 50px;padding:19px 12px}
+ .jrp-palace-scene b{font-size:42px}
+ .jrp-palace-word h1{font-size:35px}
+ .jrp-collector-name strong{font-size:16px}
+ .jrp-collector-slot{min-height:93px}
+ .jrp-collector-slot img{height:47px}
+ .jrp-collection-tiers{padding:13px 8px}
+ .jrp-tier-track{gap:3px}
+ .jrp-tier-step b{font-size:8px}
+ .jrp-tier-step small{font-size:8px}
+}
+@media(prefers-reduced-motion:reduce){.jrp-palace-scene b{animation:none}}
+
+/* Social prestige: the same real owned-and-equipped royal cosmetics appear across views. */
+.styled-avatar{position:relative}
+.royal-avatar-seal{position:absolute;right:-8px;top:-7px;z-index:4;display:grid;place-items:center;width:25px;height:25px;background:linear-gradient(135deg,#fff3cc,#e1af59 50%,#885a2b);border:1px solid #ffefc1;border-radius:50%;color:#3c243c;font-size:16px;font-style:normal;text-shadow:0 0 7px #fff4c8;box-shadow:0 0 12px #e9b66f}
+#nickName.royal-nickname{background:linear-gradient(100deg,#fff4c9,#e3b66f,#fff0bd);color:transparent!important;background-clip:text;-webkit-background-clip:text;text-shadow:0 0 14px #db9e6035;font-weight:900}
+.royal-public-display{color:#f5dfba;margin:14px 0 18px;padding:15px;border-radius:14px;border:1px solid #d8ac67;background:radial-gradient(circle at 86% 5%,#9d57ae60,transparent 50%),linear-gradient(135deg,#2b1a39,#160f24);box-shadow:inset 0 0 0 3px #f7e4bd12,0 11px 28px #100c1c80}
+.royal-public-title{text-align:center}
+.royal-public-title small{color:#d9b276;font-size:10px;letter-spacing:.13em}
+.royal-public-title h3{font-family:Georgia,serif;font-weight:800;color:#ffe2a6;font-size:19px;margin:7px 0 5px;text-shadow:0 0 15px #dfa76899}
+.royal-public-title p{font-size:12px;color:#d7c5d9;margin:0 0 12px}
+.royal-public-items{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}
+.royal-public-items>p{grid-column:1/-1;text-align:center;font-size:12px;color:#ae9bba}
+.royal-public-item{min-width:0;display:flex;flex-direction:column;align-items:center;gap:4px;text-align:center;padding:9px 4px;background:radial-gradient(circle at 50% 26%,#77508b8a,transparent 70%),#201529;border-radius:9px;border:1px solid #a989606b}
+.royal-public-item img{max-width:100%;height:63px;object-fit:contain;filter:drop-shadow(0 4px 8px #dca96770)}
+.royal-public-item b{font-size:11px;color:#f2dab4;overflow-wrap:anywhere;line-height:1.25}
+.royal-public-item small{font-size:10px;color:#d5b2f0}
+@media(max-width:390px){.royal-public-display{padding:10px}.royal-public-item img{height:49px}.royal-public-item b{font-size:10px}}
+
+.jrp-collector-slot .jrp-set-primary{position:static;width:auto;height:auto;padding:5px 7px;background:linear-gradient(130deg,#f4dfa3,#c69756);border:1px solid #f5d99e;border-radius:6px;font-size:9px;font-weight:800;color:#2a1b32;cursor:pointer}
+.jrp-collector-slot>small{font-size:9px;color:#e6c987}

@@ -22,6 +22,9 @@
 
  const showcaseArt=item=>{
    const key=String(item?.id||'');
+   if(key.includes('phoenix'))return '/art/royal/phoenix.svg';
+   if(key.includes('regalia')||key.includes('frame_royalboutique_royal'))return '/art/royal/regalia.svg';
+   if(key.includes('entry'))return '/art/royal/scepter.svg';
    if(key.includes('dragon')||key.includes('immortal'))return '/art/royal/dragon.svg';
    if(key.includes('wings'))return '/art/royal/wings.svg';
    if(key.includes('diamond')||key.includes('frame_royalboutique'))return '/art/royal/gem.svg';
@@ -44,10 +47,16 @@
    const featured=all.find(i=>i.id===selectedId)||all[0];
    if(!featured)return;
    const tiles=all.filter(i=>(category==='all'||i.category===category)&&(!ownedOnly||i.owned));
+   const collector=royalState.collector||{tier:'NEW COLLECTOR',tierIcon:'◇',spent:'0',ownedCount:0,showcase:[],nextTier:'ROYAL',nextAt:'100000000000000'};
+   const showcase=Array.isArray(collector.showcase)?collector.showcase:[];
+   const displayName=royalState.nickname||'ROYAL COLLECTOR';
+   const pinButton=i=>!i.owned?'':showcase.some(s=>s.id===i.id)?'<button type="button" class="jrp-pin-action selected" data-jre-unpin="'+safe(i.id)+'">✦ 전시 중 · 해제</button>':'<button type="button" class="jrp-pin-action" data-jre-pin="'+safe(i.id)+'">♛ 프로필 전시</button>';
    const actionText=i=>i.owned?(i.equipped?'✓ 착용 중':'보유 상품 장착'):i.soldOut?'판매 완료':'컬렉션 소장하기';
    const actionAttr=i=>i.owned?(i.equipped?'disabled':'data-jre-equip="'+safe(i.id)+'"'):i.soldOut?'disabled':'data-jre-buy="'+safe(i.id)+'"';
    royal.innerHTML=
-    '<div class="jrp-opening"><span>MAISON JUNJA</span><span>THE PRIVATE COLLECTION · 2026</span></div>'+
+    '<div class="jrp-opening"><span>♛ JUNJA LAND</span><span>MAISON JUNJA · PRIVATE ROYAL BOUTIQUE</span></div>'+
+    '<div class="jrp-palace-intro"><div class="jrp-palace-word"><small>DIAMOND & GOLD · LUXURY COLLECTION</small><h1>♛ 명품관</h1><p>당신의 컬렉션이 곧 당신의 품격입니다.</p></div><div class="jrp-palace-scene" aria-hidden="true"><span>✦</span><b>♛</b><span>✧</span></div></div>'+
+    '<section class="jrp-collector" aria-label="내 로얄 명품 프로필"><div class="jrp-collector-identity"><small>MY ROYAL PROFILE</small><div class="jrp-collector-name"><strong>'+safe(collector.tierIcon)+' '+safe(collector.tier)+'</strong><span>'+safe(displayName)+'</span></div><p>'+Number(collector.ownedCount||0)+'종 소장 · 누적 구매액 '+fmt(collector.spent)+'</p><div class="jrp-collector-links"><button type="button" data-jre-owned>'+ (ownedOnly?'전체 명품 보기':'✦ 내 컬렉션만 보기') +'</button><button type="button" data-jre-collection>프로필 전시 설정 ↓</button></div></div><div class="jrp-collector-showcase" id="jrpMyShowcase"><div class="jrp-collection-topline">MY SHOWCASE <small>최대 3종 · 첫 번째가 대표 명품</small></div><div class="jrp-collector-slots">'+Array.from({length:3},(_,idx)=>{const x=showcase[idx];return '<div class="jrp-collector-slot '+(x?'filled':'empty')+'">'+(x?'<img alt="" src="'+showcaseArt(x)+'"><b>'+safe(x.name)+'</b>'+(idx>0?'<button class="jrp-set-primary" type="button" data-jre-primary="'+safe(x.id)+'">대표 설정</button>':'<small>★ 대표 명품</small>')+'<button type="button" data-jre-unpin="'+safe(x.id)+'" aria-label="'+safe(x.name)+' 전시 해제">×</button>':'<span>✧</span><small>전시 슬롯 '+(idx+1)+'</small>')+'</div>'}).join('')+'</div></div></section>'+
     '<section class="jrp-featured" aria-label="로얄 명품 특별 전시관">'+
       '<div class="jrp-featured-copy"><div class="jrp-label"><i></i> EXCLUSIVE ROYAL SHOWROOM</div>'+
         '<p class="jrp-serif">Wear the Legacy.</p>'+
@@ -57,6 +66,7 @@
         '<h3>'+safe(featured.name)+'</h3><p class="jrp-featured-desc">'+safe(featured.desc)+'</p>'+
         '<div class="jrp-featured-pills">'+pill(featured)+'<span class="jrp-outline-pill">평생 소장 · 구매자 각인</span></div>'+
         '<div class="jrp-featured-foot"><div><small>EXCLUSIVE PRICE</small><strong>'+fmt(featured.price)+'</strong></div><button '+actionAttr(featured)+' type="button">'+actionText(featured)+'</button></div>'+
+        '<div class="jrp-featured-pin">'+pinButton(featured)+'</div>'+
       '</div>'+
       '<div class="jrp-featured-art"><div class="jrp-art-arch"><div class="jrp-art-aura"></div><img src="'+showcaseArt(featured)+'" alt="'+safe(featured.name)+' 고급 일러스트"><div class="jrp-stage-plinth"></div></div><div class="jrp-art-caption"><span>JUNJA</span><b>ROYAL PALACE</b><small>EST. 2026</small></div></div>'+
     '</section>'+
@@ -66,8 +76,9 @@
     '<div class="jrp-gallery">'+(tiles.map(item=>'<article class="jrp-tile '+(item.id===featured.id?'selected ':'')+(item.stock!=null?'limited ':'')+(item.owned?'owned':'')+'">'+
       '<button class="jrp-tile-preview" type="button" data-jre-select="'+safe(item.id)+'" aria-label="'+safe(item.name)+' 상세 전시 보기"><div class="jrp-tile-art"><img src="'+showcaseArt(item)+'" loading="lazy" alt=""></div><span class="jrp-tile-index">'+itemType(item)+'</span></button>'+
       '<div class="jrp-tile-meta"><div><small>'+(item.stock!=null?'NUMBERED EDITION · '+item.remaining+'/'+item.stock:'PERMANENT COLLECTION')+'</small><h3>'+safe(item.name)+'</h3></div><b>'+fmt(item.price)+'</b></div>'+
-      '<div class="jrp-tile-actions"><button type="button" data-jre-select="'+safe(item.id)+'">자세히 보기</button><button type="button" '+actionAttr(item)+'>'+actionText(item)+'</button></div>'+
+      '<div class="jrp-tile-actions"><button type="button" data-jre-select="'+safe(item.id)+'">자세히 보기</button><button type="button" '+actionAttr(item)+'>'+actionText(item)+'</button>'+pinButton(item)+'</div>'+
     '</article>').join('')||'<div class="jrp-gallery-empty">해당 조건의 소장품이 없어.</div>')+'</div>'+
+    '<section class="jrp-collection-tiers"><div class="jrp-tier-head"><small>EXCLUSIVE COLLECTION STATUS</small><h2>명품 컬렉터 등급</h2><p>신분과 별개로 명품 소비에 따라 올라가는 명예 등급</p></div><div class="jrp-tier-track">'+[{name:'ROYAL',at:'100조',icon:'♛'},{name:'EMPEROR',at:'1경',icon:'💎'},{name:'LEGEND',at:'10경',icon:'✦'},{name:'THE ABSOLUTE',at:'100경',icon:'♜'},{name:'GOD COLLECTOR',at:'1,000경',icon:'👑'}].map(t=>'<div class="jrp-tier-step '+(t.name===collector.tier?'current':'')+'"><span>'+t.icon+'</span><b>'+t.name+'</b><small>'+t.at+' G~</small></div>').join('')+'</div><p class="jrp-next-tier">'+(collector.nextTier?'다음 명예 등급 '+safe(collector.nextTier)+' · 누적 '+fmt(collector.nextAt)+' 달성':'최고 등급 GOD COLLECTOR 달성')+'</p></section>'+
     '<section class="jrp-social"><div class="jrp-social-heading"><small>02 / THE HALL OF FAME</small><h2>로얄 명예의 전당</h2><p>소유의 가치를 증명하는 이름들. 명품 소비 금액만으로 순위를 계산해.</p></div>'+
     '<div class="jrp-social-columns"><div class="jrp-rank">'+
      '<h3>♛ TOP COLLECTORS</h3>'+((royalState.ranking||[]).length?royalState.ranking.map(x=>'<div class="jrp-rank-row"><em>'+String(x.rank).padStart(2,'0')+'</em><span>'+safe(x.nickname)+'</span><b>'+fmt(x.spent)+'</b></div>').join(''):'<p>첫 로얄 컬렉터를 기다리는 중.</p>')+
@@ -112,6 +123,24 @@
      if(typeof window.loadShop==='function')await window.loadShop();
    }catch(e){alert(e.message);await loadRoyal();}
  }
+ async function setPrimary(id){
+   const current=(royalState?.collector?.showcase||[]).map(x=>x.id);
+   if(!current.includes(id))return;
+   try{
+     const d=await get('/api/royal-economy/showcase',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({selectedIds:[id,...current.filter(x=>x!==id)]})});
+     royalState.collector=d.collector;renderRoyal();
+   }catch(e){alert(e.message);await loadRoyal();}
+ }
+ async function pinItem(id,remove=false){
+   if(!royalState)return;
+   const current=(royalState.collector?.showcase||[]).map(x=>x.id);
+   let next=remove?current.filter(x=>x!==id):[...current.filter(x=>x!==id),id];
+   if(next.length>3){alert('전시는 최대 3개까지 가능해. 기존 전시품을 먼저 해제해줘.');return;}
+   try{
+     const d=await get('/api/royal-economy/showcase',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({selectedIds:next})});
+     royalState.collector=d.collector;renderRoyal();
+   }catch(e){alert(e.message);await loadRoyal();}
+ }
  async function loadEconomy(){
    if(!economy||adminBusy)return;adminBusy=true;
    try{
@@ -136,6 +165,10 @@
  }
  royal?.addEventListener('click',e=>{
    const b=e.target.closest('button');if(!b)return;
+   if(b.dataset.jrePrimary)return setPrimary(b.dataset.jrePrimary);
+   if(b.dataset.jrePin)return pinItem(b.dataset.jrePin);
+   if(b.dataset.jreUnpin)return pinItem(b.dataset.jreUnpin,true);
+   if(b.hasAttribute('data-jre-collection')){royal.querySelector('#jrpMyShowcase')?.scrollIntoView({behavior:'smooth',block:'center'});return;}
    if(b.dataset.jreBuy)return buy(b.dataset.jreBuy,b);
    if(b.dataset.jreEquip)return equip(b.dataset.jreEquip,b);
    if(b.dataset.jreSelect){selectedId=b.dataset.jreSelect;renderRoyal();royal.querySelector('.jrp-featured')?.scrollIntoView({behavior:'smooth',block:'start'});return;}

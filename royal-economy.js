@@ -57,6 +57,47 @@ function createRoyalEconomy({db,exactWallet,now,getAssets}){
      return {item,inscription,balance:String(next)};
    }catch(e){try{db.exec('ROLLBACK')}catch{}throw e;}
  }
+
+ const SHOWCASE_TIERS=Object.freeze([
+  {name:'GOD COLLECTOR',min:10n**19n,icon:'♛'},
+  {name:'THE ABSOLUTE',min:10n**18n,icon:'✦'},
+  {name:'LEGEND',min:10n**17n,icon:'✧'},
+  {name:'EMPEROR',min:10n**16n,icon:'💎'},
+  {name:'ROYAL',min:100n*JO,icon:'👑'}
+ ]);
+ const showcaseKey=uid=>'royal:showcase:'+uid;
+ function collector(uid){
+   const rows=db.prepare("SELECT COALESCE(amount_exact,CAST(amount AS TEXT)) AS amount FROM ledger WHERE user_id=? AND type='royal_boutique_purchase'").all(uid);
+   const spent=rows.reduce((total,r)=>{const n=readExact(r.amount);return n<0n?total-n:total},0n);
+   const owned=ROYAL_ITEMS.filter(x=>!!owns.get(uid,x.id));
+   const tier=SHOWCASE_TIERS.find(x=>spent>=x.min)||{name:'NEW COLLECTOR',min:0n,icon:'◇'};
+   const next=[...SHOWCASE_TIERS].reverse().find(x=>x.min>spent);
+   const equipped=db.prepare('SELECT title,frame,costume,pet FROM user_loadout WHERE user_id=?').get(uid)||{};
+   const allowed=new Map(owned.map(x=>[x.id,x]));
+   let custom=[],hasCustom=false;
+   try{const row=getInscription.get(showcaseKey(uid));hasCustom=!!row;custom=row?JSON.parse(row.value):[];}catch{}
+   if(!Array.isArray(custom)){custom=[];hasCustom=false;}
+   const chosen=[...new Set(custom)].filter(id=>typeof id==='string'&&allowed.has(id)).slice(0,3);
+   if(!hasCustom){
+     const byPrice=owned.slice().sort((a,b)=>{const x=readExact(a.price),y=readExact(b.price);return x===y?0:x>y?-1:1;});
+     chosen.push(...byPrice.filter(x=>equipped[x.category]===x.id).map(x=>x.id).slice(0,3));
+     for(const item of byPrice){if(chosen.length>=3)break;if(!chosen.includes(item.id))chosen.push(item.id)}
+   }
+   return {
+     tier:tier.name,tierIcon:tier.icon,spent:String(spent),ownedCount:owned.length,
+     nextTier:next?.name||null,nextAt:next?String(next.min):null,
+     showcase:chosen.map(id=>{const item=allowed.get(id);return {id:item.id,name:item.name,icon:item.icon,rarity:item.rarity,price:item.price,category:item.category,equipped:equipped[item.category]===id}}),
+     equipped:ROYAL_ITEMS.filter(x=>equipped[x.category]===x.id&&allowed.has(x.id)).map(x=>({id:x.id,name:x.name,icon:x.icon}))
+   };
+ }
+ function updateShowcase(uid,selectedIds){
+   if(!Array.isArray(selectedIds)||selectedIds.length>3||selectedIds.length!==new Set(selectedIds).size)throw new Error('전시 명품은 최대 3개만 선택할 수 있습니다.');
+   if(selectedIds.some(id=>typeof id!=='string'||!itemMap.has(id)||!owns.get(uid,id)))throw new Error('구매한 명품만 전시할 수 있습니다.');
+   const t=now();
+   db.prepare('INSERT INTO game_state(key,value,updated_at) VALUES(?,?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value,updated_at=excluded.updated_at')
+     .run(showcaseKey(uid),JSON.stringify(selectedIds),t);
+   return collector(uid);
+ }
  function rank(){
    const rows=db.prepare("SELECT user_id,COALESCE(amount_exact,CAST(amount AS TEXT)) AS amount FROM ledger WHERE type='royal_boutique_purchase'").all();
    const sums=new Map();
@@ -68,7 +109,7 @@ function createRoyalEconomy({db,exactWallet,now,getAssets}){
    const load=db.prepare('SELECT title,frame,costume,pet FROM user_loadout WHERE user_id=?').get(uid)||{};
    const recent=db.prepare("SELECT u.nickname,l.memo,l.created_at AS purchasedAt FROM ledger l JOIN users u ON u.id=l.user_id WHERE l.type='royal_boutique_purchase' ORDER BY l.id DESC LIMIT 8").all()
     .map(r=>({nickname:r.nickname,itemName:String(r.memo||'').split(' · ')[1]||'로얄 명품',purchasedAt:r.purchasedAt}));
-   return {items:ROYAL_ITEMS.map(item=>({...item,owned:!!owns.get(uid,item.id),equipped:load[item.category]===item.id,...decorate(item,uid)})),ranking:rank(),recent,serverNow:now()};
+   return {nickname:db.prepare('SELECT nickname FROM users WHERE id=?').get(uid)?.nickname||'',items:ROYAL_ITEMS.map(item=>({...item,owned:!!owns.get(uid,item.id),equipped:load[item.category]===item.id,...decorate(item,uid)})),collector:collector(uid),ranking:rank(),recent,serverNow:now()};
  }
  function dashboard(){
    const people=db.prepare('SELECT id,nickname,balance,balance_exact,balance_base,is_disabled FROM users').all();
@@ -103,6 +144,6 @@ function createRoyalEconomy({db,exactWallet,now,getAssets}){
      topWealth:fortunes.slice(0,10),royalRanking:rank(),assetsFailed,
      note:'오늘 장부 유입/유출에는 유저 송금·은행·투자 이동이 포함됩니다. 신규 재화 발행량과 동일하지 않습니다. 투자 평가액은 시세에 따라 변동합니다.'};
  }
- return {buy,catalog,decorate,dashboard};
+ return {buy,catalog,collector,updateShowcase,decorate,dashboard};
 }
 module.exports={ROYAL_ITEMS,createRoyalEconomy};
