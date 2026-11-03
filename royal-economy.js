@@ -64,7 +64,12 @@ function createRoyalEconomy({db,exactWallet,now,getAssets}){
    const names=new Map(db.prepare('SELECT id,nickname FROM users').all().map(u=>[u.id,u.nickname]));
    return [...sums.entries()].sort((a,b)=>a[1]===b[1]?a[0]-b[0]:a[1]>b[1]?-1:1).slice(0,10).map(([userId,spent],i)=>({rank:i+1,userId,nickname:names.get(userId)||'탈퇴 회원',spent:String(spent)}));
  }
- function catalog(uid){return {items:ROYAL_ITEMS.map(item=>({...item,owned:!!owns.get(uid,item.id),...decorate(item,uid)})),ranking:rank(),serverNow:now()};}
+ function catalog(uid){
+   const load=db.prepare('SELECT title,frame,costume,pet FROM user_loadout WHERE user_id=?').get(uid)||{};
+   const recent=db.prepare("SELECT u.nickname,l.memo,l.created_at AS purchasedAt FROM ledger l JOIN users u ON u.id=l.user_id WHERE l.type='royal_boutique_purchase' ORDER BY l.id DESC LIMIT 8").all()
+    .map(r=>({nickname:r.nickname,itemName:String(r.memo||'').split(' · ')[1]||'로얄 명품',purchasedAt:r.purchasedAt}));
+   return {items:ROYAL_ITEMS.map(item=>({...item,owned:!!owns.get(uid,item.id),equipped:load[item.category]===item.id,...decorate(item,uid)})),ranking:rank(),recent,serverNow:now()};
+ }
  function dashboard(){
    const people=db.prepare('SELECT id,nickname,balance,balance_exact,balance_base,is_disabled FROM users').all();
    let wallet=0n,savings=0n,installments=0n,stocks=0n,coins=0n,debt=0n,assetsFailed=0;
