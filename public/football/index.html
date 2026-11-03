@@ -6,12 +6,12 @@
 <meta name="theme-color" content="#0a111c">
 <meta name="description" content="JUNJA PREMIER LEAGUE — 22개 클럽, 매일 5경기, 실시간 60초 축구 시뮬레이션과 승무패 리그. 게임머니 전용.">
 <title>JUNJA PREMIER LEAGUE · 준자랜드</title>
-<link rel="stylesheet" href="/football/style.css?v=20261104-goal-timeline-v5">
+<link rel="stylesheet" href="/football/style.css?v=20261104-scout-v6">
 <link rel="stylesheet" href="/football/royal-premium.css?v=20261104-crest-large-v2">
 <link rel="stylesheet" href="/football/receipts.css?v=20261104-receipt-cols-v5">
 <script defer src="/football/club-icons.js?v=20261104-royal-heraldic-v3"></script>
 <script defer src="/football/receipts.js?v=20261104-receipt-cols-v5"></script>
-<script defer src="/football/game.js?v=20261104-finish-demo-goals-v5"></script>
+<script defer src="/football/game.js?v=20261104-scout-v6"></script>
 </head>
 <body>
 <header class="topnav">
@@ -94,9 +94,9 @@
     <div id="slipPicks" class="slip-picks"><div class="slip-empty"><span>⚽</span><b>아직 선택된 경기가 없어</b><small>경기 목록에서 1 / X / 2 배당을 눌러봐.</small></div></div>
     <div class="slip-divider"></div>
     <div class="slip-number"><span>총 조합 배당률</span><strong id="totalOdds">0.00 <small>x</small></strong></div>
-    <label class="amount-label" for="stake">베팅할 게임머니 G</label>
+    <label class="amount-label" for="stake">베팅할 게임머니 G · 최대 1,000조</label>
     <div class="amount-input"><input type="text" inputmode="numeric" id="stake" value="1000000" aria-label="베팅 게임머니"><span>G</span></div>
-    <div class="quick-amounts"><button type="button" data-stake="1000000">100만</button><button type="button" data-stake="100000000">1억</button><button type="button" data-stake="10000000000">100억</button><button type="button" data-stake="1000000000000">1조</button></div>
+    <div class="quick-amounts"><button type="button" data-stake="100000000">1억</button><button type="button" data-stake="1000000000000">1조</button><button type="button" data-stake="100000000000000">100조</button><button type="button" data-stake="1000000000000000">1,000조</button></div>
     <div class="potential"><span>예상 당첨금</span><strong id="potential">0 G</strong><small id="taxPreview">100배 이상 또는 적중금 1경 초과 시 20% 잭팟 적립 · 예상 실수령 표시</small></div>
     <button type="button" class="place-bet" id="placeBet" disabled>경기를 선택해 주세요</button>
     <button type="button" class="clear-slip" id="clearSlip">전체 선택 지우기</button>
@@ -107,5 +107,12 @@
  </div>
  <footer><div class="footer-brand">♛ JUNJA <b>PREMIER LEAGUE</b></div><div>© JUNJA CLUB · VIRTUAL FOOTBALL WORLD · ALL RESULTS ARE FICTIONAL</div><a href="/">JUNJA CLUB 복귀 ↑</a></footer>
 </main>
+<dialog id="jplAnalysisDialog" class="jpl-analysis-dialog" aria-label="JPL 프리미엄 경기분석">
+ <div class="jpl-analysis-shell">
+  <div class="jpl-analysis-top"><div><small>JPL · ROYAL SCOUTING REPORT</small><h2>프리미엄 경기분석</h2></div><button type="button" data-close-analysis aria-label="경기분석 닫기">×</button></div>
+  <div id="jplAnalysisContent"></div>
+  <p class="jpl-analysis-disclaimer">구단 지표는 준자랜드 가상 경기의 참고 정보입니다. 좋은 컨디션이나 높은 전력도 승리를 보장하지 않습니다.</p>
+ </div>
+</dialog>
 </body>
 </html>
