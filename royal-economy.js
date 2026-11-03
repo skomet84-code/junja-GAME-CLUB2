@@ -109,7 +109,7 @@ function createRoyalEconomy({db,exactWallet,now,getAssets}){
    const load=db.prepare('SELECT title,frame,costume,pet FROM user_loadout WHERE user_id=?').get(uid)||{};
    const recent=db.prepare("SELECT u.nickname,l.memo,l.created_at AS purchasedAt FROM ledger l JOIN users u ON u.id=l.user_id WHERE l.type='royal_boutique_purchase' ORDER BY l.id DESC LIMIT 8").all()
     .map(r=>({nickname:r.nickname,itemName:String(r.memo||'').split(' · ')[1]||'로얄 명품',purchasedAt:r.purchasedAt}));
-   return {items:ROYAL_ITEMS.map(item=>({...item,owned:!!owns.get(uid,item.id),equipped:load[item.category]===item.id,...decorate(item,uid)})),collector:collector(uid),ranking:rank(),recent,serverNow:now()};
+   return {nickname:db.prepare('SELECT nickname FROM users WHERE id=?').get(uid)?.nickname||'',items:ROYAL_ITEMS.map(item=>({...item,owned:!!owns.get(uid,item.id),equipped:load[item.category]===item.id,...decorate(item,uid)})),collector:collector(uid),ranking:rank(),recent,serverNow:now()};
  }
  function dashboard(){
    const people=db.prepare('SELECT id,nickname,balance,balance_exact,balance_base,is_disabled FROM users').all();
