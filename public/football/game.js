@@ -94,7 +94,7 @@ function renderTickets(){
   const stat=t.status==='OPEN'?'진행 대기':t.status==='WIN'?'적중':t.status==='FORFEITED'?'회생 소멸':'미적중';
   const legs=t.legs.map(l=>'<div class="ticket-leg"><span>'+esc(team(l.home).short)+' – '+esc(team(l.away).short)+'</span><span class="pick">'+numbers[l.pick]+' '+esc(names[l.pick])+' · '+(l.market==='HDP'?'핸디캡 '+(l.line>0?'+':'')+l.line+' · ':'')+(l.odds100/100).toFixed(2)+'</span></div>').join('');
   return '<article class="ticket-card"><div class="ticket-head"><div><strong>JPL '+esc(t.seasonId)+' · '+t.legs.length+'폴더</strong><small> &nbsp;'+esc(shortDate(t.placedAt))+' '+esc(time(t.placedAt))+'</small></div><span class="ticket-status '+t.status+'">'+stat+'</span></div>'+
-   '<div class="ticket-legs">'+legs+'</div><div class="ticket-footer"><span>베팅 <b>'+fmtMoney(t.stake)+'</b></span><span>확정 배당 <b>'+esc(t.totalOdds)+'x</b></span><span>'+(t.status==='WIN'?'실수령':'예상 실수령')+' <b>'+fmtMoney(t.status==='LOSE'||t.status==='FORFEITED'?'0':t.status==='WIN'?t.paid:t.expectedNet||t.potential)+'</b></span>'+((t.status==='WIN'||t.status==='OPEN')&&BigInt(t.tax||t.expectedTax||'0')>0n?'<span>'+(t.status==='WIN'?'잭팟 적립 ':'예상 잭팟 적립 ')+'<b>'+fmtMoney(t.tax||t.expectedTax)+'</b></span>':'')+'</div></article>';
+   '<div class="ticket-legs">'+legs+'</div><div class="ticket-footer"><span>베팅 <b>'+fmtMoney(t.stake)+'</b></span><span>확정 배당 <b>'+esc(t.totalOdds)+'x</b></span><span>'+(t.status==='WIN'?'실수령':'예상 실수령')+' <b>'+fmtMoney(t.status==='LOSE'||t.status==='FORFEITED'?'0':t.status==='WIN'?t.paid:t.expectedNet||t.potential)+'</b></span>'+((t.status==='WIN'||t.status==='OPEN')&&BigInt(t.tax||t.expectedTax||'0')>0n?'<span>'+(t.status==='WIN'?'잭팟 적립 ':'예상 잭팟 적립 ')+'<b>'+fmtMoney(t.tax||t.expectedTax)+'</b></span>':'')+'</div><button type="button" class="ticket-receipt-button" data-ticket-receipt="'+esc(t.seasonId)+'|'+esc(t.id)+'" aria-label="승부예측 구매표 열기">🧾 구매표 확인 · 이미지 저장/공유 ↗</button></article>';
  }).join(''):'<div class="fixture-message">아직 승부예측 티켓이 없어. 첫 경기를 선택해 봐!</div>';
 }
 function renderSlip(){
@@ -125,7 +125,7 @@ function setPick(matchId,pick,market='NORMAL'){
  if(!f||f.status!=='SCHEDULED'||now()>=f.kickoff){toast('킥오프한 경기는 베팅할 수 없어.',true);return}
  if(selection.get(matchId)?.pick===pick&&selection.get(matchId)?.market===market){selection.delete(matchId)}
  else{
-  if(selection.size>=10&&!selection.has(matchId)){toast('최대 10경기까지 묶을 수 있어.',true);return}
+  if(selection.size>=5&&!selection.has(matchId)){toast('한 티켓은 최대 5경기까지 묶을 수 있어.',true);return}
   selection.set(matchId,{matchId,pick,market,line:market==='HDP'?f.handicap.line:0,
    odds100:market==='HDP'?f.handicap.odds[pick]:f.odds[pick],home:f.home,away:f.away,kickoff:f.kickoff});
  }
@@ -155,9 +155,10 @@ async function placeBet(){
    headers:{'Content-Type':'application/json'},body:JSON.stringify({amount,legs:legs.map(l=>({matchId:l.matchId,pick:l.pick,market:l.market})),requestId:crypto.randomUUID()})});
   const data=await response.json();
   if(!response.ok)throw Error(data.error||'베팅 접수에 실패했어.');
-  selection.clear();toast('승무패 예측 접수 완료! 경기 종료 후 자동 정산돼.');
+  selection.clear();toast('베팅 구매 완료! 내 승부예측에서 구매표를 확인할 수 있어.');
   if(status)status.wallet=data.wallet||data.user?.balance||status.wallet;
   await refresh(true);
+   if(data.ticket&&window.JPLReceipts)window.JPLReceipts.open(data.ticket,[...(status?.clubs||[]),...(status?.reserves||[])]);
  }catch(e){toast(e.message||'베팅 중 문제가 발생했어.',true)}
  finally{betting=false;renderSlip()}
 }
@@ -322,6 +323,13 @@ async function refresh(force=false){
  finally{loading=false}
 }
 document.addEventListener('click',e=>{
+ const view=e.target.closest('[data-ticket-receipt]');
+ if(view){
+  const [seasonId,receiptId]=view.dataset.ticketReceipt.split('|');
+  const ticket=status?.tickets?.find(t=>t.seasonId===seasonId&&t.id===receiptId);
+  if(ticket&&window.JPLReceipts)window.JPLReceipts.open(ticket,[...(status?.clubs||[]),...(status?.reserves||[])]);
+  return;
+ }
  const pick=e.target.closest('[data-pick]');if(pick){const [matchId,market,result]=pick.dataset.pick.split(':');setPick(matchId,result,market);return}
  const remove=e.target.closest('[data-remove]');if(remove){selection.delete(remove.dataset.remove);renderFixtures();renderSlip();return}
  const watch=e.target.closest('[data-watch]');if(watch){selectWatch(watch.dataset.watch);return}
