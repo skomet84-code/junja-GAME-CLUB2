@@ -79,14 +79,14 @@ jobs:
           done
           cat /tmp/junja-v25-mobile.log
           exit 1
-      - name: Run Chromium and WebKit mobile smoke
-        env:
-          BASE_URL: http://127.0.0.1:18080
-        run: node tests/v25-mobile-smoke.mjs
       - name: Verify photoreal luxury shop and private museum on WebKit/Chromium
         env:
           BASE_URL: http://127.0.0.1:18080
         run: node tests/royal-final-browser.mjs
+      - name: Run Chromium and WebKit mobile smoke
+        env:
+          BASE_URL: http://127.0.0.1:18080
+        run: node tests/v25-mobile-smoke.mjs
       - name: Upload mobile screenshots
         if: always()
         uses: actions/upload-artifact@v4
