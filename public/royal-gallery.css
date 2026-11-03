@@ -499,3 +499,59 @@
  .main-app:has(#view-shop.active)>.topbar .wallet-pill>span,
  .main-app:has(#view-gallery.active)>.topbar .wallet-pill>span{font-size:8px}
 }
+
+
+/* Visual QA on 390px iPhone: old two-line luxury page title and unrelated
+ * global economy explanation pushed the actual car showroom below the fold.
+ * Keep luxury navigation concise while retaining full original general store. */
+@media(max-width:700px){
+ #view-shop.palace-mode>.view-head.boutique-head{
+  display:grid;grid-template-columns:36px minmax(0,1fr);
+  gap:10px;align-items:center;min-height:0;margin:0 0 8px;padding:9px 12px;
+  border-radius:10px;
+ }
+ #view-shop.palace-mode>.view-head.boutique-head>.back{
+  width:36px;height:36px;border-radius:10px;font-size:18px
+ }
+ #view-shop.palace-mode>.view-head.boutique-head>div{min-width:0}
+ #view-shop.palace-mode>.view-head.boutique-head small{
+  display:block;font-size:8px;letter-spacing:.07em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis
+ }
+ #view-shop.palace-mode>.view-head.boutique-head h2{
+  font-size:clamp(17px,5vw,20px);line-height:1.2;letter-spacing:-.025em;
+  white-space:nowrap;text-overflow:ellipsis;overflow:hidden;margin:3px 0 0;
+ }
+ #view-shop.palace-mode>.view-head.boutique-head>.boutique-badge{display:none}
+ #view-shop.palace-mode>.economy-notice{display:none}
+ #view-shop.palace-mode .jrp-wing-nav.jrp-wing-nav-three{margin:0 0 8px;padding:4px;min-height:0}
+ #view-shop.palace-mode .jrp-wing-nav-three button{min-height:46px;padding:5px 2px;font-size:10px}
+ #view-shop.palace-mode .jrp-wing-nav-three button small{font-size:7px}
+ #view-shop.palace-mode #royalBoutiqueRoot .jrp-opening{font-size:9px;padding:9px 11px}
+ #view-gallery>.view-head.jrg-view-head{
+  display:grid;grid-template-columns:36px minmax(0,1fr) auto;
+  gap:8px;align-items:center;min-height:0;
+  border-radius:10px;padding:9px 10px;margin-bottom:8px;
+ }
+ #view-gallery>.view-head.jrg-view-head>.back{width:36px;height:36px;font-size:16px;border-radius:10px}
+ #view-gallery>.view-head.jrg-view-head>div{min-width:0}
+ #view-gallery>.view-head.jrg-view-head small{
+  display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  font-size:8px;letter-spacing:.04em;line-height:1.3
+ }
+ #view-gallery>.view-head.jrg-view-head h2{
+  font-size:clamp(16px,5vw,21px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  letter-spacing:-.04em;line-height:1.22;margin:4px 0 0
+ }
+ #view-gallery>.view-head.jrg-view-head>.secondary{
+  min-width:0;max-width:94px;padding:9px 7px;font-size:10px;
+  line-height:1.25;white-space:normal
+ }
+ #view-gallery .jrg-entry{padding:17px 16px 16px}
+ #view-gallery .jrg-entry-left h1{font-size:clamp(25px,7vw,34px);margin:6px 0}
+ #view-gallery .jrg-entry-left p{font-size:10px;line-height:1.45}
+}
+@media(max-width:390px){
+ #view-shop.palace-mode>.view-head.boutique-head h2{font-size:17px}
+ #view-gallery>.view-head.jrg-view-head h2{font-size:16px}
+ #view-gallery>.view-head.jrg-view-head>.secondary{max-width:78px;font-size:9px}
+}
