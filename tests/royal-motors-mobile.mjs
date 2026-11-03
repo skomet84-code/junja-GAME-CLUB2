@@ -26,13 +26,13 @@ for(const [engineName,engine] of runs){
  await page.reload({waitUntil:'domcontentloaded'});
  await page.waitForSelector('#mainApp:not(.hidden)',{timeout:12000});
  await page.evaluate(()=>go('shop'));
- await page.waitForSelector('#view-shop.active .jrp-motors-photo img',{timeout:12000});
- await page.locator('#view-shop .jrp-motors-photo img').first().scrollIntoViewIfNeeded();
+ await page.waitForSelector('#view-shop.active .jrp-cinematic-room img',{timeout:12000});
+ await page.locator('#view-shop .jrp-cinematic-room img').first().scrollIntoViewIfNeeded();
  await page.waitForTimeout(6500);
  const result=await page.evaluate(()=>({
   viewport:window.innerWidth,
   overflow:document.documentElement.scrollWidth-window.innerWidth,
-  photos:[...document.querySelectorAll('.jrp-motors-photo img')].map(x=>({src:x.currentSrc?.slice(0,130),loaded:x.complete&&x.naturalWidth>0,naturalWidth:x.naturalWidth,fallback:x.classList.contains('jrp-media-fallback')})),
+  photos:[...document.querySelectorAll('.jrp-cinematic-room img')].map(x=>({src:x.currentSrc?.slice(0,130),loaded:x.complete&&x.naturalWidth>0,naturalWidth:x.naturalWidth,fallback:x.classList.contains('jrp-media-fallback')})),
   brandButtons:[...document.querySelectorAll('#royalBoutiqueRoot .jrp-brand-nav button')].map(x=>x.textContent.trim().slice(0,25)),
   errors:[...document.querySelectorAll('#royalBoutiqueRoot .jrp-error')].map(x=>x.textContent)
  }));
@@ -40,9 +40,8 @@ for(const [engineName,engine] of runs){
  await page.screenshot({path:'/tmp/junja-royal-motors-'+engineName+'.png',fullPage:true});
  if(result.errors.length)throw Error(engineName+' boutique error '+JSON.stringify(result.errors));
  if(result.overflow>8)throw Error(engineName+' horizontal overflow '+result.overflow);
- if(result.photos.length!==3||result.photos.filter(x=>x.loaded).length<3)throw Error(engineName+' broken hero images '+JSON.stringify(result.photos));
- const photoCount=result.photos.filter(x=>!x.fallback).length;
- if(photoCount<2)throw Error(engineName+' fewer than two genuine automobile photos loaded '+JSON.stringify(result.photos));
+ if(result.photos.length!==6||result.photos.some(x=>!x.loaded)||result.photos.some(x=>!x.src.includes('/art/royal/cinematic/')))throw Error(engineName+' broken six-room cinematic images '+JSON.stringify(result.photos));
+ // The store now uses original 3D art scenes for all six halls; individual photos remain credited in item detail.
  await page.evaluate(()=>go('gallery'));
  await page.waitForSelector('#view-gallery.active .jrg-object img',{timeout:12000});
  await page.waitForTimeout(1400);
