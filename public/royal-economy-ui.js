@@ -27,7 +27,7 @@
    '<img src="'+safe(showcaseArt(item))+'" alt="'+safe(alt)+'" loading="'+(eager?'eager':'lazy')+'" decoding="async" referrerpolicy="no-referrer"'+
    (isRealPhoto(item)?' data-junja-photo="1" data-photo-fallback="'+safe(media.fallback(item))+'"':'')+'>';
  const photoCredit=item=>!isRealPhoto(item)?'':
-   '<span class="jrp-media-credit">실차 참고 사진 · <a href="'+safe(media.sourceUrl(item))+'" target="_blank" rel="noopener noreferrer">'+safe(item.photoBy||'Wikimedia Commons')+'</a> · <a href="'+safe(media.licenseUrl(item))+'" target="_blank" rel="noopener noreferrer">'+safe(item.photoLicense||'사진 이용 조건')+'</a></span>';
+   '<span class="jrp-media-credit">실차 참고 사진 · <a href="'+safe(media.sourceUrl(item))+'" target="_blank" rel="noopener noreferrer">'+safe(media.creditName(item))+'</a> · <a href="'+safe(media.licenseUrl(item))+'" target="_blank" rel="noopener noreferrer">'+safe(media.licenseName(item))+'</a></span>';
  const itemType=item=>({
   car:'SUPERCAR & GRAND TOURING',yacht:'PRIVATE YACHT',jet:'ROYAL AVIATION',watch:'HAUTE HORLOGERIE',
   art:'ROYAL ART & SCULPTURE',estate:'PRIVATE REAL ESTATE',vault:'EXCLUSIVE ARTIFACT',
