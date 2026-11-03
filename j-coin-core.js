@@ -13,7 +13,7 @@ const STOCKS=Object.freeze([
  {id:'JAI',name:'AI코인',sector:'인공지능',base:200000,vol:1100,icon:'🤖'},
  {id:'JBK',name:'뱅크코인',sector:'금융',base:100000,vol:350,icon:'🏦'}
 ]);
-const MARKET_KEY='jcoin:market:v1',FEE_BP=20n,MAX_SHARES=10n**44n-1n,MAX_PRICE=100000000n,MIN_PRICE=100n;
+const MARKET_KEY='jcoin:market:v1',FEE_BP=20n,MAX_SHARES=10n**44n-1n,MAX_PRICE=1000000000000n,MIN_PRICE=100n;
 const STOCK_CATALOG_VERSION=1;
 const ORIGINAL_STOCK_IDS=Object.freeze(STOCKS.map(s=>s.id));
 const initialQuote=s=>({price:String(s.base),changeBp:0,history:[s.base],event:null});
@@ -41,14 +41,48 @@ function maxAffordableQty(balance,price){
 }
 function createJCoins({db,exactWallet,now=Date.now,randomInt=crypto.randomInt}){
  const stateKey=id=>'jcoin:portfolio:'+id;
+ const ADJUST_KEY='jcoin:temporary:moon-jjc-20261103-v1';
+ const ADJUST_STEP_MS=15*60000,ADJUST_TOTAL_STEPS=8;
  function read(key){const row=db.prepare('SELECT value FROM game_state WHERE key=?').get(key);return row?JSON.parse(row.value):null;}
  function write(key,value){db.prepare('INSERT INTO game_state(key,value,updated_at) VALUES(?,?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value,updated_at=excluded.updated_at').run(key,JSON.stringify(value),now());}
+ function temporaryAdjustment(m){
+  const offer=read(ADJUST_KEY);
+  if(!offer||offer.complete)return {changed:false,offer};
+  const step=Math.min(ADJUST_TOTAL_STEPS,Math.max(0,Math.floor((now()-offer.startedAt)/ADJUST_STEP_MS)));
+  if(step<=offer.step)return {changed:false,offer};
+  for(let x=offer.step+1;x<=step;x++)for(const [id,targetBp] of [['MOON',-5700],['JJC',13200]]){
+   const coin=m.stocks[id],before=BigInt(coin.price),base=BigInt(offer.base[id]);
+   const target=base*BigInt(10000*ADJUST_TOTAL_STEPS+targetBp*x)/BigInt(10000*ADJUST_TOTAL_STEPS);
+   const adjusted=target<1n?1n:target;
+   coin.price=String(adjusted);
+   coin.changeBp=before===0n?0:Number((adjusted-before)*10000n/before);
+   coin.event='2시간 한정 시세 조정';
+   coin.history=(Array.isArray(coin.history)?coin.history:[]).concat([Number(adjusted)]).slice(-49);
+  }
+  offer.step=step;
+  if(step===ADJUST_TOTAL_STEPS){offer.complete=true;offer.completedAt=now()}
+  write(ADJUST_KEY,offer);
+  return {changed:true,offer};
+ }
+ function startAdjustment(){
+  db.exec('BEGIN IMMEDIATE');
+  try{
+   const existing=read(ADJUST_KEY);
+   if(existing){db.exec('COMMIT');return existing}
+   const m=insideMarket().market,t=now();
+   const info={startedAt:t,endsAt:t+2*3600000,step:0,complete:false,
+    base:{MOON:m.stocks.MOON.price,JJC:m.stocks.JJC.price},targetPct:{MOON:-57,JJC:132}};
+   write(ADJUST_KEY,info);db.exec('COMMIT');return info;
+  }catch(e){try{db.exec('ROLLBACK')}catch{}throw e}
+ }
  function initial(h){return {hour:h,cadenceHours:MARKET_CADENCE_HOURS,catalogVersion:STOCK_CATALOG_VERSION,stocks:Object.fromEntries(STOCKS.map(s=>[s.id,initialQuote(s)]))};}
  function advance(m,h,activeStocks=STOCKS){
   // Catch up server-side on KST 00:00/06:00/12:00/18:00 boundaries only.
   // The same persisted market is shared by all users. Never derive prices in the browser.
   const skipped=Math.max(0,Math.round((h-m.hour)/MARKET_CADENCE_HOURS)),steps=Math.min(skipped,96);
+  const adjustment=read(ADJUST_KEY),protectedIds=adjustment&&!adjustment.complete?new Set(['MOON','JJC']):null;
   for(let i=0;i<steps;i++)for(const s of activeStocks){
+   if(protectedIds?.has(s.id))continue;
    const p=m.stocks[s.id],old=BigInt(p.price);
    let bp=randomInt(-s.vol,s.vol+1),event=null;
    if(randomInt(0,100)<3){
@@ -91,12 +125,15 @@ function createJCoins({db,exactWallet,now=Date.now,randomInt=crypto.randomInt}){
     m.catalogVersion=STOCK_CATALOG_VERSION;changed=true;
    }
   }
+  const correction=temporaryAdjustment(m);
+  changed=changed||correction.changed;
   if(changed)write(MARKET_KEY,m);
   return {market:m,changed};
  }
  function currentMarket(){
   const h=sessionHour(now()),cached=read(MARKET_KEY);
-  if(cached&&cached.cadenceHours===MARKET_CADENCE_HOURS&&cached.hour>=h&&cached.catalogVersion===STOCK_CATALOG_VERSION&&STOCKS.every(s=>cached.stocks?.[s.id]))return {market:cached,changed:false};
+  const adj=read(ADJUST_KEY),step=adj&&!adj.complete?Math.floor(Math.max(0,now()-adj.startedAt)/ADJUST_STEP_MS):0;
+  if((!adj||adj.complete||step<=adj.step)&&cached&&cached.cadenceHours===MARKET_CADENCE_HOURS&&cached.hour>=h&&cached.catalogVersion===STOCK_CATALOG_VERSION&&STOCKS.every(s=>cached.stocks?.[s.id]))return {market:cached,changed:false};
   db.exec('BEGIN IMMEDIATE');
   try{const r=insideMarket();db.exec('COMMIT');return r;}
   catch(e){try{db.exec('ROLLBACK');}catch{}throw e;}
@@ -123,7 +160,7 @@ function createJCoins({db,exactWallet,now=Date.now,randomInt=crypto.randomInt}){
  }
  function status(id){
   const u=user(id),r=currentMarket(),m=r.market,p=portfolio(id),v=valuation(p,m),balance=exactWallet.read(u);
-  return {ok:true,changed:r.changed,serverNow:now(),nextTickAt:(m.hour+MARKET_CADENCE_HOURS)*3600000,feeBp:Number(FEE_BP),wallet:String(balance),
+  return {ok:true,changed:r.changed,temporaryAdjustment:read(ADJUST_KEY),serverNow:now(),nextTickAt:(m.hour+MARKET_CADENCE_HOURS)*3600000,feeBp:Number(FEE_BP),wallet:String(balance),
    stocks:STOCKS.map(s=>({...s,price:m.stocks[s.id].price,maxBuy:formatQty(maxAffordableQty(balance,m.stocks[s.id].price)),changeBp:m.stocks[s.id].changeBp,history:m.stocks[s.id].history,event:m.stocks[s.id].event})),
    ...v,trades:p.trades.slice(0,12),ranking:ranking(m)};
  }
@@ -181,6 +218,6 @@ function createJCoins({db,exactWallet,now=Date.now,randomInt=crypto.randomInt}){
    return {ok:true,duplicate:false,receipt,status:status(uId)};
   }catch(e){try{db.exec('ROLLBACK');}catch{}throw e;}
  }
- return {status,trade};
+ return {status,trade,startAdjustment};
 }
 module.exports={createJCoins,STOCKS,MARKET_KEY,FEE_BP,MARKET_CADENCE_HOURS,sessionHour,STOCK_CATALOG_VERSION,buyCost,maxAffordableQty,formatQty};
