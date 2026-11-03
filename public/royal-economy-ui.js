@@ -23,6 +23,15 @@
  const media=window.JunjaRoyalMedia;
  const showcaseArt=item=>media?.picture(item)||('/art/royal/'+String(item?.art||'crown')+'.svg');
  const isRealPhoto=item=>!!media?.isPhoto(item);
+ const sceneArt=item=>media?.scene(item)||'/art/royal/cinematic/jewelry-showroom.webp';
+ const cinematicRooms=[
+ {id:'car',english:'01 / AUTOMOTIVE',name:'슈퍼카 · 명차'},
+ {id:'watch',english:'02 / HAUTE HORLOGERIE',name:'하이엔드 시계'},
+ {id:'frame',english:'03 / HIGH JEWELLERY',name:'다이아몬드 · 보석'},
+ {id:'yacht',english:'04 / PRIVATE MARINA',name:'프라이빗 요트'},
+ {id:'jet',english:'05 / ROYAL AVIATION',name:'황실 전용기'},
+ {id:'estate',english:'06 / SIGNATURE ESTATES',name:'초호화 부동산'}
+ ];
  const photoTag=(item,alt='',eager=false)=>
    '<img src="'+safe(showcaseArt(item))+'" alt="'+safe(alt)+'" loading="'+(eager?'eager':'lazy')+'" decoding="async" referrerpolicy="no-referrer"'+
    (isRealPhoto(item)?' data-junja-photo="1" data-photo-fallback="'+safe(media.fallback(item))+'" data-photo-remote="'+safe(media.remote(item))+'"':'')+'>';
@@ -34,7 +43,7 @@
   costume:'IMPERIAL COUTURE',frame:'ROYAL GEMSTONE',pet:'MYTHIC GUARDIAN',title:'NOBLE INSIGNIA'
  })[item.category]||'ROYAL COLLECTION';
  const showTime=time=>{try{return new Date(Number(time)).toLocaleDateString('ko-KR',{timeZone:'Asia/Seoul'})}catch{return '—'}};
- let royalBusy=false,adminBusy=false,royalState=null,selectedId='car_royalboutique_rr_phantom',category='brand-rolls-royce',ownedOnly=false;
+ let royalBusy=false,adminBusy=false,royalState=null,selectedId='car_royalboutique_rr_phantom',category='all',ownedOnly=false;
  const brands=[{id:'brand-rolls-royce',label:'ROLLS-ROYCE',sub:'영국 왕실의 품격'},{id:'brand-bentley',label:'BENTLEY',sub:'GRAND TOURING'},{id:'brand-aston-martin',label:'ASTON MARTIN',sub:'THE ART OF DRIVING'}];
  const filters=[{id:'all',label:'ALL · 전체'},{id:'car',label:'🏎 슈퍼카'},{id:'watch',label:'⌚ 워치'},{id:'yacht',label:'🛥 요트'},{id:'jet',label:'✈ 전용기'},{id:'art',label:'♛ 예술품'},{id:'estate',label:'◆ 부동산'},{id:'vault',label:'◈ 금고'},{id:'costume',label:'왕실 의상'},{id:'frame',label:'보석 · 오라'},{id:'pet',label:'신화 수호수'},{id:'title',label:'황실 칭호'}];
  const pill=item=>item.stock!=null?'<span class="jrp-rare-pill">LIMITED '+item.stock+' · '+item.remaining+' LEFT</span>':'<span class="jrp-rare-pill">'+safe(item.rarity.toUpperCase())+' EDITION</span>';
@@ -52,10 +61,11 @@
    const actionAttr=i=>i.owned?(i.displayOnly||i.equipped?'disabled':'data-jre-equip="'+safe(i.id)+'"'):i.soldOut?'disabled':'data-jre-buy="'+safe(i.id)+'"';
    royal.innerHTML=
     '<div class="jrp-opening"><span>♛ JUNJA LAND</span><span>MAISON JUNJA · PRIVATE ROYAL BOUTIQUE</span></div>'+
-    '<section class="jrp-motors-hero" aria-label="롤스로이스 벤틀리 애스턴마틴 포토 쇼룸">'+
-      '<div class="jrp-motors-title"><small>JUNJA PRIVATE COLLECTION · ROLLS-ROYCE / BENTLEY / ASTON MARTIN</small><h1>MAISON <em>JUNJA</em></h1><p>왕실의 선택 · 소유하는 순간, 클래스가 달라진다.</p><span>REAL CAR PHOTOGRAPHY · GAME COLLECTIBLES FROM 1경 G</span></div>'+
-      '<div class="jrp-motors-photo-row">'+['car_royalboutique_bentley_gt','car_royalboutique_rr_phantom','car_royalboutique_aston_db12'].map((id,i)=>{const item=all.find(x=>x.id===id);return item?'<button class="jrp-motors-photo '+(i===1?'is-center':'')+'" type="button" data-jre-feature="'+safe(item.id)+'">'+photoTag(item,item.name+' 실차 참고 사진',true)+'<span class="jrp-motors-photo-caption"><small>'+safe(item.brand.toUpperCase())+'</small><b>'+safe(item.name)+'</b><em>'+fmt(item.price)+'</em></span></button>':''}).join('')+'</div>'+
-      '<div class="jrp-motors-bottom"><span>✧ FOR THE EXCLUSIVE FEW · 준자랜드의 가상 컬렉션</span><button type="button" data-go="gallery">♛ 내 프라이빗 전시관 입장</button></div>'+
+    '<section class="jrp-motors-hero jrp-cinematic-hero" aria-label="준자랜드 로얄 컬렉터 쇼룸">'+
+      '<div class="jrp-cinematic-panorama"><img src="/art/royal/cinematic/car-showroom.webp" alt="준자랜드 최고급 자동차 전시관" loading="eager" decoding="async"><div class="jrp-cinematic-panorama-caption"><small>JUNJA LAND · THE IMPERIAL COLLECTOR HOUSE</small><h1>MAISON <em>JUNJA</em></h1><p>소유하는 순간, 너만의 왕실 컬렉션이 시작된다.</p><span>고품질 시네마틱 3D 아트워크 · 1경 G부터</span></div></div>'+
+      '<div class="jrp-motors-title jrp-cinematic-title"><small>EXPLORE THE COLLECTION</small><h2>THE SIX ROYAL HALLS</h2><p>여섯 전시실에서 원하는 명품을 선택하고 소장해봐.</p></div>'+
+      '<div class="jrp-motors-photo-row jrp-cinematic-room-grid">'+cinematicRooms.map(room=>'<button type="button" class="jrp-cinematic-room '+(category===room.id?'active':'')+'" data-jre-filter="'+room.id+'" aria-label="'+safe(room.name)+' 쇼룸 보기"><img src="'+safe(sceneArt({category:room.id}))+'" alt="" loading="lazy" decoding="async"><span class="jrp-cinematic-room-caption"><small>'+safe(room.english)+'</small><strong>'+safe(room.name)+'</strong></span></button>').join('')+'</div>'+
+      '<div class="jrp-motors-bottom"><span>✧ ORIGINAL CINEMATIC ART · 가상 게임 컬렉션</span><button type="button" data-go="gallery">♛ 내 프라이빗 전시관 입장</button></div>'+
     '</section>'+
     '<section class="jrp-collector" aria-label="내 로얄 명품 프로필"><div class="jrp-collector-identity"><small>MY ROYAL PROFILE</small><div class="jrp-collector-name"><strong>'+safe(collector.tierIcon)+' '+safe(collector.tier)+'</strong><span>'+safe(displayName)+'</span></div><p>'+Number(collector.ownedCount||0)+'종 소장 · 누적 구매액 '+fmt(collector.spent)+'</p><div class="jrp-collector-links"><button type="button" data-jre-owned>'+ (ownedOnly?'전체 명품 보기':'✦ 내 컬렉션만 보기') +'</button><button type="button" data-go="gallery">♛ 내 전시관 입장</button><button type="button" data-jre-collection>간편 전시 설정 ↓</button></div></div><div class="jrp-collector-showcase" id="jrpMyShowcase"><div class="jrp-collection-topline">MY SHOWCASE <small>최대 3종 · 첫 번째가 대표 명품</small></div><div class="jrp-collector-slots">'+Array.from({length:3},(_,idx)=>{const x=showcase[idx];return '<div class="jrp-collector-slot '+(x?'filled':'empty')+'">'+(x?''+photoTag(x,x.name)+'<b>'+safe(x.name)+'</b>'+(idx>0?'<button class="jrp-set-primary" type="button" data-jre-primary="'+safe(x.id)+'">대표 설정</button>':'<small>★ 대표 명품</small>')+'<button type="button" data-jre-unpin="'+safe(x.id)+'" aria-label="'+safe(x.name)+' 전시 해제">×</button>':'<span>✧</span><small>전시 슬롯 '+(idx+1)+'</small>')+'</div>'}).join('')+'</div></div></section>'+
     '<section class="jrp-featured" aria-label="로얄 명품 특별 전시관">'+
@@ -69,7 +79,7 @@
         '<div class="jrp-featured-foot"><div><small>EXCLUSIVE PRICE</small><strong>'+fmt(featured.price)+'</strong></div><button '+actionAttr(featured)+' type="button">'+actionText(featured)+'</button></div>'+
         '<div class="jrp-featured-pin">'+pinButton(featured)+'</div>'+
       '</div>'+
-      '<div class="jrp-featured-art '+(isRealPhoto(featured)?'jrp-photo-real':'')+'"><div class="jrp-art-arch"><div class="jrp-art-aura"></div>'+photoTag(featured,featured.name+' 실차 또는 명품 이미지',true)+'<div class="jrp-stage-plinth"></div></div>'+photoCredit(featured)+'<div class="jrp-art-caption"><span>JUNJA</span><b>ROYAL PALACE</b><small>EST. 2026</small></div></div>'+
+      '<div class="jrp-featured-art '+(isRealPhoto(featured)?'jrp-photo-real':'')+'"><div class="jrp-cinematic-feature-bg" style="background-image:url('+safe(sceneArt(featured))+')"></div><div class="jrp-art-arch"><div class="jrp-art-aura"></div>'+photoTag(featured,featured.name+' 실차 또는 명품 이미지',true)+'<div class="jrp-stage-plinth"></div></div>'+photoCredit(featured)+'<div class="jrp-art-caption"><span>JUNJA</span><b>ROYAL PALACE</b><small>EST. 2026</small></div></div>'+
     '</section>'+
     '<div class="jrp-promises"><span>✧ <b>SOULBOUND</b> 영구 소장</span><span>✦ <b>LIMITED</b> 실제 서버 재고</span><span>♛ <b>LEGACY</b> 소유주 기록</span></div>'+
     '<section class="jrp-editorial"><div class="jrp-editorial-title"><span>✦ NEW EXCLUSIVE ARRIVALS</span><h2>모두가 가질 수 없는 것들</h2><p>아래 4가지 시그니처 컬렉션부터 감상해봐. 가격은 전부 1경 이상이야.</p></div><div class="jrp-editorial-items">'+['car_royalboutique_rr_phantom','car_royalboutique_bentley_gt','car_royalboutique_aston_valhalla','jet_royalboutique_royal'].map(id=>{const o=all.find(x=>x.id===id);return o?'<button type="button" data-jre-feature="'+safe(o.id)+'">'+photoTag(o,o.name)+'<span>'+itemType(o)+'</span><b>'+safe(o.name)+'</b><small>'+fmt(o.price)+'</small></button>':''}).join('')+'</div></section>'+
@@ -77,7 +87,7 @@
     '<nav class="jrp-brand-nav" aria-label="차량 브랜드별 명품관"><button type="button" data-jre-filter="all" class="'+(category==='all'?'active':'')+'"><b>ALL COLLECTION</b><small>총 '+all.length+'작품</small></button>'+brands.map(f=>'<button type="button" class="'+(category===f.id?'active':'')+'" data-jre-filter="'+f.id+'"><b>'+f.label+'</b><small>'+f.sub+'</small></button>').join('')+'</nav>'+
     '<nav class="jrp-filters" aria-label="명품 카테고리">'+filters.map(f=>'<button type="button" class="'+(category===f.id?'selected':'')+'" data-jre-filter="'+f.id+'">'+f.label+'</button>').join('')+'</nav>'+
     '<div class="jrp-gallery">'+(tiles.map(item=>'<article class="jrp-tile '+(item.id===featured.id?'selected ':'')+(item.stock!=null?'limited ':'')+(item.owned?'owned':'')+'">'+
-      '<button class="jrp-tile-preview '+(isRealPhoto(item)?'jrp-photo-real':'')+'" type="button" data-jre-select="'+safe(item.id)+'" aria-label="'+safe(item.name)+' 상세 전시 보기"><div class="jrp-tile-art">'+photoTag(item,item.name)+'</div><span class="jrp-tile-index">'+(item.brand?safe(item.brand.toUpperCase()):itemType(item))+'</span></button>'+
+      '<button class="jrp-tile-preview '+(isRealPhoto(item)?'jrp-photo-real':'')+'" type="button" data-jre-select="'+safe(item.id)+'" aria-label="'+safe(item.name)+' 상세 전시 보기"><div class="jrp-tile-art jrp-cinematic-tile-art" style="background-image:linear-gradient(0deg,rgba(4,2,9,.88),rgba(4,2,9,.23)),url('+safe(sceneArt(item))+')">'+photoTag(item,item.name)+'</div><span class="jrp-tile-index">'+(item.brand?safe(item.brand.toUpperCase()):itemType(item))+'</span></button>'+
       '<div class="jrp-tile-meta"><div><small>'+(item.stock!=null?'NUMBERED EDITION · '+item.remaining+'/'+item.stock:'PERMANENT COLLECTION')+'</small><h3>'+safe(item.name)+'</h3></div><b>'+fmt(item.price)+'</b></div>'+
       '<div class="jrp-tile-actions"><button type="button" data-jre-select="'+safe(item.id)+'">자세히 보기</button><button type="button" '+actionAttr(item)+'>'+actionText(item)+'</button>'+pinButton(item)+'</div>'+
     '</article>').join('')||'<div class="jrp-gallery-empty">해당 조건의 소장품이 없어.</div>')+'</div>'+

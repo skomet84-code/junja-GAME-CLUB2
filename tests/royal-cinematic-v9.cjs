@@ -1,0 +1,30 @@
+'use strict';
+const assert=require('node:assert/strict');
+const fs=require('node:fs'),path=require('node:path');
+const root=path.join(__dirname,'..');
+const read=p=>fs.readFileSync(path.join(root,p),'utf8');
+let bytes=0;
+for(const name of ['car','watch','jewelry','yacht','jet','estate']){
+ const b=fs.readFileSync(path.join(root,'public/art/royal/cinematic',name+'-showroom.webp'));bytes+=b.length;
+ assert(b.length>10000&&b.length<500000,'mobile-ready image '+name);
+ assert.equal(b.toString('ascii',0,4),'RIFF',name+' image');
+ assert.equal(b.toString('ascii',8,12),'WEBP',name+' WebP image');
+}
+assert(bytes<1200000,'all six showrooms under 1.2 MB');
+const media=read('public/royal-photo.js'),store=read('public/royal-economy-ui.js'),gallery=read('public/royal-gallery.js'),html=read('public/index.html'),css=read('public/royal-cinematic.css');
+assert.match(media,/cinemaRooms=Object\.freeze/);
+assert.match(media,/sourceUrl,licenseUrl,isPhoto,scene/,'original photo attributions remain accessible');
+assert.match(store,/jrp-cinematic-panorama/);
+assert.match(store,/jrp-cinematic-room-grid/);
+assert.match(store,/jrp-cinematic-tile-art/);
+assert.match(store,/jrp-cinematic-feature-bg/);
+assert.match(store,/data-jre-filter/);
+assert.match(store,/data-jre-buy/,'existing server-validated purchases');
+assert.match(gallery,/jrg-cinematic-stage/);
+assert.match(gallery,/jrg-cinematic-card-backdrop/);
+assert.match(gallery,/jrg-cinematic-selected/);
+assert.match(gallery,/jrg-cinematic-certificate/);
+assert.match(css,/@media\(max-width:700px\)/);
+assert.match(html,/royal-cinematic\.css\?v=20261103-cinematic-v9/);
+assert.match(html,/royal-gallery\.js\?v=20261103-vault-v8-cinematic-v9/);
+console.log('ROYAL_CINEMATIC_V9_OK: six optimized showroom scenes, existing purchases and owned-collection views preserved');

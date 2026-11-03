@@ -15,6 +15,8 @@
   item?.photoLicense==='CC BY-SA 4.0'?'https://creativecommons.org/licenses/by-sa/4.0/':
   'https://commons.wikimedia.org/wiki/Commons:Licensing';
  const isPhoto=item=>!!photo(item);
+ const cinemaRooms=Object.freeze({car:'car',watch:'watch',yacht:'yacht',jet:'jet',estate:'estate',frame:'jewelry',art:'jewelry',vault:'jewelry',title:'jewelry',costume:'jewelry',pet:'jewelry'});
+ const scene=item=>'/art/royal/cinematic/'+(cinemaRooms[String(item?.category||'')]||'jewelry')+'-showroom.webp';
  document.addEventListener('error',e=>{
   const img=e.target;
   if(!(img instanceof HTMLImageElement)||!img.hasAttribute('data-junja-photo'))return;
@@ -35,5 +37,5 @@
     img.closest('.jrp-real-photo,.jrg-real-photo')?.classList.add('jrp-photo-unavailable');
   }
  },true);
- window.JunjaRoyalMedia=Object.freeze({picture,photo,remote,fallback,sourceUrl,licenseUrl,isPhoto});
+ window.JunjaRoyalMedia=Object.freeze({picture,photo,remote,fallback,sourceUrl,licenseUrl,isPhoto,scene});
 })();
