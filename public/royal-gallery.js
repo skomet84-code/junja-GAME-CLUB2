@@ -98,7 +98,7 @@
   if(!item)return '';
   const paid=item.inscription?.paid!=null?money(item.inscription.paid):'구매가 기록 없음';
   const mark=item.stock!=null?'서버 한정 발행 · '+item.stock+'점':'준자랜드 영구 소장품';
-  return '<div class="jrg-certificate-overlay" data-jrg-dismiss="1">'+
+  return '<dialog class="jrg-certificate-overlay" aria-label="소장 증서 보기">'+
    '<section class="jrg-certificate-dialog" role="dialog" aria-modal="true" aria-label="'+esc(item.name)+' 게임 내 소장 증서">'+
     '<button class="jrg-cert-close" type="button" data-jrg-dismiss="1" aria-label="소장 증서 닫기">✕</button>'+
     '<div class="jrg-cert-crest">♛</div><small>JUNJA LAND · PRIVATE OWNERSHIP RECORD</small>'+
@@ -117,7 +117,7 @@
     '<p class="jrg-cert-fineprint">'+esc(mark)+' · 해당 번호는 소유자의 개인 수집 순번이며 제조사 차량 번호나 전 서버 희귀번호를 의미하지 않습니다. 게임 안에서만 유효한 가상 소장 증서입니다.</p>'+
     credit(item)+
     '<button type="button" class="jrg-cert-done" data-jrg-dismiss="1">소장 증서 닫기</button>'+
-   '</section></div>';
+   '</section></dialog>';
  }
  function render(){
    if(!state)return;
@@ -180,6 +180,11 @@
     '</section></div>'+
     certificate(items.find(x=>x.id===certificateId));
    host.querySelectorAll('button[data-jrg-focus]').forEach(b=>{if(b.dataset.jrgFocus===focusId)b.setAttribute('aria-current','true')});
+   const dialog=host.querySelector('.jrg-certificate-overlay');
+   if(dialog&&typeof dialog.showModal==='function'){
+     dialog.addEventListener('cancel',event=>{event.preventDefault();certificateId='';render()},{once:true});
+     dialog.showModal();
+   }
  }
  async function load(){
    const reqToken=++loadToken;
