@@ -151,4 +151,14 @@
    new MutationObserver(()=>{const next=el.classList.contains('active');if(next&&!active)loader();active=next}).observe(el,{attributes:true,attributeFilter:['class']});
  }
  observe(shopView,loadRoyal);observe(adminView,loadEconomy);
+ const wings=document.getElementById('junjaShopWingNav');
+ wings?.addEventListener('click',event=>{
+   const btn=event.target.closest('[data-shop-wing]');if(!btn||!shopView)return;
+   const showPalace=btn.dataset.shopWing==='palace';
+   shopView.classList.toggle('palace-mode',showPalace);
+   shopView.classList.toggle('store-mode',!showPalace);
+   wings.querySelectorAll('[data-shop-wing]').forEach(x=>{x.classList.toggle('active',x===btn);x.setAttribute('aria-pressed',String(x===btn));});
+   if(showPalace&&!royalState)loadRoyal();
+   document.querySelector('#view-shop .view-head')?.scrollIntoView({behavior:'smooth',block:'start'});
+ });
 })();
