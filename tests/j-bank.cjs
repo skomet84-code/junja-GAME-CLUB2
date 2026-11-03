@@ -241,12 +241,19 @@ for(const [id,days,rate] of [[30,7,8n],[31,14,10n],[32,30,15n]]){
  const key=req('installment_'+days);
  installmentBank.installmentOpen(id,{days,amount:String(amount)},key);
  const opened=installmentBank.status(id).installment;
- assert.equal(opened.paidCount,1);assert.equal(installmentBank.status(id).canBorrow,false);
+ assert.equal(opened.paidCount,1);assert.equal(installmentBank.status(id).canBorrow,true,'existing installment cannot lock rank loan');
  assert.equal(installmentBank.installmentOpen(id,{days,amount:String(amount)},key).duplicate,true);
  assert.throws(()=>installmentBank.installmentPay(id,key,req('early_'+days)),/이미 납입/);
- assert.throws(()=>installmentBank.borrow(id,'1000000',req('loan_'+days)),/적금/);
+ const activeLoan=installmentBank.borrow(id,'1000000',req('loan_'+days));
+ assert.equal(activeLoan.status.canBorrow,false,'a second rank loan is locked until repayment');
+ assert.equal(activeLoan.status.installment.paidCount,1);
  assert.throws(()=>installmentBank.installmentClaim(id,key,req('early_claim_'+days)),/만기/);
- for(let i=1;i<days;i++){
+ installmentNow=opened.openedAt+dailyMs;
+ installmentBank.installmentPay(id,key,req('pay_'+days+'_1'));
+ assert.equal(installmentBank.status(id).installment.paidCount,2,'existing installment keeps accepting payments during rank loan');
+ installmentBank.repay(id,'all',req('loan_repaid_'+days));
+ assert.equal(installmentBank.status(id).canBorrow,true,'rank loans unlock after repayment despite active installment');
+ for(let i=2;i<days;i++){
   installmentNow=opened.openedAt+i*dailyMs;
   installmentBank.installmentPay(id,key,req('pay_'+days+'_'+i));
  }
