@@ -27,7 +27,14 @@ CREATE TABLE ledger(id INTEGER PRIMARY KEY,user_id INTEGER,amount INTEGER,balanc
 const start=Date.parse('2026-11-03T12:00:00+09:00'),huge='10000000000000000000000';
 for(let id=1;id<=5;id++)db.prepare('INSERT INTO users(id,nickname,balance,balance_exact,balance_base) VALUES(?,?,?,?,?)').run(id,'member'+id,100,huge,'100');
 const royal=createRoyalEconomy({db,exactWallet,now:()=>start,getAssets:()=>({bank:{savings:{total:'100'},installment:{principal:'10'},outstanding:'20'},stock:{marketValue:'30'},coin:{marketValue:'40'}})});
-assert.equal(ROYAL_ITEMS.length,11);
+assert.equal(ROYAL_ITEMS.length,28);
+assert(ROYAL_ITEMS.every(item=>BigInt(item.price)>=10n**16n),'all boutique prices must start at 1경');
+assert.equal(new Set(ROYAL_ITEMS.map(x=>x.id)).size,28,'no duplicate catalog items');
+assert(ROYAL_ITEMS.filter(x=>x.category==='car').length>=5);
+assert(ROYAL_ITEMS.filter(x=>x.category==='yacht').length>=2);
+assert(ROYAL_ITEMS.filter(x=>x.category==='jet').length>=2);
+assert(ROYAL_ITEMS.filter(x=>x.category==='watch').length>=2);
+assert(ROYAL_ITEMS.filter(x=>x.displayOnly).every(x=>!['costume','title','frame','pet'].includes(x.category)),'no display pieces in avatar loadout columns');
 const item=ROYAL_ITEMS[9];assert.equal(item.stock,3);
 const p1=royal.buy(1,item.id);
 assert.equal(p1.inscription.ownerNickname,'member1');
@@ -84,4 +91,18 @@ db.prepare('UPDATE users SET is_disabled=1 WHERE id=4').run();
 assert.equal(royal.gallery(4),null);
 assert.equal(db.prepare('SELECT balance_exact FROM users WHERE id=1').get().balance_exact,beforePin,
   'public museum views must never modify wallet balances');
+// Exhibition-only supercars must spend exact money but never become an avatar category.
+const newCar=ROYAL_ITEMS.find(x=>x.id==='car_royalboutique_royal_gt');
+const beforeCar=BigInt(db.prepare('SELECT balance_exact FROM users WHERE id=4').get().balance_exact);
+const beforeCarLoad=db.prepare('SELECT * FROM user_loadout WHERE user_id=4').get();
+const purchasedCar=royal.buy(4,newCar.id);
+assert.equal(purchasedCar.balance,String(beforeCar-BigInt(newCar.price)));
+assert.equal(royal.catalog(4).items.find(x=>x.id===newCar.id).owned,true);
+assert.equal(royal.catalog(4).items.find(x=>x.id===newCar.id).displayOnly,true);
+const afterCarLoad=db.prepare('SELECT title,frame,costume,pet FROM user_loadout WHERE user_id=4').get();
+for(const cat of ['title','frame','costume','pet'])assert.equal(afterCarLoad[cat],beforeCarLoad?.[cat]??null,'display purchase cannot equip '+cat);
+assert(royal.gallery(4).items.some(x=>x.id===newCar.id&&x.art==='car-gold'&&x.displayOnly),'gallery must include owned illustrated supercar');
+assert.deepEqual(royal.updateShowcase(4,[newCar.id]).showcase.map(x=>x.id),[newCar.id]);
+assert.throws(()=>royal.buy(4,newCar.id),/이미 영구 소장/);
+assert.equal(db.prepare("SELECT COUNT(*) AS n FROM ledger WHERE user_id=4 AND type='royal_boutique_purchase'").get().n,1);
 console.log('ROYAL ECONOMY TESTS OK');
