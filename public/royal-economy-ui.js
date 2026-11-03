@@ -22,7 +22,7 @@
 
  const media=window.JunjaRoyalMedia;
  const showcaseArt=item=>media?.picture(item)||('/art/royal/'+String(item?.art||'crown')+'.svg');
- const isRealPhoto=item=>!!media?.isPhoto(item);
+ const isRealPhoto=item=>!!media?.isPhoto(item)&&!window.JunjaRoyalObjects;
  const sceneArt=item=>media?.scene(item)||'/art/royal/cinematic/jewelry-showroom.webp';
  const cinematicRooms=[
  {id:'car',english:'01 / AUTOMOTIVE',name:'슈퍼카 · 명차'},
@@ -32,9 +32,7 @@
  {id:'jet',english:'05 / ROYAL AVIATION',name:'황실 전용기'},
  {id:'estate',english:'06 / SIGNATURE ESTATES',name:'초호화 부동산'}
  ];
- const photoTag=(item,alt='',eager=false)=>
-   '<img src="'+safe(showcaseArt(item))+'" alt="'+safe(alt)+'" loading="'+(eager?'eager':'lazy')+'" decoding="async" referrerpolicy="no-referrer"'+
-   (isRealPhoto(item)?' data-junja-photo="1" data-photo-fallback="'+safe(media.fallback(item))+'" data-photo-remote="'+safe(media.remote(item))+'"':'')+'>';
+ const photoTag=(item,alt='',eager=false)=>window.JunjaRoyalObjects?.render(item,alt)||'<img src="'+safe(showcaseArt(item))+'" alt="'+safe(alt)+'" loading="'+(eager?'eager':'lazy')+'">';
  const photoCredit=item=>!isRealPhoto(item)?'':
    '<span class="jrp-media-credit">실차 참고 사진 · <a href="'+safe(media.sourceUrl(item))+'" target="_blank" rel="noopener noreferrer">'+safe(item.photoBy||'Wikimedia Commons')+'</a> · <a href="'+safe(media.licenseUrl(item))+'" target="_blank" rel="noopener noreferrer">'+safe(item.photoLicense||'사진 이용 조건')+'</a></span>';
  const itemType=item=>({
@@ -67,6 +65,11 @@
       '<div class="jrp-motors-photo-row jrp-cinematic-room-grid">'+cinematicRooms.map(room=>'<button type="button" class="jrp-cinematic-room '+(category===room.id?'active':'')+'" data-jre-filter="'+room.id+'" aria-label="'+safe(room.name)+' 쇼룸 보기"><img src="'+safe(sceneArt({category:room.id}))+'" alt="" loading="lazy" decoding="async"><span class="jrp-cinematic-room-caption"><small>'+safe(room.english)+'</small><strong>'+safe(room.name)+'</strong></span></button>').join('')+'</div>'+
       '<div class="jrp-motors-bottom"><span>✧ ORIGINAL CINEMATIC ART · 가상 게임 컬렉션</span><button type="button" data-go="gallery">♛ 내 프라이빗 전시관 입장</button></div>'+
     '</section>'+
+    (cinematicRooms.some(room=>room.id===category)?
+       '<section class="jrp-hall-detail" id="jrpSelectedHall" aria-label="선택한 로얄 전시실">'+
+        '<div class="jrp-hall-detail-head" style="--jrp-hall-img:url('+safe(sceneArt({category}))+')"><button type="button" data-jre-all="1">‹ 여섯 전시실</button><small>THE GRAND PRIVATE COLLECTION</small><h2>'+safe(cinematicRooms.find(r=>r.id===category).english)+'</h2><p>'+safe(cinematicRooms.find(r=>r.id===category).name)+'</p></div>'+
+        '<div class="jrp-hall-product-grid">'+tiles.map(item=>'<article class="jrp-hall-product">'+photoTag(item,item.name)+'<small>'+safe(item.rarity.toUpperCase())+'</small><strong>'+safe(item.name)+'</strong><b>'+fmt(item.price)+'</b><button type="button" '+actionAttr(item)+'>'+actionText(item)+'</button></article>').join('')+'</div></section>'
+      :'')+
     '<section class="jrp-collector" aria-label="내 로얄 명품 프로필"><div class="jrp-collector-identity"><small>MY ROYAL PROFILE</small><div class="jrp-collector-name"><strong>'+safe(collector.tierIcon)+' '+safe(collector.tier)+'</strong><span>'+safe(displayName)+'</span></div><p>'+Number(collector.ownedCount||0)+'종 소장 · 누적 구매액 '+fmt(collector.spent)+'</p><div class="jrp-collector-links"><button type="button" data-jre-owned>'+ (ownedOnly?'전체 명품 보기':'✦ 내 컬렉션만 보기') +'</button><button type="button" data-go="gallery">♛ 내 전시관 입장</button><button type="button" data-jre-collection>간편 전시 설정 ↓</button></div></div><div class="jrp-collector-showcase" id="jrpMyShowcase"><div class="jrp-collection-topline">MY SHOWCASE <small>최대 3종 · 첫 번째가 대표 명품</small></div><div class="jrp-collector-slots">'+Array.from({length:3},(_,idx)=>{const x=showcase[idx];return '<div class="jrp-collector-slot '+(x?'filled':'empty')+'">'+(x?''+photoTag(x,x.name)+'<b>'+safe(x.name)+'</b>'+(idx>0?'<button class="jrp-set-primary" type="button" data-jre-primary="'+safe(x.id)+'">대표 설정</button>':'<small>★ 대표 명품</small>')+'<button type="button" data-jre-unpin="'+safe(x.id)+'" aria-label="'+safe(x.name)+' 전시 해제">×</button>':'<span>✧</span><small>전시 슬롯 '+(idx+1)+'</small>')+'</div>'}).join('')+'</div></div></section>'+
     '<section class="jrp-featured" aria-label="로얄 명품 특별 전시관">'+
       '<div class="jrp-featured-copy"><div class="jrp-label"><i></i> EXCLUSIVE ROYAL SHOWROOM</div>'+
@@ -187,7 +190,8 @@
    if(b.dataset.jreEquip)return equip(b.dataset.jreEquip,b);
    if(b.dataset.jreFeature){selectedId=b.dataset.jreFeature;renderRoyal();royal.querySelector('.jrp-featured')?.scrollIntoView({behavior:'smooth',block:'center'});return;}
    if(b.dataset.jreSelect){selectedId=b.dataset.jreSelect;renderRoyal();royal.querySelector('.jrp-featured')?.scrollIntoView({behavior:'smooth',block:'start'});return;}
-   if(b.dataset.jreFilter){category=b.dataset.jreFilter;renderRoyal();return;}
+   if(b.hasAttribute('data-jre-all')){category='all';renderRoyal();royal.querySelector('.jrp-cinematic-room-grid')?.scrollIntoView({behavior:'smooth',block:'start'});return;}
+   if(b.dataset.jreFilter){category=b.dataset.jreFilter;renderRoyal();royal.querySelector('#jrpSelectedHall')?.scrollIntoView({behavior:'smooth',block:'start'});return;}
    if(b.hasAttribute('data-jre-owned')){ownedOnly=!ownedOnly;renderRoyal();return;}
    if(b.hasAttribute('data-jre-retry'))loadRoyal();
  });
