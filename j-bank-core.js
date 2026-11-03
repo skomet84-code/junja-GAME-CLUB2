@@ -54,6 +54,8 @@ function createJBank({db,exactWallet,levels,legacyRankCosts=null,now,kstDate}){
   if(!u)throw Error('은행 회원을 찾을 수 없습니다.');
   const level=Math.max(0,Math.min(levels.length-1,Number(u.rank_level||0))),r=project(read(id,day),day);
   const debt=BigInt(r.principal)+BigInt(r.interest),creditDebt=creditBank?creditBank.owed(id):0n,limit=LIMITS[level];
+  const collateralLocked=!!db.prepare("SELECT 1 FROM room_escrow WHERE user_id=? AND game LIKE 'casino_%' LIMIT 1").get(id);
+  const canBorrow=debt===0n&&creditDebt===0n&&!collateralLocked;
   const price=level>0?purchasedRankBasis(id,level)*SELL_RATE_BP/10000n:0n;
   const pay=price<debt?price:debt;
   const rankSale=debt>0n&&level>0?{fromLevel:level,fromName:levels[level].name,toLevel:level-1,toName:levels[level-1].name,
@@ -63,8 +65,8 @@ function createJBank({db,exactWallet,levels,legacyRankCosts=null,now,kstDate}){
   return {installment:installment.view(r.installment,now()),installmentProducts:installment.PRODUCTS,lastInstallment:r.lastInstallment,savings,name:'J-BANK',rank:{level,name:levels[level].name},loanLimit:limit,minLoan:String(MIN_LOAN),
    credit:creditBank?creditBank.status(id):null,creditOutstanding:String(creditDebt),
    dailyInterestPct:'0.1',interestMethod:'simple',principal:r.principal,interest:r.interest,
-   outstanding:String(debt),canBorrow:debt===0n&&creditDebt===0n&&!r.installment,canPromote:debt===0n&&creditDebt===0n,available:debt===0n&&creditDebt===0n&&!r.installment?limit:'0',
-   borrowBlockedReason:debt>0n?'기존 신분 대출을 먼저 완납해야 합니다.':creditDebt>0n?'자산 신용대출을 완납한 뒤 신청할 수 있습니다.':r.installment?'적금이 진행 중입니다. 적금 만기 수령 또는 중도해지 후 신분 대출을 신청하세요. 자산 신용대출은 별도로 이용할 수 있습니다.':'',
+   outstanding:String(debt),canBorrow,canPromote:debt===0n&&creditDebt===0n,available:canBorrow?limit:'0',
+   borrowBlockedReason:debt>0n?'기존 신분 대출을 먼저 완납해야 합니다.':creditDebt>0n?'자산 신용대출을 완납한 뒤 신청할 수 있습니다.':collateralLocked?'카지노 대국의 담보가 묶여 있습니다. 게임 종료 후 대출할 수 있습니다.':'',
    wallet:exactWallet.output(exactWallet.read(u)),openedAt:r.openedAt,closedAt:r.closedAt,
    totalBorrowed:r.totalBorrowed,totalRepaid:r.totalRepaid,canSellRank:!!rankSale,rankSale,lastRankSale:r.lastRankSale,saleCount:r.saleCount||0,
    dueAt:r.openedAt?Number(r.openedAt)+7*86400000:null,overdue:debt>0n&&r.openedAt>0&&now()>Number(r.openedAt)+7*86400000,
@@ -108,7 +110,8 @@ function createJBank({db,exactWallet,levels,legacyRankCosts=null,now,kstDate}){
     delta=amount;type='jbank_withdraw';memo='J-BANK 저축 출금 · 이자 '+paidInterest+' G';
    }else if(kind==='borrow'){
     if(creditBank&&creditBank.owed(id)>0n)throw Error('자산 신용대출을 완납한 뒤 신분 대출을 이용할 수 있습니다.');
-    if(a.installment)throw Error('적금 만기 수령 또는 해지 후 대출할 수 있습니다.');
+    // An existing installment schedule no longer blocks rank loans. Opening a NEW
+    // installment while in debt remains prohibited; existing daily payments continue.
     const amount=BigInt(text),level=Math.max(0,Math.min(levels.length-1,Number(u.rank_level||0)));
     if(db.prepare("SELECT 1 FROM room_escrow WHERE user_id=? AND game LIKE 'casino_%' LIMIT 1").get(id))throw Error('카지노 담보가 묶여 있는 동안 추가 대출은 불가능합니다.');
      if(debt>0n)throw Error('진행 중인 대출을 전액 상환해야 추가 대출이 가능합니다.');
@@ -245,10 +248,10 @@ function createJBank({db,exactWallet,levels,legacyRankCosts=null,now,kstDate}){
  function borrowForPurchase(id,rawPrice,itemName){
   // Must only be called inside an existing transaction after ownership/rank checks.
   const q=purchaseQuote(id,rawPrice);
-  if(!q.eligible)throw Error('현재 J-BANK 대출 한도로는 구매할 수 없어. 기존 대출·적금·담보 상태를 확인해줘.');
+  if(!q.eligible)throw Error('현재 J-BANK 대출 한도로는 구매할 수 없어. 대출 잔액·담보·신분 한도를 확인해줘.');
   const amount=BigInt(q.loanAmount),u=db.prepare('SELECT id,balance,balance_exact,balance_base,rank_level FROM users WHERE id=?').get(id);
   const record=project(read(id,kstDate()),kstDate()),level=Math.max(0,Math.min(levels.length-1,Number(u.rank_level||0)));
-  if(BigInt(record.principal)+BigInt(record.interest)>0n||record.installment||amount>BigInt(LIMITS[level]))throw Error('은행 대출 조건이 변경됐어. 다시 확인해줘.');
+  if(BigInt(record.principal)+BigInt(record.interest)>0n||(creditBank&&creditBank.owed(id)>0n)||amount>BigInt(LIMITS[level]))throw Error('은행 대출 조건이 변경됐어. 다시 확인해줘.');
   record.principal=String(amount);record.interest='0';record.openedAt=now();record.closedAt=0;
   record.number=Number(record.number||0)+1;record.totalBorrowed=String(BigInt(record.totalBorrowed)+amount);
   const after=exactWallet.read(u)+amount,mirror=exactWallet.mirror(after),at=now();
