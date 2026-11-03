@@ -3,7 +3,7 @@
 const mobile=window.matchMedia('(max-width:820px)');
 const assets=[
   {id:'walletBalance',container:'.topbar .wallet-pill',label:'보유머니'},
-  {id:'jstockHeaderProfitAmount',container:'.topbar #jstockHeaderProfit',label:'주식 평가손익'}
+  {id:'jstockHeaderProfitAmount',container:'.topbar #jstockHeaderProfit',label:'주식·코인 통합수익'}
 ];
 const units=[['경',10000000000000000n],['조',1000000000000n],['억',100000000n],['만',10000n]];
 let activeDialog=null,previousFocus=null;

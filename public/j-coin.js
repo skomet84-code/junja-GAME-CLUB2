@@ -171,6 +171,7 @@ function render(){
  const slot=c.querySelector('[data-jcoin-message]'),notice=$('#jcoinNotice');
  if(slot&&notice)slot.appendChild(notice);
  clock();
+ document.dispatchEvent(new CustomEvent('jcoin:status',{detail:snapshot}));
 }
 async function fetchStatus(silent=false){
  if(busy||refreshing||!$('#jcoinModal'))return;

@@ -169,15 +169,14 @@ function initialQuoteTest(s){return {price:String(s.base),changeBp:0,history:[s.
 console.log('JSTOCK_OK: ten industries incl ocean/pharma/aviation/robotics/defense, safe live A-E migration, KST four sessions, holdings, wallet, trading and corruption safeguards');
 
 
-// Lobby stock P/L: isolated fake DOM proves signed exact BigInt display and per-user refresh.
+// Lobby unified stock+coin P/L: server-only exact BigInt, 2-API safety, and current-user refresh.
 async function testLobbyProfit(){
- const vm=require('node:vm'),ui=fs.readFileSync('public/jstock-header.js','utf8'),html=fs.readFileSync('public/index.html','utf8'),css=fs.readFileSync('public/j-stock.css','utf8'),modal=fs.readFileSync('public/j-stock.js','utf8');
- assert.ok(html.includes('id="jstockHeaderProfit"')&&html.includes('id="jstockHeaderProfitAmount"'),'profit indicator is in lobby header');
- assert.ok(html.indexOf('id="jstockHeaderProfit"')<html.indexOf('class="wallet-pill"'),'indicator is immediately left of wallet');
- assert.ok(html.includes('/jstock-header.js?v='),'profit controller script linked and versioned');
+ const vm=require('node:vm'),ui=fs.readFileSync('public/jstock-header.js','utf8'),html=fs.readFileSync('public/index.html','utf8'),css=fs.readFileSync('public/j-stock.css','utf8');
+ assert.ok(html.includes('📊 주식·코인 통합수익'),'unified header label');
+ assert.ok(html.includes('/jstock-header.js?v='),'versioned controller');
  assert.ok(css.includes('.topbar .jstock-header-profit.up b{color:#ff7777;'),'gain is red');
  assert.ok(css.includes('.topbar .jstock-header-profit.down b{color:#84b5ff;'),'loss is blue');
- assert.ok(modal.includes("new CustomEvent('jstock:status'"),'trade / modal refresh synchronizes header');
+ assert.ok(fs.readFileSync('public/j-coin.js','utf8').includes("new CustomEvent('jcoin:status'"),'coin trades sync directly');
  const profitClasses=new Set(['flat']),mainClasses=new Set();
  const classList=set=>({
   add:(...xs)=>xs.forEach(x=>set.add(x)),remove:(...xs)=>xs.forEach(x=>set.delete(x)),
@@ -186,38 +185,50 @@ async function testLobbyProfit(){
  const pill={classList:classList(profitClasses),title:'',setAttribute(name,val){this[name]=val;}};
  const amount={textContent:'—'},main={classList:classList(mainClasses)};
  const elements={'#jstockHeaderProfit':pill,'#jstockHeaderProfitAmount':amount,'#mainApp':main};
- const listeners={};let observer,requests=0,boundaryTimers=0;
- let payload={unrealized:'12500',nextTickAt:Date.now()+3600000};
+ const listeners={};let observer,requests=0,boundaryTimers=0,coinError=false;
+ let stock={unrealized:'12500',realized:'500',nextTickAt:Date.now()+3600000};
+ let coin={unrealized:'-2000',realized:'50',nextTickAt:Date.now()+900000};
  const document={hidden:false,readyState:'complete',querySelector:s=>elements[s]||null,
   addEventListener:(type,fn)=>{(listeners[type]||=[]).push(fn);},
   dispatchEvent:event=>(listeners[event.type]||[]).forEach(fn=>fn(event))};
  const ctx={document,window:{addEventListener(){}},MutationObserver:class{constructor(fn){observer=fn;}observe(){}},
-  fetch:async (path,opts)=>{assert.equal(path,'/api/jstock');assert.equal(opts.credentials,'same-origin');requests++;return {ok:true,status:200,json:async()=>payload};},
-  setTimeout:()=>{boundaryTimers++;return boundaryTimers;},clearTimeout(){},setInterval(){return 1;},Date,Intl,BigInt};
+  fetch:async (path,opts)=>{
+   assert.ok(path==='/api/jstock'||path==='/api/jcoin');assert.equal(opts.credentials,'same-origin');requests++;
+   if(path==='/api/jcoin'&&coinError)return {ok:false,status:503};
+   return {ok:true,status:200,json:async()=>path==='/api/jstock'?stock:coin};
+  },setTimeout:()=>{boundaryTimers++;return boundaryTimers;},clearTimeout(){},setInterval(){return 1;},Date,Intl,BigInt};
  vm.runInNewContext(ui,ctx,{filename:'public/jstock-header.js'});
- await new Promise(resolve=>setImmediate(resolve)); // initial load quote
- assert.equal(amount.textContent,'+1만 2,500 G','positive profit uses red + and Korean compact units');
- assert.ok(profitClasses.has('up')&&!profitClasses.has('down'));
- assert.ok(boundaryTimers>=1,'refresh scheduled at next market session');
- payload={unrealized:'-300000000',nextTickAt:Date.now()+3600000};
+ await new Promise(resolve=>setImmediate(resolve));
+ assert.equal(amount.textContent,'+1만 1,050 G','both realized and unrealized stock+coin P/L');
+ assert.ok(pill['aria-label'].includes('주식 +1만 3,000 G'));
+ assert.ok(pill['aria-label'].includes('코인 -1,950 G'));
+ assert.ok(profitClasses.has('up'));
+ assert.ok(boundaryTimers>=1,'refresh scheduled at earlier coin market tick');
+ stock={unrealized:'-300000000',realized:'0',nextTickAt:Date.now()+3600000};
+ coin={unrealized:'-200000000',realized:'0',nextTickAt:Date.now()+900000};
  await ctx.window.JStockHeader.refresh(true);
- assert.equal(amount.textContent,'-3억 G','negative profit has minus sign');
- assert.ok(profitClasses.has('down')&&!profitClasses.has('up'));
- payload={unrealized:'0',nextTickAt:Date.now()+3600000};
+ assert.equal(amount.textContent,'-5억 G','both markets negative combined');
+ assert.ok(profitClasses.has('down'));
+ stock={unrealized:'0',realized:'0',nextTickAt:Date.now()+3600000};
+ coin={unrealized:'0',realized:'0',nextTickAt:Date.now()+900000};
  await ctx.window.JStockHeader.refresh(true);
- assert.equal(amount.textContent,'0 G','zero profit is neutral');
- assert.ok(profitClasses.has('flat'));
- document.dispatchEvent({type:'jstock:status',detail:{unrealized:'1000000000000000020',nextTickAt:Date.now()+3600000}});
- assert.equal(amount.textContent,'+100경 20 G','modal updates correctly display extremely large exact BigInt P/L');
+ assert.equal(amount.textContent,'0 G','zero profit neutral');
+ document.dispatchEvent({type:'jstock:status',detail:{unrealized:'1000000000000000020',realized:'0',nextTickAt:Date.now()+3600000}});
+ assert.equal(amount.textContent,'+100경 20 G','modal updates exact BigInt');
+ document.dispatchEvent({type:'jcoin:status',detail:{unrealized:'-20',realized:'10',nextTickAt:Date.now()+900000}});
+ assert.equal(amount.textContent,'+100경 10 G','coin modal immediately changes combined value');
  mainClasses.add('hidden');observer();
- assert.equal(amount.textContent,'—','logout removes stale other-user P/L');
+ assert.equal(amount.textContent,'—','logout removes stale P/L');
  const before=requests;
  await ctx.window.JStockHeader.refresh(true);
  assert.equal(requests,before,'logged-out client does not poll');
- payload={unrealized:'-72000',nextTickAt:Date.now()+3600000};
+ coinError=true;stock={unrealized:'12500',realized:'0',nextTickAt:Date.now()+3600000};
  mainClasses.delete('hidden');observer();
  await new Promise(resolve=>setImmediate(resolve));
- assert.equal(amount.textContent,'-7만 2,000 G','next login reloads signed profit for current account');
- console.log('JSTOCK_HEADER_OK: positive red, negative blue, neutral zero, large BigInt, market countdown, modal sync, safe session change');
+ assert.equal(amount.textContent,'—','missing coin endpoint must never display stock-only profit');
+ coinError=false;coin={unrealized:'-72000',realized:'0',nextTickAt:Date.now()+900000};
+ await ctx.window.JStockHeader.refresh(true);
+ assert.equal(amount.textContent,'-5만 9,500 G','new login reloads both user balances');
+ console.log('JSTOCK_HEADER_OK: stock+coin realized/unrealized, signed exact BigInt, 15min coin tick, cache-safe');
 }
 testLobbyProfit().catch(error=>{console.error(error);process.exitCode=1;});
