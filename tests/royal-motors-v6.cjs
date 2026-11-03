@@ -10,7 +10,7 @@ for(const brand of ['rolls-royce','bentley','aston-martin'])assert.equal(branded
 assert.equal(new Set(branded.map(x=>x.id)).size,12,'brand stock-keeping units are unique');
 assert(ROYAL_ITEMS.every(x=>BigInt(x.price)>=10n**16n),'all boutique items start at one gyeong');
 assert(branded.every(x=>x.displayOnly&&x.category==='car'),'collector cars cannot enter avatar equipment');
-assert(branded.every(x=>typeof x.photoFile==='string'&&/\\.jpg$/i.test(x.photoFile)),'photo must be a real sourced JPG file');
+assert(branded.every(x=>typeof x.photoFile==='string'&&/\.jpg$/i.test(x.photoFile)),'photo must be a real sourced JPG file');
 assert(branded.every(x=>typeof x.photoBy==='string'&&typeof x.photoLicense==='string'&&x.photoLicense.length>2),'photographer and CC license credits');
 for(const [id,stock,gyeong] of [
  ['car_royalboutique_rr_one',3,300],['car_royalboutique_bentley_emperor',5,500],
