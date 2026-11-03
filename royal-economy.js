@@ -108,7 +108,7 @@ function createRoyalEconomy({db,exactWallet,now,getAssets}){
    return {
      tier:tier.name,tierIcon:tier.icon,spent:String(spent),ownedCount:owned.length,
      nextTier:next?.name||null,nextAt:next?String(next.min):null,totalItems:ROYAL_ITEMS.length,
-     showcase:chosen.map(id=>{const item=allowed.get(id);return {id:item.id,name:item.name,icon:item.icon,rarity:item.rarity,price:item.price,category:item.category,equipped:equipped[item.category]===id}}),
+     showcase:chosen.map(id=>{const item=allowed.get(id);return {id:item.id,name:item.name,icon:item.icon,art:item.art,displayOnly:!!item.displayOnly,rarity:item.rarity,price:item.price,category:item.category,equipped:!item.displayOnly&&equipped[item.category]===id}}),
      equipped:ROYAL_ITEMS.filter(x=>!x.displayOnly&&equipped[x.category]===x.id&&allowed.has(x.id)).map(x=>({id:x.id,name:x.name,icon:x.icon}))
    };
  }
@@ -143,8 +143,8 @@ function createRoyalEconomy({db,exactWallet,now,getAssets}){
      const info=decorate(item,uid);
      const note=info.inscription;
      return {
-       id:item.id,name:item.name,category:item.category,rarity:item.rarity,icon:item.icon,
-       price:item.price,desc:item.desc,owned:true,equipped:load[item.category]===item.id,
+       id:item.id,name:item.name,category:item.category,rarity:item.rarity,icon:item.icon,art:item.art,displayOnly:!!item.displayOnly,
+       price:item.price,desc:item.desc,owned:true,equipped:!item.displayOnly&&load[item.category]===item.id,
        stock:item.stock??null,
        inscription:note?{itemId:item.id,itemName:item.name,ownerNickname:user.nickname,
          purchasedAt:note.purchasedAt,paid:note.paid}:null
