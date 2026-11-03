@@ -1,7 +1,7 @@
 (()=>{'use strict';
 const $=s=>document.querySelector(s);
 const $$=s=>[...document.querySelectorAll(s)];
-const HOUR=3600000,KST=9*HOUR,MATCH_MS=120000,MAX_RETURN=100000000000000n;
+const HOUR=3600000,KST=9*HOUR,MATCH_MS=120000,MAX_RETURN=1000000000000000000n,TAX_LIMIT=10000000000000000n;
 const names={H:'홈 승',D:'무승부',A:'원정 승'},numbers={H:'1',D:'X',A:'2'};
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 let status=null,clubs=new Map(),selection=new Map(),fixtureTab='today',watchId=null,allSchedule=null,serverOffset=0,loading=false,betting=false,demo=null;
@@ -26,9 +26,8 @@ function toast(text,error=false){
  n.textContent=String(text);n.hidden=false;n.classList.toggle('error',error);
  clearTimeout(toastTimer);toastTimer=setTimeout(()=>{n.hidden=true},4500);
 }
-function badge(c,cls=''){
- if(!c)return '<span class="crest placeholder">J</span>';
- return '<span class="crest '+cls+'" style="--primary:'+esc(c.primary)+';--secondary:'+esc(c.secondary)+'" title="'+esc(c.name)+'"><i>'+esc(c.emblem)+'</i><small>'+esc(c.code)+'</small></span>';
+function badge(c,cls='',id=''){
+ return window.JPLCrests?.badge(c,cls,id)||'<span class="crest placeholder">'+esc(c?.emblem||'?')+'</span>';
 }
 function team(id){return clubs.get(id)||{name:id,short:id,emblem:'?',code:'---',primary:'#789',secondary:'#abc'}}
 function labelStatus(f){return f.status==='LIVE'?'진행 중':f.status==='FINAL'?'경기 종료':'예정'}
@@ -57,8 +56,9 @@ function renderTop(){
 function fixtureHTML(f){
  const h=team(f.home),a=team(f.away),bettable=f.status==='SCHEDULED'&&now()<f.kickoff;
  const isLive=f.status==='LIVE',selected=watchId===f.id;
- const odds=['H','D','A'].map(x=>
-  '<button type="button" data-pick="'+esc(f.id)+':'+x+'" class="'+(selection.get(f.id)?.pick===x?'active':'')+'" '+(!bettable?'disabled':'')+' title="'+esc(names[x])+' 선택"><span>'+numbers[x]+'</span><b>'+(f.odds[x]/100).toFixed(2)+'</b></button>').join('');
+ const oddButtons=(market,table)=>['H','D','A'].map(x=>
+  '<button type="button" data-pick="'+esc(f.id)+':'+market+':'+x+'" class="'+(selection.get(f.id)?.pick===x&&selection.get(f.id)?.market===market?'active':'')+'" '+(!bettable?'disabled':'')+' title="'+(market==='HDP'?'핸디캡 ':'')+esc(names[x])+' 선택"><span>'+numbers[x]+'</span><b>'+(table[x]/100).toFixed(2)+'</b></button>').join('');
+ const handicap=f.handicap||{line:-1,odds:f.odds};
  const score=f.score?String(f.score.home)+' : '+String(f.score.away):'VS';
  return '<article class="fixture-item"><div class="fixture-main"><div class="fixture-time"><b>'+esc(time(f.kickoff))+'</b><small>'+esc(shortDate(f.kickoff))+'</small></div>'+
   '<div class="fixture-match"><div class="fixture-team">'+badge(h)+'<span>'+esc(h.short)+'</span></div>'+
@@ -66,7 +66,8 @@ function fixtureHTML(f){
   '<div class="fixture-team away">'+badge(a)+'<span>'+esc(a.short)+'</span></div></div>'+
   '<div class="fixture-right"><button class="watch-btn '+(isLive?'live':'')+'" type="button" data-watch="'+esc(f.id)+'">'+
   (isLive?'● LIVE':f.status==='FINAL'?'다시보기':selected?'선택됨':'관전하기')+'</button></div></div>'+
-  (f.status==='SCHEDULED'?'<div class="odds-row" aria-label="승무패 선택 배당">'+odds+'</div>':
+  (f.status==='SCHEDULED'?'<div class="market-rows"><div class="market-row"><span class="market-label">일반 승무패</span><div class="odds-row" aria-label="일반 승무패 배당">'+oddButtons('NORMAL',f.odds)+'</div></div>'+
+   '<div class="market-row"><span class="market-label hdp">핸디캡 '+(handicap.line>0?'+':'')+handicap.line+'</span><div class="odds-row" aria-label="핸디캡 승무패 배당">'+oddButtons('HDP',handicap.odds)+'</div></div></div>':
    '<div class="odds-row fixture-finished"><small>'+labelStatus(f)+' · '+(f.status==='LIVE'?f.minute+'분':'90분')+' · 배당 마감</small></div>')+
   '</article>';
 }
@@ -79,17 +80,21 @@ function renderFixtures(){
 function renderTable(){
  if(!status)return;
  $('#tableBody').innerHTML=status.table.map(t=>
-  '<tr><td>'+t.rank+'</td><td><div class="table-team">'+badge(t)+'<b>'+esc(t.name)+'</b></div></td>'+
+  '<tr class="'+(t.rank>=21?'relegation-zone':'')+'"><td>'+t.rank+'</td><td><div class="table-team">'+badge(t)+'<b>'+esc(t.name)+'</b></div></td>'+
   '<td>'+t.played+'</td><td>'+t.won+'</td><td>'+t.drawn+'</td><td>'+t.lost+'</td><td>'+(t.gd>0?'+':'')+t.gd+'</td><td class="points">'+t.points+'</td><td>'+
   (t.lastFive.length?t.lastFive.map(x=>'<span class="form-bubble '+x+'">'+x+'</span>').join(''):'<span style="color:#8293a9">—</span>')+'</td></tr>').join('');
+ const reserves=status.reserves||[];
+ $('#leagueTransition').innerHTML='<span>CHAMPIONSHIP · 2부 승격 예정</span><b>'+
+   (reserves.map(c=>badge(c)+' '+esc(c.name)).join('<span class="reserve-sep">＋</span>')||'승격 대기팀 없음')+
+   '</b><small>시즌 종료 시 1부 21·22위 강등 · 2부 대기 2팀 자동 승격</small>';
 }
 function renderTickets(){
  if(!status)return;
  $('#ticketList').innerHTML=status.tickets.length?status.tickets.map(t=>{
-  const stat=t.status==='OPEN'?'진행 대기':t.status==='WIN'?'적중':'미적중';
-  const legs=t.legs.map(l=>'<div class="ticket-leg"><span>'+esc(team(l.home).short)+' – '+esc(team(l.away).short)+'</span><span class="pick">'+numbers[l.pick]+' '+esc(names[l.pick])+' · '+(l.odds100/100).toFixed(2)+'</span></div>').join('');
+  const stat=t.status==='OPEN'?'진행 대기':t.status==='WIN'?'적중':t.status==='FORFEITED'?'회생 소멸':'미적중';
+  const legs=t.legs.map(l=>'<div class="ticket-leg"><span>'+esc(team(l.home).short)+' – '+esc(team(l.away).short)+'</span><span class="pick">'+numbers[l.pick]+' '+esc(names[l.pick])+' · '+(l.market==='HDP'?'핸디캡 '+(l.line>0?'+':'')+l.line+' · ':'')+(l.odds100/100).toFixed(2)+'</span></div>').join('');
   return '<article class="ticket-card"><div class="ticket-head"><div><strong>JPL '+esc(t.seasonId)+' · '+t.legs.length+'폴더</strong><small> &nbsp;'+esc(shortDate(t.placedAt))+' '+esc(time(t.placedAt))+'</small></div><span class="ticket-status '+t.status+'">'+stat+'</span></div>'+
-   '<div class="ticket-legs">'+legs+'</div><div class="ticket-footer"><span>베팅 <b>'+fmtMoney(t.stake)+'</b></span><span>적중 배당 <b>'+esc(t.totalOdds)+'x</b></span><span>'+(t.status==='WIN'?'지급':'예상')+' <b>'+fmtMoney(t.status==='LOSE'?'0':t.status==='WIN'?t.paid:t.potential)+'</b></span></div></article>';
+   '<div class="ticket-legs">'+legs+'</div><div class="ticket-footer"><span>베팅 <b>'+fmtMoney(t.stake)+'</b></span><span>확정 배당 <b>'+esc(t.totalOdds)+'x</b></span><span>'+(t.status==='WIN'?'실수령':'예상 실수령')+' <b>'+fmtMoney(t.status==='LOSE'||t.status==='FORFEITED'?'0':t.status==='WIN'?t.paid:t.expectedNet||t.potential)+'</b></span>'+(BigInt(t.tax||t.expectedTax||'0')>0n?'<span>잭팟 적립 <b>'+fmtMoney(t.tax||t.expectedTax)+'</b></span>':'')+'</div></article>';
  }).join(''):'<div class="fixture-message">아직 승부예측 티켓이 없어. 첫 경기를 선택해 봐!</div>';
 }
 function renderSlip(){
@@ -97,28 +102,32 @@ function renderSlip(){
  $('#slipCount').textContent=picks.length;
  $('#slipPicks').innerHTML=picks.length?picks.map(p=>
   '<div class="pick-line"><div class="pick-head"><b>'+esc(team(p.home).short)+' vs '+esc(team(p.away).short)+'</b><button type="button" data-remove="'+esc(p.matchId)+'" aria-label="선택 취소">×</button></div>'+
-  '<div class="pick-sub"><span>'+esc(numbers[p.pick])+' · '+esc(names[p.pick])+' / '+esc(shortDate(p.kickoff))+'</span><strong>'+(p.odds100/100).toFixed(2)+'x</strong></div></div>'
- ).join(''):'<div class="slip-empty"><span>⚽</span><b>아직 선택된 경기가 없어</b><small>경기 목록에서 1 / X / 2 배당을 눌러봐.</small></div>';
+  '<div class="pick-sub"><span>'+esc(numbers[p.pick])+' · '+esc(names[p.pick])+' / '+(p.market==='HDP'?'핸디캡 '+(p.line>0?'+':'')+p.line+' · ':'')+esc(shortDate(p.kickoff))+'</span><strong>'+(p.odds100/100).toFixed(2)+'x</strong></div></div>'
+ ).join(''):'<div class="slip-empty"><span>⚽</span><b>아직 선택된 경기가 없어</b><small>일반 또는 핸디캡 1 / X / 2를 눌러봐.</small></div>';
  let mult=1n,denom=1n;for(const p of picks){mult*=BigInt(p.odds100);denom*=100n}
  const odds=picks.length?(Number(mult)/Number(denom)).toFixed(2):'0.00';
  $('#totalOdds').innerHTML=odds+' <small>x</small>';
  const raw=$('#stake').value.trim().replaceAll(',','');
  let valid=/^[1-9][0-9]{0,30}$/.test(raw),stake=0n,payout=0n;
  try{if(valid)stake=BigInt(raw);if(valid)payout=stake*mult/denom}catch{valid=false}
+ const taxed=!!picks.length&&(mult>=100n*denom||payout>TAX_LIMIT),tax=taxed?payout/5n:0n;
+ $('#taxPreview').textContent=taxed?'예상 총 적중금 '+fmtMoney(payout)+' · 슬롯 잭팟 적립 20% '+fmtMoney(tax):
+  '100배 이상 또는 적중금 1경 G 초과 시 20%가 슬롯 잭팟에 적립돼.';
  const within=valid&&stake>=1000n&&stake<=1000000000000n&&payout<=MAX_RETURN;
- $('#potential').textContent=picks.length&&valid?fmtMoney(payout):'0 G';
+ $('#potential').textContent=picks.length&&valid?fmtMoney(payout-tax):'0 G';
  const button=$('#placeBet');
  button.disabled=betting||!picks.length||!within;
- button.textContent=betting?'베팅 접수 중...':!picks.length?'경기를 선택해 주세요':!valid||stake<1000n?'최소 1,000 G부터':stake>1000000000000n?'베팅 한도 1조 G':payout>MAX_RETURN?'예상 당첨금 100조 G 초과':'승무패 '+picks.length+'폴더 · '+fmtMoney(stake)+' 베팅 확정';
+ button.textContent=betting?'베팅 접수 중...':!picks.length?'경기를 선택해 주세요':!valid||stake<1000n?'최소 1,000 G부터':stake>1000000000000n?'베팅 한도 1조 G':payout>MAX_RETURN?'예상 당첨금 100경 G 초과':'승무패 '+picks.length+'폴더 · '+fmtMoney(stake)+' 베팅 확정';
 }
-function setPick(matchId,pick){
- if(!['H','D','A'].includes(pick))return;
+function setPick(matchId,pick,market='NORMAL'){
+ if(!['H','D','A'].includes(pick)||!['NORMAL','HDP'].includes(market))return;
  const f=findFixture(matchId);
  if(!f||f.status!=='SCHEDULED'||now()>=f.kickoff){toast('킥오프한 경기는 베팅할 수 없어.',true);return}
- if(selection.get(matchId)?.pick===pick){selection.delete(matchId)}
+ if(selection.get(matchId)?.pick===pick&&selection.get(matchId)?.market===market){selection.delete(matchId)}
  else{
   if(selection.size>=10&&!selection.has(matchId)){toast('최대 10경기까지 묶을 수 있어.',true);return}
-  selection.set(matchId,{matchId,pick,odds100:f.odds[pick],home:f.home,away:f.away,kickoff:f.kickoff});
+  selection.set(matchId,{matchId,pick,market,line:market==='HDP'?f.handicap.line:0,
+   odds100:market==='HDP'?f.handicap.odds[pick]:f.odds[pick],home:f.home,away:f.away,kickoff:f.kickoff});
  }
  renderFixtures();renderSlip();
 }
@@ -135,17 +144,18 @@ async function placeBet(){
  if(!/^[1-9][0-9]{0,30}$/.test(amount)){toast('베팅 금액을 정수로 입력해 줘.',true);return}
  const stake=BigInt(amount);let product=stake,scale=1n;
  for(const leg of legs){product*=BigInt(leg.odds100);scale*=100n}
- const potential=product/scale;
+ const potential=product/scale,untaxed=product>=stake*scale*100n||potential>TAX_LIMIT;
+ const tax=untaxed?potential/5n:0n;
  if(stake<1000n||stake>1000000000000n||potential>MAX_RETURN){toast('베팅 한도 또는 예상 당첨금 한도를 확인해 줘.',true);return}
  if(stake>BigInt(status.wallet)){toast('게임머니가 부족해.',true);return}
- if(!confirm(legs.length+'폴더 승무패에 '+fmtMoney(stake)+'를 베팅할까?\n모두 적중하면 '+fmtMoney(potential)+' 지급!\n킥오프 전 확정되며 취소할 수 없어.'))return;
+ if(!confirm(legs.length+'폴더에 '+fmtMoney(stake)+'를 베팅할까?\n모두 적중하면 '+fmtMoney(potential-tax)+' 실수령!'+(tax?'\n슬롯 잭팟 적립 20%: '+fmtMoney(tax):'')+'\n킥오프 전 확정되며 취소할 수 없어.'))return;
  betting=true;renderSlip();
  try{
   const response=await fetch('/api/jpl/bet',{method:'POST',credentials:'same-origin',
-   headers:{'Content-Type':'application/json'},body:JSON.stringify({amount,legs:legs.map(l=>({matchId:l.matchId,pick:l.pick})),requestId:crypto.randomUUID()})});
+   headers:{'Content-Type':'application/json'},body:JSON.stringify({amount,legs:legs.map(l=>({matchId:l.matchId,pick:l.pick,market:l.market})),requestId:crypto.randomUUID()})});
   const data=await response.json();
   if(!response.ok)throw Error(data.error||'베팅 접수에 실패했어.');
-  selection.clear();toast('경기 예측 접수 완료! 경기 종료 후 자동 정산돼.');
+  selection.clear();toast('승무패 예측 접수 완료! 경기 종료 후 자동 정산돼.');
   if(status)status.wallet=data.wallet||data.user?.balance||status.wallet;
   await refresh(true);
  }catch(e){toast(e.message||'베팅 중 문제가 발생했어.',true)}
@@ -194,8 +204,8 @@ function displayMatch(){
 function renderBroadcast(){
  const f=displayMatch();if(!f)return;
  const h=team(f.home),a=team(f.away),live=f.status==='LIVE',finished=f.status==='FINAL';
- $('#crestHome').outerHTML='<span id="crestHome" class="crest" style="--primary:'+esc(h.primary)+';--secondary:'+esc(h.secondary)+'"><i>'+esc(h.emblem)+'</i><small>'+esc(h.code)+'</small></span>';
- $('#crestAway').outerHTML='<span id="crestAway" class="crest" style="--primary:'+esc(a.primary)+';--secondary:'+esc(a.secondary)+'"><i>'+esc(a.emblem)+'</i><small>'+esc(a.code)+'</small></span>';
+ $('#crestHome').outerHTML=badge(h,'','crestHome');
+ $('#crestAway').outerHTML=badge(a,'','crestAway');
  $('#teamHome').textContent=h.name;$('#teamAway').textContent=a.name;
  $('#broadcastRound').textContent=f.demo?'EXHIBITION · 연출 데모':'JPL ROUND '+f.round;
  $('#broadcastVenue').textContent=h.stadium;
@@ -312,7 +322,7 @@ async function refresh(force=false){
  finally{loading=false}
 }
 document.addEventListener('click',e=>{
- const pick=e.target.closest('[data-pick]');if(pick){const [matchId,result]=pick.dataset.pick.split(':');setPick(matchId,result);return}
+ const pick=e.target.closest('[data-pick]');if(pick){const [matchId,market,result]=pick.dataset.pick.split(':');setPick(matchId,result,market);return}
  const remove=e.target.closest('[data-remove]');if(remove){selection.delete(remove.dataset.remove);renderFixtures();renderSlip();return}
  const watch=e.target.closest('[data-watch]');if(watch){selectWatch(watch.dataset.watch);return}
  const tab=e.target.closest('[data-fixture-tab]');if(tab){fixtureTab=tab.dataset.fixtureTab;renderFixtures();return}
