@@ -9,9 +9,11 @@
 <link rel="stylesheet" href="/football/style.css?v=20261104-scout-v6">
 <link rel="stylesheet" href="/football/royal-premium.css?v=20261104-crest-large-v2">
 <link rel="stylesheet" href="/football/receipts.css?v=20261104-receipt-cols-v5">
+<link rel="stylesheet" href="/football/admin.css?v=20261104-operator-v1">
 <script defer src="/football/club-icons.js?v=20261104-royal-heraldic-v3"></script>
 <script defer src="/football/receipts.js?v=20261104-receipt-cols-v5"></script>
 <script defer src="/football/game.js?v=20261104-scout-v6"></script>
+<script defer src="/football/admin.js?v=20261104-operator-v1"></script>
 </head>
 <body>
 <header class="topnav">
@@ -41,6 +43,7 @@
   <button type="button" data-scroll="standings">리그 순위</button>
   <button type="button" data-scroll="schedule">시즌 일정</button>
   <button type="button" data-scroll="tickets">내 승부예측</button>
+  <button type="button" data-scroll="adminPanel" id="adminNav" hidden>♛ 운영자 베팅 관제</button>
  </nav>
  <div class="layout">
   <div class="main-column">
@@ -85,6 +88,27 @@
    <section class="panel tickets-panel" id="tickets">
     <div class="panel-heading"><div><span class="section-overline">MY PREDICTIONS</span><h2>나의 <span class="highlight">승부예측</span></h2></div><span class="round-chip">구매표 · 최근 100건</span></div>
     <div id="ticketList"><div class="skeleton">베팅 내역을 불러오는 중...</div></div>
+   </section>
+   <section class="panel jpl-admin-panel" id="adminPanel" hidden aria-label="운영자 전용 축구 베팅 현황">
+    <div class="panel-heading"><div><span class="section-overline">JPL · PRIVATE OPERATOR CONSOLE</span><h2>축구 <span class="highlight">베팅 관제센터</span></h2></div><span class="round-chip">ADMIN ONLY</span></div>
+    <div class="jpl-admin-toolbar">
+     <label>조회 시즌<select id="adminSeason"><option value="current">현재 시즌</option><option value="all">전체 시즌</option></select></label>
+     <label>정산 상태<select id="adminStatus"><option value="ALL">전체 상태</option><option value="OPEN">진행 중</option><option value="WIN">적중</option><option value="LOSE">낙첨</option><option value="FORFEITED">회생 소멸</option></select></label>
+     <label>회원 닉네임 / 아이디<input id="adminUser" type="search" maxlength="40" placeholder="전체 회원" autocomplete="off"></label>
+     <button type="button" id="adminLoad">현황 조회</button>
+    </div>
+    <p class="jpl-admin-note" id="adminNotice">운영자 권한 확인 및 베팅 현황 불러오는 중...</p>
+    <div class="jpl-admin-metrics" id="adminSummary"></div>
+    <div class="jpl-admin-section">
+     <h3>경기별 베팅 분포 <small>일반 승무패 / 핸디캡 구분 · 선택 인원 및 금액</small></h3>
+     <div class="jpl-admin-scroll" id="adminMatches"></div>
+     <p class="jpl-admin-note" id="adminExposureNote">조합 베팅은 각 경기의 선택액에 중복 포함되며, 총 베팅금에는 중복되지 않습니다.</p>
+    </div>
+    <div class="jpl-admin-section">
+     <h3>회원별 구매표 내역 <small>눌러서 최대 5경기 조합 확인 · 최신순</small></h3>
+     <div class="jpl-admin-scroll" id="adminTickets"></div>
+    </div>
+    <div class="jpl-admin-pager"><button type="button" id="adminPrev">이전</button><span id="adminPagerLabel">—</span><button type="button" id="adminNext">다음</button></div>
    </section>
   </div>
   <aside class="bet-rail">
