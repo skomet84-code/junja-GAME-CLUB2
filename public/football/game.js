@@ -69,8 +69,8 @@ function fixtureHTML(f){
   (f.status==='SCHEDULED'?'<div class="market-rows"><div class="market-row"><span class="market-label">일반 승무패</span><div class="odds-row" aria-label="일반 승무패 배당">'+oddButtons('NORMAL',f.odds)+'</div></div>'+
    '<div class="market-row"><span class="market-label hdp">핸디캡 '+(handicap.line>0?'+':'')+handicap.line+'</span><div class="odds-row" aria-label="핸디캡 승무패 배당">'+oddButtons('HDP',handicap.odds)+'</div></div></div>':
    '<div class="odds-row fixture-finished"><small>'+labelStatus(f)+' · '+(f.status==='LIVE'?f.minute+'분':'90분')+' · 배당 마감</small></div>')+
-  '<div class="fixture-analysis-cta"><button type="button" data-analyze="'+esc(f.id)+'" '+(f.status==='SCHEDULED'&&!status?.analysisUnlocked?.includes(f.id)&&now()>=f.kickoff?'disabled':'')+'>'+
-  (status?.analysisUnlocked?.includes(f.id)?'🔓 양 팀 경기분석 다시보기':'🔎 양 팀 경기분석 열람 · 1조 G')+'</button><small>체력 · 컨디션 · 결장자 · 동기부여</small></div>'+
+  '<div class="fixture-analysis-cta"><button type="button" data-analyze="'+esc(f.id)+'" '+(!status?.analysisUnlocked?.includes(f.id)&&(f.status!=='SCHEDULED'||now()>=f.kickoff)?'disabled':'')+'>'+
+  (status?.analysisUnlocked?.includes(f.id)?'🔓 양 팀 경기분석 다시보기':f.status==='SCHEDULED'&&now()<f.kickoff?'🔎 양 팀 경기분석 열람 · 1조 G':'🔒 경기분석 판매 마감')+'</button><small>체력 · 컨디션 · 결장자 · 동기부여</small></div>'+
   '</article>';
 }
 function renderFixtures(){
