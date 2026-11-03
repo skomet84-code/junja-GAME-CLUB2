@@ -4,7 +4,7 @@ const fs=require('node:fs'),path=require('node:path');
 const read=p=>fs.readFileSync(path.join(__dirname,'..',p),'utf8');
 const {ROYAL_ITEMS}=require('../royal-economy');
 const branded=ROYAL_ITEMS.filter(x=>x.brand);
-assert.equal(ROYAL_ITEMS.length,40,'28 previous pieces and 12 photo-reference car models');
+assert.equal(ROYAL_ITEMS.length,49,'40 original items plus nine watch and motor collector editions');
 assert.equal(branded.length,12,'4 Rolls-Royce + 4 Bentley + 4 Aston Martin');
 const photoProducts=ROYAL_ITEMS.filter(x=>x.photoFile);
 assert.equal(photoProducts.length,18,'twelve cars plus six luxury watches, jets and yachts');
