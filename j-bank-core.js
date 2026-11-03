@@ -12,6 +12,7 @@ const RATE_BP=10n,MIN_LOAN=1000000n,SELL_RATE_BP=9900n; // 99% of the rank purch
 function dayNumber(s){const n=Date.parse(String(s)+'T00:00:00Z');if(!Number.isFinite(n))throw Error('이자 계산 날짜 오류');return Math.floor(n/86400000);}
 function positive(raw){if(typeof raw!=='string'||!/^[1-9][0-9]{0,79}$/.test(raw))throw Error('금액은 1G 이상의 정수여야 합니다.');return BigInt(raw);}
 function createJBank({db,exactWallet,levels,legacyRankCosts=null,now,kstDate}){
+ let creditBank=null;
  const accountKey=id=>'jbank:account:'+Number(id);
  function empty(day){return {principal:'0',interest:'0',asOf:day,openedAt:0,closedAt:0,number:0,totalBorrowed:'0',totalRepaid:'0',lastRankSale:null,saleCount:0,savingsPrincipal:'0',savingsInterest:'0',savingsEarned:'0',savingsRemainder:'0',savingsAt:now(),savingsLockedUntil:0,installment:null,lastInstallment:null};}
  function read(id,day=kstDate()){const r=db.prepare('SELECT value FROM game_state WHERE key=?').get(accountKey(id));return r?{...empty(day),...JSON.parse(r.value)}:empty(day);}
@@ -31,7 +32,8 @@ function createJBank({db,exactWallet,levels,legacyRankCosts=null,now,kstDate}){
   r.savingsRemainder=String(numerator%denom);r.savingsAt=at>=lockUntil?Math.max(at,lastAt):lastAt;
   return r;
  }
- function owed(id,day=kstDate()){const x=project(read(id,day),day);return BigInt(x.principal)+BigInt(x.interest);}
+ function baseOwed(id,day=kstDate()){const x=project(read(id,day),day);return BigInt(x.principal)+BigInt(x.interest);}
+ function owed(id,day=kstDate()){return baseOwed(id,day)+(creditBank?creditBank.owed(id):0n);}
  function store(id,record){db.prepare('INSERT INTO game_state(key,value,updated_at) VALUES(?,?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value,updated_at=excluded.updated_at').run(accountKey(id),JSON.stringify(record),now());}
  // Selling an existing rank must not retroactively multiply its collateral value.
  // Read the last actual promotion payment; for pre-change/granted ranks use the
@@ -51,7 +53,7 @@ function createJBank({db,exactWallet,levels,legacyRankCosts=null,now,kstDate}){
   const u=db.prepare('SELECT id,rank_level,balance,balance_exact,balance_base FROM users WHERE id=?').get(id);
   if(!u)throw Error('은행 회원을 찾을 수 없습니다.');
   const level=Math.max(0,Math.min(levels.length-1,Number(u.rank_level||0))),r=project(read(id,day),day);
-  const debt=BigInt(r.principal)+BigInt(r.interest),limit=LIMITS[level];
+  const debt=BigInt(r.principal)+BigInt(r.interest),creditDebt=creditBank?creditBank.owed(id):0n,limit=LIMITS[level];
   const price=level>0?purchasedRankBasis(id,level)*SELL_RATE_BP/10000n:0n;
   const pay=price<debt?price:debt;
   const rankSale=debt>0n&&level>0?{fromLevel:level,fromName:levels[level].name,toLevel:level-1,toName:levels[level-1].name,
@@ -59,8 +61,10 @@ function createJBank({db,exactWallet,levels,legacyRankCosts=null,now,kstDate}){
   const savingsTotal=BigInt(r.savingsPrincipal)+BigInt(r.savingsInterest);
   const savings={principal:r.savingsPrincipal,interest:r.savingsInterest,total:String(savingsTotal),totalEarned:r.savingsEarned,dailyInterestPct:'0.05',withdrawAvailableAt:0,canWithdraw:savingsTotal>0n,canDeposit:debt===0n};
   return {installment:installment.view(r.installment,now()),installmentProducts:installment.PRODUCTS,lastInstallment:r.lastInstallment,savings,name:'J-BANK',rank:{level,name:levels[level].name},loanLimit:limit,minLoan:String(MIN_LOAN),
+   credit:creditBank?creditBank.status(id):null,creditOutstanding:String(creditDebt),
    dailyInterestPct:'0.1',interestMethod:'simple',principal:r.principal,interest:r.interest,
-   outstanding:String(debt),canBorrow:debt===0n&&!r.installment,canPromote:debt===0n,available:debt===0n&&!r.installment?limit:'0',
+   outstanding:String(debt),canBorrow:debt===0n&&creditDebt===0n&&!r.installment,canPromote:debt===0n&&creditDebt===0n,available:debt===0n&&creditDebt===0n&&!r.installment?limit:'0',
+   borrowBlockedReason:debt>0n?'기존 신분 대출을 먼저 완납해야 합니다.':creditDebt>0n?'자산 신용대출을 완납한 뒤 신청할 수 있습니다.':r.installment?'적금이 진행 중입니다. 적금 만기 수령 또는 중도해지 후 신분 대출을 신청하세요. 자산 신용대출은 별도로 이용할 수 있습니다.':'',
    wallet:exactWallet.output(exactWallet.read(u)),openedAt:r.openedAt,closedAt:r.closedAt,
    totalBorrowed:r.totalBorrowed,totalRepaid:r.totalRepaid,canSellRank:!!rankSale,rankSale,lastRankSale:r.lastRankSale,saleCount:r.saleCount||0,
    dueAt:r.openedAt?Number(r.openedAt)+7*86400000:null,overdue:debt>0n&&r.openedAt>0&&now()>Number(r.openedAt)+7*86400000,
@@ -103,6 +107,7 @@ function createJBank({db,exactWallet,levels,legacyRankCosts=null,now,kstDate}){
     a.savingsPrincipal=String(BigInt(a.savingsPrincipal)-(amount-paidInterest));
     delta=amount;type='jbank_withdraw';memo='J-BANK 저축 출금 · 이자 '+paidInterest+' G';
    }else if(kind==='borrow'){
+    if(creditBank&&creditBank.owed(id)>0n)throw Error('자산 신용대출을 완납한 뒤 신분 대출을 이용할 수 있습니다.');
     if(a.installment)throw Error('적금 만기 수령 또는 해지 후 대출할 수 있습니다.');
     const amount=BigInt(text),level=Math.max(0,Math.min(levels.length-1,Number(u.rank_level||0)));
     if(db.prepare("SELECT 1 FROM room_escrow WHERE user_id=? AND game LIKE 'casino_%' LIMIT 1").get(id))throw Error('카지노 담보가 묶여 있는 동안 추가 대출은 불가능합니다.');
@@ -254,6 +259,8 @@ function createJBank({db,exactWallet,levels,legacyRankCosts=null,now,kstDate}){
     'J-BANK 아이템 대출구매 · '+String(itemName||'명품 구매').slice(0,55),at);
   return {loanAmount:String(amount),afterLoanBalance:String(after)};
  }
-  return {status,owed,purchaseQuote,borrowForPurchase,rankResaleBasis:purchasedRankBasis,limits:LIMITS,...Object.fromEntries(['installmentOpen','installmentPay','installmentClaim','installmentCancel'].map(kind=>[kind,(id,raw,key)=>change(id,kind,raw,key)])),deposit:(id,amount,key)=>change(id,'deposit',amount,key),withdraw:(id,amount,key)=>change(id,'withdraw',amount,key),borrow:(id,amount,key)=>change(id,'borrow',amount,key),repay:(id,amount,key)=>change(id,'repay',amount,key),sellRank,forceCasinoSale,enforceOverdue:overdue.enforce,rehabilitation:overdue.rehabilitation};
+  return {status,owed,baseOwed,setCredit:(credit)=>{creditBank=credit;},
+   enforceOverdue:(id)=>{const base=overdue.enforce(id),asset=creditBank?creditBank.enforce(id):{processed:false};return {processed:!!(base.processed||asset.processed),base,asset};},
+   purchaseQuote,borrowForPurchase,rankResaleBasis:purchasedRankBasis,limits:LIMITS,...Object.fromEntries(['installmentOpen','installmentPay','installmentClaim','installmentCancel'].map(kind=>[kind,(id,raw,key)=>change(id,kind,raw,key)])),deposit:(id,amount,key)=>change(id,'deposit',amount,key),withdraw:(id,amount,key)=>change(id,'withdraw',amount,key),borrow:(id,amount,key)=>change(id,'borrow',amount,key),repay:(id,amount,key)=>change(id,'repay',amount,key),sellRank,forceCasinoSale,rehabilitation:overdue.rehabilitation};
 }
 module.exports={createJBank,LIMITS,RATE_BP,SELL_RATE_BP};
