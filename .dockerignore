@@ -1,0 +1,24 @@
+# Keep the runtime image limited to application source and required game assets.
+# Dockerfile still copies public/, tests/, game scripts and package.json for build-time regression checks.
+.git
+.git/
+.github/
+node_modules/
+**/node_modules/
+.env
+.env.*
+!.env.example
+.DS_Store
+**/.DS_Store
+Thumbs.db
+npm-debug.log*
+yarn-error.log*
+*.log
+coverage/
+playwright-report/
+test-results/
+__pycache__/
+**/__pycache__/
+*.pyc
+.idea/
+.vscode/
