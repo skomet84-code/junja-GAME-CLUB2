@@ -54,6 +54,7 @@
 <link rel="stylesheet" href="/casino-receipts.css?v=20261105-receipts-v1">
 <link rel="stylesheet" href="/owner-market.css?v=20261105-v8-schedule1">
 <link rel="stylesheet" href="/support-center.css?v=20261105-v9">
+<link rel="stylesheet" href="/commerce-readiness.css?v=20261105-v10">
 </head>
 <body>
 <div id="app">
@@ -315,6 +316,17 @@
           <label>문의 상태 필터 <select id="supportAdminFilter"><option value="all">전체</option><option value="OPEN">신규</option><option value="REVIEWING">검토 중</option><option value="NEEDS_INFO">정보 추가 요청</option><option value="RESOLVED">처리 완료</option><option value="CLOSED">종결</option></select></label>
           <div id="supportAdminRows" class="support-admin-rows" aria-live="polite">대표 운영자 계정에서 문의를 조회할 수 있습니다.</div>
         </section>
+        <section class="panel commerce-gates" id="commerceReadinessPanel" aria-labelledby="commerceReadinessTitle">
+          <div class="cg-head">
+            <div><small>JUNJA LAND · COMMERCIAL GATE V10</small><h3 id="commerceReadinessTitle">♛ 상용화 출시 점검센터</h3><p>고객에게 실제 현금 결제를 제공하기 전에 충족해야 할 승인·기술·법적 조건을 검토합니다.</p></div>
+            <span class="cg-payment-off">REAL PAYMENTS OFF</span>
+          </div>
+          <div class="cg-stats" id="commerceReadinessStats" aria-live="polite">승인 조건을 확인하고 있습니다.</div>
+          <div class="cg-header"><h4>필수 준비 조건 · 증빙 상태</h4><button id="commerceReadinessRefresh" type="button">최신 점검</button></div>
+          <div class="cg-items" id="commerceReadinessItems">대표 운영자 계정에서만 조회할 수 있습니다.</div>
+          <p class="cg-warning" id="commerceReadinessWarning" aria-live="polite">실제 PG 계약 및 법률 승인 없이 구매 기능을 개시하지 않습니다. 이 점검판은 결제 처리 기능이 아닙니다.</p>
+        </section>
+
 
         <section id="ownerMarketPanel" class="panel owner-market" aria-labelledby="ownerMarketTitle">
           <div class="om-head">
@@ -459,6 +471,7 @@
   </div>
 </div>
 <script src="/support-center-ui.js?v=20261105-v9" defer></script>
+<script src="/commerce-readiness-ui.js?v=20261105-v10" defer></script>
 </body>
 </html>
 

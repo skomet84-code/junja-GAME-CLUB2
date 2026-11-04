@@ -1,6 +1,6 @@
 {
   "title": "JUNJA LAND paid-cosmetics commercial readiness gate",
-  "updatedAt": "2026-11-04",
+  "updatedAt": "2026-11-05",
   "paymentModel": "non-transferable cosmetic direct purchase; NO casino money charging; NO pre-paid J-CASH",
   "goLive": false,
   "evidencePolicy": "Only a verified completed deliverable may be marked completed; no law/PG approvals inferred from passing tests.",
@@ -31,7 +31,7 @@
       "label": "상품 이용조건·청약철회·환불·개인정보·고객센터",
       "status": "blocked",
       "owner": "operator/legal",
-      "evidence": null
+      "evidence": "Product display and support inquiry prototype exist; merchant policies, consumer refund terms and privacy documents require professional review."
     },
     {
       "id": "isolated-payments",
@@ -52,42 +52,42 @@
       "label": "슬롯·룰렛·빅휠·홀덤 정산과 고액 잔액 전체 검증",
       "status": "blocked",
       "owner": "engineering",
-      "evidence": "PR #46 remains draft; separate casino audit required"
+      "evidence": "Atomic BigWheel PR #47; exact roulette PR #50; owner ledger review PR #51; round receipts PR #52; full legal/economic reconciliation still required."
     },
     {
       "id": "paid-use",
       "label": "회원 구매 상품의 개인 전시관 사용·모바일 UX",
       "status": "prototype-tested",
       "owner": "engineering",
-      "evidence": "premium-appearance-store.js;public/premium-preview.html"
+      "evidence": "premium-appearance-store.js and premium-pg-core.js isolated prototype only; live member ownership and PG-authorized customer journey not wired."
     },
     {
       "id": "disaster-recovery",
       "label": "실제 운영 PostgreSQL 복구훈련·백업·대사",
       "status": "blocked",
       "owner": "engineering/ops",
-      "evidence": null
+      "evidence": "Railway Postgres snapshot restore logs 2026-11-05 showed 59 members and 2325 rows; this is NOT an independent backup and restore drill."
     },
     {
       "id": "support-operations",
       "label": "운영자 매출 보고·환불 처리·감사·고객지원",
       "status": "blocked",
       "owner": "operator/engineering",
-      "evidence": "read-only test adapter only"
+      "evidence": "support-center-core.js and admin case UI PR #55: authenticated inquiry/triage only, NO real refund/cancel, merchant support agreement or chargeback process."
     },
     {
       "id": "mobile-qa",
       "label": "360/375/390px 아이폰/안드로이드·태블릿 구매 전후 E2E",
       "status": "blocked",
       "owner": "engineering",
-      "evidence": "Prior general mobile smoke had failures"
+      "evidence": "8-view Chromium/WebKit preview and owner UI tests; there is NO real paid checkout/purchase/refund E2E."
     },
     {
       "id": "security-qa",
       "label": "침투·중복요청·동시성·미성년자/개인정보/CS 검토",
       "status": "blocked",
       "owner": "engineering/legal",
-      "evidence": null
+      "evidence": "HTTP authorization/replay checks and endpoint rate limits; independent penetration/privacy/minor-safety review remains open."
     }
   ]
 }

@@ -24,6 +24,7 @@ const {report: jplAdminReport}=require('./jpl-admin-report');
 const {auditCasinoSettlements}=require('./casino-settlement-audit');
 const {createMarketControl}=require('./market-operator');
 const {createSupportCenter}=require('./support-center-core');
+const {report:commerceReadinessReport}=require('./commerce-readiness-v10');
 const createTreasureRaid = require('./treasure-raid-server');
 const createBlackroomCloud = require('./blackroom-cloud');
 
@@ -2823,6 +2824,14 @@ const server=http.createServer(async(req,res)=>{
         const item=supportCenter.update({operatorId:owner.id,id:Number(b.id),status:b.status,adminNote:b.adminNote,expectedVersion:Number(b.expectedVersion),requestId:b.requestId});
         await db.flush();return json(res,200,{ok:true,item});
       }catch(e){return json(res,e.code==='STALE_CASE'?409:400,{error:e.message});}
+    }
+    // V10 commercial readiness: operator report only, no checkout endpoints or PG secret data.
+    if(url.pathname==='/api/admin/commerce-readiness'&&req.method==='GET'){
+      const owner=requireAdmin(req,res);if(!owner)return;
+      if(!owner.jpl_access)return json(res,403,{error:'상용화 출시 점검은 대표 운영자 전용입니다.'});
+      if(!rateLimit('commerce-readiness:'+owner.id,12,60000))return json(res,429,{error:'출시 점검 조회 횟수를 초과했습니다.'});
+      try{return json(res,200,commerceReadinessReport());}
+      catch(e){console.error('[COMMERCE READINESS]',e.message);return json(res,500,{error:'출시 점검표를 검증하지 못했습니다. 결제는 계속 비활성화됩니다.'});}
     }
     if(url.pathname==='/api/admin/economy'&&req.method==='GET'){
       const u=requireAdmin(req,res);if(!u)return;
