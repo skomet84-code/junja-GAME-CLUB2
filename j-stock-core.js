@@ -25,7 +25,7 @@ const MARKET_CADENCE_HOURS=6;
 const hourOf=t=>Math.floor(t/3600000);
 const sessionHour=t=>Math.floor((hourOf(t)+9)/MARKET_CADENCE_HOURS)*MARKET_CADENCE_HOURS-9;
 function amount(value){if(typeof value!=='string'||!/^[1-9][0-9]{0,15}$/.test(value))throw Error('수량은 1주 이상의 정수로 입력해 주세요.');const n=BigInt(value);if(n>MAX_SHARES)throw Error('1회 거래 한도를 초과했습니다.');return n;}
-function createJStocks({db,exactWallet,now=Date.now,randomInt=crypto.randomInt,getReference=()=>null,marketMode='legacy',getVolatilityPct=()=>100}){
+function createJStocks({db,exactWallet,now=Date.now,randomInt=crypto.randomInt,getReference=()=>null,marketMode='legacy',getVolatilityPct=()=>100,scheduledProtected=()=>new Set(),scheduledDue=()=>false,progressScheduled=()=>false}){
  const stateKey=id=>'jstock:portfolio:'+id;
  function read(key){const row=db.prepare('SELECT value FROM game_state WHERE key=?').get(key);return row?JSON.parse(row.value):null;}
  function write(key,value){db.prepare('INSERT INTO game_state(key,value,updated_at) VALUES(?,?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value,updated_at=excluded.updated_at').run(key,JSON.stringify(value),now());}
@@ -34,7 +34,9 @@ function createJStocks({db,exactWallet,now=Date.now,randomInt=crypto.randomInt,g
   // Catch up server-side on KST 00:00/06:00/12:00/18:00 boundaries only.
   // The same persisted market is shared by all users. Never derive prices in the browser.
   const skipped=Math.max(0,Math.floor((h-m.hour)/MARKET_CADENCE_HOURS)),steps=Math.min(skipped,56);
+  const protectedIds=scheduledProtected();
   for(let i=0;i<steps;i++)for(const s of activeStocks){
+   if(protectedIds.has(s.id))continue;
    const p=m.stocks[s.id],old=BigInt(p.price);
    const volPct=getVolatilityPct(s.id),effectiveVol=Math.max(1,Math.round(s.vol*volPct/100));
    let bp=randomInt(-effectiveVol,effectiveVol+1),event=null;
@@ -98,12 +100,13 @@ function createJStocks({db,exactWallet,now=Date.now,randomInt=crypto.randomInt,g
     m.catalogVersion=STOCK_CATALOG_VERSION;changed=true;
    }
   }
+  if(progressScheduled(m))changed=true;
   if(changed)write(MARKET_KEY,m);
   return {market:m,changed};
  }
  function currentMarket(){
   const h=sessionHour(now()),cached=read(MARKET_KEY);
-  if(cached&&cached.cadenceHours===MARKET_CADENCE_HOURS&&cached.hour>=h&&cached.catalogVersion===STOCK_CATALOG_VERSION&&STOCKS.every(s=>cached.stocks?.[s.id]))return {market:cached,changed:false};
+  if(cached&&cached.cadenceHours===MARKET_CADENCE_HOURS&&cached.hour>=h&&cached.catalogVersion===STOCK_CATALOG_VERSION&&STOCKS.every(s=>cached.stocks?.[s.id])&&!scheduledDue())return {market:cached,changed:false};
   db.exec('BEGIN IMMEDIATE');
   try{const r=insideMarket();db.exec('COMMIT');return r;}
   catch(e){try{db.exec('ROLLBACK');}catch{}throw e;}

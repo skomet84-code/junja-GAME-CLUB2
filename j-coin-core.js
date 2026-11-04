@@ -39,7 +39,7 @@ function maxAffordableQty(balance,price){
  }
  return price*low/10000n>=1n?low:0n;
 }
-function createJCoins({db,exactWallet,now=Date.now,randomInt=crypto.randomInt,getVolatilityPct=()=>100}){
+function createJCoins({db,exactWallet,now=Date.now,randomInt=crypto.randomInt,getVolatilityPct=()=>100,scheduledProtected=()=>new Set(),scheduledDue=()=>false,progressScheduled=()=>false}){
  const stateKey=id=>'jcoin:portfolio:'+id;
  const ADJUST_KEY='jcoin:temporary:moon-jjc-20261103-v1';
  const ADJUST_STEP_MS=15*60000,ADJUST_TOTAL_STEPS=8;
@@ -80,7 +80,8 @@ function createJCoins({db,exactWallet,now=Date.now,randomInt=crypto.randomInt,ge
   // Catch up server-side on KST 00:00/06:00/12:00/18:00 boundaries only.
   // The same persisted market is shared by all users. Never derive prices in the browser.
   const skipped=Math.max(0,Math.round((h-m.hour)/MARKET_CADENCE_HOURS)),steps=Math.min(skipped,96);
-  const adjustment=read(ADJUST_KEY),protectedIds=adjustment&&!adjustment.complete?new Set(['MOON','JJC']):null;
+  const adjustment=read(ADJUST_KEY),protectedIds=adjustment&&!adjustment.complete?new Set(['MOON','JJC']):new Set();
+  for(const id of scheduledProtected())protectedIds.add(id);
   for(let i=0;i<steps;i++)for(const s of activeStocks){
    if(protectedIds?.has(s.id))continue;
    const p=m.stocks[s.id],old=BigInt(p.price);
@@ -128,13 +129,14 @@ function createJCoins({db,exactWallet,now=Date.now,randomInt=crypto.randomInt,ge
   }
   const correction=temporaryAdjustment(m);
   changed=changed||correction.changed;
+  if(progressScheduled(m))changed=true;
   if(changed)write(MARKET_KEY,m);
   return {market:m,changed};
  }
  function currentMarket(){
   const h=sessionHour(now()),cached=read(MARKET_KEY);
   const adj=read(ADJUST_KEY),step=adj&&!adj.complete?Math.floor(Math.max(0,now()-adj.startedAt)/ADJUST_STEP_MS):0;
-  if((!adj||adj.complete||step<=adj.step)&&cached&&cached.cadenceHours===MARKET_CADENCE_HOURS&&cached.hour>=h&&cached.catalogVersion===STOCK_CATALOG_VERSION&&STOCKS.every(s=>cached.stocks?.[s.id]))return {market:cached,changed:false};
+  if((!adj||adj.complete||step<=adj.step)&&cached&&cached.cadenceHours===MARKET_CADENCE_HOURS&&cached.hour>=h&&cached.catalogVersion===STOCK_CATALOG_VERSION&&STOCKS.every(s=>cached.stocks?.[s.id])&&!scheduledDue())return {market:cached,changed:false};
   db.exec('BEGIN IMMEDIATE');
   try{const r=insideMarket();db.exec('COMMIT');return r;}
   catch(e){try{db.exec('ROLLBACK');}catch{}throw e;}

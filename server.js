@@ -200,8 +200,8 @@ const kospiReference=createKospiReference({now});
 // Public market quotes are optional; the server and users' funds work without them.
 kospiReference.start();
 const ownerMarket=createMarketControl({db,now});
-const jStocks=createJStocks({db,exactWallet,now,getReference:kospiReference.get,marketMode:'kospi',getVolatilityPct:id=>ownerMarket.volatilityFor('stock',id)});
-const jCoins=createJCoins({db,exactWallet,now,getVolatilityPct:id=>ownerMarket.volatilityFor('coin',id)});
+const jStocks=createJStocks({db,exactWallet,now,getReference:kospiReference.get,marketMode:'kospi',getVolatilityPct:id=>ownerMarket.volatilityFor('stock',id),scheduledProtected:()=>ownerMarket.scheduledProtected('stock'),scheduledDue:()=>ownerMarket.scheduledDue('stock'),progressScheduled:m=>ownerMarket.progressScheduled('stock',m)});
+const jCoins=createJCoins({db,exactWallet,now,getVolatilityPct:id=>ownerMarket.volatilityFor('coin',id),scheduledProtected:()=>ownerMarket.scheduledProtected('coin'),scheduledDue:()=>ownerMarket.scheduledDue('coin'),progressScheduled:m=>ownerMarket.progressScheduled('coin',m)});
 // One-time 2-hour quote adjustment; idempotent state survives Railway restarts.
 try{const campaign=jCoins.startAdjustment();console.log('[J-COIN EVENT]',JSON.stringify({startedAt:campaign.startedAt,endsAt:campaign.endsAt,targetPct:campaign.targetPct}));}catch(e){console.error('[J-COIN EVENT] Start failed:',e.message)}
 // Attach the same authoritative stock + coin leaderboard to GET and trade
@@ -2781,7 +2781,7 @@ const server=http.createServer(async(req,res)=>{
         const result=ownerMarket.apply({
           actorId:owner.id,type:body.type,symbol:body.symbol,mode:body.mode,
           deltaPercent:body.deltaPercent,volatilityPct:body.volatilityPct,
-          expectedPrice:body.expectedPrice,requestId:body.requestId
+          expectedPrice:body.expectedPrice,durationMinutes:body.durationMinutes,targetEventId:body.targetEventId,requestId:body.requestId
         });
         await db.flush();
         pushRefresh();

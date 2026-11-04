@@ -52,7 +52,7 @@
 <script defer src="/mobile-header.js?v=20261104-profit-label-v1"></script>
 <link rel="stylesheet" href="/casino-audit.css?v=20261105-receipt-proof-v7">
 <link rel="stylesheet" href="/casino-receipts.css?v=20261105-receipts-v1">
-<link rel="stylesheet" href="/owner-market.css?v=20261105-v1">
+<link rel="stylesheet" href="/owner-market.css?v=20261105-v8-schedule1">
 </head>
 <body>
 <div id="app">
@@ -336,6 +336,18 @@
               <p class="om-explain">개별 종목의 자동 변동 폭만 조정하며 시세를 즉시 이동시키지 않습니다.</p>
             </div>
           </div>
+          <section class="om-schedule" aria-labelledby="ownerMarketScheduleTitle">
+            <div class="om-schedule-head"><div><small>TIMED MARKET EVENT</small><h4 id="ownerMarketScheduleTitle">⏱ 예약 시세 이벤트</h4><p>목표 상승·하락률까지 5분 간격으로 천천히 움직입니다. 서버 재시작 후에도 진행률을 복구합니다.</p></div><span class="om-private">30 / 60 / 120 MIN</span></div>
+            <div class="om-schedule-controls">
+              <label>목표 변동률 (%) <input id="ownerMarketSchedulePercent" type="number" inputmode="decimal" step="0.01" value="10" aria-label="예약 목표 상승 또는 하락 비율"></label>
+              <label>진행 시간 <select id="ownerMarketDuration"><option value="30">30분</option><option value="60">1시간</option><option value="120">2시간</option></select></label>
+              <button id="ownerMarketScheduleStart" class="om-primary" type="button">이벤트 시작</button>
+              <button id="ownerMarketScheduleCancel" class="om-ghost" type="button" hidden>진행 중 이벤트 취소</button>
+            </div>
+            <p id="ownerMarketSchedulePreview" class="om-preview" aria-live="polite">목표 가격을 미리 확인한 다음 시작하세요.</p>
+            <div id="ownerMarketScheduleProgress" class="om-schedule-progress" aria-live="polite">진행 중인 이벤트가 없습니다.</div>
+            <p class="om-explain">진행 중에는 해당 종목의 일반 자동 시세변동과 중복 즉시 조정을 막습니다. 취소하면 이미 반영된 가격은 그대로 유지됩니다.</p>
+          </section>
           <div class="om-history-head"><h4>최근 운영자 변경 기록</h4><span>원장 보관 · 재로그인 후 유지</span></div>
           <div id="ownerMarketHistory" class="om-history" aria-live="polite">현재 시세 조회를 누르면 기록이 표시됩니다.</div>
           <p id="ownerMarketStatus" class="om-status" role="status" aria-live="polite"></p>
@@ -421,7 +433,7 @@
 </div>
 <script src="/casino-audit-ui.js?v=20261105-receipt-proof-v7" defer></script>
 <script defer src="/casino-receipts-ui.js?v=20261105-receipts-v1"></script>
-<script defer src="/owner-market-ui.js?v=20261105-v1"></script>
+<script defer src="/owner-market-ui.js?v=20261105-v8-schedule1"></script>
 </body>
 </html>
 

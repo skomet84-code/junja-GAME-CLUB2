@@ -10,6 +10,7 @@ on:
       - 'public/owner-market-ui.js'
       - 'public/owner-market.css'
       - 'tests/market-operator*.cjs'
+      - 'tests/market-timed-events.cjs'
       - 'tests/market-operator*.mjs'
       - '.github/workflows/owner-market-control.yml'
   workflow_dispatch:
@@ -34,6 +35,7 @@ jobs:
       - name: Verify market settlement and volatility invariants
         run: |
           node tests/market-operator.cjs
+          node tests/market-timed-events.cjs
           node tests/j-stock.cjs
           node tests/j-coin.cjs
       - name: Validate live HTTP login, quote control and restart persistence

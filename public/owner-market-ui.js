@@ -7,6 +7,7 @@
  const input=el('ownerMarketPercent'),vol=el('ownerMarketVolSelect');
  const priceBtn=el('ownerMarketApplyPrice'),volBtn=el('ownerMarketApplyVol');
  const status=el('ownerMarketStatus'),preview=el('ownerMarketPreview');
+ const schedPercent=el('ownerMarketSchedulePercent'),duration=el('ownerMarketDuration'),schedPreview=el('ownerMarketSchedulePreview'),schedProgress=el('ownerMarketScheduleProgress'),schedStart=el('ownerMarketScheduleStart'),schedCancel=el('ownerMarketScheduleCancel');
  const history=el('ownerMarketHistory');
  let snapshot=null,loading=false,pendingKey=null;
  const fmt=x=>{try{return BigInt(x).toLocaleString('ko-KR')+' G'}catch{return '—'}};
@@ -40,6 +41,70 @@
   preview.textContent=fmt(old)+' → '+fmt(next)+' ('+(bp>0?'+':'')+(bp/100).toFixed(2)+'%)';
   return {old,next,bp};
  }
+
+ function activeSchedule(){
+  const item=selected();
+  if(!item)return null;
+  return snapshot?.schedules?.[market.value]?.[item.id]||null;
+ }
+ function scheduleEstimate(){
+  const item=selected();
+  if(!item){schedPreview.textContent='시장과 종목을 선택하세요.';return null;}
+  const m=/^([+-]?)(\d{1,3})(?:\.(\d{1,2}))?$/.exec(String(schedPercent.value||'').trim());
+  if(!m){schedPreview.textContent='목표 변동률을 소수점 두 자리까지 입력하세요.';return null;}
+  const bp=(m[1]==='-'?-1:1)*(Number(m[2])*100+Number((m[3]||'').padEnd(2,'0')));
+  if(!bp||bp<limit().minPercent*100||bp>limit().maxPercent*100){
+   schedPreview.textContent='허용 범위: '+limit().minPercent+'% ~ +'+limit().maxPercent+'% (0% 제외)';return null;
+  }
+  const old=BigInt(item.price),next=(old*BigInt(10000+bp)+5000n)/10000n;
+  if(next===old||next<100n||(market.value==='stock'&&next>100000000n)||(market.value==='coin'&&next>1000000000000n)){
+   schedPreview.textContent='목표 가격이 현재가와 같거나 허용 범위를 벗어납니다.';return null;
+  }
+  const mins=Number(duration.value);
+  schedPreview.textContent=fmt(old)+' → '+fmt(next)+' · '+mins+'분 ('+mins/5+'단계)';
+  return {old,next,bp,mins};
+ }
+ function showSchedule(){
+  const item=selected(),evt=activeSchedule();
+  const running=evt?.status==='RUNNING';
+  schedCancel.hidden=!running;
+  schedStart.disabled=loading||!item||running;
+  schedCancel.disabled=loading||!running;
+  if(running){
+   schedProgress.textContent='진행 중 · '+evt.step+' / '+evt.totalSteps+'단계 · 시작 '+fmt(evt.startPrice)+' → 목표 '+fmt(evt.targetPrice)+' · 종료 예상 '+new Date(evt.endsAt).toLocaleString('ko-KR',{timeZone:'Asia/Seoul'});
+   schedPreview.textContent='진행 중인 이벤트를 취소하거나 완료될 때까지 기다려주세요.';
+  }else{
+   schedProgress.textContent=evt?.status==='COMPLETED'?'마지막 이벤트 완료 · 현재가 '+fmt(item.price):
+    evt?.status==='CANCELED'?'마지막 이벤트 취소됨 · 현재가 '+fmt(item.price):'진행 중인 이벤트가 없습니다.';
+   scheduleEstimate();
+  }
+ }
+ async function saveSchedule(mode){
+  if(loading)return;
+  const item=selected(),evt=activeSchedule();
+  if(!item){status.textContent='종목을 먼저 불러와주세요.';return;}
+  const estimate=mode==='schedule'?scheduleEstimate():null;
+  if(mode==='schedule'&&!estimate){status.textContent='목표 가격을 확인해주세요.';return;}
+  if(mode==='cancel'&&(!evt||evt.status!=='RUNNING')){status.textContent='취소할 진행 중 이벤트가 없습니다.';return;}
+  const msg=mode==='schedule'?
+   item.name+' 시세를 '+estimate.mins+'분에 걸쳐 '+fmt(estimate.old)+' → '+fmt(estimate.next)+'로 이동시킬까요?\n모든 회원의 평가금액에 영향을 줍니다.':
+   item.name+'의 예약 이벤트를 취소할까요?\n이미 적용된 가격은 복구되지 않습니다.';
+  if(!window.confirm(msg))return;
+  const body={type:market.value,symbol:item.id,mode,
+   requestId:pendingKey||requestId(),deltaPercent:String(schedPercent.value),
+   expectedPrice:item.price,durationMinutes:Number(duration.value),targetEventId:evt?.id||null};
+  pendingKey=body.requestId;loading=true;refresh.disabled=true;priceBtn.disabled=true;volBtn.disabled=true;schedStart.disabled=true;schedCancel.disabled=true;
+  status.textContent='서버에 예약 이벤트를 적용하는 중입니다…';
+  try{
+   const response=await fetch('/api/admin/market-control',{method:'POST',credentials:'same-origin',
+    headers:{'Content-Type':'application/json',Accept:'application/json'},body:JSON.stringify(body)});
+   const result=await response.json();
+   if(!response.ok)throw Error(result.error||'이벤트 요청이 거부됐습니다.');
+   clearPending();snapshot=result.market;draw();
+   status.textContent=(result.duplicate?'이미 반영됨: ':'이벤트 적용 완료: ')+item.name+' '+(mode==='schedule'?'예약 시작 · '+result.schedule.durationMinutes+'분':'예약 취소')+' · 서버 기록 보관됨';
+  }catch(e){status.textContent='예약 변경 실패: '+String(e.message||e).slice(0,190);}
+  finally{loading=false;refresh.disabled=false;showSelected();}
+ }
  function showSelected(){
   const a=selected();
   el('ownerMarketCurrent').textContent=a?fmt(a.price):'—';
@@ -51,6 +116,7 @@
   priceBtn.disabled=!a||loading;
   volBtn.disabled=!a||loading;
   estimate();
+  showSchedule();
  }
  function selectMarket(){
   const items=snapshot?.markets?.[market.value]||[];
@@ -139,6 +205,10 @@
  asset.addEventListener('change',()=>{clearPending();showSelected()});
  input.addEventListener('input',()=>{clearPending();estimate()});
  vol.addEventListener('change',clearPending);
+ schedPercent.addEventListener('input',()=>{clearPending();showSchedule()});
+ duration.addEventListener('change',()=>{clearPending();showSchedule()});
+ schedStart.addEventListener('click',()=>saveSchedule('schedule'));
+ schedCancel.addEventListener('click',()=>saveSchedule('cancel'));
  refresh.addEventListener('click',()=>{clearPending();load()});
  priceBtn.addEventListener('click',()=>apply('price'));
  volBtn.addEventListener('click',()=>apply('volatility'));
