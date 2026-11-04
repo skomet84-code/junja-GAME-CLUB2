@@ -42,11 +42,11 @@ const safeMethods=['POST','showcase','credentials'];for(const word of safeMethod
 assert.equal(gallery.includes('balance='),false,'museum must not mutate user balance');
 assert.equal(gallery.includes('localStorage'),false,'server remains source of ownership');
 
-assert.match(gallery,/href="\\/premium-preview\\.html"/,'Visitors can inspect private collection preview from museum');
-assert.match(gallery,/판매 전/,'Premium preview entry must identify unpaid preview stage');
-assert.match(gallery,/rel="noopener noreferrer"/,'External tab must not access the original tab');
-assert.match(style,/jrg-premium-tour-link/,'Museum preview entry styled in royal theme');
-assert.match(index,/royal-gallery\\.js\\?v=20261103-v10[^"']*premium-tour-v1/,'Browser must fetch updated museum frontend');
-assert.match(index,/royal-gallery\\.css\\?v=20261103-vault-v8[^"']*premium-tour-v1/,'Browser must fetch updated museum CSS');
-assert.match(source('public/premium-preview.html'),/실제 판매\\/결제 불가/,'Landing destination must disclose payment off');
+assert(gallery.includes('href="/premium-preview.html"'),'Museum premium tour URL missing');
+assert(gallery.includes('판매 전'),'Premium preview must disclose no live sales');
+assert(gallery.includes('rel="noopener noreferrer"'),'New tab must be safe');
+assert(style.includes('jrg-premium-tour-link'),'Museum premium link needs theme styling');
+assert(index.includes('royal-gallery.js?v=20261103-v10-jewel-v12-provenance-v2-premium-tour-v1'),'Updated JS must be cache-busted');
+assert(index.includes('royal-gallery.css?v=20261103-vault-v8-premium-tour-v1'),'Updated CSS must be cache-busted');
+assert(source('public/premium-preview.html').includes('실제 판매/결제 불가'),'Preview must disclose no checkout');
 console.log('ROYAL_MUSEUM_V4_OK: illustrated independent palace, visitor gallery, owned exhibit operations, mobile visuals');
