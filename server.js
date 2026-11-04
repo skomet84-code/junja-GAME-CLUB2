@@ -20,6 +20,7 @@ const {BASE:SLOT_POOL_BASE,output:slotPoolOutput,readPool:readSlotJackpotPool}=r
 const {combinedInvestmentRanking}=require('./j-investment-ranking');
 const { DatabaseSync } = require('./persistent-db');
 const {report: jplAdminReport}=require('./jpl-admin-report');
+const {auditCasinoSettlements}=require('./casino-settlement-audit');
 const createTreasureRaid = require('./treasure-raid-server');
 const createBlackroomCloud = require('./blackroom-cloud');
 
@@ -2742,6 +2743,36 @@ const server=http.createServer(async(req,res)=>{
         WHERE (?='' OR u.username LIKE ? OR u.nickname LIKE ?) AND (?=1 OR u.is_archived=0)
         ORDER BY u.is_admin DESC,u.id DESC LIMIT 100`).all(q,like,like,showArchived?1:0).map(x=>({...x,avatarEmoji:AVATARS[x.avatar%AVATARS.length]}));
       return json(res,200,{rows});
+    }
+    // Casino settlement oversight: strictly read-only and only accessible to the named lead operator.
+    // Legacy losing rounds do not store the result number; no missing payout is inferred from debit-only records.
+    if(url.pathname==='/api/admin/casino-settlements'&&req.method==='GET'){
+      const admin=requireAdmin(req,res);if(!admin)return;
+      if(!admin.jpl_access)return json(res,403,{error:'카지노 정산 관제센터는 대표 운영자 전용입니다.'});
+      if(!rateLimit('casino-audit:'+admin.id,12,60000))return json(res,429,{error:'정산 원장 조회가 너무 빠릅니다.'});
+      try{
+        const search=String(url.searchParams.get('member')||'').trim().slice(0,32);
+        let userId=null;
+        if(search){
+          if(/^\d{1,12}$/.test(search)){
+            userId=Number(search);
+            if(!Number.isSafeInteger(userId)||userId<1)throw new Error('유효하지 않은 회원 번호입니다.');
+          }else{
+            const found=db.prepare('SELECT id FROM users WHERE nickname=? COLLATE NOCASE OR username=? COLLATE NOCASE LIMIT 1').get(search,search);
+            if(!found)return json(res,404,{error:'일치하는 회원을 찾지 못했습니다.'});
+            userId=Number(found.id);
+          }
+        }
+        const rawLimit=url.searchParams.get('limit')||'40';
+        if(!/^\d{1,2}$/.test(rawLimit))throw new Error('조회 개수가 올바르지 않습니다.');
+        const rawBefore=url.searchParams.get('beforeId');
+        if(rawBefore!==null&&!/^\d{1,15}$/.test(rawBefore))throw new Error('조회 커서가 올바르지 않습니다.');
+        const report=auditCasinoSettlements(db,{
+          userId,game:url.searchParams.get('game')||'all',limit:Number(rawLimit),
+          beforeId:rawBefore===null?null:Number(rawBefore)
+        });
+        return json(res,200,report);
+      }catch(e){return json(res,400,{error:e.message});}
     }
     if(url.pathname==='/api/admin/audit'&&req.method==='GET'){
       const admin=requireAdmin(req,res);if(!admin)return;
