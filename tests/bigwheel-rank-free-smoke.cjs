@@ -8,6 +8,8 @@ if(!app.includes("const useRankFree=!!forceRankFree||(!auto&&rankFreeWheelNext)"
 if(!app.includes("async function runRankFreeWheelAuto()"))throw new Error('Big Wheel rank-free auto runner missing');
 if(!app.includes("spinBigWheel(true,true)"))throw new Error('Rank-free auto runner must use fast forced-free spins');
 if(!app.includes("게임머니 차감 없음"))throw new Error('Rank-free auto confirmation must explain no wallet charge');
-if(!server.includes("consumeRankFreePlay(userId,'wheel',!!useRankFree)"))throw new Error('Server Big Wheel rank-free consumption missing');
-if(!server.includes("if(!freePlay.free)walletChange(userId,-bet,'bigwheel_bet'"))throw new Error('Server wallet-free guard missing');
+if(!/consumeRankFreePlay\((?:uid|userId),'wheel',!!useRankFree\)/.test(server))throw new Error('Server Big Wheel rank-free consumption missing');
+if(!server.includes('const spent=freePlay.free?0n:amount;'))throw new Error('Free spins must never subtract a wager');
+if(!server.includes("if(spent>0n)ledger.run("))throw new Error('Server wallet-free ledger guard missing');
+if(!server.includes("db.exec('BEGIN IMMEDIATE');"))throw new Error('Big Wheel must settle atomically');
 console.log('BIGWHEEL_RANK_FREE_TESTS_OK');
