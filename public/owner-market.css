@@ -40,3 +40,17 @@
 #view-admin .om-warning{font-size:11px;color:#b6a8ab;line-height:1.7;margin:16px 0 0;border-top:1px solid #4a3f4d;padding-top:12px}
 @media(max-width:760px){#view-admin .owner-market{padding:16px 13px;border-radius:14px}#view-admin .om-head h3{font-size:20px}#view-admin .om-private{font-size:8px;padding:6px}#view-admin .om-split{grid-template-columns:1fr 1fr}#view-admin .om-split button{grid-column:1/-1}#view-admin .om-actions{grid-template-columns:1fr}#view-admin .om-quote{gap:6px}#view-admin .om-quote>div{padding:10px 8px}#view-admin .om-quote strong{font-size:13px}#view-admin .om-event{font-size:11px}}
 @media(max-width:380px){#view-admin .om-quote{grid-template-columns:1fr 1fr}#view-admin .om-quote>div:last-child{grid-column:1/-1}}
+
+/* V8: scheduled multi-step price-event control */
+#view-admin .om-schedule{margin-top:16px;padding:19px 18px 16px;border:1px solid #876f64;border-radius:14px;background:radial-gradient(ellipse at 85% 0%,rgba(142,95,90,.19),transparent 55%),#201c29}
+#view-admin .om-schedule-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+#view-admin .om-schedule-head small{font:700 10px/1.6 Georgia,serif;letter-spacing:.16em;color:#d0a67c}
+#view-admin .om-schedule-head h4{font:700 18px/1.3 Georgia,"Noto Serif KR",serif;margin:4px 0 7px;color:#f7deb6}
+#view-admin .om-schedule-head p{font-size:11px;line-height:1.7;color:#c6b9bf;margin:0 0 14px}
+#view-admin .om-schedule-controls{display:grid;grid-template-columns:1fr 1fr auto auto;align-items:end;gap:9px}
+#view-admin .om-schedule-controls button{min-width:0}
+#view-admin .om-schedule-progress{margin-top:13px;padding:12px 13px;border-radius:10px;border:1px solid #524755;color:#ead3af;background:#171721;font-size:12px;line-height:1.6;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+#view-admin .om-schedule .om-preview{margin-top:13px!important}
+#view-admin .om-schedule .om-explain{font-size:11px;line-height:1.7;color:#b6a7b7;margin:12px 0 0}
+@media(max-width:880px){#view-admin .om-schedule-controls{grid-template-columns:1fr 1fr}#view-admin .om-schedule-controls button{width:100%}}
+@media(max-width:460px){#view-admin .om-schedule{padding:14px 10px}#view-admin .om-schedule-head h4{font-size:17px}#view-admin .om-schedule-head .om-private{white-space:normal;text-align:center}#view-admin .om-schedule-controls{grid-template-columns:1fr 1fr}#view-admin .om-schedule-controls>button{grid-column:1/-1}}
