@@ -1732,16 +1732,16 @@ function rouletteSpin(user,rawBets){
   let result,eventWinner=false;
   db.exec('BEGIN IMMEDIATE');
   try{
-    const fresh=db.prepare('SELECT CAST(balance AS TEXT) AS balance FROM users WHERE id=?').get(user.id);
+    const fresh=db.prepare('SELECT CAST(balance AS TEXT) AS balance,balance_exact,balance_base FROM users WHERE id=?').get(user.id);
     if(!fresh)throw new Error('사용자를 찾을 수 없습니다.');
-    const balance=BigInt(fresh.balance),remaining=balance-totalBet;
+    // Use the authoritative exact-G wallet. The legacy int64 mirror can be capped at 9e18.
+    const balance=exactWallet.read(fresh),remaining=balance-totalBet;
     if(remaining<0n)throw new Error('전체 베팅금이 보유 게임머니보다 많아.');
     const stats=db.prepare('SELECT CAST(roulette_profit AS TEXT) AS profit FROM stats WHERE user_id=?').get(user.id);
     const previousProfit=BigInt(stats?.profit||0),winningNumbers=[];
     // Reject an unpayable slip before drawing or debiting; never forfeit a winning payout.
     for(let n=0;n<=36;n++){
       const paid=bets.reduce((a,b)=>a+(rouletteBetWins(b,n)?BigInt(b.amount)*BigInt(b.mult):0n),0n);
-      if(remaining+paid>9000000000000000000n)throw new Error('예상 당첨금이 게임머니 저장 한도를 초과합니다. 베팅금액을 줄여주세요.');
       const net=previousProfit+paid-totalBet;
       if(net>9223372036854775807n||net< -9223372036854775808n)throw new Error('룰렛 누적 손익 저장 한도를 초과합니다.');
       if(paid>0n)winningNumbers.push(n);
@@ -1752,10 +1752,11 @@ function rouletteSpin(user,rawBets){
     let payout=0n;
     const settled=bets.map(b=>{const won=rouletteBetWins(b,number),returned=won?BigInt(b.amount)*BigInt(b.mult):0n;payout+=returned;return {...b,won,returned:returned.toString()};});
     const profit=payout-totalBet,next=remaining+payout,t=now();
-    db.prepare('UPDATE users SET balance=? WHERE id=?').run(next,user.id);
-    const ledger=db.prepare('INSERT INTO ledger(user_id,amount,balance_after,type,memo,created_at) VALUES(?,?,?,?,?,?)');
-    ledger.run(user.id,-totalBet,remaining,'roulette_bet',`유럽식 룰렛 ${bets.length}개 · ${formatMoney(totalBet)}G | ${bets.map(b=>`${b.kind}:${Array.isArray(b.target)?b.target.join('/'):b.target??'-'}:${b.amount}G`).join(', ')}`,t);
-    if(payout>0n)ledger.run(user.id,payout,next,'roulette_win',`룰렛 ${number} ${color.toUpperCase()} · 지급 ${formatMoney(payout)}G`,t);
+    const nextMirror=exactWallet.mirror(next),remainingMirror=exactWallet.mirror(remaining);
+    db.prepare('UPDATE users SET balance=?,balance_exact=?,balance_base=? WHERE id=?').run(nextMirror,String(next),String(nextMirror),user.id);
+    const ledger=db.prepare('INSERT INTO ledger(user_id,amount,balance_after,amount_exact,balance_after_exact,type,memo,created_at) VALUES(?,?,?,?,?,?,?,?)');
+    ledger.run(user.id,exactWallet.mirror(-totalBet),remainingMirror,String(-totalBet),String(remaining),'roulette_bet',`유럽식 룰렛 ${bets.length}개 · ${formatMoney(totalBet)}G | ${bets.map(b=>`${b.kind}:${Array.isArray(b.target)?b.target.join('/'):b.target??'-'}:${b.amount}G`).join(', ')}`,t);
+    if(payout>0n)ledger.run(user.id,exactWallet.mirror(payout),nextMirror,String(payout),String(next),'roulette_win',`룰렛 ${number} ${color.toUpperCase()} · 지급 ${formatMoney(payout)}G`,t);
     db.prepare('UPDATE stats SET roulette_plays=roulette_plays+1,roulette_wins=roulette_wins+?,roulette_profit=? WHERE user_id=?').run(payout>0n?1:0,previousProfit+profit,user.id);
     result={number,color,index:ROULETTE_WHEEL.indexOf(number),bets:settled,totalBet:totalBet.toString(),payout:payout.toString(),profit:profit.toString()};
     db.exec('COMMIT');
