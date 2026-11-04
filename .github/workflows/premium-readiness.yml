@@ -9,6 +9,7 @@ on:
       - 'premium-appearance-store.js'
       - 'tests/premium-appearance-store.cjs'
       - 'tests/premium-toss-readonly.cjs'
+      - 'tests/premium-toss-pg-integration.cjs'
       - 'tests/premium-purchase-core.cjs'
       - 'tests/premium-pg-core.cjs'
       - 'public/premium-preview.html'
@@ -63,5 +64,7 @@ jobs:
         run: |
           node --check premium-toss-readonly.js
           node tests/premium-toss-readonly.cjs
+      - name: Verify Toss read-only checks and PG fulfillment work together
+        run: node tests/premium-toss-pg-integration.cjs
       - name: Verify premium preview does not accept payments
         run: node tests/premium-preview-safe.cjs
