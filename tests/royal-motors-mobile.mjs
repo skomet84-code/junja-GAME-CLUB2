@@ -37,7 +37,7 @@ for(const [engineName,engine] of runs){
   errors:[...document.querySelectorAll('#royalBoutiqueRoot .jrp-error')].map(x=>x.textContent)
  }));
  console.log('REAL_LUXURY_SHOP_'+engineName.toUpperCase(),JSON.stringify(result));
- await page.screenshot({path:'/tmp/junja-royal-motors-'+engineName+'.png',fullPage:true});
+ await page.screenshot({path:'/tmp/junja-royal-motors-'+engineName+'.png',fullPage:false});
  if(result.errors.length)throw Error(engineName+' boutique error '+JSON.stringify(result.errors));
  if(result.overflow>8)throw Error(engineName+' horizontal overflow '+result.overflow);
  if(result.photos.length!==6||result.photos.some(x=>!x.loaded)||result.photos.some(x=>!x.src.includes('/art/royal/cinematic/')))throw Error(engineName+' broken six-room cinematic images '+JSON.stringify(result.photos));
@@ -55,13 +55,13 @@ for(const [engineName,engine] of runs){
    errors:[...document.querySelectorAll('#view-gallery .jrg-load-error')].map(x=>x.textContent)
  }));
  console.log('REAL_LUXURY_MUSEUM_'+engineName.toUpperCase(),JSON.stringify(gallery));
- await page.screenshot({path:'/tmp/junja-royal-gallery-'+engineName+'.png',fullPage:true});
+ await page.screenshot({path:'/tmp/junja-royal-gallery-'+engineName+'.png',fullPage:false});
  if(gallery.errors.length||gallery.owned!==3||gallery.roomCount<4||gallery.roomCount!==demo.collector.rooms.length||gallery.photos.length!==3||gallery.photos.some(x=>!x.loaded||!x.accessibility)||gallery.overflow>8||gallery.privateSerials.length!==3||gallery.privateSerials.some(x=>!x.startsWith('№ ')))throw Error(engineName+' museum visual regression '+JSON.stringify(gallery));
  await page.locator('.jrg-vault-certificate-btn').first().click();
  await page.waitForSelector('#view-gallery .jrg-certificate-dialog');
  const cert=await page.locator('#view-gallery .jrg-certificate-dialog').innerText();
  if(!cert.includes('로얄검수')||!cert.includes('№ 00')||!cert.includes('게임 안에서만'))throw Error(engineName+' invalid owner certificate '+cert.slice(0,500));
- await page.screenshot({path:'/tmp/junja-royal-certificate-'+engineName+'.png',fullPage:true});
+ await page.screenshot({path:'/tmp/junja-royal-certificate-'+engineName+'.png',fullPage:false});
  await page.locator('.jrg-cert-close').click();
  if(await page.locator('.jrg-certificate-dialog').count())throw Error('certificate dialog could not close');
  await page.locator('[data-jrg-sort="recent"]').click();
