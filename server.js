@@ -2694,6 +2694,26 @@ const server=http.createServer(async(req,res)=>{
         return json(res,200,{ok:true,amount:Number(salary),balance:exactWallet.output(balance),rank:rank.name,user:userPublic(u.id)});
       }catch(e){try{db.exec('ROLLBACK')}catch{}throw e;}
     }
+    // v7 round receipts: immutable ledger-backed evidence. Members can read ONLY their own entries.
+    if(url.pathname==='/api/casino/receipts'&&req.method==='GET'){
+      const u=requireAuth(req,res);if(!u)return;
+      if(!rateLimit('casino-receipts:'+u.id,24,60000))return json(res,429,{error:'영수증 조회가 너무 빠릅니다.'});
+      try{
+        const rawLimit=url.searchParams.get('limit')||'20';
+        const rawBefore=url.searchParams.get('beforeId');
+        const rawId=url.searchParams.get('receiptId');
+        if(!/^[1-9]\d{0,1}$/.test(rawLimit)||
+          rawBefore!==null&&!/^[1-9]\d{0,14}$/.test(rawBefore)||
+          rawId!==null&&!/^[1-9]\d{0,14}$/.test(rawId))throw new Error('영수증 조회 조건이 올바르지 않습니다.');
+        const report=casinoReceipts.listRoundReceipts(db,{
+          userId:u.id,game:url.searchParams.get('game')||'all',
+          limit:Number(rawLimit),
+          beforeId:rawBefore===null?null:Number(rawBefore),
+          receiptId:rawId===null?null:Number(rawId)
+        });
+        return json(res,200,report);
+      }catch(e){return json(res,400,{error:e.message});}
+    }
     if(url.pathname==='/api/ledger'&&req.method==='GET'){
       const u=requireAuth(req,res);if(!u)return;const rows=db.prepare('SELECT id,COALESCE(amount_exact,amount) AS amount,COALESCE(balance_after_exact,balance_after) AS balance_after,type,memo,created_at FROM ledger WHERE user_id=? ORDER BY id DESC LIMIT 30').all(u.id);return json(res,200,{rows});
     }
@@ -2767,6 +2787,25 @@ const server=http.createServer(async(req,res)=>{
     }
     // Casino settlement oversight: strictly read-only and only accessible to the named lead operator.
     // Legacy losing rounds do not store the result number; no missing payout is inferred from debit-only records.
+    // Admin receipt inspection requires operator access and explicit member id; no money-changing operations.
+    if(url.pathname==='/api/admin/casino-receipts'&&req.method==='GET'){
+      const admin=requireAdmin(req,res);if(!admin)return;
+      if(!admin.jpl_access)return json(res,403,{error:'대표 운영자 전용 영수증 조회입니다.'});
+      if(!rateLimit('casino-receipts-admin:'+admin.id,20,60000))return json(res,429,{error:'영수증 조회 제한입니다.'});
+      try{
+        const rawUser=url.searchParams.get('userId');
+        const rawId=url.searchParams.get('receiptId');
+        if(!/^[1-9]\d{0,12}$/.test(rawUser||'')||
+          rawId!==null&&!/^[1-9]\d{0,14}$/.test(rawId))throw new Error('회원 또는 영수증 번호를 올바르게 입력해주세요.');
+        const uid=Number(rawUser);
+        if(!db.prepare('SELECT 1 FROM users WHERE id=?').get(uid))return json(res,404,{error:'회원을 찾을 수 없습니다.'});
+        const report=casinoReceipts.listRoundReceipts(db,{
+          userId:uid,game:url.searchParams.get('game')||'all',
+          receiptId:rawId===null?null:Number(rawId),limit:20
+        });
+        return json(res,200,report);
+      }catch(e){return json(res,400,{error:e.message});}
+    }
     if(url.pathname==='/api/admin/casino-settlements'&&req.method==='GET'){
       const admin=requireAdmin(req,res);if(!admin)return;
       if(!admin.jpl_access)return json(res,403,{error:'카지노 정산 관제센터는 대표 운영자 전용입니다.'});
