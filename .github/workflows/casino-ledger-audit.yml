@@ -1,0 +1,64 @@
+name: Casino Ledger Audit Guard
+on:
+  pull_request:
+    paths:
+      - 'casino-settlement-audit.js'
+      - 'server.js'
+      - 'public/index.html'
+      - 'public/casino-audit-ui.js'
+      - 'public/casino-audit.css'
+      - 'tests/casino-settlement-audit.cjs'
+      - 'tests/casino-settlement-audit-http.cjs'
+      - 'tests/casino-audit-static.cjs'
+      - 'tests/casino-audit-mobile.mjs'
+      - '.github/workflows/casino-ledger-audit.yml'
+  workflow_dispatch:
+jobs:
+  operator-ledger-review:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+      - name: Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax and static no-write checks
+        run: |
+          node --check casino-settlement-audit.js
+          node --check public/casino-audit-ui.js
+          node --check server.js
+          node tests/casino-audit-static.cjs
+      - name: Exercise roulette and bigwheel exact-G evidence reconstruction
+        run: node tests/casino-settlement-audit.cjs
+      - name: Confirm real server authentication and read-only operation
+        run: |
+          npm install --omit=dev --no-audit --no-fund --ignore-scripts
+          node tests/casino-settlement-audit-http.cjs
+
+  operator-mobile-browser:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+      - name: Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install browser QA
+        run: |
+          npm install --no-save --no-package-lock --ignore-scripts --no-audit --no-fund playwright
+          npx playwright install --with-deps chromium webkit
+      - name: Verify operator dashboard on mobile and desktop
+        run: node tests/casino-audit-mobile.mjs
+      - name: Save viewport evidence when check fails
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: casino-audit-viewport-evidence
+          path: /tmp/junja-casino-audit-*.png
+          if-no-files-found: ignore
