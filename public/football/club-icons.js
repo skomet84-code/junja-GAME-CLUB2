@@ -52,7 +52,7 @@ const premiumSpecial={
     '<path d="M16 29 24 36 32 23 40 36 48 29" fill="none" stroke="#fff8e5" stroke-width="1.3" opacity=".8"/>'+
     '<circle cx="13" cy="25" r="3" fill="#ffedb9"/><circle cx="32" cy="17" r="3.2" fill="#ffedb9"/><circle cx="51" cy="25" r="3" fill="#ffedb9"/>'+
     '<path d="M27 40 32 35 37 40 32 45Z" fill="#a82f35" stroke="#ffefba" stroke-width="1"/>'+
-    '<path d="M23 57H41" stroke="#f7dc9d" stroke-width="1.6"/><text x="32" y="68" fill="#fff7df" font-family="Georgia,serif" font-size="16" font-weight="bold" text-anchor="middle">J</text>',
+    '<path d="M23 57H41" stroke="#f7dc9d" stroke-width="1.6"/><text x="32" y="61" fill="#fff7df" font-family="Georgia,serif" font-size="16" font-weight="bold" text-anchor="middle">J</text>',
   happy:
     '<path d="M14 20H50V52L32 64 14 52Z" fill="#0d204f" stroke="#ffe5a8" stroke-width="2"/>'+
     '<path d="M15 22H32V45H15Z" fill="#932845"/><path d="M33 22H49V45H33Z" fill="#234a9a"/>'+
@@ -117,7 +117,7 @@ function badge(c,cls='',id=''){
  const series=Array.from({length:stars},(_,i)=>star(40+(i-(stars-1)/2)*11,18,3.8)).join('');
  const baseSymbol=premiumSpecial[c.id];
  const raisedSymbol=baseSymbol
-   ?'<g transform="translate(8 12)">'+baseSymbol.replace(/#METAL#/g,metal)+'</g>'
+   ?'<g transform="translate(8 12)">'+baseSymbol.replace(/#METAL#/g,'#'+metal)+'</g>'
    :'<g transform="translate(7 17)">'+
        '<g fill="none" stroke="#0b131b" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round" opacity=".72">'+icon+'</g>'+
        '<g fill="none" stroke="url(#'+metal+')" stroke-width="3.3" stroke-linecap="round" stroke-linejoin="round">'+icon+'</g>'+
