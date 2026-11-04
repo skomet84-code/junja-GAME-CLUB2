@@ -2367,6 +2367,7 @@ const server=http.createServer(async(req,res)=>{
     // Only verified operators may inspect all members' JPL tickets.
     if(url.pathname==='/api/admin/jpl-bets'&&req.method==='GET'){
       const admin=requireAdmin(req,res);if(!admin)return;
+      if(!admin.jpl_access)return json(res,403,{error:'준자리그 관제센터는 대표 운영자 전용입니다.'});
       if(!rateLimit('jpl-admin-report:'+admin.id,30,60000))
         return json(res,429,{error:'베팅 현황 조회가 너무 빠릅니다.'});
       try{
