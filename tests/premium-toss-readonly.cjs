@@ -19,7 +19,7 @@ const code=value=>e=>e?.code===value;
  const v=createTossReadOnlyVerifier({enabled:true,secretKey:secret,fetchImpl});
  const input={orderId:'JP-123456789',paymentKey:'fake-payment-key-123',expectedAmountKrw:9900};
  const done=await v.verifyPayment(input);
- assert.deepEqual(done,{status:'APPROVED',...input,amountKrw:9900,currency:'KRW',expectedAmountKrw:undefined} && {status:'APPROVED',orderId:input.orderId,paymentKey:input.paymentKey,amountKrw:9900,currency:'KRW'});
+ assert.deepEqual(done,{status:'APPROVED',orderId:input.orderId,paymentKey:input.paymentKey,amountKrw:9900,currency:'KRW'});
  assert.equal(calls[0].init.method,'GET');assert(calls[0].url.startsWith('https://api.tosspayments.com/v1/payments/'));
  assert.equal(calls[0].init.headers.Authorization,'Basic '+Buffer.from(secret+':').toString('base64'));
  assert(calls.every(x=>x.init.method==='GET'));
