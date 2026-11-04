@@ -67,6 +67,25 @@ function decodeRoundEvidence(memo){
 }
 const actual=(row,k)=>row[k]??row[k==='amount_exact'?'amount':'balance_after'];
 const asBig=x=>{try{if(!/^-?\d+$/.test(String(x)))return null;return BigInt(String(x));}catch{return null;}};
+const ROULETTE_MULT=Object.freeze({straight:36,split:18,street:12,corner:9,sixline:6,dozen:3,column:3,red:2,black:2,odd:2,even:2,low:2,high:2});
+const RED_NUMBERS=new Set([1,3,5,7,9,12,14,16,18,19,21,23,25,27,30,32,34,36]);
+function rouletteHit(b,n){
+ const a=Number(b.target),numbers=Array.isArray(b.target)?b.target.map(Number):[];
+ if(b.kind==='straight')return n===a;
+ if(b.kind==='split'||b.kind==='corner')return numbers.includes(n);
+ if(b.kind==='street')return a>=1&&a<=12&&n>=a*3-2&&n<=a*3;
+ if(b.kind==='sixline')return a>=1&&a<=11&&n>=a*3-2&&n<=(a+1)*3;
+ if(b.kind==='dozen')return n>=1+(a-1)*12&&n<=a*12;
+ if(b.kind==='column')return n>0&&((n-1)%3)+1===a;
+ if(b.kind==='red')return RED_NUMBERS.has(n);
+ if(b.kind==='black')return n>0&&!RED_NUMBERS.has(n);
+ if(b.kind==='odd')return n>0&&n%2===1;
+ if(b.kind==='even')return n>0&&n%2===0;
+ if(b.kind==='low')return n>0&&n<=18;
+ if(b.kind==='high')return n>=19&&n<=36;
+ return null;
+}
+const WHEEL_MULT=Object.freeze({x2:2,x3:3,x5:5,x10:10,x15:15,junja:100});
 function evaluateRound(db,row){
  const event=decodeRoundEvidence(row.memo);
  const base={receiptId:row.id,reference:'JRR7-L'+row.id,game:event?.game??null,
@@ -89,13 +108,19 @@ function evaluateRound(db,row){
    const v=asBig(b.amountG),ret=asBig(b.returnedG);
    if(v===null||v<1n||ret===null||!Number.isSafeInteger(b.mult)||b.mult<1||b.mult>36){errors.push('BET_LINES_INVALID');break;}
    stake+=v;sum+=ret;
-   if(ret!==(b.won?v*BigInt(b.mult):0n))errors.push('BET_MULTIPLIER_MISMATCH');
+   const hit=rouletteHit(b,Number(event.outcome.number));
+   if(hit===null||b.mult!==ROULETTE_MULT[b.kind])errors.push('BET_KIND_INVALID');
+   if(hit!==b.won)errors.push('ROULETTE_RESULT_BET_MISMATCH');
+   if(ret!==(hit?v*BigInt(b.mult):0n))errors.push('BET_MULTIPLIER_MISMATCH');
   }
   if(stake!==wager||sum!==payout)errors.push('ROULETTE_LINES_SUM_MISMATCH');
   const n=Number(event.outcome.number),c=event.outcome.color;
   if(!Number.isInteger(n)||n<0||n>36||c!==(n===0?'green':[1,3,5,7,9,12,14,16,18,19,21,23,25,27,30,32,34,36].includes(n)?'red':'black'))
    errors.push('ROULETTE_RESULT_INVALID');
  }else{
+  const key=event.outcome.key,mult=event.outcome.multiplier;
+  if(!Object.hasOwn(WHEEL_MULT,key)||WHEEL_MULT[key]!==mult)errors.push('WHEEL_RESULT_INVALID');
+  if(event.won!==(key==='junja'||key===event.selection))errors.push('WHEEL_HIT_MISMATCH');
   if(event.won!==(payout>0n))errors.push('WHEEL_WIN_FLAG_MISMATCH');
   if(payout>0n&&payout!==wager*BigInt(event.outcome.multiplier||0))errors.push('WHEEL_PAYOUT_MISMATCH');
  }
