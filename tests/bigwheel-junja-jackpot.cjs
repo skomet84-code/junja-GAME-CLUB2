@@ -24,7 +24,7 @@ const ctx=vm.createContext({
 });
 vm.runInContext(source+'\nthis.spin=bigWheelSpin;this.keys=BIG_WHEEL_KEYS;this.defs=BIG_WHEEL_DEFS;',ctx);
 assert.deepEqual(Array.from(ctx.keys.flatMap((key,i)=>key==='junja'?[i]:[])),[0,38]);
-const wallet=()=>exactWallet.read(db.prepare('SELECT balance,balance_exact,balance_base FROM users WHERE id=1').get());
+const wallet=()=>exactWallet.read(db.prepare('SELECT CAST(balance AS TEXT) AS balance,balance_exact,balance_base FROM users WHERE id=1').get());
 const ledger=()=>db.prepare('SELECT amount_exact,balance_after_exact,type,memo FROM ledger ORDER BY id').all();
 function reset(value=1000000000n){
  const mirror=exactWallet.mirror(value);
