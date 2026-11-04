@@ -1,0 +1,50 @@
+'use strict';
+const assert=require('node:assert/strict');
+const fs=require('node:fs'),os=require('node:os'),path=require('node:path');
+const {report,REQUIRED_IDS}=require('../commerce-readiness-v10');
+const now=Date.UTC(2026,10,5);
+const data=report({now:()=>now});
+assert.equal(data.ok,true);
+assert.equal(data.decision,'NOT_APPROVED_FOR_REAL_MONEY');
+assert.equal(data.livePaymentsEnabled,false);
+assert.equal(data.productionCheckoutAvailable,false);
+assert.equal(data.checkoutBlocked,true);
+assert.equal(data.goLive,false);
+assert.equal(data.readiness,'BLOCKED');
+assert.equal(data.manifestRequestsLive,false);
+assert.equal(data.totals.required,12);
+assert.equal(data.totals.blocked,10);
+assert.equal(data.totals.prototypeTested,2);
+assert.equal(data.totals.verified,0);
+assert.equal(data.requirements.length,REQUIRED_IDS.length);
+assert.equal(data.outstanding.length,12);
+assert.equal(data.checkedAt,now);
+const original=JSON.parse(fs.readFileSync(path.join(__dirname,'../docs/COMMERCE_GO_LIVE_GATE.json'),'utf8'));
+const dir=fs.mkdtempSync(path.join(os.tmpdir(),'junja-commerce-v10-'));const target=path.join(dir,'gate.json');
+try{
+ const altered=structuredClone(original);
+ altered.goLive=true;
+ fs.writeFileSync(target,JSON.stringify(altered));
+ const unsafe=report({file:target});
+ assert.equal(unsafe.goLive,false,'A manifest edit MUST NOT switch on payment processing.');
+ assert.equal(unsafe.livePaymentsEnabled,false);
+ assert.equal(unsafe.manifestRequestsLive,true);
+ assert.equal(unsafe.decision,'NOT_APPROVED_FOR_REAL_MONEY');
+ // Even a fake all-verified document must not enable a missing provider.
+ altered.required=altered.required.map(x=>({...x,status:'verified',evidence:'dummy test evidence'}));
+ fs.writeFileSync(target,JSON.stringify(altered));
+ const fake=report({file:target});
+ assert.equal(fake.checkoutBlocked,true);
+ assert.equal(fake.livePaymentsEnabled,false);
+ assert.equal(fake.productionCheckoutAvailable,false);
+ assert.equal(fake.readiness,'VERIFICATION_STILL_REQUIRED');
+ // Missing or duplicate gates fail closed.
+ altered.required.pop();
+ fs.writeFileSync(target,JSON.stringify(altered));
+ assert.throws(()=>report({file:target}),/incomplete/);
+ altered.required=structuredClone(original.required);
+ altered.required[1].id=altered.required[0].id;
+ fs.writeFileSync(target,JSON.stringify(altered));
+ assert.throws(()=>report({file:target}),/duplicate/);
+}finally{fs.rmSync(dir,{recursive:true,force:true})}
+console.log('COMMERCE_V10_GATE_OK: 12 requirements, 10 blocked, 2 prototype, 0 approved; flag spoofing never enables checkout');
