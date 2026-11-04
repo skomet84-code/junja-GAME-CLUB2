@@ -13,6 +13,19 @@ const add=(id,amount)=>db.prepare('INSERT INTO users(id,balance,balance_exact,ba
 add(1,1000000000000000n);add(2,1000000000000000n);add(3,1000000000000000n);
 const names=['준자','햅피','아라','돼지','참치','해현','유비','차차','우니','도도','비샤','샤샤','동동','뽀뽀','나다','고기','행주','수건','민트','훈트','체리','하리'];
 assert.equal(CLUBS.length,22);
+// Non-owner accounts cannot view the football page, read its static assets, place bets,
+// buy scouting reports or inspect the operator's betting ledger by calling APIs directly.
+const privateServer=fs.readFileSync('server.js','utf8');
+const privateLobby=fs.readFileSync('public/index.html','utf8');
+const privateApp=fs.readFileSync('public/app.js','utf8');
+assert.ok(privateServer.includes("jpl_access:!!u.is_admin&&String(u.username).toLowerCase()===ADMIN_USERNAME"),'JPL owner permission is bound to the primary verified admin login');
+assert.ok(privateServer.includes("url.pathname==='/football'||url.pathname.startsWith('/football/')"),'JPL page and assets are server-protected');
+assert.ok(privateServer.includes("url.pathname==='/api/jpl'||url.pathname.startsWith('/api/jpl/')"),'all JPL APIs are protected');
+assert.ok(privateServer.includes("if(!viewer?.jpl_access)"),'non-owner football requests are refused by the server');
+assert.ok(privateServer.includes("if(!admin.jpl_access)"),'JPL admin betting reports are restricted to the same owner');
+assert.ok(privateLobby.includes('class="game-card football-jpl" href="/football/" style="display:none"'),'private league card is hidden before authentication');
+assert.ok(privateApp.includes("const allowed=me.jpl_access===true"),'only the owner sees the private league card after login');
+
 assert.equal(MATCH_MS,60000,'90-minute match sim completes in 60 real seconds');
 assert.equal(MAX_STAKE,1000000000000000n,'maximum football bet is 1000 trillion G');
 assert.equal(ANALYSIS_PRICE,1000000000000n,'per-fixture scouting information costs 1 trillion G');
