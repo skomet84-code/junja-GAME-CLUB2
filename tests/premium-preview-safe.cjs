@@ -36,4 +36,21 @@ assert.match(html,/:focus-visible/,'Keyboard navigation visible');
 assert.match(gates,/기능 플래그 기본 OFF/);
 assert.match(gates,/PG사에 사전 업종 심사/);
 assert.match(gates,/유료 상품을 여기에 그대로 추가하지 않는다/);
+
+// Premium products must be understandable and browsable before a shopper sees a payment option.
+assert.match(html,/<section class="experience" id="experience"/,'Interactive collection preview must exist.');
+assert.match(html,/class="room-stage"/,'Premium stage must display owned-look concept.');
+assert.equal((html.match(/name="room-look" type="radio"/g)||[]).length,6,'Six keyboard-accessible, no-JS scene choices');
+assert.equal((html.match(/<details class="item-spec">/g)||[]).length,PRODUCTS.length,'Each SKU needs its own buyer-facing description');
+for(const name of ['watch','car','yacht','jet','estate','jewelry']){
+ assert(html.includes('data-room="'+name+'"'),'Missing interactive preview for '+name);
+ assert(html.includes('id="look-'+name+'"'),'Missing preview switch for '+name);
+}
+assert.match(html,/상품 상세 보기/);
+assert.match(html,/실제 판매 조건 미확정/);
+assert.match(html,/환불/);
+assert.match(html,/사업자·게임 관련 법률 및 PG 심사/);
+assert.match(html,/input:focus-visible\+label/,'Keyboard focus must be visible.');
+assert.match(html,/prefers-reduced-motion:reduce/,'Reduce animated transitions for accessibility.');
+
 console.log('PREMIUM_PREVIEW_SAFE_OK: catalog-price match, 6 cards, disabled purchasing, approved assets, no payment or conversion surface');
