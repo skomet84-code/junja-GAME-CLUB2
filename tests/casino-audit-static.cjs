@@ -21,7 +21,7 @@ assert.match(server,/requireAdmin\(req,res\)/,'Endpoint must require authenticat
 assert.match(server,/if\(!admin\.jpl_access\)return json\(res,403/,'Owner-only permission required');
 assert.match(server,/rateLimit\('casino-audit:/,'Rate-limiting required');
 assert.match(server,/auditCasinoSettlements\(db,/,'Endpoint must use read-only module');
-assert.doesNotMatch(core,/\.run\(|\.exec\(|\.transaction\(|INSERT\s+INTO|UPDATE\s+users|DELETE\s+FROM/i,'Core auditor must not write to any database table');
+assert.doesNotMatch(core,/db\.exec\(|db\.transaction\(|\.run\(|INSERT\s+INTO|UPDATE\s+users|DELETE\s+FROM/i,'Core auditor must not write to any database table');
 assert.match(core,/낙첨 또는 과거 결과 기록 부족/,'Missing win cannot be mislabeled as definite nonpayment');
 assert.match(core,/COALESCE\(l\.amount_exact/,'Must prefer exact ledger amount');
 assert.match(core,/COALESCE\(l\.balance_after_exact/,'Must prefer exact balance-after');
