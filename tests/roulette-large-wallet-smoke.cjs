@@ -6,7 +6,7 @@ const root=path.join(__dirname,'..'),server=fs.readFileSync(path.join(root,'serv
 const db=new DatabaseSync(':memory:');
 db.exec(`CREATE TABLE users(id INTEGER PRIMARY KEY,balance INTEGER,balance_exact TEXT,balance_base TEXT);CREATE TABLE stats(user_id INTEGER PRIMARY KEY,roulette_plays INTEGER DEFAULT 0,roulette_wins INTEGER DEFAULT 0,roulette_profit INTEGER DEFAULT 0);CREATE TABLE ledger(user_id INTEGER,amount INTEGER,balance_after INTEGER,amount_exact TEXT,balance_after_exact TEXT,type TEXT,memo TEXT,created_at INTEGER);INSERT INTO users(id,balance) VALUES(1,0);INSERT INTO stats(user_id) VALUES(1);`);
 let pocket=1;
-const ctx=vm.createContext({db,crypto:{randomInt:n=>pocket%n},now:()=>1,formatMoney:String,pushRefresh:()=>{}});
+const ctx=vm.createContext({db,exactWallet,crypto:{randomInt:n=>pocket%n},now:()=>1,formatMoney:String,pushRefresh:()=>{}});
 vm.runInContext(server.slice(server.indexOf('const ROULETTE_WHEEL='),server.indexOf('// ---------- Big Wheel & Sic Bo')),ctx);
 const large=29020401790482531n;
 function reset(balance=large){const mirror=exactWallet.mirror(balance);db.prepare('UPDATE users SET balance=?,balance_exact=?,balance_base=? WHERE id=1').run(mirror,String(balance),String(mirror));db.exec('DELETE FROM ledger;UPDATE stats SET roulette_plays=0,roulette_wins=0,roulette_profit=0');}
