@@ -25,7 +25,7 @@ const MARKET_CADENCE_HOURS=6;
 const hourOf=t=>Math.floor(t/3600000);
 const sessionHour=t=>Math.floor((hourOf(t)+9)/MARKET_CADENCE_HOURS)*MARKET_CADENCE_HOURS-9;
 function amount(value){if(typeof value!=='string'||!/^[1-9][0-9]{0,15}$/.test(value))throw Error('수량은 1주 이상의 정수로 입력해 주세요.');const n=BigInt(value);if(n>MAX_SHARES)throw Error('1회 거래 한도를 초과했습니다.');return n;}
-function createJStocks({db,exactWallet,now=Date.now,randomInt=crypto.randomInt,getReference=()=>null,marketMode='legacy'}){
+function createJStocks({db,exactWallet,now=Date.now,randomInt=crypto.randomInt,getReference=()=>null,marketMode='legacy',getVolatilityPct=()=>100}){
  const stateKey=id=>'jstock:portfolio:'+id;
  function read(key){const row=db.prepare('SELECT value FROM game_state WHERE key=?').get(key);return row?JSON.parse(row.value):null;}
  function write(key,value){db.prepare('INSERT INTO game_state(key,value,updated_at) VALUES(?,?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value,updated_at=excluded.updated_at').run(key,JSON.stringify(value),now());}
@@ -36,7 +36,8 @@ function createJStocks({db,exactWallet,now=Date.now,randomInt=crypto.randomInt,g
   const skipped=Math.max(0,Math.floor((h-m.hour)/MARKET_CADENCE_HOURS)),steps=Math.min(skipped,56);
   for(let i=0;i<steps;i++)for(const s of activeStocks){
    const p=m.stocks[s.id],old=BigInt(p.price);
-   let bp=randomInt(-s.vol,s.vol+1),event=null;
+   const volPct=getVolatilityPct(s.id),effectiveVol=Math.max(1,Math.round(s.vol*volPct/100));
+   let bp=randomInt(-effectiveVol,effectiveVol+1),event=null;
    if(marketMode==='kospi'){
     // Fictional game pricing: four shared server-side sessions per day. Real
     // KOSPI comparisons guide each sector's direction/amplitude but never
@@ -46,10 +47,11 @@ function createJStocks({db,exactWallet,now=Date.now,randomInt=crypto.randomInt,g
     if(fresh){
      // One quarter of an actual trading day's percentage per game session,
      // with small variation so it is not misrepresented as the real security.
-     bp=Math.round(ref.changeBp/4)+randomInt(-40,41);
+     const jitter=Math.max(1,Math.round(40*volPct/100));
+     bp=Math.round(ref.changeBp/4)+randomInt(-jitter,jitter+1);
      event='코스피 '+ref.name+' 등락 참고';
     }else{
-     const range=Math.max(60,Math.round(s.vol/8));
+     const range=Math.max(1,Math.round(Math.max(60,Math.round(s.vol/8))*volPct/100));
      bp=randomInt(-range,range+1);
      event=null;
     }

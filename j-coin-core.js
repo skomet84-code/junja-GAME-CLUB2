@@ -39,7 +39,7 @@ function maxAffordableQty(balance,price){
  }
  return price*low/10000n>=1n?low:0n;
 }
-function createJCoins({db,exactWallet,now=Date.now,randomInt=crypto.randomInt}){
+function createJCoins({db,exactWallet,now=Date.now,randomInt=crypto.randomInt,getVolatilityPct=()=>100}){
  const stateKey=id=>'jcoin:portfolio:'+id;
  const ADJUST_KEY='jcoin:temporary:moon-jjc-20261103-v1';
  const ADJUST_STEP_MS=15*60000,ADJUST_TOTAL_STEPS=8;
@@ -84,7 +84,8 @@ function createJCoins({db,exactWallet,now=Date.now,randomInt=crypto.randomInt}){
   for(let i=0;i<steps;i++)for(const s of activeStocks){
    if(protectedIds?.has(s.id))continue;
    const p=m.stocks[s.id],old=BigInt(p.price);
-   let bp=randomInt(-s.vol,s.vol+1),event=null;
+   const volPct=getVolatilityPct(s.id),effectiveVol=Math.max(1,Math.round(s.vol*volPct/100));
+   let bp=randomInt(-effectiveVol,effectiveVol+1),event=null;
    if(randomInt(0,100)<3){
     const shock=randomInt(400,1101)*(randomInt(0,2)?1:-1);
     bp=Math.max(-1500,Math.min(1500,bp+shock));

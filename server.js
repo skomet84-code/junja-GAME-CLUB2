@@ -22,6 +22,7 @@ const {combinedInvestmentRanking}=require('./j-investment-ranking');
 const { DatabaseSync } = require('./persistent-db');
 const {report: jplAdminReport}=require('./jpl-admin-report');
 const {auditCasinoSettlements}=require('./casino-settlement-audit');
+const {createMarketControl}=require('./market-operator');
 const createTreasureRaid = require('./treasure-raid-server');
 const createBlackroomCloud = require('./blackroom-cloud');
 
@@ -198,8 +199,9 @@ ensureColumn('user_loadout','character','TEXT');
 const kospiReference=createKospiReference({now});
 // Public market quotes are optional; the server and users' funds work without them.
 kospiReference.start();
-const jStocks=createJStocks({db,exactWallet,now,getReference:kospiReference.get,marketMode:'kospi'});
-const jCoins=createJCoins({db,exactWallet,now});
+const ownerMarket=createMarketControl({db,now});
+const jStocks=createJStocks({db,exactWallet,now,getReference:kospiReference.get,marketMode:'kospi',getVolatilityPct:id=>ownerMarket.volatilityFor('stock',id)});
+const jCoins=createJCoins({db,exactWallet,now,getVolatilityPct:id=>ownerMarket.volatilityFor('coin',id)});
 // One-time 2-hour quote adjustment; idempotent state survives Railway restarts.
 try{const campaign=jCoins.startAdjustment();console.log('[J-COIN EVENT]',JSON.stringify({startedAt:campaign.startedAt,endsAt:campaign.endsAt,targetPct:campaign.targetPct}));}catch(e){console.error('[J-COIN EVENT] Start failed:',e.message)}
 // Attach the same authoritative stock + coin leaderboard to GET and trade
@@ -2755,6 +2757,36 @@ const server=http.createServer(async(req,res)=>{
         db.exec('COMMIT');await db.flush();pushRefresh();
         return json(res,200,{prize:String(amount),score,dailyCount:count+1,balance:String(next)});
       }catch(e){try{db.exec('ROLLBACK')}catch{}return json(res,400,{error:e.message});}
+    }
+    // Fictional stock/coin operator controls, isolated from real securities.
+    // Full admin + named owner authorization. No wallet, holdings or trade mutations.
+    if(url.pathname==='/api/admin/market-control'&&req.method==='GET'){
+      const owner=requireAdmin(req,res);if(!owner)return;
+      if(!owner.jpl_access)return json(res,403,{error:'주식·코인 시세 관제센터는 대표 운영자 전용입니다.'});
+      if(!rateLimit('market-owner-view:'+owner.id,20,60000))return json(res,429,{error:'시장 조회 횟수를 초과했습니다.'});
+      try{
+        const stock=jStocks.status(owner.id),coin=jCoins.status(owner.id);
+        if(stock.changed||coin.changed)await db.flush();
+        return json(res,200,{...ownerMarket.list(),coinCampaign:coin.temporaryAdjustment?.complete?null:coin.temporaryAdjustment});
+      }catch(e){return json(res,400,{error:e.message});}
+    }
+    if(url.pathname==='/api/admin/market-control'&&req.method==='POST'){
+      const owner=requireAdmin(req,res);if(!owner)return;
+      if(!owner.jpl_access)return json(res,403,{error:'주식·코인 시세 조정은 대표 운영자 전용입니다.'});
+      if(!rateLimit('market-owner-write:'+owner.id,8,60000))return json(res,429,{error:'시세 조정 횟수를 초과했습니다. 잠시 후 다시 시도하세요.'});
+      try{
+        const body=await readBody(req,4096);
+        // Final market tick/campaign reconciliation before optimistic quote validation.
+        jStocks.status(owner.id);jCoins.status(owner.id);
+        const result=ownerMarket.apply({
+          actorId:owner.id,type:body.type,symbol:body.symbol,mode:body.mode,
+          deltaPercent:body.deltaPercent,volatilityPct:body.volatilityPct,
+          expectedPrice:body.expectedPrice,requestId:body.requestId
+        });
+        await db.flush();
+        pushRefresh();
+        return json(res,200,{...result,market:ownerMarket.list()});
+      }catch(e){return json(res,e.code==='STALE_MARKET_PRICE'?409:400,{error:e.message});}
     }
     if(url.pathname==='/api/admin/economy'&&req.method==='GET'){
       const u=requireAdmin(req,res);if(!u)return;
