@@ -18,6 +18,7 @@ on:
       - 'docs/PREMIUM_PURCHASE_INTEGRATION.md'
       - 'docs/COMMERCE_GO_LIVE_GATE.json'
       - 'tests/commerce-launch-gates.cjs'
+      - 'tests/premium-preview-mobile.mjs'
       - 'tests/royal-motors-mobile.mjs'
       - '.github/workflows/premium-readiness.yml'
   workflow_dispatch:
@@ -73,3 +74,28 @@ jobs:
         run: node tests/premium-preview-safe.cjs
       - name: Enforce legal and merchant go-live blockers
         run: node tests/commerce-launch-gates.cjs
+
+  premium-visual-qa:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install isolated browser QA
+        run: |
+          npm install --no-save --no-package-lock --ignore-scripts --no-audit --no-fund playwright
+          npx playwright install --with-deps chromium webkit
+      - name: Verify premium showroom in Chromium and WebKit
+        run: node tests/premium-preview-mobile.mjs
+      - name: Keep limited-viewport evidence on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: junja-premium-mobile-evidence
+          path: /tmp/junja-premium-*-mobile.png
+          if-no-files-found: ignore
