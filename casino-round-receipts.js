@@ -151,7 +151,8 @@ function listRoundReceipts(db,{userId,game='all',limit=20,beforeId=null,receiptI
  if(beforeId!==null&&(!Number.isSafeInteger(beforeId)||beforeId<1))throw fail('Invalid page cursor.');
  if(receiptId!==null&&(!Number.isSafeInteger(receiptId)||receiptId<1))throw fail('Invalid receipt ID.');
  const src="SELECT id,user_id,type,memo,created_at,COALESCE(amount_exact,CAST(amount AS TEXT)) AS amount_text,COALESCE(balance_after_exact,CAST(balance_after AS TEXT)) AS balance_text FROM ledger";
- const clause="user_id=? AND type IN ('roulette_bet','bigwheel_bet','bigwheel_win','bigwheel_receipt') AND memo LIKE '% | JRR7:%'";
+ const types=game==='roulette'?"('roulette_bet')":game==='bigwheel'?"('bigwheel_bet','bigwheel_win','bigwheel_receipt')":"('roulette_bet','bigwheel_bet','bigwheel_win','bigwheel_receipt')";
+ const clause="user_id=? AND type IN "+types+" AND memo LIKE '% | JRR7:%'";
  const rows=receiptId===null
   ?db.prepare(src+' WHERE '+clause+' AND id<? ORDER BY id DESC LIMIT ?').all(userId,beforeId??Number.MAX_SAFE_INTEGER,limit+1)
   :db.prepare(src+' WHERE '+clause+' AND id=? LIMIT 1').all(userId,receiptId);
