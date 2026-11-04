@@ -1777,14 +1777,40 @@ const BIG_WHEEL_KEYS=['junja','x2','x3','x2','x3','x2','x3','x2','x3','x2','x3',
 const BIG_WHEEL_SEGMENTS=BIG_WHEEL_KEYS.map(key=>BIG_WHEEL_DEFS[key]);
 const BIG_WHEEL_BETS = [...new Map(BIG_WHEEL_SEGMENTS.map(x=>[x.key,x])).values()];
 function bigWheelSpin(userId,bet,key,useRankFree=false){
-  bet=gameWager(bet,1000,10000000,1000);if(bet>1000000000000)throw new Error('빅휠 최대 베팅은 1조 G입니다.');
-  const u=userPublic(userId);if(!u)throw new Error('사용자를 찾을 수 없습니다.');
-  const target=BIG_WHEEL_BETS.find(x=>x.key===key);if(!target)throw new Error('배당 선택을 확인해주세요.');
-  const freePlay=consumeRankFreePlay(userId,'wheel',!!useRankFree);if(freePlay.free)bet=Number(socialRankPerksForUser(userId).freeSlotBet||10000000);if(!freePlay.free&&u.balance<bet)throw new Error('게임머니가 부족합니다.');if(!freePlay.free)walletChange(userId,-bet,'bigwheel_bet',`빅휠 ${target.label} 베팅 ${formatMoney(bet)}G`);
-  const index=crypto.randomInt(BIG_WHEEL_SEGMENTS.length),landed=BIG_WHEEL_SEGMENTS[index],jackpot=landed.key==='junja',won=jackpot||landed.key===target.key,payout=won?bet*landed.mult:0;
-  if(payout)walletChange(userId,payout,'bigwheel_win',`빅휠 ${landed.label} ${jackpot?'잭팟':'적중'} x${landed.mult}`);
-  db.prepare('UPDATE stats SET bigwheel_plays=bigwheel_plays+1, bigwheel_wins=bigwheel_wins+?, bigwheel_profit=bigwheel_profit+? WHERE user_id=?').run(won?1:0,payout-(freePlay.free?0:bet),userId);
-  return {index,landed,target,jackpot,won,payout,profit:payout-(freePlay.free?0:bet),segments:BIG_WHEEL_SEGMENTS.length,rankFreePlay:freePlay};
+  // Atomic, exact-G settlement: one debit/payout/stats transaction including free-play consumption.
+  // Payment failures must not leave a charged bet, forged win or consumed rank ticket.
+  const stake=gameWager(bet,1000,1000000000000,1000);
+  const target=BIG_WHEEL_BETS.find(x=>x.key===key);
+  if(!target)throw new Error('배당 선택을 확인해주세요.');
+  db.exec('BEGIN IMMEDIATE');
+  try{
+    const uid=Number(userId);
+    if(!Number.isSafeInteger(uid)||uid<1)throw new Error('사용자를 찾을 수 없습니다.');
+    const u=db.prepare('SELECT id,is_disabled,balance,balance_exact,balance_base FROM users WHERE id=?').get(uid);
+    if(!u||u.is_disabled)throw new Error('사용자를 찾을 수 없습니다.');
+    const before=exactWallet.read(u);
+    const freePlay=consumeRankFreePlay(uid,'wheel',!!useRankFree);
+    const amount=BigInt(freePlay.free?Number(socialRankPerksForUser(uid).freeSlotBet||10000000):stake);
+    if(amount<1000n||amount>1000000000000n)throw new Error('빅휠 무료권 베팅금이 올바르지 않습니다.');
+    const spent=freePlay.free?0n:amount;
+    if(before<spent)throw new Error('게임머니가 부족합니다.');
+    const index=crypto.randomInt(BIG_WHEEL_SEGMENTS.length),landed=BIG_WHEEL_SEGMENTS[index];
+    const jackpot=landed.key==='junja',won=jackpot||landed.key===target.key;
+    const payout=won?amount*BigInt(landed.mult):0n;
+    const profit=payout-spent,afterBet=before-spent,next=afterBet+payout;
+    const previous=db.prepare('SELECT CAST(bigwheel_profit AS TEXT) AS profit FROM stats WHERE user_id=?').get(uid);
+    if(!previous)throw new Error('빅휠 통계를 찾지 못했습니다.');
+    const aggregate=BigInt(previous.profit||0)+profit;
+    if(aggregate>9223372036854775807n||aggregate< -9223372036854775808n)throw new Error('빅휠 손익 기록 한도를 초과합니다.');
+    const m=exactWallet.mirror(next),time=now();
+    db.prepare('UPDATE users SET balance=?,balance_exact=?,balance_base=? WHERE id=?').run(m,String(next),String(m),uid);
+    const ledger=db.prepare('INSERT INTO ledger(user_id,amount,balance_after,amount_exact,balance_after_exact,type,memo,created_at) VALUES(?,?,?,?,?,?,?,?)');
+    if(spent>0n)ledger.run(uid,exactWallet.mirror(-spent),exactWallet.mirror(afterBet),String(-spent),String(afterBet),'bigwheel_bet','빅휠 '+target.label+' 베팅 '+formatMoney(spent)+'G',time);
+    if(payout>0n)ledger.run(uid,exactWallet.mirror(payout),m,String(payout),String(next),'bigwheel_win','빅휠 '+landed.label+' '+(jackpot?'잭팟':'적중')+' x'+landed.mult,time);
+    db.prepare('UPDATE stats SET bigwheel_plays=bigwheel_plays+1,bigwheel_wins=bigwheel_wins+?,bigwheel_profit=? WHERE user_id=?').run(won?1:0,aggregate,uid);
+    db.exec('COMMIT');
+    return {index,landed,target,jackpot,won,payout:Number(payout),profit:Number(profit),segments:BIG_WHEEL_SEGMENTS.length,rankFreePlay:freePlay};
+  }catch(e){try{db.exec('ROLLBACK');}catch{}throw e;}
 }
 const SICBO_TOTAL_GROSS={4:51,5:19,6:15,7:13,8:9,9:7,10:6,11:6,12:7,13:9,14:13,15:15,16:19,17:51};
 function sicboBetMeta(key){
