@@ -1,0 +1,71 @@
+name: Casino Round Receipt v7
+on:
+  pull_request:
+    paths:
+      - 'casino-round-receipts.js'
+      - 'casino-settlement-audit.js'
+      - 'server.js'
+      - 'public/app.js'
+      - 'public/index.html'
+      - 'public/casino-receipts-ui.js'
+      - 'public/casino-receipts.css'
+      - 'public/casino-audit-ui.js'
+      - 'public/casino-audit.css'
+      - 'tests/casino-round-receipts.cjs'
+      - 'tests/casino-receipts-mobile.mjs'
+      - 'tests/roulette-large-wallet-smoke.cjs'
+      - 'tests/roulette-large-wallet-http.cjs'
+      - 'tests/bigwheel-junja-jackpot.cjs'
+      - '.github/workflows/casino-round-receipts.yml'
+  workflow_dispatch:
+jobs:
+  receipt-unit-and-auth:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install app runtime
+        run: npm install --omit=dev --no-audit --no-fund --ignore-scripts
+      - name: Syntax and durable round receipt verification
+        run: |
+          node --check casino-round-receipts.js
+          node --check casino-settlement-audit.js
+          node --check server.js
+          node --check public/app.js
+          node --check public/casino-receipts-ui.js
+          node --check public/casino-audit-ui.js
+          node tests/casino-round-receipts.cjs
+          node tests/casino-settlement-audit.cjs
+          node tests/casino-audit-static.cjs
+      - name: Game settlement and HTTP restart tests
+        run: |
+          node tests/roulette-large-wallet-smoke.cjs
+          node tests/bigwheel-junja-jackpot.cjs
+          node tests/roulette-large-wallet-http.cjs
+          node tests/casino-settlement-audit-http.cjs
+  receipt-mobile-browser:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install browser QA
+        run: |
+          npm install --no-save --no-package-lock --ignore-scripts --no-audit --no-fund playwright
+          npx playwright install --with-deps chromium webkit
+      - name: Verify receipt cards on phones and desktop
+        run: node tests/casino-receipts-mobile.mjs
+      - name: Save test evidence on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: junja-receipts-mobile-evidence
+          path: /tmp/junja-round-receipts-*.png
+          if-no-files-found: ignore

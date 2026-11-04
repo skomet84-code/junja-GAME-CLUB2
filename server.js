@@ -6,6 +6,7 @@ const path = require('node:path');
 const crypto = require('node:crypto');
 const staticResponse = require('./static-response');
 const exactWallet = require('./exact-wallet');
+const casinoReceipts = require('./casino-round-receipts');
 const {ROYAL_ITEMS,createRoyalEconomy}=require('./royal-economy');
 const {createRoyalMarket}=require('./royal-market');
 const echoReward=require('./echo-rewards');
@@ -1756,10 +1757,16 @@ function rouletteSpin(user,rawBets){
     const nextMirror=exactWallet.mirror(next),remainingMirror=exactWallet.mirror(remaining);
     db.prepare('UPDATE users SET balance=?,balance_exact=?,balance_base=? WHERE id=?').run(nextMirror,String(next),String(nextMirror),user.id);
     const ledger=db.prepare('INSERT INTO ledger(user_id,amount,balance_after,amount_exact,balance_after_exact,type,memo,created_at) VALUES(?,?,?,?,?,?,?,?)');
-    ledger.run(user.id,exactWallet.mirror(-totalBet),remainingMirror,String(-totalBet),String(remaining),'roulette_bet',`유럽식 룰렛 ${bets.length}개 · ${formatMoney(totalBet)}G | ${bets.map(b=>`${b.kind}:${Array.isArray(b.target)?b.target.join('/'):b.target??'-'}:${b.amount}G`).join(', ')}`,t);
+    const roundEvidence={game:'roulette',wagerG:String(totalBet),spentG:String(totalBet),
+      payoutG:String(payout),balanceG:String(next),free:false,won:payout>0n,
+      outcome:{number,color},bets:settled};
+    const betMemo=`유럽식 룰렛 ${bets.length}개 · ${formatMoney(totalBet)}G | ${bets.map(b=>`${b.kind}:${Array.isArray(b.target)?b.target.join('/'):b.target??'-'}:${b.amount}G`).join(', ')}`;
+    const betWrite=ledger.run(user.id,exactWallet.mirror(-totalBet),remainingMirror,String(-totalBet),String(remaining),
+      'roulette_bet',casinoReceipts.attachRoundEvidence(betMemo,roundEvidence),t);
+    const receiptId=Number(betWrite.lastInsertRowid);
     if(payout>0n)ledger.run(user.id,exactWallet.mirror(payout),nextMirror,String(payout),String(next),'roulette_win',`룰렛 ${number} ${color.toUpperCase()} · 지급 ${formatMoney(payout)}G`,t);
     db.prepare('UPDATE stats SET roulette_plays=roulette_plays+1,roulette_wins=roulette_wins+?,roulette_profit=? WHERE user_id=?').run(payout>0n?1:0,previousProfit+profit,user.id);
-    result={number,color,index:ROULETTE_WHEEL.indexOf(number),bets:settled,totalBet:totalBet.toString(),payout:payout.toString(),profit:profit.toString()};
+    result={number,color,index:ROULETTE_WHEEL.indexOf(number),bets:settled,totalBet:totalBet.toString(),payout:payout.toString(),profit:profit.toString(),receiptId};
     db.exec('COMMIT');
   }catch(e){db.exec('ROLLBACK');throw e;}
   if(eventWinner)rouletteEventArmed=false;
@@ -1807,11 +1814,25 @@ function bigWheelSpin(userId,bet,key,useRankFree=false){
     const m=exactWallet.mirror(next),time=now();
     db.prepare('UPDATE users SET balance=?,balance_exact=?,balance_base=? WHERE id=?').run(m,String(next),String(m),uid);
     const ledger=db.prepare('INSERT INTO ledger(user_id,amount,balance_after,amount_exact,balance_after_exact,type,memo,created_at) VALUES(?,?,?,?,?,?,?,?)');
-    if(spent>0n)ledger.run(uid,exactWallet.mirror(-spent),exactWallet.mirror(afterBet),String(-spent),String(afterBet),'bigwheel_bet','빅휠 '+target.label+' 베팅 '+formatMoney(spent)+'G',time);
-    if(payout>0n)ledger.run(uid,exactWallet.mirror(payout),m,String(payout),String(next),'bigwheel_win','빅휠 '+landed.label+' '+(jackpot?'잭팟':'적중')+' x'+landed.mult,time);
+    const evidence={game:'bigwheel',wagerG:String(amount),spentG:String(spent),payoutG:String(payout),
+      balanceG:String(next),free:freePlay.free,won,selection:target.key,
+      outcome:{index,key:landed.key,label:landed.label,multiplier:landed.mult}};
+    let receiptWrite;
+    if(spent>0n)receiptWrite=ledger.run(uid,exactWallet.mirror(-spent),exactWallet.mirror(afterBet),
+      String(-spent),String(afterBet),'bigwheel_bet',
+      casinoReceipts.attachRoundEvidence('빅휠 '+target.label+' 베팅 '+formatMoney(spent)+'G',evidence),time);
+    if(payout>0n){
+      const winMemo='빅휠 '+landed.label+' '+(jackpot?'잭팟':'적중')+' x'+landed.mult;
+      const wrote=ledger.run(uid,exactWallet.mirror(payout),m,String(payout),String(next),
+        'bigwheel_win',spent===0n?casinoReceipts.attachRoundEvidence(winMemo,evidence):winMemo,time);
+      if(spent===0n)receiptWrite=wrote;
+    }
+    if(spent===0n&&payout===0n)receiptWrite=ledger.run(uid,0,m,'0',String(next),'bigwheel_receipt',
+      casinoReceipts.attachRoundEvidence('빅휠 무료권 · '+landed.label+' 낙첨',evidence),time);
+    const receiptId=Number(receiptWrite.lastInsertRowid);
     db.prepare('UPDATE stats SET bigwheel_plays=bigwheel_plays+1,bigwheel_wins=bigwheel_wins+?,bigwheel_profit=? WHERE user_id=?').run(won?1:0,aggregate,uid);
     db.exec('COMMIT');
-    return {index,landed,target,jackpot,won,payout:Number(payout),profit:Number(profit),segments:BIG_WHEEL_SEGMENTS.length,rankFreePlay:freePlay};
+    return {index,landed,target,jackpot,won,payout:Number(payout),profit:Number(profit),segments:BIG_WHEEL_SEGMENTS.length,rankFreePlay:freePlay,receiptId};
   }catch(e){try{db.exec('ROLLBACK');}catch{}throw e;}
 }
 const SICBO_TOTAL_GROSS={4:51,5:19,6:15,7:13,8:9,9:7,10:6,11:6,12:7,13:9,14:13,15:15,16:19,17:51};
@@ -2673,6 +2694,26 @@ const server=http.createServer(async(req,res)=>{
         return json(res,200,{ok:true,amount:Number(salary),balance:exactWallet.output(balance),rank:rank.name,user:userPublic(u.id)});
       }catch(e){try{db.exec('ROLLBACK')}catch{}throw e;}
     }
+    // v7 round receipts: immutable ledger-backed evidence. Members can read ONLY their own entries.
+    if(url.pathname==='/api/casino/receipts'&&req.method==='GET'){
+      const u=requireAuth(req,res);if(!u)return;
+      if(!rateLimit('casino-receipts:'+u.id,24,60000))return json(res,429,{error:'영수증 조회가 너무 빠릅니다.'});
+      try{
+        const rawLimit=url.searchParams.get('limit')||'20';
+        const rawBefore=url.searchParams.get('beforeId');
+        const rawId=url.searchParams.get('receiptId');
+        if(!/^[1-9]\d{0,1}$/.test(rawLimit)||
+          rawBefore!==null&&!/^[1-9]\d{0,14}$/.test(rawBefore)||
+          rawId!==null&&!/^[1-9]\d{0,14}$/.test(rawId))throw new Error('영수증 조회 조건이 올바르지 않습니다.');
+        const report=casinoReceipts.listRoundReceipts(db,{
+          userId:u.id,game:url.searchParams.get('game')||'all',
+          limit:Number(rawLimit),
+          beforeId:rawBefore===null?null:Number(rawBefore),
+          receiptId:rawId===null?null:Number(rawId)
+        });
+        return json(res,200,report);
+      }catch(e){return json(res,400,{error:e.message});}
+    }
     if(url.pathname==='/api/ledger'&&req.method==='GET'){
       const u=requireAuth(req,res);if(!u)return;const rows=db.prepare('SELECT id,COALESCE(amount_exact,amount) AS amount,COALESCE(balance_after_exact,balance_after) AS balance_after,type,memo,created_at FROM ledger WHERE user_id=? ORDER BY id DESC LIMIT 30').all(u.id);return json(res,200,{rows});
     }
@@ -2746,6 +2787,25 @@ const server=http.createServer(async(req,res)=>{
     }
     // Casino settlement oversight: strictly read-only and only accessible to the named lead operator.
     // Legacy losing rounds do not store the result number; no missing payout is inferred from debit-only records.
+    // Admin receipt inspection requires operator access and explicit member id; no money-changing operations.
+    if(url.pathname==='/api/admin/casino-receipts'&&req.method==='GET'){
+      const admin=requireAdmin(req,res);if(!admin)return;
+      if(!admin.jpl_access)return json(res,403,{error:'대표 운영자 전용 영수증 조회입니다.'});
+      if(!rateLimit('casino-receipts-admin:'+admin.id,20,60000))return json(res,429,{error:'영수증 조회 제한입니다.'});
+      try{
+        const rawUser=url.searchParams.get('userId');
+        const rawId=url.searchParams.get('receiptId');
+        if(!/^[1-9]\d{0,12}$/.test(rawUser||'')||
+          rawId!==null&&!/^[1-9]\d{0,14}$/.test(rawId))throw new Error('회원 또는 영수증 번호를 올바르게 입력해주세요.');
+        const uid=Number(rawUser);
+        if(!db.prepare('SELECT 1 FROM users WHERE id=?').get(uid))return json(res,404,{error:'회원을 찾을 수 없습니다.'});
+        const report=casinoReceipts.listRoundReceipts(db,{
+          userId:uid,game:url.searchParams.get('game')||'all',
+          receiptId:rawId===null?null:Number(rawId),limit:20
+        });
+        return json(res,200,report);
+      }catch(e){return json(res,400,{error:e.message});}
+    }
     if(url.pathname==='/api/admin/casino-settlements'&&req.method==='GET'){
       const admin=requireAdmin(req,res);if(!admin)return;
       if(!admin.jpl_access)return json(res,403,{error:'카지노 정산 관제센터는 대표 운영자 전용입니다.'});

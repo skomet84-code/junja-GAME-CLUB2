@@ -3,6 +3,7 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
 const {DatabaseSync}=require('node:sqlite');
 const exactWallet=require('../exact-wallet');
+const casinoReceipts=require('../casino-round-receipts');
 const server=fs.readFileSync('server.js','utf8');
 const source=server.slice(server.indexOf('const BIG_WHEEL_DEFS ='),server.indexOf('const SICBO_TOTAL_GROSS='));
 const db=new DatabaseSync(':memory:');
@@ -17,7 +18,7 @@ const consumeRankFreePlay=(id,kind,useFree)=>{
  return {free:true,used:1,limit:1,left:0};
 };
 const ctx=vm.createContext({
- db,exactWallet,now:()=>1234,formatMoney:String,
+ db,exactWallet,casinoReceipts,now:()=>1234,formatMoney:String,
  crypto:{randomInt:n=>{assert.equal(n,77);return index;}},
  gameWager:(b,min,max,step)=>{const n=Number(b);if(!Number.isSafeInteger(n)||n<min||n>max||n%step)throw Error('invalid bet');return n;},
  socialRankPerksForUser:()=>({freeSlotBet:10000000}),consumeRankFreePlay

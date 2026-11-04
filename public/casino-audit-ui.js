@@ -64,6 +64,32 @@
   for(const issue of item.issues||[])card.append(create('p','note','⚠ 정산 검사 코드: '+issue));
   for(const note of item.notes||[])card.append(create('p','note',note));
   card.append(create('div','evidence','LEDGER #'+(item.ledgerIds||[]).join(' · #')));
+  if(Number.isSafeInteger(item.receiptId)&&item.receiptId>0){
+   const open=create('button','casino-receipt-open','🧾 영수증 JRR7-L'+item.receiptId+' 자세히');
+   open.type='button';
+   const details=create('div','casino-receipt-detail');
+   details.hidden=true;
+   open.addEventListener('click',async()=>{
+    if(!details.hidden){details.hidden=true;open.textContent='🧾 영수증 JRR7-L'+item.receiptId+' 자세히';return;}
+    open.disabled=true;details.hidden=false;details.textContent='원장 영수증 대조 중…';
+    try{
+     const params=new URLSearchParams({userId:String(item.userId),receiptId:String(item.receiptId)});
+     const res=await fetch('/api/admin/casino-receipts?'+params.toString(),{credentials:'same-origin',cache:'no-store',headers:{Accept:'application/json'}});
+     const body=await res.json();
+     if(!res.ok)throw Error(body.error||'영수증 조회 실패');
+     const receipt=body.rows?.[0];
+     if(!receipt)throw Error('해당 영수증은 존재하지 않습니다.');
+     details.replaceChildren();
+     details.append(create('p','',receipt.status==='verified'?'원장 대조 완료':'정산 불일치 · 수동 검토 필요'));
+     details.append(create('p','','선택: '+(receipt.selection||'—')+' · 베팅 차감: '+(receipt.spentG||'—')+' G · 지급: '+(receipt.payoutG||'—')+' G'));
+     details.append(create('p','','최종 잔액: '+(receipt.balanceG||'—')+' G'));
+     if(receipt.outcome)details.append(create('p','','실제 결과: '+JSON.stringify(receipt.outcome)));
+     if((receipt.errors||[]).length)for(const issue of receipt.errors)details.append(create('p','','점검 코드: '+issue));
+    }catch(error){details.textContent='영수증을 확인하지 못했습니다: '+String(error.message||error).slice(0,160);}
+    finally{open.disabled=false;open.textContent='🧾 영수증 JRR7-L'+item.receiptId+' 접기';}
+   });
+   card.append(open,details);
+  }
   return card;
  }
  async function load(append=false){
