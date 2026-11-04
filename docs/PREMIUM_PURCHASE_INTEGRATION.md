@@ -6,6 +6,9 @@ Updated: 2026-11-04
 - `premium-purchase-core.js`: isolated direct-purchase bookkeeping for six non-transferable cosmetics/decor items.
 - `tests/premium-purchase-core.cjs`: runnable local SQLite regression tests.
 - `premium-pg-core.js` + `premium-pg-schema.sql`: independent PostgreSQL transactions, events, ownership and read-only admin reconciliation, not yet imported by the game.
+- `premium-appearance-store.js`: ownership-gated personal gallery/profile cosmetic choice, automatically defaulting after a verified refund.
+- `premium-toss-readonly.js`: status-only Toss Payments `GET /v1/payments/{paymentKey}` verification with TEST keys by default, no charge/confirm/cancel operations.
+- `tests/premium-appearance-store.cjs`, `tests/premium-toss-readonly.cjs`, `tests/premium-toss-pg-integration.cjs`: sandbox test coverage, including real ephemeral PostgreSQL + mock Toss lookup.
 - `tests/premium-pg-core.cjs`: integration tests using an ephemeral PostgreSQL instance in CI.
 - `public/premium-preview.html`: mobile-ready, six-card premium showroom concept, all purchasing disabled.
 - `.github/workflows/premium-readiness.yml`: checks the new code and preview on eligible PR changes.
@@ -29,6 +32,9 @@ node tests/premium-purchase-core.cjs
 node tests/premium-preview-safe.cjs
 # Only in a disposable local PostgreSQL TEST instance:
 TEST_DATABASE_URL=postgres://postgres:testpass@127.0.0.1:5432/premium_ci node tests/premium-pg-core.cjs
+TEST_DATABASE_URL=postgres://postgres:testpass@127.0.0.1:5432/premium_ci node tests/premium-appearance-store.cjs
+node tests/premium-toss-readonly.cjs
+TEST_DATABASE_URL=postgres://postgres:testpass@127.0.0.1:5432/premium_ci node tests/premium-toss-pg-integration.cjs
 ```
 The unit test asserts disabled defaults, six-item catalog, request idempotency, PG approval mismatches, exact amount check, replay/duplicate payment key handling, refunds, repurchase, disabled users, SQLite close/reopen persistence, and no modifications to existing game balances/ledger.
 
@@ -57,3 +63,9 @@ const premium=createPremiumPurchaseCore({
 
 ## PostgreSQL architecture decision
 The `premium-pg-core.js` engine should eventually supersede (not silently synchronize with) the SQLite demo module. It owns independent premium-specific PostgreSQL tables that are **not included** in the game's asynchronous SQLite snapshot mechanism. This avoids relying on best-effort save timers for purchases and prevents accidental transfer of premium cosmetics into casino/loan/auction accounting. The database migration is stored in `premium-pg-schema.sql`; only CI/test applies it today. Production schema migration must be reviewed and applied during an explicitly approved launch. The first paid endpoint will require real user authentication, PG settlement confirmation, age/consumer safety review, confirmed refund and chargeback policies, CS support, production observability, and documented rollback. `verifyPayment` and `verifyRefund` in CI are *mocked provider responses*, not production integrations. Admin reports are read-only and require an injected trusted `verifyAdmin` callback. No HTTP route or purchase button has been enabled.
+
+## Official read-only provider reference
+- [Toss Payments reference (paymentKey lookup)](https://docs.tosspayments.com/reference) and [payment flow](https://docs.tosspayments.com/guides/v2/get-started/payment-flow).
+- The isolated read-only adapter only accepts TEST secret keys by default, only calls GET and never initiates a charge or refund. Its fake callback tests are not proof of PG merchant approval, billing readiness or money movement.
+- The item-selection layer validates current paid entitlement before setting cosmetic appearance and also validates entitlement on every read after refunds. It never maps a paid decoration to cash, casino balances, free games, auctions or transfers.
+- Review the current Railway risk summary in `docs/COMMERCIAL_READINESS_AUDIT_20261104.md` and separate Big Wheel atomicity draft PR #46 before commercial release.
