@@ -1,0 +1,101 @@
+name: Premium commerce readiness
+on:
+  pull_request:
+    paths:
+      - 'premium-purchase-core.js'
+      - 'premium-pg-core.js'
+      - 'premium-pg-schema.sql'
+      - 'premium-toss-readonly.js'
+      - 'premium-appearance-store.js'
+      - 'tests/premium-appearance-store.cjs'
+      - 'tests/premium-toss-readonly.cjs'
+      - 'tests/premium-toss-pg-integration.cjs'
+      - 'tests/premium-purchase-core.cjs'
+      - 'tests/premium-pg-core.cjs'
+      - 'public/premium-preview.html'
+      - 'tests/premium-preview-safe.cjs'
+      - 'docs/MONETIZATION_RELEASE_GATES.md'
+      - 'docs/PREMIUM_PURCHASE_INTEGRATION.md'
+      - 'docs/COMMERCE_GO_LIVE_GATE.json'
+      - 'tests/commerce-launch-gates.cjs'
+      - 'tests/premium-preview-mobile.mjs'
+      - 'tests/royal-motors-mobile.mjs'
+      - '.github/workflows/premium-readiness.yml'
+  workflow_dispatch:
+jobs:
+  test-premium-isolation:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: testpass
+          POSTGRES_DB: premium_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d premium_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    env:
+      TEST_DATABASE_URL: postgres://postgres:testpass@127.0.0.1:5432/premium_ci
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install minimal dependencies
+        run: npm install --no-package-lock --ignore-scripts --no-audit --no-fund
+      - name: Verify isolated SQLite premium core
+        run: |
+          node --check premium-purchase-core.js
+          node tests/premium-purchase-core.cjs
+      - name: Verify isolated PostgreSQL premium core
+        run: |
+          node --check premium-pg-core.js
+          node tests/premium-pg-core.cjs
+      - name: Verify owned premium cosmetic selection
+        run: |
+          node --check premium-appearance-store.js
+          node tests/premium-appearance-store.cjs
+      - name: Verify Toss read-only provider adapter
+        run: |
+          node --check premium-toss-readonly.js
+          node tests/premium-toss-readonly.cjs
+      - name: Verify Toss read-only checks and PG fulfillment work together
+        run: node tests/premium-toss-pg-integration.cjs
+      - name: Verify premium preview does not accept payments
+        run: node tests/premium-preview-safe.cjs
+      - name: Enforce legal and merchant go-live blockers
+        run: node tests/commerce-launch-gates.cjs
+
+  premium-visual-qa:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install isolated browser QA
+        run: |
+          npm install --no-save --no-package-lock --ignore-scripts --no-audit --no-fund playwright
+          npx playwright install --with-deps chromium webkit
+      - name: Verify premium showroom in Chromium and WebKit
+        run: node tests/premium-preview-mobile.mjs
+      - name: Keep limited-viewport evidence on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: junja-premium-mobile-evidence
+          path: /tmp/junja-premium-*-mobile.png
+          if-no-files-found: ignore

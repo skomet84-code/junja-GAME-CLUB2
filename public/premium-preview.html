@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#09090e">
+<meta name="robots" content="noindex,nofollow">
+<title>JUNJA PRIVATE COLLECTION — Preview</title>
+<style>
+:root{color-scheme:dark;--bg:#090a0d;--panel:#14151a;--line:rgba(219,189,125,.24);--gold:#dac18a;--cream:#f4eedf;--muted:#acaaa7}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:radial-gradient(ellipse at 80% -14%,#423527 0%,transparent 46%),#090a0d;color:var(--cream);font:15px/1.65 system-ui,-apple-system,"Noto Sans KR",sans-serif}
+a{color:inherit}button{font:inherit}button:focus-visible,a:focus-visible{outline:3px solid #f7d48c;outline-offset:3px}
+.container{width:min(1240px,calc(100% - 52px));margin-inline:auto}
+.preview{background:#382b19;color:#ffedd2;text-align:center;font-size:12px;letter-spacing:.02em;padding:10px 20px;border-bottom:1px solid var(--line)}
+nav{display:flex;justify-content:space-between;align-items:center;padding:22px 0;gap:16px;border-bottom:1px solid var(--line)}
+.brand{font-family:Georgia,serif;letter-spacing:.16em;font-size:21px;text-decoration:none}.brand b{display:inline-grid;place-items:center;border:1px solid var(--gold);border-radius:50%;width:40px;height:40px;margin-right:12px;font-weight:normal;color:var(--gold)}
+.nav-right{display:flex;gap:22px;align-items:center;font-size:12px;color:var(--muted)}.nav-right a{text-decoration:none}.nav-right a:hover{color:var(--cream)}
+.kicker{color:var(--gold);font:12px/1.4 Georgia,serif;letter-spacing:.28em;text-transform:uppercase}
+.hero{position:relative;min-height:580px;display:grid;grid-template-columns:1.05fr 1fr;align-items:center;gap:20px;overflow:hidden}
+.hero:before{content:"";position:absolute;inset:20px 0 30px 43%;background:linear-gradient(90deg,#090a0d 0%,rgba(0,0,0,.02) 35%),linear-gradient(0deg,#090a0d,transparent 50%),url('/art/royal/cinematic/watch-showroom.webp') center/cover;opacity:.88;pointer-events:none}
+.hero-content{z-index:1;max-width:660px;padding:70px 0}.hero h1{font:clamp(40px,5.6vw,80px)/1.1 Georgia,serif;letter-spacing:-.045em;margin:20px 0 26px}
+.hero h1 em{font-weight:normal;color:var(--gold)}.hero p{color:#dad3c7;max-width:460px;font-size:15px;word-break:keep-all}.hero .cta{display:inline-block;border:1px solid var(--gold);padding:15px 27px;margin-top:28px;text-decoration:none;letter-spacing:.07em;background:rgba(0,0,0,.23);transition:background .2s}.hero .cta:hover{background:#372d1f}
+.metrics{border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:25px 0;display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+.metric strong{display:block;font:18px Georgia,serif;color:var(--gold)}.metric span{font-size:12px;color:var(--muted)}
+.section-head{margin:84px 0 34px;display:flex;align-items:end;justify-content:space-between;gap:24px}
+.section-head h2{font:clamp(30px,4vw,48px)/1.18 Georgia,serif;margin:10px 0}.section-head p{font-size:13px;color:var(--muted);max-width:370px}
+.catalog{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
+.item{background:var(--panel);border:1px solid var(--line);min-width:0;overflow:hidden;transition:transform .2s,border-color .2s}.item:hover{transform:translateY(-3px);border-color:#bfa36c}
+.item-media{height:260px;position:relative;background:#25222b;overflow:hidden}.item-media img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .5s}.item:hover img{transform:scale(1.04)}.item-media:after{content:"";position:absolute;inset:0;background:linear-gradient(0deg,rgba(0,0,0,.5),transparent 55%)}
+.item-category{position:absolute;z-index:1;left:19px;bottom:16px;color:#f8e2b1;font:11px Georgia,serif;letter-spacing:.2em;text-transform:uppercase}
+.item-detail{padding:20px 21px 24px}.item-detail h3{font:23px/1.25 Georgia,serif;margin:6px 0 9px}.item-detail p{color:var(--muted);font-size:12px;min-height:40px;margin:0 0 18px}
+.item-bottom{display:flex;align-items:center;justify-content:space-between;gap:12px;border-top:1px solid var(--line);padding-top:17px}.item-bottom strong{font:19px Georgia,serif;color:var(--gold)}.item-bottom button{border:1px solid #625944;background:transparent;color:#b7b1a5;padding:9px 12px;cursor:not-allowed;font-size:12px}
+.notice{display:grid;grid-template-columns:1fr 1fr;gap:28px;margin:74px 0;padding:35px;background:linear-gradient(130deg,#22201b,#121318);border:1px solid var(--line)}
+.notice h2{font:30px Georgia,serif;margin:6px 0}.notice p,.notice li{font-size:13px;color:#c8c2b7}.notice ul{padding-left:19px;margin:0}
+footer{padding:38px 0 52px;border-top:1px solid var(--line);color:var(--muted);font-size:12px;display:flex;justify-content:space-between;gap:12px}footer a{text-decoration:none;color:var(--gold)}
+@media(max-width:900px){.catalog{grid-template-columns:repeat(2,minmax(0,1fr))}.hero{min-height:490px}.hero:before{inset:0 0 30px 29%;opacity:.65}.hero-content{padding:55px 0}.item-media{height:235px}}
+@media(max-width:620px){.container{width:min(100% - 30px,460px)}nav{padding:14px 0}.brand{font-size:15px}.brand b{width:32px;height:32px;margin-right:8px}.nav-right{gap:10px;font-size:11px}.nav-right a:first-child{display:none}.hero{min-height:490px;grid-template-columns:1fr;align-items:end}.hero:before{inset:0 -15px 85px 0;background:linear-gradient(0deg,#090a0d 0%,transparent 70%),linear-gradient(90deg,#090a0d 0%,transparent 62%),url('/art/royal/cinematic/watch-showroom.webp') 65% center/cover;opacity:.8}.hero-content{padding:130px 0 35px}.hero h1{font-size:45px}.hero p{font-size:13px}.metrics{grid-template-columns:1fr;gap:9px;padding:17px 0}.metric{display:flex;justify-content:space-between;gap:10px}.section-head{margin:56px 0 24px;display:block}.catalog{grid-template-columns:1fr;gap:15px}.item-media{height:225px}.item-detail p{min-height:0}.notice{grid-template-columns:1fr;padding:24px;margin:50px 0}footer{display:block}}
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{scroll-behavior:auto!important;transition:none!important}}
+
+/* Interactive show-room proof of concept. CSS-only to preserve the no-payment safety boundary. */
+.experience{margin:76px 0 0}
+.experience h2{font:clamp(30px,4vw,50px)/1.17 Georgia,serif;margin:12px 0 10px}
+.experience-lead{max-width:720px;color:var(--muted);font-size:13px;word-break:keep-all}
+.theme-options{display:flex;flex-wrap:wrap;gap:10px;margin:24px 0 18px}
+.theme-choice{position:relative}
+.theme-choice input{position:absolute;opacity:0;width:1px;height:1px}
+.theme-choice label{display:inline-flex;align-items:center;min-height:42px;padding:9px 16px;border:1px solid var(--line);border-radius:99px;color:#d6c7ac;cursor:pointer;user-select:none;transition:background .15s,border-color .15s}
+.theme-choice label:hover{border-color:#d7bd85}
+.theme-choice input:checked+label{background:linear-gradient(110deg,#51422e,#24201d);border-color:#dcc38d;color:#fff4d8}
+.theme-choice input:focus-visible+label{outline:3px solid #f7d48c;outline-offset:3px}
+.room-stage{position:relative;min-height:420px;overflow:hidden;border:1px solid #59482f;border-radius:14px;background:#1b1a19;isolation:isolate}
+.room-scene{position:absolute;inset:0;opacity:0;transition:opacity .28s;pointer-events:none}
+.room-scene img{width:100%;height:100%;object-fit:cover;display:block}
+.room-scene:after{content:"";position:absolute;inset:0;background:linear-gradient(0deg,#060709 4%,rgba(0,0,0,.12) 70%)}
+#experience:has(#look-watch:checked) .room-scene[data-room="watch"],
+#experience:has(#look-car:checked) .room-scene[data-room="car"],
+#experience:has(#look-yacht:checked) .room-scene[data-room="yacht"],
+#experience:has(#look-jet:checked) .room-scene[data-room="jet"],
+#experience:has(#look-estate:checked) .room-scene[data-room="estate"],
+#experience:has(#look-jewelry:checked) .room-scene[data-room="jewelry"]{opacity:1}
+.room-note{position:absolute;bottom:0;z-index:2;max-width:580px;padding:27px 32px;color:#f4eedf}
+.room-note h3{font:clamp(26px,3vw,42px)/1.18 Georgia,serif;margin:12px 0}
+.room-note p{max-width:470px;font-size:13px;color:#d7cbb8}
+.room-note .label{display:inline-block;padding:4px 10px;border:1px solid #bba477;color:#ecd39e;font:10px Georgia,serif;letter-spacing:.16em}
+.item-spec{border-top:1px solid var(--line);padding-top:11px;margin-top:16px}
+.item-spec summary{cursor:pointer;color:#dcc58d;font-size:12px;padding:6px 0}
+.item-spec p{min-height:0!important;margin:5px 0 0!important;font-size:12px}
+.faq{margin:65px 0 0;padding:30px;border:1px solid var(--line);background:#111216}
+.faq h2{font:30px Georgia,serif;margin:4px 0 15px}
+.faq details{border-top:1px solid var(--line);padding:12px 0}
+.faq summary{cursor:pointer;color:#e1d7c8;font-weight:600}
+.faq p{font-size:13px;color:var(--muted);max-width:850px}
+@media(max-width:620px){
+ .experience{margin:48px 0 0}.theme-options{gap:7px}
+ .theme-choice label{font-size:11px;min-height:38px;padding:8px 11px}
+ .room-stage{min-height:335px}.room-note{padding:22px 20px}
+ .room-note h3{font-size:29px}.room-note p{font-size:12px}
+ .faq{padding:22px 18px;margin-top:45px}
+}
+@media(prefers-reduced-motion:reduce){.room-scene{transition:none}}
+
+</style>
+</head>
+<body>
+<div class="preview" role="status">준자랜드 수익화 디자인 검토 시안 · 실제 판매/결제 불가 · 카지노 게임머니와 연동되지 않습니다</div>
+<header class="container"><nav aria-label="상단 메뉴">
+<a class="brand" href="/" aria-label="준자랜드 홈"><b>J</b>JUNJA PRIVATE</a>
+<div class="nav-right"><a href="#collection">THE COLLECTION</a><a href="#policy">판매 정책</a><a href="/">게임으로 돌아가기</a></div>
+</nav></header>
+<main class="container">
+<section class="hero" aria-labelledby="main-title">
+<div class="hero-content"><span class="kicker">Members only · Private edition</span>
+<h1 id="main-title">A World of<br><em>Rare Privileges.</em></h1>
+<p>갖는 것 이상의 경험. 당신의 이름이 남는 프라이빗 소장 공간. 준자랜드 멤버를 위한 전용 외형·전시 테마 상품을 준비하고 있습니다.</p>
+<a class="cta" href="#collection">컬렉션 미리보기 ↓</a></div>
+</section>
+<div class="metrics" aria-label="상품 특성">
+<div class="metric"><strong>PRIVATE</strong><span>회원 전용 디지털 컬렉션</span></div>
+<div class="metric"><strong>NON-TRANSFERABLE</strong><span>양도·송금·경매·매입 불가</span></div>
+<div class="metric"><strong>NO GAME ADVANTAGE</strong><span>베팅·배당·게임머니 영향 없음</span></div>
+</div>
+
+<section class="experience" id="experience" aria-labelledby="experience-title">
+<span class="kicker">Experience before ownership</span>
+<h2 id="experience-title">당신만의 로얄 전시관</h2>
+<p class="experience-lead">상품이 어떻게 보일지 직접 살펴보는 디자인 체험이야. 여기서 선택한 장식은 저장되거나 구매되지 않아. 실제 상품 판매는 필요한 승인과 검증을 마친 뒤에만 열릴 예정이야.</p>
+<div class="theme-options" role="radiogroup" aria-label="전시관 장면 선택">
+ <span class="theme-choice"><input id="look-watch" name="room-look" type="radio" checked><label for="look-watch">하이엔드 워치</label></span>
+ <span class="theme-choice"><input id="look-car" name="room-look" type="radio"><label for="look-car">슈퍼카 라운지</label></span>
+ <span class="theme-choice"><input id="look-yacht" name="room-look" type="radio"><label for="look-yacht">요트 스위트</label></span>
+ <span class="theme-choice"><input id="look-jet" name="room-look" type="radio"><label for="look-jet">프라이빗 제트</label></span>
+ <span class="theme-choice"><input id="look-estate" name="room-look" type="radio"><label for="look-estate">로얄 팰리스</label></span>
+ <span class="theme-choice"><input id="look-jewelry" name="room-look" type="radio"><label for="look-jewelry">시그니처</label></span>
+</div>
+<div class="room-stage" role="img" aria-label="선택한 전시실 분위기를 보여주는 장식용 이미지 시안">
+ <div class="room-scene" data-room="watch"><img src="/art/royal/cinematic/watch-showroom.webp" alt="" loading="lazy"></div>
+ <div class="room-scene" data-room="car"><img src="/art/royal/cinematic/car-showroom.webp" alt="" loading="lazy"></div>
+ <div class="room-scene" data-room="yacht"><img src="/art/royal/cinematic/yacht-showroom.webp" alt="" loading="lazy"></div>
+ <div class="room-scene" data-room="jet"><img src="/art/royal/cinematic/jet-showroom.webp" alt="" loading="lazy"></div>
+ <div class="room-scene" data-room="estate"><img src="/art/royal/cinematic/estate-showroom.webp" alt="" loading="lazy"></div>
+ <div class="room-scene" data-room="jewelry"><img src="/art/royal/cinematic/jewelry-showroom.webp" alt="" loading="lazy"></div>
+ <div class="room-note"><span class="label">DESIGN PREVIEW · NOT OWNED</span><h3>JUNJA · PRIVATE MUSEUM</h3><p>가상 로얄 컬렉션의 공간 분위기를 미리 살펴봐. 선택 결과는 저장되지 않으며 게임머니, 베팅, 대출 또는 계정 재산에 영향을 주지 않아.</p></div>
+</div>
+</section>
+<section id="collection" aria-labelledby="collection-title">
+<div class="section-head"><div><span class="kicker">Curated for the exceptional</span><h2 id="collection-title">The Private Collection</h2></div><p>금액은 상품 구성 검토를 위한 가상 표시 가격입니다. 계약·등급분류·심사 전에는 판매하지 않습니다.</p></div>
+<div class="catalog">
+<article class="item"><div class="item-media"><img src="/art/royal/cinematic/watch-showroom.webp" loading="lazy" alt="럭셔리 워치 컬렉션 전시 장면"><span class="item-category">Imperial watch gallery</span></div><div class="item-detail"><h3>황실의 시간</h3><p>내 전시관에 적용하는 프리미엄 시계 갤러리 배경 테마</p><div class="item-bottom"><strong>₩ 9,900</strong><button disabled type="button">판매 준비 중</button></div><details class="item-spec"><summary>상품 상세 보기</summary><p>개인 전시관의 시계실 장면을 꾸미는 영구형 디지털 배경 테마. 실제 시계 소유권이나 전용 상품 배송은 포함되지 않아.</p><p>디지털 외형 상품 · 양도·송금·현금환전 불가 · 실제 판매 조건 미확정</p></details></div></article>
+<article class="item"><div class="item-media"><img src="/art/royal/cinematic/car-showroom.webp" loading="lazy" alt="고급 스포츠카 전시장 장면"><span class="item-category">Private motor lounge</span></div><div class="item-detail"><h3>로얄 모터 라운지</h3><p>소장품을 돋보이게 하는 전용 슈퍼카 전시관 스킨</p><div class="item-bottom"><strong>₩ 19,900</strong><button disabled type="button">판매 준비 중</button></div><details class="item-spec"><summary>상품 상세 보기</summary><p>게임 속 개인 전시실에 적용되는 슈퍼카 분위기의 전용 배경. 실제 차량, 정비 서비스 또는 게임머니 지급은 포함되지 않아.</p><p>디지털 외형 상품 · 양도·송금·현금환전 불가 · 실제 판매 조건 미확정</p></details></div></article>
+<article class="item"><div class="item-media"><img src="/art/royal/cinematic/jewelry-showroom.webp" loading="lazy" alt="보석 컬렉션 조명 전시 장면"><span class="item-category">Signature identity</span></div><div class="item-detail"><h3>갓준자 시그니처</h3><p>프로필 전용 금빛 테두리와 비거래형 명예 장식</p><div class="item-bottom"><strong>₩ 4,900</strong><button disabled type="button">판매 준비 중</button></div><details class="item-spec"><summary>상품 상세 보기</summary><p>프로필에 표시할 수 있는 금빛 장식 테두리. 갓준자 신분 등급·게임 내 유리한 확률·배당의 변경은 포함되지 않아.</p><p>디지털 외형 상품 · 양도·송금·현금환전 불가 · 실제 판매 조건 미확정</p></details></div></article>
+<article class="item"><div class="item-media"><img src="/art/royal/cinematic/yacht-showroom.webp" loading="lazy" alt="럭셔리 요트 전시 장면"><span class="item-category">Yacht residence</span></div><div class="item-detail"><h3>마리나 스위트</h3><p>개인 전시관을 위한 요트 라운지 배경 테마</p><div class="item-bottom"><strong>₩ 14,900</strong><button disabled type="button">판매 준비 중</button></div><details class="item-spec"><summary>상품 상세 보기</summary><p>프라이빗 요트 분위기를 연출하는 개인 전시관 전용 배경. 실제 요트나 이용권이 아니야.</p><p>디지털 외형 상품 · 양도·송금·현금환전 불가 · 실제 판매 조건 미확정</p></details></div></article>
+<article class="item"><div class="item-media"><img src="/art/royal/cinematic/jet-showroom.webp" loading="lazy" alt="프라이빗 제트기 격납고 장면"><span class="item-category">Airborne prestige</span></div><div class="item-detail"><h3>스카이 로얄</h3><p>개인 전시관의 전용기 라운지 테마</p><div class="item-bottom"><strong>₩ 14,900</strong><button disabled type="button">판매 준비 중</button></div><details class="item-spec"><summary>상품 상세 보기</summary><p>프라이빗 제트 격납고 분위기의 개인 전시관 배경. 실제 항공기 또는 여행권이 아니야.</p><p>디지털 외형 상품 · 양도·송금·현금환전 불가 · 실제 판매 조건 미확정</p></details></div></article>
+<article class="item"><div class="item-media"><img src="/art/royal/cinematic/estate-showroom.webp" loading="lazy" alt="프리미엄 에스테이트 홀 장면"><span class="item-category">Palace experience</span></div><div class="item-detail"><h3>프라이빗 팰리스</h3><p>내 전시관 메인 홀 전용 인테리어 테마</p><div class="item-bottom"><strong>₩ 24,900</strong><button disabled type="button">판매 준비 중</button></div><details class="item-spec"><summary>상품 상세 보기</summary><p>개인 전시관 메인 홀을 왕실풍으로 꾸미는 배경. 실제 부동산·유가증권·양도 가능한 재산이 아니야.</p><p>디지털 외형 상품 · 양도·송금·현금환전 불가 · 실제 판매 조건 미확정</p></details></div></article>
+</div>
+</section>
+
+<section class="faq" aria-labelledby="faq-title">
+<span class="kicker">Before you decide</span><h2 id="faq-title">구매 전 알아둘 점</h2>
+<details><summary>이곳에서 지금 결제할 수 있어?</summary><p>아니. 현재는 디자인 체험용 미리보기로 결제 요청이나 회원별 상품 지급이 일어나지 않아. 사업자·게임 관련 법률 및 PG 심사를 완료한 후에만 실제 구매 기능을 별도로 제공할 계획이야.</p></details>
+<details><summary>구매한 아이템을 카지노 게임머니로 바꿀 수 있어?</summary><p>아니. 유료 외형 상품은 J-GOLD와 독립되어 있고, 은행 재매입·경매·친구 송금·대출 담보 또는 현금 환전이 불가능하도록 설계 중이야.</p></details>
+<details><summary>결제 취소와 환불은 어떻게 돼?</summary><p>출시 전에 전자상거래 관련 고지, 취소 가능 조건, 사용 여부에 따른 환불 규칙, 고객센터와 취소 접수 경로를 공식적으로 마련할 예정이야. 아직 판매를 받지 않으므로 실제 환불을 신청할 거래도 없어.</p></details>
+<details><summary>상품을 사면 게임에서 더 유리해져?</summary><p>아니. 전시관 배경 및 프로필 장식은 외형만 변경하며 슬롯·룰렛·카드게임·축구 리그의 결과나 배당, 무료 게임머니 지급에 영향을 주지 않아.</p></details>
+</section>
+<section class="notice" id="policy" aria-labelledby="policy-title">
+<div><span class="kicker">Commerce safety by design</span><h2 id="policy-title">가치 있는 꾸미기.<br>현금과 게임머니는 분리.</h2><p>본 화면은 디자인 검토용 시안입니다. 사업자·게임 등급·전자상거래 요건 및 PG 심사 충족 전 결제는 비활성화되어 있습니다.</p></div>
+<ul><li>상품은 전시·외형 장식으로만 사용됩니다.</li><li>카지노 베팅머니·J-GOLD·주식·코인·대출에 영향을 주지 않습니다.</li><li>전송·경매·은행 재매입·현금 교환을 허용하지 않습니다.</li><li>환불·이용약관·판매자 정보는 출시 전 별도 구축합니다.</li></ul>
+</section>
+</main>
+<footer class="container"><span>© JUNJA LAND · CONCEPT ONLY · NOT A CHECKOUT</span><a href="/">준자랜드 메인으로</a></footer>
+</body></html>
