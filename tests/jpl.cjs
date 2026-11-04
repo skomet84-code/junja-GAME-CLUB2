@@ -43,6 +43,10 @@ assert.ok(handicapLine('junja','sugeon')<=-1,'strong favorite gives goal handica
 assert.ok(handicapLine('sugeon','junja')>=1,'weak home side receives goal handicap');
 for(const value of Object.values(handicapOddsFor('junja','sugeon',-1)))assert.ok(value>=108&&value<=7000);
 assert.equal((fs.readFileSync('public/football/club-icons.js','utf8').match(/:[']?<path/g)||[]).length>=20,true,'club insignia shapes are available');
+const crestSource=fs.readFileSync('public/football/club-icons.js','utf8');
+assert.ok(crestSource.includes("premiumSpecial={")&&crestSource.includes("radialGradient")&&crestSource.includes("#METAL#"),'premium crest designs include per-club hero motifs, embossed metals and depth');
+assert.ok(crestSource.includes("role=\"img\"")&&crestSource.includes('aria-label'),'crests expose an accessible name');
+assert.ok(fs.readFileSync('public/football/index.html','utf8').includes('royal-heraldry-v4'),'updated crests use a new browser cache key');
 
 assert.deepEqual(CLUBS.map(c=>c.short),names);
 assert.equal(new Set(CLUBS.map(c=>c.id)).size,22);
