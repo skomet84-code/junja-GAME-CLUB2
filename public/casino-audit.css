@@ -50,3 +50,10 @@
  #view-admin .casino-watch-summary .stat{padding:6px 9px}
 }
 @media(prefers-reduced-motion:reduce){#view-admin .casino-watch *{scroll-behavior:auto;transition:none!important}}
+
+#view-admin .casino-receipt-open{display:block;width:100%;margin-top:12px;padding:10px 12px;border:1px solid #ae8b61;border-radius:9px;background:#342735;color:#f7dcaf;font-weight:750;font-size:12px;cursor:pointer}
+#view-admin .casino-receipt-open:focus-visible{outline:3px solid #ffe3a3;outline-offset:3px}
+#view-admin .casino-receipt-open:disabled{opacity:.55;cursor:wait}
+#view-admin .casino-receipt-detail{margin-top:9px;padding:12px 13px;border:1px solid #695243;border-radius:8px;background:#251e24;color:#f1ddc0;overflow-wrap:anywhere}
+#view-admin .casino-receipt-detail[hidden]{display:none}
+#view-admin .casino-receipt-detail p{margin:7px 0;font:12px/1.6 ui-monospace,system-ui,sans-serif;overflow-wrap:anywhere}
