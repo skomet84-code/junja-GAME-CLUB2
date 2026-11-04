@@ -34,5 +34,25 @@ async function api(url,body){
  assert.equal(BigInt(spin.result.payout),paid);
  assert.equal(BigInt(spin.user.balance),expected);
  assert.equal(BigInt((await api('/api/me')).user.balance),expected);
- console.log('ROULETTE_PRODUCTION_ENTRY_HTTP_RICH_EXACT_WALLET_OK');
+ // The client gets the exact round receipt number at settlement.
+ assert(Number.isSafeInteger(spin.result.receiptId)&&spin.result.receiptId>0);
+ const receiptId=spin.result.receiptId;
+ const receipt=(await api('/api/casino/receipts?receiptId='+receiptId)).rows[0];
+ assert.equal(receipt.receiptId,receiptId);
+ assert.equal(receipt.status,'verified');
+ assert.equal(receipt.game,'roulette');
+ assert.equal(receipt.wagerG,String(stake));
+ assert.equal(receipt.payoutG,String(paid));
+ assert.equal(receipt.balanceG,String(expected));
+ assert.equal(receipt.outcome.number,spin.result.number);
+ assert.equal(receipt.bets[0].kind,'red');
+ const guest=await fetch(base+'/api/casino/receipts');
+ assert.equal(guest.status,401,'Receipt history requires an authenticated member.');
+ // Receipt survives stopping the Node process and reopening its SQLite ledger.
+ await stop();cookie='';await start();await api('/api/login',login);
+ const afterRestart=(await api('/api/casino/receipts?receiptId='+receiptId)).rows[0];
+ assert.equal(afterRestart.status,'verified');
+ assert.equal(afterRestart.balanceG,String(expected));
+
+ console.log('ROULETTE_PRODUCTION_ENTRY_HTTP_RICH_EXACT_WALLET_RECEIPT_OK');
 }finally{await stop();fs.rmSync(dir,{recursive:true,force:true});}})().catch(e=>{console.error(e);process.exitCode=1;});
