@@ -2,7 +2,7 @@
 const assert=require('node:assert/strict');
 const {DatabaseSync}=require('node:sqlite');
 const {createMarketControl,percentBp}=require('../market-operator');
-const {STOCKS:stocks,MARKET_KEY:stockKey,createJStocks}=require('../j-stock-core');
+const {STOCKS:stocks,MARKET_KEY:stockKey,createJStocks,sessionHour:stockSessionHour}=require('../j-stock-core');
 const {STOCKS:coins,MARKET_KEY:coinKey,createJCoins}=require('../j-coin-core');
 const exactWallet=require('../exact-wallet');
 const db=new DatabaseSync(':memory:');
@@ -11,7 +11,7 @@ let clock=Date.UTC(2026,10,5,3,0);
 const now=()=>clock;
 const write=(k,v)=>db.prepare('INSERT INTO game_state(key,value,updated_at) VALUES(?,?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value,updated_at=excluded.updated_at').run(k,JSON.stringify(v),clock);
 const read=k=>JSON.parse(db.prepare('SELECT value FROM game_state WHERE key=?').get(k).value);
-write(stockKey,{hour:6,cadenceHours:6,catalogVersion:2,stocks:Object.fromEntries(stocks.map(x=>[x.id,{price:String(x.base),changeBp:0,history:[x.base],event:null}]))});
+write(stockKey,{hour:stockSessionHour(clock),cadenceHours:6,catalogVersion:2,stocks:Object.fromEntries(stocks.map(x=>[x.id,{price:String(x.base),changeBp:0,history:[x.base],event:null}]))});
 write(coinKey,{hour:Math.floor(clock/900000)*0.25,cadenceHours:0.25,catalogVersion:1,stocks:Object.fromEntries(coins.map(x=>[x.id,{price:String(x.base),changeBp:0,history:[x.base],event:null}]))});
 const control=createMarketControl({db,now});
 assert.equal(control.list().markets.stock.length,10);
