@@ -55,6 +55,7 @@ try{
     assert(bounds.doc<=bounds.inner+2,engine+' '+width+' horizontal overflow '+JSON.stringify(bounds));
     assert.deepEqual(errors,[],'Browser script errors');
     await page.locator('#casinoAuditMore').click();
+    await page.waitForFunction(()=>document.querySelectorAll('.casino-watch-card').length===3,null,{timeout:3500});
     assert.equal(await page.locator('.casino-watch-card').count(),3);
     assert(await page.locator('#casinoAuditMore').isHidden());
     if(width===390)await page.screenshot({path:'/tmp/junja-casino-audit-'+engine+'.png',fullPage:false});
