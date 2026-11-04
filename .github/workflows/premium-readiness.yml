@@ -16,6 +16,9 @@ on:
       - 'tests/premium-preview-safe.cjs'
       - 'docs/MONETIZATION_RELEASE_GATES.md'
       - 'docs/PREMIUM_PURCHASE_INTEGRATION.md'
+      - 'docs/COMMERCE_GO_LIVE_GATE.json'
+      - 'tests/commerce-launch-gates.cjs'
+      - 'tests/royal-motors-mobile.mjs'
       - '.github/workflows/premium-readiness.yml'
   workflow_dispatch:
 jobs:
@@ -68,3 +71,5 @@ jobs:
         run: node tests/premium-toss-pg-integration.cjs
       - name: Verify premium preview does not accept payments
         run: node tests/premium-preview-safe.cjs
+      - name: Enforce legal and merchant go-live blockers
+        run: node tests/commerce-launch-gates.cjs
