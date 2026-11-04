@@ -615,3 +615,11 @@
 @media(max-width:700px){
  #view-gallery dialog.jrg-certificate-overlay{padding:12px 10px!important;height:100dvh!important}
 }
+
+/* The premium tour is a read-only preview. This link does not open any checkout. */
+#view-gallery .jrg-premium-tour-link{display:inline-flex;align-items:center;flex-wrap:wrap;gap:8px;max-width:100%;margin-top:16px;padding:8px 14px;border:1px solid #cfb47e99;border-radius:999px;color:#ffdf9f;background:rgba(18,11,25,.42);font:700 12px/1.4 Georgia,'Noto Serif KR',serif;text-decoration:none;letter-spacing:.045em;transition:border-color .18s,background .18s}
+#view-gallery .jrg-premium-tour-link small{font:600 10px/1.35 system-ui,sans-serif;letter-spacing:0;color:#e8d3b6}
+#view-gallery .jrg-premium-tour-link:hover{border-color:#ffe1a4;background:rgba(63,43,36,.78)}
+#view-gallery .jrg-premium-tour-link:focus-visible{outline:3px solid #fff0aa;outline-offset:4px}
+@media(max-width:700px){#view-gallery .jrg-premium-tour-link{font-size:11px;gap:6px;padding:8px 11px;margin-top:12px}}
+@media(prefers-reduced-motion:reduce){#view-gallery .jrg-premium-tour-link{transition:none}}
