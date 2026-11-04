@@ -117,7 +117,7 @@ function auditCasinoSettlements(db,{userId=null,game='all',limit=40,beforeId=nul
   }else if(row.type==='roulette_win'||row.type==='bigwheel_win'){
    const g=kindOf(row.type);
    const preceding=byId.get(row.id-1);
-   if(preceding?.type===g+'_bet'&&preceding.user_id===row.user_id&&preceding.created_at===row.created_at)continue;
+   if(!decodeRoundEvidence(row.memo)&&preceding?.type===g+'_bet'&&preceding.user_id===row.user_id&&preceding.created_at===row.created_at)continue;
    if(game!=='all'&&game!==g)continue;
    const receipt=decodeRoundEvidence(row.memo);
    const verification=receipt?evaluateRound(db,row):null;
