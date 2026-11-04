@@ -11,7 +11,7 @@ const script=fs.readFileSync(path.join(root,'public/support-center-ui.js'),'utf8
 const modalStart=html.indexOf('<div id="supportCenterModal"'),modalEnd=html.indexOf('</body>',modalStart);
 const adminStart=html.indexOf('<section class="panel support-admin"'),adminEnd=html.indexOf('</section>',adminStart);
 assert(modalStart>=0&&modalEnd>modalStart&&adminStart>=0&&adminEnd>adminStart);
-const body='<!doctype html><html lang="ko"><head><meta name="viewport" content="width=device-width,initial-scale=1"><style>body{margin:0;background:#111;color:#eee}#view-admin{padding:10px}'+css+'</style></head><body><button id="supportCenterBtn">고객센터</button><div id="view-admin" class="view active">'+html.slice(adminStart,adminEnd+10)+'</div>'+html.slice(modalStart,modalEnd)+'<script src="/support-center-ui.js" defer></script></body></html>';
+const body='<!doctype html><html lang="ko"><head><meta name="viewport" content="width=device-width,initial-scale=1"><style>body{margin:0;background:#111;color:#eee}#view-admin{padding:10px}'+css+'</style></head><body><button id="supportCenterBtn">고객센터</button><div id="view-admin" class="view active">'+html.slice(adminStart,adminEnd+10)+'</div>'+html.slice(modalStart,modalEnd).replace(/<script src="\\/support-center-ui\\.js[^>]*><\\/script>/,'')+'<script src="/support-center-ui.js" defer></script></body></html>';
 const safeMessage='<img src=x onerror=alert(1)> 이 구문은 문의 내용입니다.';
 let tickets=[{id:1,reference:'JCS-00000001',category:'game_settlement',subject:'정산 확인',message:safeMessage,status:'OPEN',createdAt:1793833000000,updatedAt:1793833000000,version:1,adminNote:'',history:[],userId:2,nickname:'<svg onload=alert(2)>'}];
 const counters={created:0,updated:0};
@@ -58,7 +58,7 @@ try{
     assert(await page.locator('#supportCenterModal').isHidden());
     await page.locator('#supportAdminRefresh').click();
     await page.locator('.support-ticket-tools button').first().click();
-    await page.waitForFunction(()=>document.querySelector('#supportAdminRows')?.textContent.includes('검토 중'));
+    await page.waitForFunction(()=>document.querySelector('#supportAdminRows .support-ticket-state')?.textContent==='검토 중');
     assert.equal(await page.locator('#supportAdminRows svg').count(),0,'Operator view cannot execute nickname HTML');
     const bounds=await page.evaluate(()=>({scroll:document.documentElement.scrollWidth,inner:innerWidth}));
     assert(bounds.scroll<=bounds.inner+2,name+' '+width+' horizontal overflow '+JSON.stringify(bounds));
