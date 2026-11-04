@@ -6,6 +6,7 @@ const path = require('node:path');
 const crypto = require('node:crypto');
 const staticResponse = require('./static-response');
 const exactWallet = require('./exact-wallet');
+const casinoReceipts = require('./casino-round-receipts');
 const {ROYAL_ITEMS,createRoyalEconomy}=require('./royal-economy');
 const {createRoyalMarket}=require('./royal-market');
 const echoReward=require('./echo-rewards');
@@ -1756,10 +1757,16 @@ function rouletteSpin(user,rawBets){
     const nextMirror=exactWallet.mirror(next),remainingMirror=exactWallet.mirror(remaining);
     db.prepare('UPDATE users SET balance=?,balance_exact=?,balance_base=? WHERE id=?').run(nextMirror,String(next),String(nextMirror),user.id);
     const ledger=db.prepare('INSERT INTO ledger(user_id,amount,balance_after,amount_exact,balance_after_exact,type,memo,created_at) VALUES(?,?,?,?,?,?,?,?)');
-    ledger.run(user.id,exactWallet.mirror(-totalBet),remainingMirror,String(-totalBet),String(remaining),'roulette_bet',`유럽식 룰렛 ${bets.length}개 · ${formatMoney(totalBet)}G | ${bets.map(b=>`${b.kind}:${Array.isArray(b.target)?b.target.join('/'):b.target??'-'}:${b.amount}G`).join(', ')}`,t);
+    const roundEvidence={game:'roulette',wagerG:String(totalBet),spentG:String(totalBet),
+      payoutG:String(payout),balanceG:String(next),free:false,won:payout>0n,
+      outcome:{number,color},bets:settled};
+    const betMemo=`유럽식 룰렛 ${bets.length}개 · ${formatMoney(totalBet)}G | ${bets.map(b=>`${b.kind}:${Array.isArray(b.target)?b.target.join('/'):b.target??'-'}:${b.amount}G`).join(', ')}`;
+    const betWrite=ledger.run(user.id,exactWallet.mirror(-totalBet),remainingMirror,String(-totalBet),String(remaining),
+      'roulette_bet',casinoReceipts.attachRoundEvidence(betMemo,roundEvidence),t);
+    const receiptId=Number(betWrite.lastInsertRowid);
     if(payout>0n)ledger.run(user.id,exactWallet.mirror(payout),nextMirror,String(payout),String(next),'roulette_win',`룰렛 ${number} ${color.toUpperCase()} · 지급 ${formatMoney(payout)}G`,t);
     db.prepare('UPDATE stats SET roulette_plays=roulette_plays+1,roulette_wins=roulette_wins+?,roulette_profit=? WHERE user_id=?').run(payout>0n?1:0,previousProfit+profit,user.id);
-    result={number,color,index:ROULETTE_WHEEL.indexOf(number),bets:settled,totalBet:totalBet.toString(),payout:payout.toString(),profit:profit.toString()};
+    result={number,color,index:ROULETTE_WHEEL.indexOf(number),bets:settled,totalBet:totalBet.toString(),payout:payout.toString(),profit:profit.toString(),receiptId};
     db.exec('COMMIT');
   }catch(e){db.exec('ROLLBACK');throw e;}
   if(eventWinner)rouletteEventArmed=false;
@@ -1807,11 +1814,25 @@ function bigWheelSpin(userId,bet,key,useRankFree=false){
     const m=exactWallet.mirror(next),time=now();
     db.prepare('UPDATE users SET balance=?,balance_exact=?,balance_base=? WHERE id=?').run(m,String(next),String(m),uid);
     const ledger=db.prepare('INSERT INTO ledger(user_id,amount,balance_after,amount_exact,balance_after_exact,type,memo,created_at) VALUES(?,?,?,?,?,?,?,?)');
-    if(spent>0n)ledger.run(uid,exactWallet.mirror(-spent),exactWallet.mirror(afterBet),String(-spent),String(afterBet),'bigwheel_bet','빅휠 '+target.label+' 베팅 '+formatMoney(spent)+'G',time);
-    if(payout>0n)ledger.run(uid,exactWallet.mirror(payout),m,String(payout),String(next),'bigwheel_win','빅휠 '+landed.label+' '+(jackpot?'잭팟':'적중')+' x'+landed.mult,time);
+    const evidence={game:'bigwheel',wagerG:String(amount),spentG:String(spent),payoutG:String(payout),
+      balanceG:String(next),free:freePlay.free,won,selection:target.key,
+      outcome:{index,key:landed.key,label:landed.label,multiplier:landed.mult}};
+    let receiptWrite;
+    if(spent>0n)receiptWrite=ledger.run(uid,exactWallet.mirror(-spent),exactWallet.mirror(afterBet),
+      String(-spent),String(afterBet),'bigwheel_bet',
+      casinoReceipts.attachRoundEvidence('빅휠 '+target.label+' 베팅 '+formatMoney(spent)+'G',evidence),time);
+    if(payout>0n){
+      const winMemo='빅휠 '+landed.label+' '+(jackpot?'잭팟':'적중')+' x'+landed.mult;
+      const wrote=ledger.run(uid,exactWallet.mirror(payout),m,String(payout),String(next),
+        'bigwheel_win',spent===0n?casinoReceipts.attachRoundEvidence(winMemo,evidence):winMemo,time);
+      if(spent===0n)receiptWrite=wrote;
+    }
+    if(spent===0n&&payout===0n)receiptWrite=ledger.run(uid,0,m,'0',String(next),'bigwheel_receipt',
+      casinoReceipts.attachRoundEvidence('빅휠 무료권 · '+landed.label+' 낙첨',evidence),time);
+    const receiptId=Number(receiptWrite.lastInsertRowid);
     db.prepare('UPDATE stats SET bigwheel_plays=bigwheel_plays+1,bigwheel_wins=bigwheel_wins+?,bigwheel_profit=? WHERE user_id=?').run(won?1:0,aggregate,uid);
     db.exec('COMMIT');
-    return {index,landed,target,jackpot,won,payout:Number(payout),profit:Number(profit),segments:BIG_WHEEL_SEGMENTS.length,rankFreePlay:freePlay};
+    return {index,landed,target,jackpot,won,payout:Number(payout),profit:Number(profit),segments:BIG_WHEEL_SEGMENTS.length,rankFreePlay:freePlay,receiptId};
   }catch(e){try{db.exec('ROLLBACK');}catch{}throw e;}
 }
 const SICBO_TOTAL_GROSS={4:51,5:19,6:15,7:13,8:9,9:7,10:6,11:6,12:7,13:9,14:13,15:15,16:19,17:51};
