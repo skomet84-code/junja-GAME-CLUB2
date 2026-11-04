@@ -3,10 +3,14 @@ on:
   pull_request:
     paths:
       - 'premium-purchase-core.js'
+      - 'premium-pg-core.js'
+      - 'premium-pg-schema.sql'
       - 'tests/premium-purchase-core.cjs'
+      - 'tests/premium-pg-core.cjs'
       - 'public/premium-preview.html'
       - 'tests/premium-preview-safe.cjs'
       - 'docs/MONETIZATION_RELEASE_GATES.md'
+      - 'docs/PREMIUM_PURCHASE_INTEGRATION.md'
       - '.github/workflows/premium-readiness.yml'
   workflow_dispatch:
 jobs:
@@ -14,6 +18,22 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: testpass
+          POSTGRES_DB: premium_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d premium_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    env:
+      TEST_DATABASE_URL: postgres://postgres:testpass@127.0.0.1:5432/premium_ci
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -21,9 +41,15 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Verify isolated premium purchase core
+      - name: Install minimal dependencies
+        run: npm install --no-package-lock --ignore-scripts --no-audit --no-fund
+      - name: Verify isolated SQLite premium core
         run: |
           node --check premium-purchase-core.js
           node tests/premium-purchase-core.cjs
+      - name: Verify isolated PostgreSQL premium core
+        run: |
+          node --check premium-pg-core.js
+          node tests/premium-pg-core.cjs
       - name: Verify premium preview does not accept payments
         run: node tests/premium-preview-safe.cjs
