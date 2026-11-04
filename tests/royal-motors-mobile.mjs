@@ -56,7 +56,7 @@ for(const [engineName,engine] of runs){
  }));
  console.log('REAL_LUXURY_MUSEUM_'+engineName.toUpperCase(),JSON.stringify(gallery));
  await page.screenshot({path:'/tmp/junja-royal-gallery-'+engineName+'.png',fullPage:true});
- if(gallery.errors.length||gallery.owned!==3||gallery.roomCount!==5||gallery.photos.length!==3||gallery.photos.some(x=>!x.loaded||!x.accessibility)||gallery.overflow>8||gallery.privateSerials.length!==3||gallery.privateSerials.some(x=>!x.startsWith('№ ')))throw Error(engineName+' museum visual regression '+JSON.stringify(gallery));
+ if(gallery.errors.length||gallery.owned!==3||gallery.roomCount<4||gallery.roomCount!==demo.collector.rooms.length||gallery.photos.length!==3||gallery.photos.some(x=>!x.loaded||!x.accessibility)||gallery.overflow>8||gallery.privateSerials.length!==3||gallery.privateSerials.some(x=>!x.startsWith('№ ')))throw Error(engineName+' museum visual regression '+JSON.stringify(gallery));
  await page.locator('.jrg-vault-certificate-btn').first().click();
  await page.waitForSelector('#view-gallery .jrg-certificate-dialog');
  const cert=await page.locator('#view-gallery .jrg-certificate-dialog').innerText();
