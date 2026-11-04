@@ -1,0 +1,29 @@
+name: Premium commerce readiness
+on:
+  pull_request:
+    paths:
+      - 'premium-purchase-core.js'
+      - 'tests/premium-purchase-core.cjs'
+      - 'public/premium-preview.html'
+      - 'tests/premium-preview-safe.cjs'
+      - 'docs/MONETIZATION_RELEASE_GATES.md'
+      - '.github/workflows/premium-readiness.yml'
+  workflow_dispatch:
+jobs:
+  test-premium-isolation:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify isolated premium purchase core
+        run: |
+          node --check premium-purchase-core.js
+          node tests/premium-purchase-core.cjs
+      - name: Verify premium preview does not accept payments
+        run: node tests/premium-preview-safe.cjs
