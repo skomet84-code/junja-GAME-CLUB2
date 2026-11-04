@@ -33,7 +33,7 @@ async function request(session,url,body){
 (async()=>{try{
  await start();
  const created=await request(regular,'/api/register',{username:'audit_sample_user',nickname:'정산검증회원',password:'LocalTest#2026'});
- assert.equal(created.status,200);
+ assert.equal(created.status,201);
  const uid=created.data.user.id;
  const originalBalance=created.data.user.balance;
  await stop();
