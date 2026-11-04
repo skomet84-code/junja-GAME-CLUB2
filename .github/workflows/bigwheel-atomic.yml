@@ -5,6 +5,7 @@ on:
       - 'server.js'
       - 'tests/bigwheel-junja-jackpot.cjs'
       - 'tests/bigwheel-rank-free-smoke.cjs'
+      - 'tests/junja-wager-1t.cjs'
       - '.github/workflows/bigwheel-atomic.yml'
   workflow_dispatch:
 jobs:
@@ -24,4 +25,5 @@ jobs:
           node --check server.js
           node tests/bigwheel-junja-jackpot.cjs
           node tests/bigwheel-rank-free-smoke.cjs
+          node tests/junja-wager-1t.cjs
           node tests/roulette-large-wallet-smoke.cjs
