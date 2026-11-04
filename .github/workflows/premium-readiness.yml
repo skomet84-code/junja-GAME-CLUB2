@@ -5,6 +5,8 @@ on:
       - 'premium-purchase-core.js'
       - 'premium-pg-core.js'
       - 'premium-pg-schema.sql'
+      - 'premium-toss-readonly.js'
+      - 'tests/premium-toss-readonly.cjs'
       - 'tests/premium-purchase-core.cjs'
       - 'tests/premium-pg-core.cjs'
       - 'public/premium-preview.html'
@@ -51,5 +53,9 @@ jobs:
         run: |
           node --check premium-pg-core.js
           node tests/premium-pg-core.cjs
+      - name: Verify Toss read-only provider adapter
+        run: |
+          node --check premium-toss-readonly.js
+          node tests/premium-toss-readonly.cjs
       - name: Verify premium preview does not accept payments
         run: node tests/premium-preview-safe.cjs
