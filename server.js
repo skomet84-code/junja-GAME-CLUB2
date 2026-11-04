@@ -23,6 +23,7 @@ const { DatabaseSync } = require('./persistent-db');
 const {report: jplAdminReport}=require('./jpl-admin-report');
 const {auditCasinoSettlements}=require('./casino-settlement-audit');
 const {createMarketControl}=require('./market-operator');
+const {createSupportCenter}=require('./support-center-core');
 const createTreasureRaid = require('./treasure-raid-server');
 const createBlackroomCloud = require('./blackroom-cloud');
 
@@ -200,6 +201,7 @@ const kospiReference=createKospiReference({now});
 // Public market quotes are optional; the server and users' funds work without them.
 kospiReference.start();
 const ownerMarket=createMarketControl({db,now});
+const supportCenter=createSupportCenter({db,now});
 const jStocks=createJStocks({db,exactWallet,now,getReference:kospiReference.get,marketMode:'kospi',getVolatilityPct:id=>ownerMarket.volatilityFor('stock',id),scheduledProtected:()=>ownerMarket.scheduledProtected('stock'),scheduledDue:()=>ownerMarket.scheduledDue('stock'),progressScheduled:m=>ownerMarket.progressScheduled('stock',m)});
 const jCoins=createJCoins({db,exactWallet,now,getVolatilityPct:id=>ownerMarket.volatilityFor('coin',id),scheduledProtected:()=>ownerMarket.scheduledProtected('coin'),scheduledDue:()=>ownerMarket.scheduledDue('coin'),progressScheduled:m=>ownerMarket.progressScheduled('coin',m)});
 // One-time 2-hour quote adjustment; idempotent state survives Railway restarts.
@@ -2787,6 +2789,40 @@ const server=http.createServer(async(req,res)=>{
         pushRefresh();
         return json(res,200,{...result,market:ownerMarket.list()});
       }catch(e){return json(res,e.code==='STALE_MARKET_PRICE'?409:400,{error:e.message});}
+    }
+    // Pre-commerce member support. Refund inquiry submission does NOT cancel a PG payment.
+    // All responses remain inside the logged-in member's account or named owner control.
+    if(url.pathname==='/api/support/cases'&&req.method==='GET'){
+      const u=requireAuth(req,res);if(!u)return;
+      if(!rateLimit('support-member-read:'+u.id,24,60000))return json(res,429,{error:'고객센터 조회가 너무 빠릅니다.'});
+      try{return json(res,200,supportCenter.userList(u.id,{limit:30}));}
+      catch(e){return json(res,400,{error:e.message});}
+    }
+    if(url.pathname==='/api/support/cases'&&req.method==='POST'){
+      const u=requireAuth(req,res);if(!u)return;
+      if(!rateLimit('support-member-write:'+u.id,4,3600000))return json(res,429,{error:'문의는 시간당 4회까지만 접수할 수 있습니다.'});
+      try{
+        const b=await readBody(req,4096);
+        const item=supportCenter.create({userId:u.id,category:b.category,subject:b.subject,message:b.message,requestId:b.requestId});
+        await db.flush();return json(res,item.duplicate?200:201,{ok:true,item});
+      }catch(e){return json(res,400,{error:e.message});}
+    }
+    if(url.pathname==='/api/admin/support/cases'&&req.method==='GET'){
+      const owner=requireAdmin(req,res);if(!owner)return;
+      if(!owner.jpl_access)return json(res,403,{error:'고객센터 문의 운영은 대표 운영자 전용입니다.'});
+      if(!rateLimit('support-owner-read:'+owner.id,25,60000))return json(res,429,{error:'고객센터 관리 조회가 너무 빠릅니다.'});
+      try{return json(res,200,supportCenter.adminList({status:url.searchParams.get('status')||'all',limit:80}));}
+      catch(e){return json(res,400,{error:e.message});}
+    }
+    if(url.pathname==='/api/admin/support/cases'&&req.method==='POST'){
+      const owner=requireAdmin(req,res);if(!owner)return;
+      if(!owner.jpl_access)return json(res,403,{error:'문의 상태 변경은 대표 운영자 전용입니다.'});
+      if(!rateLimit('support-owner-update:'+owner.id,20,60000))return json(res,429,{error:'문의 상태 변경 횟수를 초과했습니다.'});
+      try{
+        const b=await readBody(req,4096);
+        const item=supportCenter.update({operatorId:owner.id,id:Number(b.id),status:b.status,adminNote:b.adminNote,expectedVersion:Number(b.expectedVersion),requestId:b.requestId});
+        await db.flush();return json(res,200,{ok:true,item});
+      }catch(e){return json(res,e.code==='STALE_CASE'?409:400,{error:e.message});}
     }
     if(url.pathname==='/api/admin/economy'&&req.method==='GET'){
       const u=requireAdmin(req,res);if(!u)return;
