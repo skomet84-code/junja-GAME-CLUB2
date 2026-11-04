@@ -154,7 +154,7 @@
       '</button>';
    }).join('');
    host.innerHTML='<div class="jrg-museum-shell">'+
-    '<div class="jrg-entry jrg-entry-v8"><div class="jrg-entry-left"><small>JUNJA LAND · PRIVATE COLLECTION</small><h1><span>♛</span> '+(own?'나의 로얄 컬렉션':owner+'의 로얄 컬렉션')+'</h1><p>구매 기록이 아닌, 내가 쌓아 올린 왕실의 유산.</p></div><div class="jrg-entry-crest" aria-hidden="true"><span>J</span><small>EST. MMXXVI</small></div></div>'+
+    '<div class="jrg-entry jrg-entry-v8"><div class="jrg-entry-left"><small>JUNJA LAND · PRIVATE COLLECTION</small><h1><span>♛</span> '+(own?'나의 로얄 컬렉션':owner+'의 로얄 컬렉션')+'</h1><p>구매 기록이 아닌, 내가 쌓아 올린 왕실의 유산.</p><a class="jrg-premium-tour-link" href="/premium-preview.html" target="_blank" rel="noopener noreferrer" aria-label="프리미엄 컬렉션 전시관 체험 새 창에서 열기, 실제 구매 불가"><span aria-hidden="true">✦</span> PRIVATE COLLECTION 미리보기 <small>체험하기 · 판매 전</small></a></div><div class="jrg-entry-crest" aria-hidden="true"><span>J</span><small>EST. MMXXVI</small></div></div>'+
     '<section class="jrg-collector-passport"><div class="jrg-passport-profile"><div class="jrg-passport-seal">♛</div><div><small>THE PRIVATE COLLECTOR</small><h2>'+owner+'</h2><span>'+esc(collector.tierIcon||'◇')+' '+esc(collector.tier||'NEW COLLECTOR')+'</span></div></div>'+
      '<div class="jrg-passport-stats"><div><small>MY COLLECTION</small><strong>'+items.length+' <em>/ '+tally+'</em></strong><span>영구 소장 작품</span></div><div><small>EXHIBITED</small><strong>'+shown.length+' <em>/ 3</em></strong><span>현재 전시 중</span></div><div><small>CATALOG VALUE</small><strong>'+portfolioValue+'</strong><span>보유 작품의 현재 표시가격 합계</span></div></div>'+
      '<div class="jrg-passport-note">♛ JUNJA REGISTERED COLLECTION · 게임 내 가상 수집품 / 현금 및 실물 교환 불가</div></section>'+
