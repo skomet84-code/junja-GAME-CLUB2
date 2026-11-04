@@ -45,3 +45,12 @@ CREATE TABLE IF NOT EXISTS premium_store_events (
 );
 CREATE INDEX IF NOT EXISTS premium_store_events_created_idx
   ON premium_store_events (created_ms DESC);
+
+-- Decorative choices are only applied if the owning entitlement remains active.
+-- This record never controls casino winnings, status rank, balance, loans or user transfers.
+CREATE TABLE IF NOT EXISTS premium_store_appearance (
+  user_id BIGINT PRIMARY KEY CHECK (user_id>0),
+  gallery_theme_id TEXT,
+  profile_frame_id TEXT,
+  updated_ms BIGINT NOT NULL
+);
