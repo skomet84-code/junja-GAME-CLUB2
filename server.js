@@ -944,7 +944,7 @@ function userPublic(userId){
     FROM users u LEFT JOIN stats s ON s.user_id=u.id WHERE u.id=?`).get(userId);
   if(!u) return null;
   const exactBalance=exactWallet.output(exactWallet.read(u));delete u.balance_exact;delete u.balance_base;
-  return {...u, balance:exactBalance, avatarEmoji:AVATARS[u.avatar%AVATARS.length], cosmetics:cosmeticsPublic(userId,true), rank:socialRankPublic(userId), dailyAvailable:u.last_daily!==kstDate(), rankSalaryAvailable:u.last_rank_salary!==kstDate()};
+  return {...u, balance:exactBalance, jpl_access:!!u.is_admin&&String(u.username).toLowerCase()===ADMIN_USERNAME, avatarEmoji:AVATARS[u.avatar%AVATARS.length], cosmetics:cosmeticsPublic(userId,true), rank:socialRankPublic(userId), dailyAvailable:u.last_daily!==kstDate(), rankSalaryAvailable:u.last_rank_salary!==kstDate()};
 }
 
 function parseCookies(req){
@@ -2291,6 +2291,17 @@ const server=http.createServer(async(req,res)=>{
     if(url.pathname.startsWith('/api/goldenbell')){if(await goldenbell.handle(req,res,url))return;}
     if(url.pathname.startsWith('/api/treasure-raid')){if(await treasureRaid.handle(req,res,url))return;}
     if(url.pathname.startsWith('/api/sichuan/battle')){if(await sichuanBattle.handle(req,res,url))return;}
+    // JPL PRIVATE PREVIEW: only the verified primary owner may use or load the league.
+    // Gate assets and API at the server boundary; hiding a homepage card alone is insecure.
+    // Existing tickets and simulated fixtures are preserved; this restriction only controls access.
+    if(url.pathname==='/football'||url.pathname.startsWith('/football/')||
+       url.pathname==='/api/jpl'||url.pathname.startsWith('/api/jpl/')){
+      const viewer=authUser(req);
+      if(!viewer?.jpl_access){
+        if(url.pathname.startsWith('/api/'))return json(res,403,{error:'준자 프리미어리그는 운영자 전용으로 비공개 운영 중입니다.'});
+        return json(res,404,{error:'페이지를 찾을 수 없습니다.'});
+      }
+    }
     if(url.pathname==='/healthz')return json(res,200,{ok:true,rooms:rooms.size+baccaratRooms.size+sichuanBattle.roomCount()+treasureRaid.roomCount()+goldenbell.roomCount()+omok.roomCount()+liar.roomCount()+janggi.roomCount()+royalCards.roomCount(),online:onlineCount()});
     if(url.pathname==='/api/admin/claim'&&req.method==='POST'){
       const caller=String(req.headers['x-forwarded-for']||req.socket.remoteAddress||'').split(',')[0].trim();
