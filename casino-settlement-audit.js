@@ -3,6 +3,7 @@
 // Earlier rounds do not always record the landing number; a debit without a win is NOT proof of an unpaid win.
 // No player balances, settlement rows, settings, or game state are written by this module.
 const GAME_TYPES=Object.freeze(['roulette','bigwheel']);
+const {decodeRoundEvidence,evaluateRound}=require('./casino-round-receipts');
 const MULTS=Object.freeze({straight:36,split:18,street:12,corner:9,sixline:6,dozen:3,column:3,red:2,black:2,odd:2,even:2,low:2,high:2});
 const RED=new Set([1,3,5,7,9,12,14,16,18,19,21,23,25,27,30,32,34,36]);
 const error=(message)=>Object.assign(new Error(message),{code:'BAD_AUDIT_FILTER'});
@@ -37,7 +38,7 @@ function rouletteExpected(memo,n){
  }
  return count===Number(declared[1])?total:null;
 }
-function evaluateBet(row,next){
+function evaluateBet(row,next,db){
  const game=kindOf(row.type),debit=intString(row.amount_text),after=intString(row.balance_text);
  const issues=[],notes=[];let paid='0',status='unknown',payoutRow=null,landing=null;
  if(debit===null||debit>=0n)issues.push('BET_AMOUNT_INVALID');
@@ -68,8 +69,23 @@ function evaluateBet(row,next){
   // A losing round legitimately has only a debit. Old ledger lacks the outcome, so NEVER claim an unpaid win.
   notes.push('당첨 지급 기록이 인접하지 않습니다. 낙첨 또는 과거 결과 기록 부족일 수 있어 미지급으로 단정할 수 없습니다.');
  }
+ const evidence=decodeRoundEvidence(row.memo);
+ if(evidence){
+  const verification=evaluateRound(db,row);
+  if(verification.status!=='verified'){
+   issues.push(...verification.errors);
+   notes.push('7차 영수증 결과와 실제 거래원장이 불일치합니다. 확인 후 처리해주세요.');
+   status='mismatch';
+  }else if(issues.length===0)status='matched';
+  paid=evidence.payoutG;
+  landing=evidence.game==='roulette'
+   ?String(evidence.outcome.number)+' '+String(evidence.outcome.color).toUpperCase()
+   :String(evidence.outcome.label||evidence.outcome.key)+' ×'+evidence.outcome.multiplier;
+  notes.push('7차 회차 영수증 '+('JRR7-L'+row.id)+' · 결과·잔액 근거 포함');
+ }
  if(issues.length)status='mismatch';
  return {
+  receiptId:evidence?row.id:null,
   id:row.id,game,userId:row.user_id,nickname:row.nickname,createdAt:row.created_at,
   status,betG:debit===null?null:String(-debit),payoutG:paid,
   afterG:payoutRow?payoutRow.balance_text:row.balance_text,
@@ -95,7 +111,7 @@ function auditCasinoSettlements(db,{userId=null,game='all',limit=40,beforeId=nul
   if(found.has(row.id))continue;
   if(row.type==='roulette_bet'||row.type==='bigwheel_bet'){
    const gameType=kindOf(row.type);const next=byId.get(row.id+1);
-   const entry=evaluateBet(row,next);
+   const entry=evaluateBet(row,next,db);
    if(entry.ledgerIds.length===2)found.add(next.id);
    if(game==='all'||game===gameType)events.push(entry);
   }else if(row.type==='roulette_win'||row.type==='bigwheel_win'){
@@ -103,7 +119,24 @@ function auditCasinoSettlements(db,{userId=null,game='all',limit=40,beforeId=nul
    const preceding=byId.get(row.id-1);
    if(preceding?.type===g+'_bet'&&preceding.user_id===row.user_id&&preceding.created_at===row.created_at)continue;
    if(game!=='all'&&game!==g)continue;
-   events.push({id:row.id,game:g,userId:row.user_id,nickname:row.nickname,createdAt:row.created_at,status:'unpaired',betG:null,payoutG:row.amount_text,afterG:row.balance_text,landing:null,ledgerIds:[row.id],issues:[],notes:[g==='bigwheel'?'무료 이용권 당첨 또는 베팅 기록이 조회 범위 밖에 있는 지급입니다.':'베팅 기록을 현재 조회 범위에서 찾지 못한 지급입니다.']});
+   const receipt=decodeRoundEvidence(row.memo);
+   const verification=receipt?evaluateRound(db,row):null;
+   events.push({id:row.id,game:g,userId:row.user_id,nickname:row.nickname,createdAt:row.created_at,
+    status:verification?(verification.status==='verified'?'matched':'mismatch'):'unpaired',
+    receiptId:receipt?row.id:null,betG:receipt?receipt.spentG:null,
+    payoutG:row.amount_text,afterG:row.balance_text,landing:receipt?.outcome?.label??null,
+    ledgerIds:[row.id],issues:verification?.errors||[],
+    notes:[verification?'7차 무료권 영수증 기반 지급 기록입니다.':g==='bigwheel'?'무료 이용권 당첨 또는 베팅 기록이 조회 범위 밖에 있는 지급입니다.':'베팅 기록을 현재 조회 범위에서 찾지 못한 지급입니다.']});
+  }else if(row.type==='bigwheel_receipt'){
+   const receipt=decodeRoundEvidence(row.memo);
+   const checked=receipt?evaluateRound(db,row):null;
+   if(game!=='all'&&game!=='bigwheel')continue;
+   events.push({id:row.id,game:'bigwheel',userId:row.user_id,nickname:row.nickname,createdAt:row.created_at,
+    status:checked?.status==='verified'?'matched':'mismatch',
+    receiptId:receipt?row.id:null,betG:'0',payoutG:receipt?.payoutG||'0',
+    afterG:row.balance_text,landing:receipt?.outcome?.label??null,ledgerIds:[row.id],
+    issues:checked?.errors||['RECEIPT_INVALID'],
+    notes:['7차 무료권 낙첨 회차의 결과 기록입니다.']});
   }
  }
  events.sort((a,b)=>b.id-a.id);
