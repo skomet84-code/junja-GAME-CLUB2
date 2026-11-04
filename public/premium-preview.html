@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#09090e">
+<meta name="robots" content="noindex,nofollow">
+<title>JUNJA PRIVATE COLLECTION — Preview</title>
+<style>
+:root{color-scheme:dark;--bg:#090a0d;--panel:#14151a;--line:rgba(219,189,125,.24);--gold:#dac18a;--cream:#f4eedf;--muted:#acaaa7}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:radial-gradient(ellipse at 80% -14%,#423527 0%,transparent 46%),#090a0d;color:var(--cream);font:15px/1.65 system-ui,-apple-system,"Noto Sans KR",sans-serif}
+a{color:inherit}button{font:inherit}button:focus-visible,a:focus-visible{outline:3px solid #f7d48c;outline-offset:3px}
+.container{width:min(1240px,calc(100% - 52px));margin-inline:auto}
+.preview{background:#382b19;color:#ffedd2;text-align:center;font-size:12px;letter-spacing:.02em;padding:10px 20px;border-bottom:1px solid var(--line)}
+nav{display:flex;justify-content:space-between;align-items:center;padding:22px 0;gap:16px;border-bottom:1px solid var(--line)}
+.brand{font-family:Georgia,serif;letter-spacing:.16em;font-size:21px;text-decoration:none}.brand b{display:inline-grid;place-items:center;border:1px solid var(--gold);border-radius:50%;width:40px;height:40px;margin-right:12px;font-weight:normal;color:var(--gold)}
+.nav-right{display:flex;gap:22px;align-items:center;font-size:12px;color:var(--muted)}.nav-right a{text-decoration:none}.nav-right a:hover{color:var(--cream)}
+.kicker{color:var(--gold);font:12px/1.4 Georgia,serif;letter-spacing:.28em;text-transform:uppercase}
+.hero{position:relative;min-height:580px;display:grid;grid-template-columns:1.05fr 1fr;align-items:center;gap:20px;overflow:hidden}
+.hero:before{content:"";position:absolute;inset:20px 0 30px 43%;background:linear-gradient(90deg,#090a0d 0%,rgba(0,0,0,.02) 35%),linear-gradient(0deg,#090a0d,transparent 50%),url('/art/royal/cinematic/watch-showroom.webp') center/cover;opacity:.88;pointer-events:none}
+.hero-content{z-index:1;max-width:660px;padding:70px 0}.hero h1{font:clamp(40px,5.6vw,80px)/1.1 Georgia,serif;letter-spacing:-.045em;margin:20px 0 26px}
+.hero h1 em{font-weight:normal;color:var(--gold)}.hero p{color:#dad3c7;max-width:460px;font-size:15px;word-break:keep-all}.hero .cta{display:inline-block;border:1px solid var(--gold);padding:15px 27px;margin-top:28px;text-decoration:none;letter-spacing:.07em;background:rgba(0,0,0,.23);transition:background .2s}.hero .cta:hover{background:#372d1f}
+.metrics{border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:25px 0;display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+.metric strong{display:block;font:18px Georgia,serif;color:var(--gold)}.metric span{font-size:12px;color:var(--muted)}
+.section-head{margin:84px 0 34px;display:flex;align-items:end;justify-content:space-between;gap:24px}
+.section-head h2{font:clamp(30px,4vw,48px)/1.18 Georgia,serif;margin:10px 0}.section-head p{font-size:13px;color:var(--muted);max-width:370px}
+.catalog{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
+.item{background:var(--panel);border:1px solid var(--line);min-width:0;overflow:hidden;transition:transform .2s,border-color .2s}.item:hover{transform:translateY(-3px);border-color:#bfa36c}
+.item-media{height:260px;position:relative;background:#25222b;overflow:hidden}.item-media img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .5s}.item:hover img{transform:scale(1.04)}.item-media:after{content:"";position:absolute;inset:0;background:linear-gradient(0deg,rgba(0,0,0,.5),transparent 55%)}
+.item-category{position:absolute;z-index:1;left:19px;bottom:16px;color:#f8e2b1;font:11px Georgia,serif;letter-spacing:.2em;text-transform:uppercase}
+.item-detail{padding:20px 21px 24px}.item-detail h3{font:23px/1.25 Georgia,serif;margin:6px 0 9px}.item-detail p{color:var(--muted);font-size:12px;min-height:40px;margin:0 0 18px}
+.item-bottom{display:flex;align-items:center;justify-content:space-between;gap:12px;border-top:1px solid var(--line);padding-top:17px}.item-bottom strong{font:19px Georgia,serif;color:var(--gold)}.item-bottom button{border:1px solid #625944;background:transparent;color:#b7b1a5;padding:9px 12px;cursor:not-allowed;font-size:12px}
+.notice{display:grid;grid-template-columns:1fr 1fr;gap:28px;margin:74px 0;padding:35px;background:linear-gradient(130deg,#22201b,#121318);border:1px solid var(--line)}
+.notice h2{font:30px Georgia,serif;margin:6px 0}.notice p,.notice li{font-size:13px;color:#c8c2b7}.notice ul{padding-left:19px;margin:0}
+footer{padding:38px 0 52px;border-top:1px solid var(--line);color:var(--muted);font-size:12px;display:flex;justify-content:space-between;gap:12px}footer a{text-decoration:none;color:var(--gold)}
+@media(max-width:900px){.catalog{grid-template-columns:repeat(2,minmax(0,1fr))}.hero{min-height:490px}.hero:before{inset:0 0 30px 29%;opacity:.65}.hero-content{padding:55px 0}.item-media{height:235px}}
+@media(max-width:620px){.container{width:min(100% - 30px,460px)}nav{padding:14px 0}.brand{font-size:15px}.brand b{width:32px;height:32px;margin-right:8px}.nav-right{gap:10px;font-size:11px}.nav-right a:first-child{display:none}.hero{min-height:490px;grid-template-columns:1fr;align-items:end}.hero:before{inset:0 -15px 85px 0;background:linear-gradient(0deg,#090a0d 0%,transparent 70%),linear-gradient(90deg,#090a0d 0%,transparent 62%),url('/art/royal/cinematic/watch-showroom.webp') 65% center/cover;opacity:.8}.hero-content{padding:130px 0 35px}.hero h1{font-size:45px}.hero p{font-size:13px}.metrics{grid-template-columns:1fr;gap:9px;padding:17px 0}.metric{display:flex;justify-content:space-between;gap:10px}.section-head{margin:56px 0 24px;display:block}.catalog{grid-template-columns:1fr;gap:15px}.item-media{height:225px}.item-detail p{min-height:0}.notice{grid-template-columns:1fr;padding:24px;margin:50px 0}footer{display:block}}
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{scroll-behavior:auto!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="preview" role="status">준자랜드 수익화 디자인 검토 시안 · 실제 판매/결제 불가 · 카지노 게임머니와 연동되지 않습니다</div>
+<header class="container"><nav aria-label="상단 메뉴">
+<a class="brand" href="/" aria-label="준자랜드 홈"><b>J</b>JUNJA PRIVATE</a>
+<div class="nav-right"><a href="#collection">THE COLLECTION</a><a href="#policy">판매 정책</a><a href="/">게임으로 돌아가기</a></div>
+</nav></header>
+<main class="container">
+<section class="hero" aria-labelledby="main-title">
+<div class="hero-content"><span class="kicker">Members only · Private edition</span>
+<h1 id="main-title">A World of<br><em>Rare Privileges.</em></h1>
+<p>갖는 것 이상의 경험. 당신의 이름이 남는 프라이빗 소장 공간. 준자랜드 멤버를 위한 전용 외형·전시 테마 상품을 준비하고 있습니다.</p>
+<a class="cta" href="#collection">컬렉션 미리보기 ↓</a></div>
+</section>
+<div class="metrics" aria-label="상품 특성">
+<div class="metric"><strong>PRIVATE</strong><span>회원 전용 디지털 컬렉션</span></div>
+<div class="metric"><strong>NON-TRANSFERABLE</strong><span>양도·송금·경매·매입 불가</span></div>
+<div class="metric"><strong>NO GAME ADVANTAGE</strong><span>베팅·배당·게임머니 영향 없음</span></div>
+</div>
+<section id="collection" aria-labelledby="collection-title">
+<div class="section-head"><div><span class="kicker">Curated for the exceptional</span><h2 id="collection-title">The Private Collection</h2></div><p>금액은 상품 구성 검토를 위한 가상 표시 가격입니다. 계약·등급분류·심사 전에는 판매하지 않습니다.</p></div>
+<div class="catalog">
+<article class="item"><div class="item-media"><img src="/art/royal/cinematic/watch-showroom.webp" loading="lazy" alt="럭셔리 워치 컬렉션 전시 장면"><span class="item-category">Imperial watch gallery</span></div><div class="item-detail"><h3>황실의 시간</h3><p>내 전시관에 적용하는 프리미엄 시계 갤러리 배경 테마</p><div class="item-bottom"><strong>₩ 9,900</strong><button disabled type="button">판매 준비 중</button></div></div></article>
+<article class="item"><div class="item-media"><img src="/art/royal/cinematic/car-showroom.webp" loading="lazy" alt="고급 스포츠카 전시장 장면"><span class="item-category">Private motor lounge</span></div><div class="item-detail"><h3>로얄 모터 라운지</h3><p>소장품을 돋보이게 하는 전용 슈퍼카 전시관 스킨</p><div class="item-bottom"><strong>₩ 19,900</strong><button disabled type="button">판매 준비 중</button></div></div></article>
+<article class="item"><div class="item-media"><img src="/art/royal/cinematic/jewelry-showroom.webp" loading="lazy" alt="보석 컬렉션 조명 전시 장면"><span class="item-category">Signature identity</span></div><div class="item-detail"><h3>갓준자 시그니처</h3><p>프로필 전용 금빛 테두리와 비거래형 명예 장식</p><div class="item-bottom"><strong>₩ 4,900</strong><button disabled type="button">판매 준비 중</button></div></div></article>
+<article class="item"><div class="item-media"><img src="/art/royal/cinematic/yacht-showroom.webp" loading="lazy" alt="럭셔리 요트 전시 장면"><span class="item-category">Yacht residence</span></div><div class="item-detail"><h3>마리나 스위트</h3><p>개인 전시관을 위한 요트 라운지 배경 테마</p><div class="item-bottom"><strong>₩ 14,900</strong><button disabled type="button">판매 준비 중</button></div></div></article>
+<article class="item"><div class="item-media"><img src="/art/royal/cinematic/jet-showroom.webp" loading="lazy" alt="프라이빗 제트기 격납고 장면"><span class="item-category">Airborne prestige</span></div><div class="item-detail"><h3>스카이 로얄</h3><p>개인 전시관의 전용기 라운지 테마</p><div class="item-bottom"><strong>₩ 14,900</strong><button disabled type="button">판매 준비 중</button></div></div></article>
+<article class="item"><div class="item-media"><img src="/art/royal/cinematic/estate-showroom.webp" loading="lazy" alt="프리미엄 에스테이트 홀 장면"><span class="item-category">Palace experience</span></div><div class="item-detail"><h3>프라이빗 팰리스</h3><p>내 전시관 메인 홀 전용 인테리어 테마</p><div class="item-bottom"><strong>₩ 24,900</strong><button disabled type="button">판매 준비 중</button></div></div></article>
+</div>
+</section>
+<section class="notice" id="policy" aria-labelledby="policy-title">
+<div><span class="kicker">Commerce safety by design</span><h2 id="policy-title">가치 있는 꾸미기.<br>현금과 게임머니는 분리.</h2><p>본 화면은 디자인 검토용 시안입니다. 사업자·게임 등급·전자상거래 요건 및 PG 심사 충족 전 결제는 비활성화되어 있습니다.</p></div>
+<ul><li>상품은 전시·외형 장식으로만 사용됩니다.</li><li>카지노 베팅머니·J-GOLD·주식·코인·대출에 영향을 주지 않습니다.</li><li>전송·경매·은행 재매입·현금 교환을 허용하지 않습니다.</li><li>환불·이용약관·판매자 정보는 출시 전 별도 구축합니다.</li></ul>
+</section>
+</main>
+<footer class="container"><span>© JUNJA LAND · CONCEPT ONLY · NOT A CHECKOUT</span><a href="/">준자랜드 메인으로</a></footer>
+</body></html>
