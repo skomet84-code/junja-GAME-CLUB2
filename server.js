@@ -1786,7 +1786,7 @@ function bigWheelSpin(userId,bet,key,useRankFree=false){
   try{
     const uid=Number(userId);
     if(!Number.isSafeInteger(uid)||uid<1)throw new Error('사용자를 찾을 수 없습니다.');
-    const u=db.prepare('SELECT id,is_disabled,balance,balance_exact,balance_base FROM users WHERE id=?').get(uid);
+    const u=db.prepare('SELECT id,is_disabled,CAST(balance AS TEXT) AS balance,balance_exact,balance_base FROM users WHERE id=?').get(uid);
     if(!u||u.is_disabled)throw new Error('사용자를 찾을 수 없습니다.');
     const before=exactWallet.read(u);
     const freePlay=consumeRankFreePlay(uid,'wheel',!!useRankFree);
