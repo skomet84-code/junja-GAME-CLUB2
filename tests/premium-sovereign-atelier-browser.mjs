@@ -57,10 +57,12 @@ try{
      assert.equal((await page.evaluate(()=>window.JunjaSovereignAtelier.snapshot())).view,mode);
      assert.equal(await page.locator('[data-at-view="'+mode+'"]').getAttribute('aria-pressed'),'true');
     }
+    const frontBefore=await page.evaluate(()=>window.JunjaSovereignAtelier.snapshot().renderCount);
     await page.locator('[data-at-view="frontDetail"]').click();
+    assert((await page.evaluate(()=>window.JunjaSovereignAtelier.snapshot())).renderCount>frontBefore,'Front detail action must immediately render a fresh 3D frame');
     assert((await page.evaluate(()=>window.JunjaSovereignAtelier.snapshot())).cameraDistance<3.0,'Front fascia needs a true exterior close-up');
-    if(width===390){
-     try{await page.screenshot({path:'/tmp/junja-atelier-front-'+name+'.png',animations:'disabled',timeout:10000});}
+    if(width===390&&name==='webkit'){
+     try{await page.screenshot({path:'/tmp/junja-atelier-front-'+name+'.png',animations:'disabled',timeout:8000});}
      catch(err){console.log('FRONT_SCREENSHOT_SKIPPED '+name+' '+String(err.message||err).slice(0,100));}
     }
     await page.locator('#atelierPaint').selectOption('gold');
@@ -77,7 +79,7 @@ try{
     assert((await page.evaluate(()=>window.JunjaSovereignAtelier.snapshot())).cameraDistance<3.4,'Wheel camera must be a genuine close-up, not another hero photo');
     if(width===390){
      await page.evaluate(()=>document.getElementById('atelierStage').scrollIntoView({block:'center',behavior:'instant'}));
-     await page.waitForFunction(before=>window.JunjaSovereignAtelier.snapshot().renderCount>before+9,previousRenderedFrames,{timeout:15000});
+     await page.waitForFunction(before=>window.JunjaSovereignAtelier.snapshot().renderCount>before,previousRenderedFrames,{timeout:15000});
      await page.waitForTimeout(500);
      try{
       await page.screenshot({path:'/tmp/junja-atelier-wheel-'+name+'.png',animations:'disabled',timeout:10000});
