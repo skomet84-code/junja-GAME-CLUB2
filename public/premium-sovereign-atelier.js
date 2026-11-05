@@ -69,13 +69,13 @@ try {
  nightGroup.add(midnight,tail);nightGroup.visible=false;scene.add(nightGroup);
  const plinth=new THREE.Group();
  const stone=new THREE.Mesh(new THREE.CylinderGeometry(3.33,3.39,.16,96),
-  new THREE.MeshPhysicalMaterial({color:0x12141c,roughness:.25,metalness:.51,clearcoat:.85}));
+  new THREE.MeshPhysicalMaterial({color:0x11131a,roughness:.60,metalness:.14,clearcoat:.33}));
  stone.position.y=-.10;stone.receiveShadow=true;plinth.add(stone);
  const trim=new THREE.Mesh(new THREE.TorusGeometry(3.32,.019,8,120),
   new THREE.MeshStandardMaterial({color:0xb59863,roughness:.24,metalness:.93}));
  trim.rotation.x=Math.PI/2;trim.position.y=-.012;plinth.add(trim);
  const floor=new THREE.Mesh(new THREE.CircleGeometry(50,96),
-  new THREE.MeshStandardMaterial({color:0x0c0e14,metalness:.17,roughness:.62}));
+  new THREE.MeshBasicMaterial({color:0x080a10}));
  floor.rotation.x=-Math.PI/2;floor.position.y=-.22;floor.receiveShadow=true;
  scene.add(floor,plinth);
  carRoot=new THREE.Group();scene.add(carRoot);
