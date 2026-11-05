@@ -11,7 +11,7 @@ let clock=Date.UTC(2026,10,5,0,0);
 const now=()=>clock;
 function write(k,v){db.prepare('INSERT INTO game_state(key,value,updated_at) VALUES(?,?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value,updated_at=excluded.updated_at').run(k,JSON.stringify(v),clock);}
 function read(k){return JSON.parse(db.prepare('SELECT value FROM game_state WHERE key=?').get(k).value);}
-write(STOCK_KEY,{hour:stockHour(clock),cadenceHours:6,catalogVersion:2,stocks:Object.fromEntries(STOCKS.map(s=>[s.id,{price:String(s.base),changeBp:0,history:[s.base],event:null}]))});
+write(STOCK_KEY,{hour:stockHour(clock),cadenceHours:6,catalogVersion:3,stocks:Object.fromEntries(STOCKS.map(s=>[s.id,{price:String(s.base),changeBp:0,history:[s.base],event:null}]))});
 write(COIN_KEY,{hour:coinHour(clock),cadenceHours:0.25,catalogVersion:1,stocks:Object.fromEntries(COINS.map(s=>[s.id,{price:String(s.base),changeBp:0,history:[s.base],event:null}]))});
 let manager=createMarketControl({db,now});
 function stockCore(){
@@ -66,6 +66,14 @@ assert.equal(manager.apply({actorId:1,type:'stock',symbol:'A',mode:'cancel',targ
 clock+=120*60000;
 assert.equal(stocks.status(1).stocks.find(x=>x.id==='A').price,'128917','Cancellation retains quote');
 assert.throws(()=>manager.apply({actorId:1,type:'stock',symbol:'A',mode:'cancel',targetEventId:second.schedule.id,requestId:'timed_cancel_action_0002'}),/이미 종료/);
+// Newly listed food and dairy are eligible for the same operator scheduled quote engine.
+const newFoodStart=stocks.status(1).stocks.find(x=>x.id==='K').price;
+const kEvent=manager.apply({actorId:1,type:'stock',symbol:'K',mode:'schedule',deltaPercent:'+10',
+ expectedPrice:newFoodStart,durationMinutes:30,requestId:'ipo_cheomji_schedule_0001'});
+clock+=30*60000;
+assert.equal(stocks.status(1).stocks.find(x=>x.id==='K').price,kEvent.schedule.targetPrice);
+assert.equal(manager.list().schedules.stock.K.status,'COMPLETED');
+assert.equal(stocks.status(1).stocks.find(x=>x.id==='L').name,'동동 유업');
 // Coin 60-minute 12-step drop, regular 15-minute market ticks may not overlap this asset.
 const coinCurrent=coins.status(1).stocks.find(x=>x.id==='MOON').price;
 const drop=manager.apply({actorId:1,type:'coin',symbol:'MOON',mode:'schedule',deltaPercent:'-57',
