@@ -36,7 +36,7 @@ assert(viewer.includes('gl.drawArrays(gl.TRIANGLES'),'Triangles must be submitte
 assert(viewer.includes('pointermove'),'Interactive orbit movement required');
 assert(viewer.includes('target.door='),'Real door geometry transform required');
 assert(viewer.includes('uGlow'),'Headlight emissive shader required');
-assert(viewer.includes("window.JunjaSovereignLab"),'Readonly test/debug API required');
+assert(viewer.includes("Object.defineProperty(window,'JunjaSovereignLab'"),'Readonly test/debug API required');
 assert(viewer.includes("event")===false||viewer.includes("addEventListener('wheel'"));
 assert(!/innerHTML\s*=/.test(viewer),'Do not render untrusted HTML');
 assert(!/TossPayments|confirmPayment|\/api\/premium\/buy|\/api\/premium\/checkout|localStorage|sessionStorage/.test(viewer),'Never connect prototype to cash, account entitlement or fake owned state');
