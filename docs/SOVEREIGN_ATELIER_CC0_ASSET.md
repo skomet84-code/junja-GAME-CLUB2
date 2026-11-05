@@ -12,7 +12,7 @@ This is an isolated **preproduction** vehicle study. It is not a finished origin
 - **Pinned Git blob SHA-1:** `c0f38c989a78cc4ba63253b5338705e0afb0142f`
 - **License details:** https://github.com/KhronosGroup/glTF-Sample-Assets/blob/main/Models/CarConcept/LICENSE.md
 - **Source changes in prototype:** scene coordinate-axis correction, studio-lit rendering, camera, selection controls, paint customization, manually animated native door/bonnet pivots; steering emblem and license plate hidden. Original material/mesh data is not sold as owned.
-- **Door and hood:** the glTF includes two grouped doors and a grouped bonnet with proper pivots, but **no native animation clips**. JUNJA now adds its own easing-driven hinge rotations on the imported actual mesh hierarchy (left/right local Z and bonnet local X); WebKit and Chromium regression tests validate open/close. The imported source uses **Z-up** vertex coordinates and is rotated −90° around X to place the vehicle flat on the Y-up Three.js showroom stage.
+- **Door and hood:** the glTF includes two grouped doors and a grouped bonnet with proper pivots, but **no native animation clips**. JUNJA now adds its own easing-driven hinge rotations on the imported actual mesh hierarchy (left/right local Z and bonnet local X); WebKit and Chromium regression tests validate open/close. The imported source has **Z-up** mesh coordinates, but its glTF root `BodyUnderside` already includes a −90° X conversion to Y-up. Preserve that root matrix; **do not rotate the loaded scene a second time**.
 - **Renderer:** local Three.js `0.180.0`, MIT License; the official dependency's LICENSE is packaged.
 
 ## Validation and safety
