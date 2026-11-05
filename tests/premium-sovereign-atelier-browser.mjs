@@ -31,7 +31,7 @@ try{
     assert(state.meshCount>80,'Expected detailed Khronos model mesh hierarchy');
     assert(state.materialCount>20,'Expected advanced PBR variants');
     assert.equal(state.clipCount,0,'New source has door pivots, not pre-exported animation clips');
-    assert((await page.locator('#atelierInfo').innerText()).includes('3D 모델 로딩 완료'));
+    assert((await page.locator('#atelierInfo').innerText()).includes('glTF 모델 로딩 완료'));
     await page.locator('[data-at-view="front"]').click();
     assert.equal((await page.evaluate(()=>window.JunjaSovereignAtelier.snapshot())).view,'front');
     await page.locator('[data-at-view="detail"]').click();
