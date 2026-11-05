@@ -27,13 +27,24 @@ assert(canopy&&canopy.verts.length/18>5000,'Canopy must use curved surface norma
 assert(models.some(x=>x.name==='woven-carbon-roof'),'Need visually differentiated carbon roof');
 assert(models.filter(x=>x.name.startsWith('integrated-wheel-arch')).length===4,'Need four proper wheel arch outlines');
 assert(models.filter(x=>x.name.startsWith('carbon-front-wing')).length===2,'Need sculpted side aero');
-for(const mode of ['threeQuarter','front','side','cockpit','wheel'])assert(page.includes('data-sov-preset="'+mode+'"'),'Missing mobile inspection mode: '+mode);
+for(const mode of ['threeQuarter','front','side','rear','wheel'])assert(page.includes('data-sov-preset="'+mode+'"'),'Missing exterior mobile inspection mode: '+mode);
 assert(style.includes('.studio-quickviews'),'Premium mobile camera toolbar must be styled');
 assert(models.filter(m=>m.name.startsWith('turbine-spoke-')).length>=40,'Each wheel must have individually sculpted turbine spokes');
 assert(viewer.includes('float rough=clamp')&&viewer.includes('vec3 brdf('),'Studio renderer requires physically informed roughness/metallic shader');
 assert(viewer.includes('Reflected rectangular softboxes'),'Paint needs true view-dependent studio reflection');
-for(const part of ['real-steering-wheel','steering-gold-filigree','center-console','front-wide-intake','rim-polished-edge','brake-rotor','seat-upholstery','display-gold-halo','sovereign-front-emblem']){
+for(const part of ['front-wide-intake','rim-polished-edge','brake-rotor','display-gold-halo','sovereign-front-emblem']){
  assert(models.some(m=>m.name.startsWith(part)),'Missing sculpted premium 3D detail '+part);
+}
+// The reported old screenshot had roof bars and cabin objects penetrating the
+// exterior silhouette. These are intentionally absent from the rendered geometry.
+for(const model of models){
+ assert(!/^(a-pillar-|roof-edge-|seat-upholstery-|headrest-|seat-gold-stitch-|center-console$|dashboard-instrument-screen$|real-steering-wheel$|steering-gold-filigree$)/.test(model.name),
+  'No cockpit prop or rollbar may pierce the canopy: '+model.name);
+ if(!/plinth|halo|ground-shadow|dial-index/.test(model.name)){
+  let highest=-Infinity;
+  for(let i=1;i<model.verts.length;i+=6)highest=Math.max(highest,model.verts[i]);
+  assert(highest<=1.60,'Exterior protrudes above roof silhouette: '+model.name+' '+highest);
+ }
 }
 assert(doors>=2,'At least two real separate moving door components');
 assert(lights>=2,'At least two light materials');
@@ -61,6 +72,8 @@ assert(!/<button[^>]*data-(?:purchase|checkout)/i.test(page));
 assert(page.includes('NOT OWNED')||page.includes('미소유'));
 assert(page.includes('NOT FOR SALE')||page.includes('판매'));
 assert(collection.includes('/premium-sovereign-lab.html'));
+assert(page.includes('studio-exterior-gateway')&&page.includes('/premium-sovereign-atelier.html'),'Legacy draft must prominently direct viewers to actual GLB exterior');
+assert(!page.includes('data-sov-preset="cockpit"'),'Exterior-first quick-view bar must not show cockpit');
 assert.equal((collection.match(/<button disabled type="button">판매 준비 중<\/button>/g)||[]).length,6,'Existing six payment controls remain disabled');
 const policy=JSON.parse(read('docs/COMMERCE_GO_LIVE_GATE.json'));
 assert.equal(policy.goLive,false);
