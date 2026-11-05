@@ -1,0 +1,53 @@
+name: Premium Motor Design Studio V1
+on:
+  pull_request:
+    paths:
+      - 'premium-motor-design.js'
+      - 'server.js'
+      - 'public/premium-motor-studio.js'
+      - 'public/premium-sovereign*'
+      - 'tests/premium-motor-design*'
+      - '.github/workflows/premium-motor-design-v1.yml'
+  workflow_dispatch:
+jobs:
+  draft-storage:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify source and install server runtime
+        run: |
+          node --check premium-motor-design.js
+          node --check public/premium-motor-studio.js
+          node --check public/premium-sovereign-viewer.js
+          node --check server.js
+          npm install --omit=dev --ignore-scripts --no-audit --no-fund
+      - name: Private drafts, sharing, revocation and money isolation
+        run: |
+          node tests/premium-motor-design.cjs
+          node tests/premium-motor-design-http.cjs
+  mobile-visitor:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install actual browser QA
+        run: |
+          npm install --no-save --no-package-lock --ignore-scripts --no-audit --no-fund playwright
+          npx playwright install --with-deps chromium webkit
+      - name: Member design save, WebGL restoration, opt-in visit and unpublish
+        run: node tests/premium-motor-design-mobile.mjs
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: motor-design-mobile-evidence
+          path: /tmp/junja-motor-design-*.png
+          if-no-files-found: ignore

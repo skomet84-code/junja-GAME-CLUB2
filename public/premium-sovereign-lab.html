@@ -9,6 +9,7 @@
 <link rel="stylesheet" href="/premium-sovereign.css?v=20261105-3d-alpha">
 <script src="/premium-sovereign-mesh.js?v=20261105-3d-alpha" defer></script>
 <script src="/premium-sovereign-viewer.js?v=20261105-3d-alpha" defer></script>
+<script src="/premium-motor-studio.js?v=20261105-design-v1" defer></script>
 </head>
 <body>
 <div class="lab-notice" role="note">JUNJA PRIVATE COLLECTION · 3D 기술 미리보기 · 소유권·구매·게임머니 변경 없음</div>
@@ -55,6 +56,26 @@
    <button id="sovReset" type="button" class="ghost">초기화</button>
   </div>
   <p class="control-status" id="sovereignStatus" role="status" aria-live="polite">3D 엔진을 준비 중입니다.</p>
+ </div>
+</section>
+<section class="motor-design" id="motorDesignPanel" aria-labelledby="motorDesignTitle">
+ <div class="motor-design-head"><div><p class="overline">MEMBER DESIGN STUDIO · NOT OWNED</p><h2 id="motorDesignTitle">내 디자인 시안 보관함</h2><p>차량 색상·카메라·도어·조명을 저장해 나중에 이어서 감상할 수 있어. 소유권이나 구매 기록이 아니라 <strong>무료 디자인 초안</strong>이야.</p></div><span class="motor-design-state">DRAFT · NO PURCHASE</span></div>
+ <div class="motor-design-body" id="motorDesignContent">
+  <p id="motorDesignStatus" role="status" aria-live="polite">회원의 저장 상태를 확인하고 있습니다.</p>
+  <div id="motorDesignMember" hidden>
+   <div class="motor-design-buttons">
+    <button type="button" id="motorDesignSave">현재 디자인 저장</button>
+    <button type="button" id="motorDesignPublish" class="motor-share-btn" aria-pressed="false">공개 링크 만들기</button>
+    <button type="button" id="motorDesignRotate" class="motor-ghost" hidden>공개 링크 재발급</button>
+   </div>
+   <div id="motorDesignShareBox" class="motor-share-link" hidden>
+    <label for="motorDesignShareUrl">내 공개 시안 주소 · 링크를 아는 사람이 방문할 수 있어</label>
+    <div><input id="motorDesignShareUrl" type="text" readonly aria-label="디자인 공유 링크"><button type="button" id="motorDesignCopy">링크 복사</button></div>
+   </div>
+   <p class="motor-design-warning">공개 기능은 선택 사항이며 기본은 비공개야. 공개 시에는 닉네임과 차량 디자인만 표시되고 계정 정보·게임 자산·소유권은 공개되지 않아.</p>
+  </div>
+  <div id="motorDesignVisitor" hidden><p id="motorDesignVisitorNote">공유 디자인 시안을 조회하고 있어.</p><a href="/premium-sovereign-lab.html">내 디자인 체험하기</a></div>
+  <div id="motorDesignLogin" hidden><p>로그인하면 차량 디자인을 무료로 보관할 수 있어. 저장하지 않아도 3D 체험은 계속 가능해.</p><a href="/">준자랜드 로그인</a></div>
  </div>
 </section>
 <section class="lab-contents" aria-labelledby="labRoadmapTitle">
