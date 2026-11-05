@@ -33,7 +33,7 @@ jobs:
           node-version: '22'
       - name: Install browser testing dependencies
         run: |
-          npm install --no-save --no-package-lock --ignore-scripts --no-audit --no-fund playwright
+          npm install --no-save --no-package-lock --ignore-scripts --no-audit --no-fund playwright@1.64.1
           npx playwright install --with-deps chromium webkit
       - name: Test real WebGL orbit/doors/lights/color, 8 viewports and image fallback
         run: node tests/premium-sovereign-browser.mjs
