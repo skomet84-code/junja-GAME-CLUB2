@@ -28,7 +28,11 @@ assert(!/TossPayments|confirmPayment|\/api\/premium\/buy|\/api\/premium\/checkou
 assert(page.includes('미소유')&&page.includes('판매 불가'));
 assert(page.includes('Car Concept')&&page.includes('CC-BY 4.0'));
 assert(old.includes('motorDesignPanel'),'Existing member draft flow must be intact');
-for(const mode of ['hero','front','side','rear','wheel'])assert(page.includes('data-at-view="'+mode+'"'));
+for(const mode of ['hero','front','frontDetail','side','rear','wheel'])assert(page.includes('data-at-view="'+mode+'"'));
+assert(script.includes('frontGrilleMaterials.push(copy)')&&script.includes('caliperMaterials.push(copy)'),'Source-geometry grille and brakes must receive independent exterior finishes');
+assert(script.includes('BodyHoodTopgrill')&&script.includes('BrakePad'),'Never invent a front grille or brake mesh in the renderer');
+assert(script.includes('state.frontGrilleCount=frontGrilleMaterials.length')&&script.includes('state.brakeCaliperCount=caliperMaterials.length'),'Real material application must be observable in browser QA');
+assert(script.includes("getObjectByName('WheelFrontLRim')")&&script.includes('new THREE.Box3().setFromObject(sourceRim)'),'Wheel camera must dynamically lock to real imported rim geometry');
 for(const id of ['atelierCanvas','atelierLoading','atelierFallback','atelierPaint','atelierDoor','atelierHood','atelierLight','atelierReset'])assert(page.includes('id="'+id+'"'));
 assert(script.includes("new GLTFLoader().loadAsync('/art/royal/models/carconcept-ccby.glb'"),'Must load real local GLB');
 assert(script.includes('new THREE.WebGLRenderer')&&script.includes('RoomEnvironment'),'Real WebGL physical lighting required');
@@ -44,6 +48,7 @@ assert(script.includes('state.wheelSurfaceCount=wheelMaterials.length'),'Wheel s
 assert(!script.includes('new THREE.CircleGeometry(50,96)'),'Exterior must not render a giant black horizontal floor band');
 assert(script.includes('camera.position.distanceTo(orbit.target).toFixed(2)'),'Actual closeup camera distance must be testable');
 assert(script.includes('function renderOnDemand()')&&script.match(/renderOnDemand\(\);/g)?.length>=4,'Every user-directed camera/paint/rim/light change must immediately update WebGL, even when offscreen');
+assert(script.includes("orbit.addEventListener('change',()=>{renderDirty=true;})")&&script.includes('if(!renderDirty)return;'),'Static exterior must not render at 60FPS while idle on iPhones');
 assert(script.includes('object.parent?.name')&&script.includes('rimSource&&/^Rim[12]$/i.test(mat.name||\'\')'),'Rim-only PBR changes must recognize glTF grouped primitives, not tires');
 
 assert(script.includes('car.updateMatrixWorld(true)')&&!script.includes('car.rotation.x=-Math.PI/2'),'Preserve built-in source coordinate-axis conversion, never double-rotate the model');

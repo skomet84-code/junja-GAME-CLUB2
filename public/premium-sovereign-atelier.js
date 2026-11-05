@@ -13,7 +13,7 @@ const info=$('atelierInfo'),fallback=$('atelierFallback'),error=$('atelierError'
 const paint=$('atelierPaint'),wheelFinish=$('atelierWheelFinish'),door=$('atelierDoor'),hood=$('atelierHood'),light=$('atelierLight'),reset=$('atelierReset');
 const stage=$('atelierStage');
 const quick=[...document.querySelectorAll('[data-at-view]')];
-const viewNames={hero:'외관 3/4',front:'정면',side:'측면',rear:'후면',wheel:'전륜 디테일'};
+const viewNames={hero:'외관 3/4',front:'정면',frontDetail:'전면 디자인',side:'측면',rear:'후면',wheel:'전륜 디테일'};
 const colors={silver:0xadb6c0,onyx:0x121925,gold:0xba915b,blue:0x123b71,burgundy:0x6b152d};
 const wheelPalettes={
  graphite:{accent:0xa7adb8,base:0x1a202a,roughness:.21},
@@ -21,7 +21,7 @@ const wheelPalettes={
  champagne:{accent:0xc49b62,base:0x30261b,roughness:.25}
 };
 const state={ready:false,failed:false,renderCount:0,meshCount:0,materialCount:0,clipCount:0,
- paint:'silver',wheelFinish:'graphite',paintSurfaceCount:0,wheelSurfaceCount:0,headlightSurfaceCount:0,cameraDistance:null,view:'hero',light:'studio',doorsOpen:false,hoodOpen:false,
+ paint:'silver',wheelFinish:'graphite',paintSurfaceCount:0,wheelSurfaceCount:0,headlightSurfaceCount:0,frontGrilleCount:0,brakeCaliperCount:0,wheelTargetResolved:false,cameraDistance:null,view:'hero',light:'studio',doorsOpen:false,hoodOpen:false,
  doorAngle:0,hoodAngle:0,hingeCount:0,modelSize:null,lastError:null,glb:true,owned:false,paid:false};
 const banner=message=>{info.textContent=message;};
 const disabled=flag=>{for(const el of [...quick,door,hood,paint,wheelFinish,light,reset])el.disabled=flag;};
@@ -36,11 +36,13 @@ const fail=err=>{
  banner('새 3D 모델을 표시하지 못했습니다. 기존 체험실을 이용할 수 있습니다.');
  disabled(true);
 };
-let renderer,scene,camera,orbit,mixer,clips=[],carRoot,paintMaterials=[],wheelMaterials=[],headlightMaterials=[];
+let renderer,scene,camera,orbit,mixer,clips=[],carRoot,paintMaterials=[],wheelMaterials=[],headlightMaterials=[],frontGrilleMaterials=[],caliperMaterials=[];
 let environmentTexture,studioGroup,nightGroup,clock,visible=true,car=null;
+let frontRimFocus=null;
 const hinges={doors:[],hood:null};
 const motion={doors:0,hood:0};
 const tmp=new THREE.Vector3();
+let renderDirty=true;
 // A user may select a camera or finish while the canvas is outside the viewport.
 // Rendering only in the intersection-based RAF loop caused a stale image to
 // appear one selection behind on real iPhone/WebKit screenshots.
@@ -49,6 +51,7 @@ function renderOnDemand(){
  orbit?.update();
  renderer.render(scene,camera);
  state.renderCount++;
+ renderDirty=false;
 }
 try {
  // High-DPI iPhones pay a large GPU tax rendering the 11.8MB PBR model.
@@ -69,6 +72,7 @@ try {
  orbit.enablePan=false;orbit.minDistance=2.3;orbit.maxDistance=15.5;
  orbit.minPolarAngle=.12;orbit.maxPolarAngle=Math.PI*.49;
  orbit.target.set(0,.83,0);orbit.update();
+ orbit.addEventListener('change',()=>{renderDirty=true;});
  const pmrem=new THREE.PMREMGenerator(renderer);
  environmentTexture=pmrem.fromScene(new RoomEnvironment(),.05).texture;
  scene.environment=environmentTexture;
@@ -104,33 +108,39 @@ try {
  clock=new THREE.Clock();
  const onResize=()=>{
   const width=Math.max(canvas.clientWidth,1),height=Math.max(canvas.clientHeight,1);
-  renderer.setSize(width,height,false);camera.aspect=width/height;camera.updateProjectionMatrix();
+  renderer.setSize(width,height,false);camera.aspect=width/height;camera.updateProjectionMatrix();renderDirty=true;
  };
  onResize();
  if(window.ResizeObserver)new ResizeObserver(onResize).observe(stage);
  else window.addEventListener('resize',onResize);
- if(window.IntersectionObserver)new IntersectionObserver(entries=>{visible=!!entries[0]?.isIntersecting;},{threshold:0}).observe(stage);
- window.addEventListener('visibilitychange',()=>{clock.getDelta();});
+ if(window.IntersectionObserver)new IntersectionObserver(entries=>{visible=!!entries[0]?.isIntersecting;if(visible)renderDirty=true;},{threshold:0}).observe(stage);
+ window.addEventListener('visibilitychange',()=>{clock.getDelta();renderDirty=true;});
  canvas.addEventListener('webglcontextlost',event=>{event.preventDefault();fail(Error('WebGL 그래픽 연결이 끊겼습니다.'));});
  function animate(){
   requestAnimationFrame(animate);
   if(state.failed||document.hidden||!visible)return;
   const dt=Math.min(clock.getDelta(),.05);
-  if(mixer)mixer.update(dt);
+  if(mixer){mixer.update(dt);renderDirty=true;}
   // Genuine grouped door/bonnet hinges stay in their source local coordinates.
   // The GLB root already contains the Z-up -> Y-up transform; do not rotate twice.
   const easing=1-Math.exp(-8*dt);
+  const previousDoor=motion.doors,previousHood=motion.hood;
   motion.doors+=((state.doorsOpen?1:0)-motion.doors)*easing;
   motion.hood+=((state.hoodOpen?1:0)-motion.hood)*easing;
+  if(Math.abs(motion.doors-previousDoor)>1e-6||Math.abs(motion.hood-previousHood)>1e-6)renderDirty=true;
   if(Math.abs(motion.doors-(state.doorsOpen?1:0))<.0005)motion.doors=state.doorsOpen?1:0;
   if(Math.abs(motion.hood-(state.hoodOpen?1:0))<.0005)motion.hood=state.hoodOpen?1:0;
   for(const hinge of hinges.doors)hinge.node.rotation.z=hinge.base+hinge.sweep*motion.doors;
   if(hinges.hood)hinges.hood.node.rotation.x=hinges.hood.base+hinges.hood.sweep*motion.hood;
   state.doorAngle=+(motion.doors*.93).toFixed(3);
   state.hoodAngle=+(motion.hood*.47).toFixed(3);
+  // OrbitControls emits 'change' while touch drag/zoom/damping is active.
+  // Stop redraws when the user is not touching the static, nonanimated car.
   orbit.update();
+  if(!renderDirty)return;
   renderer.render(scene,camera);
   state.renderCount++;
+  renderDirty=false;
  }
  animate();
 }catch(e){fail(e);}
@@ -139,12 +149,20 @@ function setView(view){
  if(!state.ready||!viewNames[view])return;
  state.view=view;
  const radius=6.6,coords={
-  hero:[5.2,2.15,5.65],front:[0,1.60,radius],side:[8.05,1.68,0],
-  rear:[0,1.65,-radius],wheel:[3.05,1.12,2.35]
+  hero:[5.2,2.15,5.65],front:[0,1.60,radius],frontDetail:[1.9,1.40,3.10],side:[8.05,1.68,0],
+  rear:[0,1.65,-radius]
  };
- camera.position.set(...coords[view]);
- // Only the wheel preset inspects a local exterior component. No cockpit camera.
- orbit.target.set(...(view==='wheel'?[1.00,.52,1.35]:[0,.77,0]));
+ if(view==='wheel'&&frontRimFocus){
+  // Source model determines the real wheel centre, never a guessed front-
+  // bumper coordinate. Approach nearly perpendicular to the wheel's plane,
+  // so the hood cannot occlude the forged rim in the mobile close-up.
+  const side=frontRimFocus.x>=0?1:-1;
+  orbit.target.copy(frontRimFocus);
+  camera.position.copy(frontRimFocus).add(new THREE.Vector3(side*2.55,.58,.10));
+ }else{
+  camera.position.set(...(coords[view]||coords.hero));
+  orbit.target.set(...(view==='frontDetail'?[0,.76,1.4]:[0,.77,0]));
+ }
  orbit.update();
  state.cameraDistance=+camera.position.distanceTo(orbit.target).toFixed(2);
  renderOnDemand();
@@ -269,6 +287,15 @@ async function load(){
   if(!(size.z>size.y*2&&size.z>size.x*1.2))throw Error('모델 축 변환에 실패했습니다.');
   carRoot.position.set(-center.x,.02-bounds.min.y,-center.z);
   carRoot.add(car);
+  carRoot.updateMatrixWorld(true);
+  const sourceRim=car.getObjectByName('WheelFrontLRim')||car.getObjectByName('WheelFrontRRim');
+  if(sourceRim){
+   const rimBounds=new THREE.Box3().setFromObject(sourceRim);
+   if(!rimBounds.isEmpty()){
+    frontRimFocus=rimBounds.getCenter(new THREE.Vector3());
+    state.wheelTargetResolved=true;
+   }
+  }
   const materialNames=new Set();
   car.traverse(object=>{
    // Exclude trademark-bearing steering badge and license-plate graphics.
@@ -280,7 +307,32 @@ async function load(){
    const replacement=a.map(mat=>{
     if(!mat)return mat;
     materialNames.add(mat.name||'unnamed');
-    const n=String(mat.name||'').toLowerCase();
+    // Exterior-only finish pass. The original hood upper grille and four
+    // brake-caliper parts are real source GLB meshes, not overlay decoration.
+    // Clone only those materials before the general paint rule so their carbon
+    // and champagne-gold detail does not get wiped by user body color selection.
+    const namedInHierarchy=pattern=>[object.name,object.parent?.name,object.parent?.parent?.name]
+     .some(name=>pattern.test(name||''));
+    if(namedInHierarchy(/^BodyHoodTopgrill(?:$|[_ .])/i)){
+     const copy=mat.clone();
+     copy.color.setHex(0x1c222c);
+     copy.metalness=.44;
+     copy.roughness=.35;
+     if('clearcoat' in copy){copy.clearcoat=.23;copy.clearcoatRoughness=.29;}
+     copy.envMapIntensity=1.12;
+     frontGrilleMaterials.push(copy);
+     return copy;
+    }
+    if(namedInHierarchy(/^Wheel(?:Front|Rear)[LR]BrakePad(?:$|[_ .])/i)&&/^Brake$/i.test(mat.name||'')){
+     const copy=mat.clone();
+     copy.color.setHex(0xb69a68);
+     copy.metalness=.61;
+     copy.roughness=.29;
+     if(copy.emissive)copy.emissive.setHex(0x000000);
+     copy.envMapIntensity=1.05;
+     caliperMaterials.push(copy);
+     return copy;
+    }
     if(/^paint [12] (carmine|pearl|graphite)/i.test(String(mat.name||''))){
      const copy=mat.clone();
      paintMaterials.push({material:copy,secondary:/^paint 2 /i.test(copy.name)});
@@ -324,18 +376,20 @@ async function load(){
   state.paintSurfaceCount=paintMaterials.length;
   state.wheelSurfaceCount=wheelMaterials.length;
   state.headlightSurfaceCount=headlightMaterials.length;
+  state.frontGrilleCount=frontGrilleMaterials.length;
+  state.brakeCaliperCount=caliperMaterials.length;
   setPaint('silver');
   setWheelFinish('graphite');
   setView('hero');
   paint.disabled=!paintMaterials.length;
   wheelFinish.disabled=!wheelMaterials.length;
   status.textContent='3D 모델 로딩 완료';
-  banner('고품질 GLB 외관 로딩 완료 · 차체 도장 '+paintMaterials.length+'면 · 휠 림 '+wheelMaterials.length+'면 · 외관 360도');
+  banner('GLB 외관 로딩 완료 · 새틴 그릴 '+frontGrilleMaterials.length+'면 · 브레이크 디테일 '+caliperMaterials.length+'면 · 외관 360도');
  }catch(e){fail(e);}
 }
 for(const button of quick)button.addEventListener('click',()=>{
  setView(button.dataset.atView);
- if(button.dataset.atView==='wheel')stage.scrollIntoView({block:'center',behavior:'smooth'});
+ if(['wheel','frontDetail'].includes(button.dataset.atView))stage.scrollIntoView({block:'center',behavior:'smooth'});
 });
 paint.addEventListener('change',()=>setPaint(paint.value));
 wheelFinish.addEventListener('change',()=>setWheelFinish(wheelFinish.value));
