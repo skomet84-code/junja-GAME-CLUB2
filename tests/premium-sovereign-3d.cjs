@@ -20,7 +20,13 @@ for(const m of models){
  assert(m.gloss>=0&&m.gloss<=1&&m.metal>=0&&m.metal<=1);
  triangles+=m.verts.length/18;paint+=Number(m.paint);doors+=Number(['leftDoor','rightDoor'].includes(m.group));lights+=Number(m.group==='headlamp');
 }
-assert(triangles>9000,'Sovereign refinement must include actual curved geometry, not CSS detail');
+assert(triangles>24000,'Premium vehicle must use dense smooth 3D geometry, not block silhouettes');
+const body=models.find(m=>m.name==='sculpted-body'),canopy=models.find(m=>m.name==='cockpit-canopy');
+assert(body&&body.verts.length/18>12000,'Body must have an original spline loft surface');
+assert(canopy&&canopy.verts.length/18>5000,'Canopy must use curved surface normals');
+assert(models.filter(m=>m.name.startsWith('turbine-spoke-')).length>=40,'Each wheel must have individually sculpted turbine spokes');
+assert(viewer.includes('float rough=clamp')&&viewer.includes('vec3 brdf('),'Studio renderer requires physically informed roughness/metallic shader');
+assert(viewer.includes('Reflected rectangular softboxes'),'Paint needs true view-dependent studio reflection');
 for(const part of ['real-steering-wheel','steering-gold-filigree','center-console','front-wide-intake','rim-polished-edge','brake-rotor','seat-upholstery','display-gold-halo','sovereign-front-emblem']){
  assert(models.some(m=>m.name.startsWith(part)),'Missing sculpted premium 3D detail '+part);
 }
