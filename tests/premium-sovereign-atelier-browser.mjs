@@ -55,8 +55,13 @@ try{
     assert((await page.locator('#atelierInfo').innerText()).includes('GLB 외관 로딩 완료'));
     for(const mode of ['front','frontDetail','side','rear','wheel','hero']){
      await page.locator('[data-at-view="'+mode+'"]').click();
-     assert.equal((await page.evaluate(()=>window.JunjaSovereignAtelier.snapshot())).view,mode);
+     const framed=await page.evaluate(()=>window.JunjaSovereignAtelier.snapshot());
+     assert.equal(framed.view,mode);
      assert.equal(await page.locator('[data-at-view="'+mode+'"]').getAttribute('aria-pressed'),'true');
+     if(['hero','front','side','rear'].includes(mode)){
+      assert.equal(framed.autoFramed,true,'Entire car must fit in automatic exterior mode: '+mode);
+      assert(framed.viewFitMargin>0&&framed.viewFitMargin<.95,'Full car clipping risk '+name+' '+width+' '+mode+': '+framed.viewFitMargin);
+     }else assert.equal(framed.autoFramed,false,'Closeup should preserve intended detail framing: '+mode);
     }
     const frontBefore=await page.evaluate(()=>window.JunjaSovereignAtelier.snapshot().renderCount);
     await page.locator('[data-at-view="frontDetail"]').click();
