@@ -13,7 +13,7 @@ const info=$('atelierInfo'),fallback=$('atelierFallback'),error=$('atelierError'
 const paint=$('atelierPaint'),wheelFinish=$('atelierWheelFinish'),door=$('atelierDoor'),hood=$('atelierHood'),light=$('atelierLight'),reset=$('atelierReset');
 const stage=$('atelierStage');
 const quick=[...document.querySelectorAll('[data-at-view]')];
-const viewNames={hero:'외관 3/4',front:'정면',side:'측면',rear:'후면',wheel:'전륜 디테일'};
+const viewNames={hero:'외관 3/4',front:'정면',frontDetail:'전면 디자인',side:'측면',rear:'후면',wheel:'전륜 디테일'};
 const colors={silver:0xadb6c0,onyx:0x121925,gold:0xba915b,blue:0x123b71,burgundy:0x6b152d};
 const wheelPalettes={
  graphite:{accent:0xa7adb8,base:0x1a202a,roughness:.21},
@@ -21,7 +21,7 @@ const wheelPalettes={
  champagne:{accent:0xc49b62,base:0x30261b,roughness:.25}
 };
 const state={ready:false,failed:false,renderCount:0,meshCount:0,materialCount:0,clipCount:0,
- paint:'silver',wheelFinish:'graphite',paintSurfaceCount:0,wheelSurfaceCount:0,headlightSurfaceCount:0,cameraDistance:null,view:'hero',light:'studio',doorsOpen:false,hoodOpen:false,
+ paint:'silver',wheelFinish:'graphite',paintSurfaceCount:0,wheelSurfaceCount:0,headlightSurfaceCount:0,frontGrilleCount:0,brakeCaliperCount:0,cameraDistance:null,view:'hero',light:'studio',doorsOpen:false,hoodOpen:false,
  doorAngle:0,hoodAngle:0,hingeCount:0,modelSize:null,lastError:null,glb:true,owned:false,paid:false};
 const banner=message=>{info.textContent=message;};
 const disabled=flag=>{for(const el of [...quick,door,hood,paint,wheelFinish,light,reset])el.disabled=flag;};
@@ -36,7 +36,7 @@ const fail=err=>{
  banner('새 3D 모델을 표시하지 못했습니다. 기존 체험실을 이용할 수 있습니다.');
  disabled(true);
 };
-let renderer,scene,camera,orbit,mixer,clips=[],carRoot,paintMaterials=[],wheelMaterials=[],headlightMaterials=[];
+let renderer,scene,camera,orbit,mixer,clips=[],carRoot,paintMaterials=[],wheelMaterials=[],headlightMaterials=[],frontGrilleMaterials=[],caliperMaterials=[];
 let environmentTexture,studioGroup,nightGroup,clock,visible=true,car=null;
 const hinges={doors:[],hood:null};
 const motion={doors:0,hood:0};
@@ -139,12 +139,12 @@ function setView(view){
  if(!state.ready||!viewNames[view])return;
  state.view=view;
  const radius=6.6,coords={
-  hero:[5.2,2.15,5.65],front:[0,1.60,radius],side:[8.05,1.68,0],
+  hero:[5.2,2.15,5.65],front:[0,1.60,radius],frontDetail:[1.9,1.40,3.10],side:[8.05,1.68,0],
   rear:[0,1.65,-radius],wheel:[3.05,1.12,2.35]
  };
  camera.position.set(...coords[view]);
  // Only the wheel preset inspects a local exterior component. No cockpit camera.
- orbit.target.set(...(view==='wheel'?[1.00,.52,1.35]:[0,.77,0]));
+ orbit.target.set(...(view==='wheel'?[1.00,.52,1.35]:view==='frontDetail'?[0,.76,1.4]:[0,.77,0]));
  orbit.update();
  state.cameraDistance=+camera.position.distanceTo(orbit.target).toFixed(2);
  renderOnDemand();
@@ -280,7 +280,32 @@ async function load(){
    const replacement=a.map(mat=>{
     if(!mat)return mat;
     materialNames.add(mat.name||'unnamed');
-    const n=String(mat.name||'').toLowerCase();
+    // Exterior-only finish pass. The original hood upper grille and four
+    // brake-caliper parts are real source GLB meshes, not overlay decoration.
+    // Clone only those materials before the general paint rule so their carbon
+    // and brushed-gold detail does not get wiped by user body color selection.
+    const namedInHierarchy=pattern=>[object.name,object.parent?.name,object.parent?.parent?.name]
+     .some(name=>pattern.test(name||''));
+    if(namedInHierarchy(/^BodyHoodTopgrill(?:$|[_ .])/i)){
+     const copy=mat.clone();
+     copy.color.setHex(0x1c222c);
+     copy.metalness=.44;
+     copy.roughness=.35;
+     if('clearcoat' in copy){copy.clearcoat=.23;copy.clearcoatRoughness=.29;}
+     copy.envMapIntensity=1.12;
+     frontGrilleMaterials.push(copy);
+     return copy;
+    }
+    if(namedInHierarchy(/^Wheel(?:Front|Rear)[LR]BrakePad(?:$|[_ .])/i)&&/^Brake$/i.test(mat.name||'')){
+     const copy=mat.clone();
+     copy.color.setHex(0xb69a68);
+     copy.metalness=.61;
+     copy.roughness=.29;
+     if(copy.emissive)copy.emissive.setHex(0x000000);
+     copy.envMapIntensity=1.05;
+     caliperMaterials.push(copy);
+     return copy;
+    }
     if(/^paint [12] (carmine|pearl|graphite)/i.test(String(mat.name||''))){
      const copy=mat.clone();
      paintMaterials.push({material:copy,secondary:/^paint 2 /i.test(copy.name)});
@@ -324,18 +349,20 @@ async function load(){
   state.paintSurfaceCount=paintMaterials.length;
   state.wheelSurfaceCount=wheelMaterials.length;
   state.headlightSurfaceCount=headlightMaterials.length;
+  state.frontGrilleCount=frontGrilleMaterials.length;
+  state.brakeCaliperCount=caliperMaterials.length;
   setPaint('silver');
   setWheelFinish('graphite');
   setView('hero');
   paint.disabled=!paintMaterials.length;
   wheelFinish.disabled=!wheelMaterials.length;
   status.textContent='3D 모델 로딩 완료';
-  banner('고품질 GLB 외관 로딩 완료 · 차체 도장 '+paintMaterials.length+'면 · 휠 림 '+wheelMaterials.length+'면 · 외관 360도');
+  banner('GLB 외관 로딩 완료 · 카본 그릴 '+frontGrilleMaterials.length+'면 · 브레이크 디테일 '+caliperMaterials.length+'면 · 외관 360도');
  }catch(e){fail(e);}
 }
 for(const button of quick)button.addEventListener('click',()=>{
  setView(button.dataset.atView);
- if(button.dataset.atView==='wheel')stage.scrollIntoView({block:'center',behavior:'smooth'});
+ if(['wheel','frontDetail'].includes(button.dataset.atView))stage.scrollIntoView({block:'center',behavior:'smooth'});
 });
 paint.addEventListener('change',()=>setPaint(paint.value));
 wheelFinish.addEventListener('change',()=>setWheelFinish(wheelFinish.value));
