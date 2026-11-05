@@ -43,6 +43,7 @@ assert(script.includes("if(mat.name==='Headlight')")&&script.includes('headlight
 assert(script.includes('state.wheelSurfaceCount=wheelMaterials.length'),'Wheel surface count must be exposed to browser QA');
 assert(!script.includes('new THREE.CircleGeometry(50,96)'),'Exterior must not render a giant black horizontal floor band');
 assert(script.includes('camera.position.distanceTo(orbit.target).toFixed(2)'),'Actual closeup camera distance must be testable');
+assert(script.includes('function renderOnDemand()')&&script.match(/renderOnDemand\(\);/g)?.length>=4,'Every user-directed camera/paint/rim/light change must immediately update WebGL, even when offscreen');
 assert(script.includes('object.parent?.name')&&script.includes('rimSource&&/^Rim[12]$/i.test(mat.name||\'\')'),'Rim-only PBR changes must recognize glTF grouped primitives, not tires');
 
 assert(script.includes('car.updateMatrixWorld(true)')&&!script.includes('car.rotation.x=-Math.PI/2'),'Preserve built-in source coordinate-axis conversion, never double-rotate the model');
