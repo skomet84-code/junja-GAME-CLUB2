@@ -10,16 +10,21 @@ import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 const $=id=>document.getElementById(id);
 const canvas=$('atelierCanvas'),loading=$('atelierLoading'),status=$('atelierStatus');
 const info=$('atelierInfo'),fallback=$('atelierFallback'),error=$('atelierError');
-const paint=$('atelierPaint'),door=$('atelierDoor'),hood=$('atelierHood'),light=$('atelierLight'),reset=$('atelierReset');
+const paint=$('atelierPaint'),wheelFinish=$('atelierWheelFinish'),door=$('atelierDoor'),hood=$('atelierHood'),light=$('atelierLight'),reset=$('atelierReset');
 const stage=$('atelierStage');
 const quick=[...document.querySelectorAll('[data-at-view]')];
 const viewNames={hero:'외관 3/4',front:'정면',side:'측면',rear:'후면',wheel:'전륜 디테일'};
-const colors={silver:0x9ba4ad,onyx:0x131a25,gold:0xb98b58,blue:0x144d96};
+const colors={silver:0xadb6c0,onyx:0x121925,gold:0xba915b,blue:0x123b71,burgundy:0x6b152d};
+const wheelPalettes={
+ graphite:{accent:0xa7adb8,base:0x1a202a,roughness:.21},
+ obsidian:{accent:0x5b626e,base:0x080a0f,roughness:.19},
+ champagne:{accent:0xc49b62,base:0x30261b,roughness:.25}
+};
 const state={ready:false,failed:false,renderCount:0,meshCount:0,materialCount:0,clipCount:0,
- paint:'silver',view:'hero',light:'studio',doorsOpen:false,hoodOpen:false,
+ paint:'silver',wheelFinish:'graphite',paintSurfaceCount:0,wheelSurfaceCount:0,view:'hero',light:'studio',doorsOpen:false,hoodOpen:false,
  doorAngle:0,hoodAngle:0,hingeCount:0,modelSize:null,lastError:null,glb:true,owned:false,paid:false};
 const banner=message=>{info.textContent=message;};
-const disabled=flag=>{for(const el of [...quick,door,hood,paint,light,reset])el.disabled=flag;};
+const disabled=flag=>{for(const el of [...quick,door,hood,paint,wheelFinish,light,reset])el.disabled=flag;};
 disabled(true);
 Object.defineProperty(window,'JunjaSovereignAtelier',{value:Object.freeze({
  snapshot:()=>({...state}),
@@ -31,7 +36,7 @@ const fail=err=>{
  banner('새 3D 모델을 표시하지 못했습니다. 기존 체험실을 이용할 수 있습니다.');
  disabled(true);
 };
-let renderer,scene,camera,orbit,mixer,clips=[],carRoot,paintMaterials=[];
+let renderer,scene,camera,orbit,mixer,clips=[],carRoot,paintMaterials=[],wheelMaterials=[];
 let environmentTexture,studioGroup,nightGroup,clock,visible=true,car=null;
 const hinges={doors:[],hood:null};
 const motion={doors:0,hood:0};
@@ -138,13 +143,36 @@ function setView(view){
 function setPaint(key){
  if(!state.ready||!Object.hasOwn(colors,key))return;
  state.paint=key;
- for(const m of paintMaterials){
-  m.color.setHex(colors[key]);
-  m.metalness=.79;m.roughness=.19;
-  if('clearcoat' in m)m.clearcoat=.84;
+ paint.value=key;
+ const bodyColor=new THREE.Color(colors[key]);
+ for(const {material:m,secondary} of paintMaterials){
+  // Preserve the real body's two-tone panel contrast rather than coating
+  // every part in one flat color. Modify only authored paint surfaces.
+  const finish=secondary?bodyColor.clone().multiplyScalar(.24):bodyColor;
+  m.color.copy(finish);
+  m.metalness=.78;
+  m.roughness=secondary?.31:.22;
+  if('clearcoat' in m){m.clearcoat=.94;m.clearcoatRoughness=.12;}
+  m.envMapIntensity=1.30;
   m.needsUpdate=true;
  }
- banner(paintMaterials.length?'차체 페인트 변경 · 실제 모델의 '+paintMaterials.length+'개 표면에 적용':'선택한 모델의 색상 변경 가능 부품이 없습니다.');
+ banner(paintMaterials.length?'메탈릭 차체 페인트 변경 · '+paintMaterials.length+'개 실제 도장 표면 적용':'원본 모델의 차체 도장 표면을 찾지 못했습니다.');
+}
+function setWheelFinish(key){
+ if(!state.ready||!Object.hasOwn(wheelPalettes,key))return;
+ state.wheelFinish=key;
+ wheelFinish.value=key;
+ const finish=wheelPalettes[key];
+ for(const {material:m,accent} of wheelMaterials){
+  // Only genuine Wheel...Rim geometry is restyled. Never color tires,
+  // brake discs, badges or the wheel arch as though they were rims.
+  m.color.setHex(accent?finish.accent:finish.base);
+  m.metalness=accent?.94:.70;
+  m.roughness=accent?finish.roughness:.32;
+  m.envMapIntensity=1.25;
+  m.needsUpdate=true;
+ }
+ banner(wheelMaterials.length?'휠 마감 변경 · 실제 단조 림 '+wheelMaterials.length+'개 재질 표면 적용':'휠 재질을 찾지 못했습니다.');
 }
 function setupMechanics(){
   // The CC-BY CarConcept hierarchy already groups each complete door under a
@@ -236,7 +264,12 @@ async function load(){
     const n=String(mat.name||'').toLowerCase();
     if(/^paint [12] (carmine|pearl|graphite)/i.test(String(mat.name||''))){
      const copy=mat.clone();
-     paintMaterials.push(copy);
+     paintMaterials.push({material:copy,secondary:/^paint 2 /i.test(copy.name)});
+     return copy;
+    }
+    if(/^Wheel(?:Front|Rear)[LR]Rim$/i.test(object.name||'')&&/^Rim[12]$/i.test(mat.name||'')){
+     const copy=mat.clone();
+     wheelMaterials.push({material:copy,accent:/^Rim2$/i.test(copy.name)});
      return copy;
     }
     return mat;
@@ -253,16 +286,21 @@ async function load(){
   // separate QA but are not presented as member-facing product features.
   // Keep the moving parts closed and out of the luxury exterior presentation.
   door.disabled=true;hood.disabled=true;
-  // Respect saved draft color only in old studio; new asset is explicitly free.
+  // Free, non-owned exterior preview; no user draft or purchase is written.
+  state.paintSurfaceCount=paintMaterials.length;
+  state.wheelSurfaceCount=wheelMaterials.length;
   setPaint('silver');
+  setWheelFinish('graphite');
   setView('hero');
   paint.disabled=!paintMaterials.length;
+  wheelFinish.disabled=!wheelMaterials.length;
   status.textContent='3D 모델 로딩 완료';
-  banner('고품질 GLB 외관 로딩 완료 · 차체 페인트·전면·측면·후면·휠 감상 가능');
+  banner('고품질 GLB 외관 로딩 완료 · 차체 도장 '+paintMaterials.length+'면 · 휠 림 '+wheelMaterials.length+'면 · 외관 360도');
  }catch(e){fail(e);}
 }
 for(const button of quick)button.addEventListener('click',()=>setView(button.dataset.atView));
 paint.addEventListener('change',()=>setPaint(paint.value));
+wheelFinish.addEventListener('change',()=>setWheelFinish(wheelFinish.value));
 door.addEventListener('click',toggleDoor);
 hood.addEventListener('click',toggleHood);
 light.addEventListener('click',setLights);
