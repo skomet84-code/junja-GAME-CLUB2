@@ -5,6 +5,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
 const staticResponse = require('./static-response');
+const {atelierImportMapCsp}=require('./premium-atelier-csp');
 const exactWallet = require('./exact-wallet');
 const casinoReceipts = require('./casino-round-receipts');
 const {ROYAL_ITEMS,createRoyalEconomy}=require('./royal-economy');
@@ -2331,7 +2332,16 @@ function serveStatic(req,res,url){
   const file=path.join(__dirname,'public',p);
   if(!file.startsWith(path.join(__dirname,'public'))||!fs.existsSync(file)||fs.statSync(file).isDirectory()){res.writeHead(404,securityHeaders());res.end('Not found');return;}
   const ext=path.extname(file).toLowerCase();const ct={'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'application/javascript; charset=utf-8','.json':'application/json; charset=utf-8','.webmanifest':'application/manifest+json','.png':'image/png','.webp':'image/webp','.avif':'image/avif','.svg':'image/svg+xml'}[ext]||'application/octet-stream';
-  const st=fs.statSync(file);staticResponse(req,res,file,st,ct,securityHeaders());
+  const st=fs.statSync(file);
+  const headers=securityHeaders();
+  // The licensed 3D showroom needs a static inline importmap to resolve its
+  // pinned local Three.js modules. Production CSP used to block this inline
+  // map, leaving mobile Safari on the loading spinner before any GLB request.
+  // Whitelist only this exact importmap by its SHA-256, never unsafe-inline.
+  if(p==='/premium-sovereign-atelier.html'){
+    headers['Content-Security-Policy']=atelierImportMapCsp(fs.readFileSync(file,'utf8'),headers['Content-Security-Policy']);
+  }
+  staticResponse(req,res,file,st,ct,headers);
 }
 
 const blackroomCloud=createBlackroomCloud({requireAuth,readBody,json,gameStateGet,gameStateSet});

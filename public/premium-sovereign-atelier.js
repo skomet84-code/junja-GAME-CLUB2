@@ -37,8 +37,11 @@ const hinges={doors:[],hood:null};
 const motion={doors:0,hood:0};
 const tmp=new THREE.Vector3();
 try {
- renderer=new THREE.WebGLRenderer({canvas,alpha:true,antialias:true,powerPreference:'high-performance'});
- renderer.setPixelRatio(Math.min(1.5,Math.max(1,window.devicePixelRatio||1)));
+ // High-DPI iPhones pay a large GPU tax rendering the 11.8MB PBR model.
+ // Keep physical car paint but cap the canvas cost on mobile devices.
+ const compact=window.matchMedia('(max-width:690px)').matches;
+ renderer=new THREE.WebGLRenderer({canvas,alpha:true,antialias:!compact,powerPreference:'default'});
+ renderer.setPixelRatio(Math.min(compact?1.20:1.5,Math.max(1,window.devicePixelRatio||1)));
  renderer.outputColorSpace=THREE.SRGBColorSpace;
  renderer.toneMapping=THREE.ACESFilmicToneMapping;
  renderer.toneMappingExposure=1.02;
@@ -59,7 +62,7 @@ try {
  scene.add(new THREE.HemisphereLight(0xb4c6dc,0x151821,1.05));
  studioGroup=new THREE.Group();
  const key=new THREE.DirectionalLight(0xffebda,3.5);
- key.position.set(-4,9,7);key.castShadow=true;key.shadow.mapSize.set(1024,1024);
+ key.position.set(-4,9,7);key.castShadow=true;key.shadow.mapSize.set(compact?512:1024,compact?512:1024);
  key.shadow.camera.left=-8;key.shadow.camera.right=8;
  key.shadow.camera.top=8;key.shadow.camera.bottom=-8;
  key.shadow.normalBias=.018;studioGroup.add(key);

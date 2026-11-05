@@ -36,3 +36,7 @@ footer{border-top:1px solid #ffffff29;display:flex;justify-content:space-between
 
 /* Exterior-first: keep experimental hinges out of the customer interface. */
 .controlbar button[hidden]{display:none!important}
+
+/* 3D recovery stays usable on narrow iPhones, even if module imports fail. */
+.fallback .retry-3d{border:1px solid #eac98e;border-radius:9px;background:#57432b;color:#fff1d3;padding:12px 20px;font:700 13px system-ui;min-height:44px}
+.fallback .retry-3d[hidden]{display:none!important}
