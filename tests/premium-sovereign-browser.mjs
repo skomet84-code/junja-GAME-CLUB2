@@ -61,7 +61,7 @@ try{
      assert.equal(await page.evaluate(()=>window.JunjaSovereignLab.snapshot().lightsOn),false);
      assert.equal(await page.evaluate(()=>window.JunjaSovereignLab.snapshot().color),'platinum');
      assert((await page.locator('#sovereignStatus').innerText()).includes('복구'));
-     if(width===390)await page.screenshot({path:'/tmp/junja-sovereign-3d-'+name+'.png',fullPage:false});
+     if(width===390)await page.locator('#sovereignScreen').screenshot({path:'/tmp/junja-sovereign-3d-'+name+'.png'});
     }else{
      assert(await page.locator('#sovereignFallback').isVisible(),'Fallback must be truthful if WebGL is unavailable');
      assert(await page.locator('#sovereignControls').isHidden());
