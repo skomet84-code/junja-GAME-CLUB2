@@ -283,7 +283,7 @@ async function load(){
     // Exterior-only finish pass. The original hood upper grille and four
     // brake-caliper parts are real source GLB meshes, not overlay decoration.
     // Clone only those materials before the general paint rule so their carbon
-    // and brushed-gold detail does not get wiped by user body color selection.
+    // and champagne-gold detail does not get wiped by user body color selection.
     const namedInHierarchy=pattern=>[object.name,object.parent?.name,object.parent?.parent?.name]
      .some(name=>pattern.test(name||''));
     if(namedInHierarchy(/^BodyHoodTopgrill(?:$|[_ .])/i)){
@@ -357,7 +357,7 @@ async function load(){
   paint.disabled=!paintMaterials.length;
   wheelFinish.disabled=!wheelMaterials.length;
   status.textContent='3D 모델 로딩 완료';
-  banner('GLB 외관 로딩 완료 · 카본 그릴 '+frontGrilleMaterials.length+'면 · 브레이크 디테일 '+caliperMaterials.length+'면 · 외관 360도');
+  banner('GLB 외관 로딩 완료 · 새틴 그릴 '+frontGrilleMaterials.length+'면 · 브레이크 디테일 '+caliperMaterials.length+'면 · 외관 360도');
  }catch(e){fail(e);}
 }
 for(const button of quick)button.addEventListener('click',()=>{
