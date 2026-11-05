@@ -43,6 +43,7 @@ const hinges={doors:[],hood:null};
 const motion={doors:0,hood:0};
 const tmp=new THREE.Vector3();
 let renderDirty=true;
+let repaintDeadline=0;
 // A user may select a camera or finish while the canvas is outside the viewport.
 // Rendering only in the intersection-based RAF loop caused a stale image to
 // appear one selection behind on real iPhone/WebKit screenshots.
@@ -52,6 +53,9 @@ function renderOnDemand(){
  renderer.render(scene,camera);
  state.renderCount++;
  renderDirty=false;
+ // WebKit composites WebGL asynchronously. Keep painting briefly after a
+ // direct camera/material change so the *visible* frame matches the UI.
+ repaintDeadline=performance.now()+750;
 }
 try {
  // High-DPI iPhones pay a large GPU tax rendering the 11.8MB PBR model.
@@ -108,15 +112,15 @@ try {
  clock=new THREE.Clock();
  const onResize=()=>{
   const width=Math.max(canvas.clientWidth,1),height=Math.max(canvas.clientHeight,1);
-  renderer.setSize(width,height,false);camera.aspect=width/height;camera.updateProjectionMatrix();renderDirty=true;
+  renderer.setSize(width,height,false);camera.aspect=width/height;camera.updateProjectionMatrix();renderDirty=true;repaintDeadline=performance.now()+750;
   // On orientation change, refit the full exterior to the real canvas aspect.
   if(state.ready&&['hero','front','side','rear'].includes(state.view))setView(state.view);
  };
  onResize();
  if(window.ResizeObserver)new ResizeObserver(onResize).observe(stage);
  else window.addEventListener('resize',onResize);
- if(window.IntersectionObserver)new IntersectionObserver(entries=>{visible=!!entries[0]?.isIntersecting;if(visible)renderDirty=true;},{threshold:0}).observe(stage);
- window.addEventListener('visibilitychange',()=>{clock.getDelta();renderDirty=true;});
+ if(window.IntersectionObserver)new IntersectionObserver(entries=>{visible=!!entries[0]?.isIntersecting;if(visible){renderDirty=true;repaintDeadline=performance.now()+750;}},{threshold:0}).observe(stage);
+ window.addEventListener('visibilitychange',()=>{clock.getDelta();renderDirty=true;repaintDeadline=performance.now()+750;});
  canvas.addEventListener('webglcontextlost',event=>{event.preventDefault();fail(Error('WebGL 그래픽 연결이 끊겼습니다.'));});
  function animate(){
   requestAnimationFrame(animate);
@@ -139,7 +143,9 @@ try {
   // OrbitControls emits 'change' while touch drag/zoom/damping is active.
   // Stop redraws when the user is not touching the static, nonanimated car.
   orbit.update();
-  if(!renderDirty)return;
+  // A single synchronous WebGL render is not enough for iPhone compositor.
+  // Repaint for 750ms after interactions, then stop drawing while idle.
+  if(!renderDirty&&performance.now()>repaintDeadline)return;
   renderer.render(scene,camera);
   state.renderCount++;
   renderDirty=false;
