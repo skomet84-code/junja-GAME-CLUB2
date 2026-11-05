@@ -7,7 +7,7 @@
  const $=id=>document.getElementById(id),status=$('sovereignStatus'),fallback=$('sovereignFallback');
  const controls={door:$('sovDoor'),light:$('sovLight'),color:$('sovColor'),reset:$('sovReset'),view:$('sovView'),plus:$('sovZoomIn'),minus:$('sovZoomOut')};
  const state={supported:false,doorsOpen:false,lightsOn:false,color:'platinum',view:'threeQuarter',pixels:0,renderCount:0};
- const theme={platinum:[.25,.30,.36],onyx:[.026,.038,.060],champagne:[.49,.31,.16]};
+ const theme={platinum:[.39,.42,.47],onyx:[.031,.037,.054],champagne:[.50,.34,.19]};
  const target={rotation:-.44,pitch:.22,zoom:9.1,door:0},current={...target};
  const reduced=window.matchMedia?.('(prefers-reduced-motion: reduce)').matches||false;
  const setInfo=text=>status.textContent=text;
@@ -57,15 +57,15 @@
  '  if(dot(N,V)<0.0)N=-N;',
  '  float rough=clamp(1.0-uGloss*.88,.085,.92),metal=sat(uMetal);',
  '  vec3 warm=normalize(vec3(-.55,1.80,1.50)),cold=normalize(vec3(1.70,1.25,-.70));',
- '  vec3 color=uColor*(.045+.090*sat(N.y)+.050*sat(-N.y));',
- '  color+=brdf(N,V,warm,uColor,rough,metal,vec3(4.4,3.5,2.45));',
- '  color+=brdf(N,V,cold,uColor,rough,metal,vec3(2.1,2.8,4.3));',
+ '  vec3 color=uColor*(.075+.13*sat(N.y)+.050*sat(-N.y));',
+ '  color+=brdf(N,V,warm,uColor,rough,metal,vec3(5.3,4.6,3.5));',
+ '  color+=brdf(N,V,cold,uColor,rough,metal,vec3(2.6,3.3,4.9));',
  '  // Reflected rectangular softboxes give paint, glass and metal a studio feel.',
  '  vec3 R=reflect(-V,N);',
  '  float longBox=pow(sat(dot(R,normalize(vec3(-.63,.62,.48)))),18.0);',
  '  float coolBox=pow(sat(dot(R,normalize(vec3(.64,.63,-.47)))),27.0);',
  '  float strip=pow(1.0-sat(abs(R.y-.46)),15.0);',
- '  color+=(vec3(.88,.78,.62)*longBox*.50+vec3(.52,.70,.96)*coolBox*.40+vec3(.72,.77,.85)*strip*.15)*(.13+metal*.87)*(1.0-rough*.55);',
+ '  color+=(vec3(.97,.87,.72)*longBox*.72+vec3(.65,.80,1.0)*coolBox*.56+vec3(.88,.87,.83)*strip*.30)*(.18+metal*.82)*(1.0-rough*.51);',
  '  color+=uGlow*vec3(3.5,3.4,2.75);',
  '  // Filmic tone mapping, gentle lift instead of washed-out pastel shading.',
  '  color=(color*(2.51*color+.03))/(color*(2.43*color+.59)+.14);',
@@ -107,12 +107,14 @@
    const width=Math.max(1,Math.floor(rect.width*dpr)),height=Math.max(1,Math.floor(rect.height*dpr));
    if(canvas.width!==width||canvas.height!==height){canvas.width=width;canvas.height=height;gl.viewport(0,0,width,height);state.pixels=width*height;}
    const {rotation,pitch,zoom}=current;
-   const displayZoom=zoom*.88;
+   // Framing is presentation-only: saved camera settings and server-side
+   // owner drafts retain their exact numbers; a closer hero view is global.
+   const displayZoom=zoom*.76;
    // Inspect the original 3D geometry from genuine cockpit and wheel cameras;
    // these are not a photo overlay or a claim of premium item ownership.
    const detailScale=clamp(zoom/9.1,.65,1.55);
    const cockpit=state.view==='cockpit',wheel=state.view==='wheel';
-   const focus=cockpit?[-.39,1.26,1.80]:wheel?[1.30,.53,1.43]:[0,.56,0];
+   const focus=cockpit?[-.39,1.26,1.80]:wheel?[1.30,.53,1.43]:[0,.66,0];
    const eye=cockpit?[-.40,1.51,1.80-2.03*detailScale]:
     wheel?[1.30+1.75*detailScale,.53+.55*detailScale,1.43+1.32*detailScale]:
     [Math.sin(rotation)*Math.cos(pitch)*displayZoom,.85+Math.sin(pitch)*displayZoom,Math.cos(rotation)*Math.cos(pitch)*displayZoom];
@@ -196,7 +198,21 @@
    const k=(views.indexOf(state.view)+1)%views.length;
    state.view=views[k];cameraTarget(...opts[k]);
    controls.view.textContent='시점 · '+labels[k];
+   document.querySelectorAll('[data-sov-preset]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.sovPreset===state.view)));
    if(k>=4)setInfo(labels[k]+' · 실제 3D 구조의 확대 관찰 시점입니다. 드래그하면 외관 자유 회전으로 돌아갑니다.');
+  });
+  // Direct camera selection on mobile avoids cycling through six presets.
+  const viewPresets={threeQuarter:[-.44,.22,9.1],side:[Math.PI/2,.2,10.6],front:[0,.05,7.8],cockpit:[-.44,.22,9.1],wheel:[-.44,.22,9.1]};
+  const viewLabels={threeQuarter:'사선',side:'측면',front:'정면',cockpit:'운전석 실내',wheel:'휠 디테일'};
+  document.querySelectorAll('[data-sov-preset]').forEach(button=>{
+   button.addEventListener('click',()=>{
+    const name=button.dataset.sovPreset;
+    if(!Object.hasOwn(viewPresets,name))return;
+    state.view=name;cameraTarget(...viewPresets[name]);
+    controls.view.textContent='시점 · '+viewLabels[name];
+    document.querySelectorAll('[data-sov-preset]').forEach(item=>item.setAttribute('aria-pressed',String(item.dataset.sovPreset===name)));
+    setInfo(viewLabels[name]+' · 실제 3D 확대 관찰 시점입니다. 저장·공유는 기존 무료 시안으로만 제공됩니다.');
+   });
   });
   controls.plus.addEventListener('click',()=>cameraTarget(target.rotation,target.pitch,target.zoom-.7));
   controls.minus.addEventListener('click',()=>cameraTarget(target.rotation,target.pitch,target.zoom+.7));

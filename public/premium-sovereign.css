@@ -50,3 +50,19 @@ footer{border-top:1px solid #ffffff25;padding-block:25px 35px;color:#968d89;font
 @media(max-width:650px){.motor-design{margin-top:25px}.motor-design-head{padding:18px 14px;display:block}.motor-design-head h2{font-size:27px}.motor-design-state{margin-top:12px;font-size:9px}.motor-design-body{padding:16px 14px}.motor-design-buttons{display:grid;grid-template-columns:1fr 1fr;gap:8px}.motor-design-buttons button{padding:9px 5px;font-size:11px}.motor-design-buttons button.motor-ghost{grid-column:1/-1}.motor-share-link{padding:10px}.motor-share-link>div{display:grid;grid-template-columns:1fr}.motor-share-link button{width:100%}}
 
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto!important}*,*:before,*:after{transition:none!important;animation:none!important}}
+
+
+/* v3 visual-quality and camera-accessibility pass */
+.studio-stage{background:
+ radial-gradient(ellipse 66% 58% at 50% 42%,#3c3a45 0%,#1b1c28 51%,#090a11 94%),
+ linear-gradient(125deg,#191723,#090b10); }
+.scene-spotlights{inset:-25% 0 0;background:
+ radial-gradient(ellipse 34% 49% at 18% 25%,#ead7af31,transparent 78%),
+ radial-gradient(ellipse 31% 50% at 81% 24%,#b8c9ff30,transparent 82%),
+ linear-gradient(100deg,transparent 22%,#f2d4ad05 39%,transparent 54%);}
+.studio-stage:before{background:linear-gradient(117deg,transparent 23%,#e8d6b00c 43%,transparent 51%,#9aaede0b 66%,transparent 78%);}
+.studio-quickviews{display:flex;align-items:center;gap:7px;padding:12px 15px;background:linear-gradient(105deg,#13141d,#0b0c12);overflow-x:auto;scrollbar-width:thin;border-top:1px solid #8a744744;}
+.studio-quickviews button{flex:1 0 auto;min-width:85px;border:1px solid #84765e66;border-radius:8px;padding:10px 13px;background:#191920;color:#d0c5b4;font:600 11px system-ui,sans-serif;cursor:pointer;white-space:nowrap;}
+.studio-quickviews button[aria-pressed="true"]{background:linear-gradient(115deg,#57462f,#2c2830);color:#ffe2ae;border-color:#dbbc87;box-shadow:inset 0 0 0 1px #c59b5b33;}
+.studio-quickviews button:focus-visible{outline:3px solid #f7d48c;outline-offset:2px;}
+@media(max-width:650px){.studio-quickviews{gap:6px;padding:10px 9px}.studio-quickviews button{flex:0 0 auto;min-height:39px;padding:9px 12px}.scene-label{opacity:.89}}

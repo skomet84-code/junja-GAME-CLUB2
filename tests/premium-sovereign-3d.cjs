@@ -24,6 +24,11 @@ assert(triangles>24000,'Premium vehicle must use dense smooth 3D geometry, not b
 const body=models.find(m=>m.name==='sculpted-body'),canopy=models.find(m=>m.name==='cockpit-canopy');
 assert(body&&body.verts.length/18>12000,'Body must have an original spline loft surface');
 assert(canopy&&canopy.verts.length/18>5000,'Canopy must use curved surface normals');
+assert(models.some(x=>x.name==='woven-carbon-roof'),'Need visually differentiated carbon roof');
+assert(models.filter(x=>x.name.startsWith('integrated-wheel-arch')).length===4,'Need four proper wheel arch outlines');
+assert(models.filter(x=>x.name.startsWith('carbon-front-wing')).length===2,'Need sculpted side aero');
+for(const mode of ['threeQuarter','front','side','cockpit','wheel'])assert(page.includes('data-sov-preset="'+mode+'"'),'Missing mobile inspection mode: '+mode);
+assert(style.includes('.studio-quickviews'),'Premium mobile camera toolbar must be styled');
 assert(models.filter(m=>m.name.startsWith('turbine-spoke-')).length>=40,'Each wheel must have individually sculpted turbine spokes');
 assert(viewer.includes('float rough=clamp')&&viewer.includes('vec3 brdf('),'Studio renderer requires physically informed roughness/metallic shader');
 assert(viewer.includes('Reflected rectangular softboxes'),'Paint needs true view-dependent studio reflection');
