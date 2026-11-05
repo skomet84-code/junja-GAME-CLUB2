@@ -52,17 +52,24 @@ try{
     assert(await page.locator('#atelierHood').isHidden(),'Hide unnecessary hood interaction');
     assert(state.modelSize?.length>state.modelSize?.height*2,'Z-up car must be leveled on Y-up showroom stage');
     assert(state.modelSize?.height<2,'Car must not be displayed standing on its nose');
-    assert((await page.locator('#atelierInfo').innerText()).includes('GLB 외관 로딩 완료'));
+    await page.waitForFunction(()=>document.getElementById('atelierInfo')?.textContent?.includes('GLB 외관 로딩 완료'),null,{timeout:10000});
+    assert((await page.locator('#atelierStatus').textContent()).includes('3D 모델 로딩 완료'),'Real GLB loader must complete before camera QA');
     for(const mode of ['front','frontDetail','side','rear','wheel','hero']){
      await page.locator('[data-at-view="'+mode+'"]').click();
-     assert.equal((await page.evaluate(()=>window.JunjaSovereignAtelier.snapshot())).view,mode);
+     const framed=await page.evaluate(()=>window.JunjaSovereignAtelier.snapshot());
+     assert.equal(framed.view,mode);
      assert.equal(await page.locator('[data-at-view="'+mode+'"]').getAttribute('aria-pressed'),'true');
+     if(['hero','front','side','rear'].includes(mode)){
+      assert.equal(framed.autoFramed,true,'Entire car must fit in automatic exterior mode: '+mode);
+      assert(framed.viewFitMargin>0&&framed.viewFitMargin<.95,'Full car clipping risk '+name+' '+width+' '+mode+': '+framed.viewFitMargin);
+     }else assert.equal(framed.autoFramed,false,'Closeup should preserve intended detail framing: '+mode);
     }
     const frontBefore=await page.evaluate(()=>window.JunjaSovereignAtelier.snapshot().renderCount);
     await page.locator('[data-at-view="frontDetail"]').click();
     assert((await page.evaluate(()=>window.JunjaSovereignAtelier.snapshot())).renderCount>frontBefore,'Front detail action must immediately render a fresh 3D frame');
     assert((await page.evaluate(()=>window.JunjaSovereignAtelier.snapshot())).cameraDistance<3.0,'Front fascia needs a true exterior close-up');
     if(width===390&&name==='webkit'){
+     await page.waitForTimeout(850);
      try{await page.screenshot({path:'/tmp/junja-atelier-front-'+name+'.png',animations:'disabled',timeout:8000});}
      catch(err){console.log('FRONT_SCREENSHOT_SKIPPED '+name+' '+String(err.message||err).slice(0,100));}
     }
@@ -81,7 +88,7 @@ try{
     if(width===390&&name==='webkit'){
      await page.evaluate(()=>document.getElementById('atelierStage').scrollIntoView({block:'center',behavior:'instant'}));
      await page.waitForFunction(before=>window.JunjaSovereignAtelier.snapshot().renderCount>before,previousRenderedFrames,{timeout:15000});
-     await page.waitForTimeout(150);
+     await page.waitForTimeout(850);
      try{
       await page.screenshot({path:'/tmp/junja-atelier-wheel-'+name+'.png',animations:'disabled',timeout:7000});
      }catch(err){console.log('WHEEL_SCREENSHOT_SKIPPED '+name+' '+String(err.message||err).slice(0,100));}
@@ -96,7 +103,7 @@ try{
     assert.equal((await page.evaluate(()=>window.JunjaSovereignAtelier.snapshot())).view,'hero');
     const layout=await page.evaluate(()=>({width:innerWidth,scroll:document.documentElement.scrollWidth}));
     assert(layout.scroll<=layout.width+2,'Horizontal overflow '+name+' '+width+': '+JSON.stringify(layout));
-    await page.waitForTimeout(250);
+    await page.waitForTimeout(width===390&&name==='webkit'?850:250);
     if(width===390&&name==='webkit'){
      // Screenshots are supplementary QA evidence. GPU repaints in software
      // Chromium can prevent Playwright's element-stability detector from settling.
