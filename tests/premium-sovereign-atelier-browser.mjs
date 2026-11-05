@@ -4,6 +4,9 @@ import http from 'node:http';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {chromium,webkit} from 'playwright';
+import {createRequire} from 'node:module';
+const require=createRequire(import.meta.url);
+const {atelierImportMapCsp}=require('../premium-atelier-csp');
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../public');
 const mime={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.glb':'model/gltf-binary','.webp':'image/webp'};
 const server=http.createServer((req,res)=>{
@@ -11,6 +14,11 @@ const server=http.createServer((req,res)=>{
  const file=path.resolve(root,'.'+pathname);
  if(!file.startsWith(root+path.sep)||!fs.existsSync(file)||!fs.statSync(file).isFile()){res.statusCode=404;res.end('missing');return;}
  res.setHeader('Content-Type',mime[path.extname(file)]||'application/octet-stream');
+ // Reproduce production's restrictive CSP, previously absent in all browser QA.
+ const baseCsp="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'; img-src 'self' data:; connect-src 'self'";
+ if(pathname==='/premium-sovereign-atelier.html'){
+  res.setHeader('Content-Security-Policy',atelierImportMapCsp(fs.readFileSync(file,'utf8'),baseCsp));
+ }else res.setHeader('Content-Security-Policy',baseCsp);
  fs.createReadStream(file).pipe(res);
 });
 await new Promise(ok=>server.listen(0,'127.0.0.1',ok));
