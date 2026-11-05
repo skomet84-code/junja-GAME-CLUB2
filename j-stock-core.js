@@ -22,6 +22,10 @@ const MARKET_KEY='jstock:market:v1',FEE_BP=50n,MAX_SHARES=1000000000000000n,MAX_
 const STOCK_CATALOG_VERSION=3;
 const ORIGINAL_STOCK_IDS=Object.freeze(['A','B','C','D','E']);
 const V2_STOCK_IDS=Object.freeze(['A','B','C','D','E','F','G','H','I','J']);
+const IPO_DISCOVERY_IDS=Object.freeze(['K','L']);
+// One extra opening quote after a new listing; the normal 4 KST sessions
+// remain unchanged. Do NOT reset or backfill any member's old market prices.
+const IPO_DISCOVERY_DELAY_MS=5*60*1000;
 const initialQuote=s=>({price:String(s.base),changeBp:0,history:[s.base],event:null});
 // KST = UTC+09:00. Stock sessions open at 00:00, 06:00, 12:00 and 18:00 KST.
 const MARKET_CADENCE_HOURS=6;
@@ -33,6 +37,53 @@ function createJStocks({db,exactWallet,now=Date.now,randomInt=crypto.randomInt,g
  function read(key){const row=db.prepare('SELECT value FROM game_state WHERE key=?').get(key);return row?JSON.parse(row.value):null;}
  function write(key,value){db.prepare('INSERT INTO game_state(key,value,updated_at) VALUES(?,?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value,updated_at=excluded.updated_at').run(key,JSON.stringify(value),now());}
  function initial(h){return {hour:h,cadenceHours:MARKET_CADENCE_HOURS,catalogVersion:STOCK_CATALOG_VERSION,stocks:Object.fromEntries(STOCKS.map(s=>[s.id,initialQuote(s)]))};}
+ function ipoCandidate(m,s){
+  const quote=m.stocks?.[s.id];
+  return IPO_DISCOVERY_IDS.includes(s.id)&&quote&&quote.price===String(s.base)&&
+   Array.isArray(quote.history)&&quote.history.length===1&&
+   Number(quote.history[0])===s.base&&quote.changeBp===0&&
+   !quote.event&&!quote.ipoDiscoveryDone;
+ }
+ function discoveryDue(m){
+  return STOCKS.some(s=>{
+   if(!ipoCandidate(m,s))return false;
+   const at=m.stocks[s.id].ipoDiscoveryAt;
+   return !Number.isSafeInteger(at)||at<1||now()>=at;
+  });
+ }
+ function nextDiscoveryAt(m){
+  const times=STOCKS.filter(s=>ipoCandidate(m,s)).map(s=>m.stocks[s.id].ipoDiscoveryAt)
+   .filter(t=>Number.isSafeInteger(t)&&t>0);
+  return times.length?Math.min(...times):null;
+ }
+ function progressOpeningQuotes(m){
+  let changed=false;
+  const protectedIds=scheduledProtected();
+  for(const s of STOCKS){
+   if(!ipoCandidate(m,s)||protectedIds.has(s.id))continue;
+   const quote=m.stocks[s.id];
+   if(!Number.isSafeInteger(quote.ipoDiscoveryAt)||quote.ipoDiscoveryAt<1){
+    quote.ipoDiscoveryAt=now()+IPO_DISCOVERY_DELAY_MS;changed=true;
+   }else if(now()>=quote.ipoDiscoveryAt){
+    // A small neutral price-discovery update using the same persisted server
+    // RNG; neither admins nor clients get an early favorable/unfavorable quote.
+    const range=Math.max(60,Math.round(s.vol/3));
+    let bp=randomInt(-range,range+1);
+    if(!Number.isSafeInteger(bp)||bp<-range||bp>range)throw Error('신규상장 호가 생성 범위를 벗어났습니다.');
+    if(bp===0)bp=1; // never leave a one-point chart looking frozen
+    const old=BigInt(quote.price);
+    const next=(old*BigInt(10000+bp)+5000n)/10000n;
+    quote.price=String(next);
+    quote.changeBp=Number((next-old)*10000n/old);
+    quote.history=[...quote.history,Number(next)].slice(-49);
+    quote.event='신규상장 첫 가격발견 · 정규 4회 변동은 별도';
+    quote.ipoDiscoveryDone=true;
+    delete quote.ipoDiscoveryAt;
+    changed=true;
+   }
+  }
+  return changed;
+ }
  function advance(m,h,activeStocks=STOCKS){
   // Catch up server-side on KST 00:00/06:00/12:00/18:00 boundaries only.
   // The same persisted market is shared by all users. Never derive prices in the browser.
@@ -104,13 +155,14 @@ function createJStocks({db,exactWallet,now=Date.now,randomInt=crypto.randomInt,g
     m.catalogVersion=STOCK_CATALOG_VERSION;changed=true;
    }
   }
+  if(progressOpeningQuotes(m))changed=true;
   if(progressScheduled(m))changed=true;
   if(changed)write(MARKET_KEY,m);
   return {market:m,changed};
  }
  function currentMarket(){
   const h=sessionHour(now()),cached=read(MARKET_KEY);
-  if(cached&&cached.cadenceHours===MARKET_CADENCE_HOURS&&cached.hour>=h&&cached.catalogVersion===STOCK_CATALOG_VERSION&&STOCKS.every(s=>cached.stocks?.[s.id])&&!scheduledDue())return {market:cached,changed:false};
+  if(cached&&cached.cadenceHours===MARKET_CADENCE_HOURS&&cached.hour>=h&&cached.catalogVersion===STOCK_CATALOG_VERSION&&STOCKS.every(s=>cached.stocks?.[s.id])&&!scheduledDue()&&!discoveryDue(cached))return {market:cached,changed:false};
   db.exec('BEGIN IMMEDIATE');
   try{const r=insideMarket();db.exec('COMMIT');return r;}
   catch(e){try{db.exec('ROLLBACK');}catch{}throw e;}
@@ -138,9 +190,10 @@ function createJStocks({db,exactWallet,now=Date.now,randomInt=crypto.randomInt,g
  function status(id){
   const u=user(id),r=currentMarket(),m=r.market,p=portfolio(id),v=valuation(p,m);
   const ref=marketMode==='kospi'?getReference():null;
-  return {ok:true,changed:r.changed,serverNow:now(),nextTickAt:(m.hour+MARKET_CADENCE_HOURS)*3600000,feeBp:Number(FEE_BP),wallet:String(exactWallet.read(u)),
+  return {ok:true,changed:r.changed,serverNow:now(),nextTickAt:Math.min((m.hour+MARKET_CADENCE_HOURS)*3600000,nextDiscoveryAt(m)||Infinity),feeBp:Number(FEE_BP),wallet:String(exactWallet.read(u)),
    pricingModel:marketMode==='kospi'?'kospi-inspired':'fictional',referenceSource:ref?.source||null,referenceFetchedAt:ref?.fetchedAt||null,
    stocks:STOCKS.map(s=>({...s,price:m.stocks[s.id].price,changeBp:m.stocks[s.id].changeBp,history:m.stocks[s.id].history,event:m.stocks[s.id].event,
+    ipoDiscoveryAt:ipoCandidate(m,s)?m.stocks[s.id].ipoDiscoveryAt:null,
     reference:ref?.stocks?.[s.id]?{name:ref.stocks[s.id].name,changeBp:ref.stocks[s.id].changeBp,tradedAt:ref.stocks[s.id].tradedAt,fresh:isReferenceFresh(ref.stocks[s.id],now())}:null})),
    ...v,trades:p.trades.slice(0,12),ranking:ranking(m)};
  }
