@@ -76,7 +76,7 @@ assert.equal(second.holdings[0].value,'322500');
 assert.equal(second.unrealized,'21000');
 assert.equal(mk().status(1).stocks[0].price,'107500','market and positions survive process restart');
 assert.equal(mk().status(1).holdings[0].quantity,'3');
-assert.throws(()=>stock.trade(2,'buy','K','1','request_bad_stock_0001'),/상장/);
+assert.throws(()=>stock.trade(2,'buy','M','1','request_bad_stock_0001'),/상장/);
 assert.throws(()=>stock.trade(2,'buy','A','0','request_zero_stocks'),/수량/);
 const large=stock.trade(3,'buy','B','100000000000','request_large_stocks_01');
 assert.equal(large.status.holdings[1].quantity,'100000000000');
