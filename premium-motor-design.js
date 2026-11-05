@@ -3,7 +3,7 @@
 // Isolated game_state keys. No game wallets, premium entitlements, payments,
 // auctions, loans, ranks or purchase/refund functionality.
 const crypto=require('node:crypto');
-const PREFIX='premium:motor-design:v1:';
+const PREFIX='premium:motor-design:v1:',SHARES='premium:motor-share:v1:';
 const PAINTS=Object.freeze(['platinum','onyx','champagne']);
 const MODEL='sovereign_gt_concept';
 const fail=(code,message)=>Object.assign(new Error(message),{code});
@@ -75,24 +75,23 @@ function createMotorDesignStudio({db,now=Date.now}={}){
    const state={version:oldVersion+1,design:normalized,published,shareToken,
     updatedAt:now(),lastRequestId:requestId,lastFingerprint:fingerprint};
    upsert.run(PREFIX+userId,JSON.stringify(state),now());
+   // Constant-time indexed token lookup; revoked/rotated visitor links stop
+   // working immediately, without scanning a national member database.
+   if(prev?.shareToken&&prev.shareToken!==shareToken)db.prepare('DELETE FROM game_state WHERE key=?').run(SHARES+prev.shareToken);
+   if(shareToken)upsert.run(SHARES+shareToken,JSON.stringify({userId}),now());
    db.exec('COMMIT');
    return {...publicView(state,true),duplicate:false};
   }catch(e){try{db.exec('ROLLBACK')}catch{}throw e;}
  }
  function shared({token}={}){
   if(typeof token!=='string'||!tokenPattern.test(token))throw fail('NOT_FOUND','이 디자인 공유 링크를 찾을 수 없습니다.');
-  // Only opt-in designs are eligible. The token is an unguessable URL secret
-  // (144 bits) and is not a sequential member number.
-  const rows=db.prepare("SELECT key,value FROM game_state WHERE key LIKE 'premium:motor-design:v1:%'").all();
-  for(const row of rows){
-   let data;
-   try{data=JSON.parse(row.value)}catch{continue}
-   if(!data?.published||typeof data.shareToken!=='string')continue;
-   // Prevent timing-dependent prefix matching. Both are fixed-length tokens.
-   if(data.shareToken.length!==token.length||!crypto.timingSafeEqual(Buffer.from(data.shareToken),Buffer.from(token)))continue;
-   const id=Number(row.key.slice(PREFIX.length)),user=validUser(id)?selectUser.get(id):null;
-   if(!user||user.is_disabled)break;
-   return {...publicView(data,false),designerNickname:String(user.nickname||'회원').slice(0,36)};
+  // A random 144-bit visitor token identifies one explicitly published draft.
+  const pointer=value(SHARES+token);
+  const userId=Number(pointer?.userId);
+  if(validUser(userId)){
+   const data=value(PREFIX+userId),user=selectUser.get(userId);
+   if(data?.published&&data.shareToken===token&&user&&!user.is_disabled)
+    return {...publicView(data,false),designerNickname:String(user.nickname||'회원').slice(0,36)};
   }
   throw fail('NOT_FOUND','공개 중인 디자인 시안을 찾을 수 없습니다.');
  }
