@@ -33,6 +33,14 @@ for(const id of ['atelierCanvas','atelierLoading','atelierFallback','atelierPain
 assert(script.includes("new GLTFLoader().loadAsync('/art/royal/models/carconcept-ccby.glb'"),'Must load real local GLB');
 assert(script.includes('new THREE.WebGLRenderer')&&script.includes('RoomEnvironment'),'Real WebGL physical lighting required');
 assert(script.includes('paintMaterials.push')&&script.includes('InteriorSteeringEmblem'),'Actual body paint and brand-removal logic required');
+assert(page.includes('id="atelierWheelFinish"')&&page.includes('value="champagne"'),'Real wheel finish selector required');
+assert(script.includes('wheelMaterials.push')&&script.includes('Wheel(?:Front|Rear)[LR]Rim'),'Only actual named wheel rim parts may be recolored');
+assert(script.includes('paintMaterials.push({material:copy,secondary:'),'Genuine two-tone body panel differentiation required');
+assert(script.includes("secondary ? .31 : .22")&&script.includes('clearcoatRoughness=.12'),'Clearcoat paint surface should retain physical highlights');
+assert(script.includes('wheelFinish.disabled=!wheelMaterials.length'),'Disable unavailable wheel finish controls, never mislead');
+assert(script.includes('state.wheelSurfaceCount=wheelMaterials.length'),'Wheel surface count must be exposed to browser QA');
+assert(script.includes('if(/^Wheel(?:Front|Rear)[LR]Rim$/i.test(object.name||\'\')'),'Prevent accidental tire/brake recoloring');
+
 assert(script.includes('car.updateMatrixWorld(true)')&&!script.includes('car.rotation.x=-Math.PI/2'),'Preserve built-in source coordinate-axis conversion, never double-rotate the model');
 for(const name of ['BodyDoorLColor1','BodyDoorRColor1','BodyHood'])assert(script.includes(name),'Original hierarchical pivot absent: '+name);
 assert(script.includes('new THREE.WebGLRenderer')&&script.includes('setPaint('),'Genuine PBR exterior viewer and body paint required');
