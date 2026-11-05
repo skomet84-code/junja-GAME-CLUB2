@@ -12,9 +12,11 @@ let clock=Date.parse('2026-10-29T00:00:00+09:00');
 const rng=(min,max)=>max-1;
 const mk=()=>createJStocks({db,exactWallet:wallet,now:()=>clock,randomInt:rng});
 const stock=mk(),ids=STOCKS.map(s=>s.id);
-assert.deepEqual(ids,['A','B','C','D','E','F','G','H','I','J']);
-assert.equal(STOCK_CATALOG_VERSION,2);
-assert.deepEqual(STOCKS.slice(5).map(s=>s.name),['준자오션','준자제약','준자항공','준자로보틱스','준자방산']);
+assert.deepEqual(ids,['A','B','C','D','E','F','G','H','I','J','K','L']);
+assert.equal(STOCK_CATALOG_VERSION,3);
+assert.deepEqual(STOCKS.slice(5,10).map(s=>s.name),['준자오션','준자제약','준자항공','준자로보틱스','준자방산']);
+assert.deepEqual(STOCKS.slice(10).map(s=>s.name),['첨지 식품','동동 유업']);
+assert.deepEqual(STOCKS.slice(10).map(s=>s.sector),['식품·가공식품','유제품·식음료']);
 assert.equal(FEE_BP,50n);
 assert.equal(MARKET_CADENCE_HOURS,6);
 for(const [time,session] of [
@@ -28,9 +30,9 @@ for(const [time,session] of [
 ])assert.equal(sessionHour(Date.parse(time))*3600000,Date.parse(session),'KST 4-session alignment: '+time);
 const first=stock.status(1),same=stock.status(2);
 assert.equal(first.changed,true);assert.equal(same.changed,false);
-assert.equal(first.stocks.length,10);assert.deepEqual(first.stocks.map(x=>x.price),same.stocks.map(x=>x.price));
-assert.deepEqual(first.stocks.slice(5).map(x=>x.price),['68000','42000','86000','112000','76000']);
-assert.deepEqual(first.holdings.slice(5).map(x=>x.quantity),['0','0','0','0','0']);
+assert.equal(first.stocks.length,12);assert.deepEqual(first.stocks.map(x=>x.price),same.stocks.map(x=>x.price));
+assert.deepEqual(first.stocks.slice(5).map(x=>x.price),['68000','42000','86000','112000','76000','34000','27000']);
+assert.deepEqual(first.holdings.slice(5).map(x=>x.quantity),['0','0','0','0','0','0','0']);
 assert.equal(first.wallet,'2000000');assert.equal(first.nextTickAt,clock+6*3600000);
 assert.ok(fs.readFileSync('server.js','utf8').includes("'/api/jstock/trade'"),'server trade route');
 assert.ok(fs.readFileSync('public/index.html','utf8').includes('/j-stock.js?v='),'UI asset linked');
@@ -74,7 +76,7 @@ assert.equal(second.holdings[0].value,'322500');
 assert.equal(second.unrealized,'21000');
 assert.equal(mk().status(1).stocks[0].price,'107500','market and positions survive process restart');
 assert.equal(mk().status(1).holdings[0].quantity,'3');
-assert.throws(()=>stock.trade(2,'buy','K','1','request_bad_stock_0001'),/상장/);
+assert.throws(()=>stock.trade(2,'buy','M','1','request_bad_stock_0001'),/상장/);
 assert.throws(()=>stock.trade(2,'buy','A','0','request_zero_stocks'),/수량/);
 const large=stock.trade(3,'buy','B','100000000000','request_large_stocks_01');
 assert.equal(large.status.holdings[1].quantity,'100000000000');
@@ -128,7 +130,7 @@ delete oldMarket.catalogVersion;
 db.prepare('UPDATE game_state SET value=? WHERE key=?').run(JSON.stringify(oldMarket),MARKET_KEY);
 const expanded=stock.status(1);
 assert.equal(expanded.changed,true,'live five-stock schema upgrades in-place');
-assert.equal(expanded.stocks.length,10,'all ten listings become visible');
+assert.equal(expanded.stocks.length,12,'all twelve listings become visible');
 assert.deepEqual(expanded.stocks.slice(0,5).map(s=>s.price),ids.slice(0,5).map(id=>oldPrices[id]),'old five prices unchanged');
 assert.deepEqual(expanded.stocks.slice(0,5).map(s=>s.history),ids.slice(0,5).map(id=>oldHistories[id]),'old five price charts unchanged');
 for(const s of expanded.stocks.slice(5)){
@@ -141,7 +143,29 @@ assert.equal(balance(1),oldWallet1,'no wallet mutation on stock listing');
 assert.equal(balance(2),oldWallet2,'no mutation of other investors');
 assert.equal(db.prepare('SELECT COUNT(*) AS c FROM ledger').get().c,oldLedger,'no artificial ledger activity');
 assert.equal(stock.status(2).changed,false,'all users see same upgraded quote');
-assert.equal(mk().status(1).stocks.length,10,'expanded market survives restart');
+assert.equal(mk().status(1).stocks.length,12,'expanded market survives restart');
+// Simulate the real production v2 snapshot (ten listed A-J shares) and ensure
+// a v3 deploy only seeds the two new IPOs without altering any previous quotes.
+const v2Snapshot=JSON.parse(db.prepare('SELECT value FROM game_state WHERE key=?').get(MARKET_KEY).value);
+const v2Quotes=Object.fromEntries(ids.slice(0,10).map(id=>[id,JSON.stringify(v2Snapshot.stocks[id])]));
+v2Snapshot.catalogVersion=2;
+delete v2Snapshot.stocks.K;delete v2Snapshot.stocks.L;
+const v2Portfolio=JSON.parse(db.prepare("SELECT value FROM game_state WHERE key='jstock:portfolio:1'").get().value);
+const v2Wallet=balance(1),v2Ledger=db.prepare('SELECT COUNT(*) AS c FROM ledger').get().c;
+db.prepare('UPDATE game_state SET value=? WHERE key=?').run(JSON.stringify(v2Snapshot),MARKET_KEY);
+const v3Result=stock.status(1);
+assert.equal(v3Result.changed,true,'v2 stock catalog must migrate without throwing');
+assert.equal(v3Result.stocks.length,12);
+for(const id of ids.slice(0,10))assert.equal(JSON.stringify(JSON.parse(db.prepare('SELECT value FROM game_state WHERE key=?').get(MARKET_KEY).value).stocks[id]),v2Quotes[id],'old quotes and chart unchanged: '+id);
+assert.equal(v3Result.stocks.find(x=>x.id==='K').price,'34000');
+assert.equal(v3Result.stocks.find(x=>x.id==='L').price,'27000');
+assert.deepEqual(v3Result.stocks.find(x=>x.id==='K').history,[34000]);
+assert.deepEqual(v3Result.stocks.find(x=>x.id==='L').history,[27000]);
+assert.equal(stock.status(2).changed,false,'other members see shared migrated market');
+assert.deepEqual(JSON.parse(db.prepare("SELECT value FROM game_state WHERE key='jstock:portfolio:1'").get().value),v2Portfolio);
+assert.equal(balance(1),v2Wallet);
+assert.equal(db.prepare('SELECT COUNT(*) AS c FROM ledger').get().c,v2Ledger);
+assert.equal(mk().status(1).stocks.length,12,'the new catalog must survive server restart');
 const newlyBought=stock.trade(2,'buy','F','3','request_ocean_buy_0001');
 assert.equal(newlyBought.receipt.price,'68000');
 assert.equal(newlyBought.status.holdings[5].quantity,'3');
@@ -159,14 +183,26 @@ assert.equal(stock.status(1).stocks[5].price,stock.status(2).stocks[5].price,'ne
 
 const afterUpgrade=JSON.parse(db.prepare('SELECT value FROM game_state WHERE key=?').get(MARKET_KEY).value);
 assert.equal(afterUpgrade.catalogVersion,STOCK_CATALOG_VERSION);
-delete afterUpgrade.stocks.G; // Version-2 market corruption must NOT silently re-IPO a held stock.
+delete afterUpgrade.stocks.G; // Version-3 market corruption must NOT silently re-IPO a held stock.
 db.prepare('UPDATE game_state SET value=? WHERE key=?').run(JSON.stringify(afterUpgrade),MARKET_KEY);
 assert.throws(()=>stock.status(2),/손상/,'missing already-listed stock must not silently reset');
 afterUpgrade.stocks.G=initialQuoteTest(STOCKS.find(s=>s.id==='G')); // restore valid snapshot
 db.prepare('UPDATE game_state SET value=? WHERE key=?').run(JSON.stringify(afterUpgrade),MARKET_KEY);
 assert.equal(stock.status(2).holdings[6].quantity,'2','portfolio remains after failed corrupt market read');
 function initialQuoteTest(s){return {price:String(s.base),changeBp:0,history:[s.base],event:null};}
-console.log('JSTOCK_OK: ten industries incl ocean/pharma/aviation/robotics/defense, safe live A-E migration, KST four sessions, holdings, wallet, trading and corruption safeguards');
+// Newly listed K/L must participate in real stock trading, not only display.
+const newFood=stock.trade(2,'buy','K','2','request_food_buy_00000001');
+assert.equal(newFood.receipt.price,'34000');
+assert.equal(newFood.status.holdings[10].quantity,'2');
+const newDairy=stock.trade(2,'buy','L','3','request_dairy_buy_0000001');
+assert.equal(newDairy.receipt.price,'27000');
+assert.equal(newDairy.status.holdings[11].quantity,'3');
+assert.equal(stock.trade(2,'buy','L','3','request_dairy_buy_0000001').duplicate,true);
+const sellFood=stock.trade(2,'sell','K','1','request_food_sell_000001');
+assert.equal(sellFood.status.holdings[10].quantity,'1');
+assert.equal(sellFood.receipt.price,'34000');
+assert.equal(stock.status(1).holdings[10].quantity,'0');
+console.log('JSTOCK_OK: twelve listings including 첨지 식품 K and 동동 유업 L; safe v2->v3 migration, real buy/sell, unchanged old quotes, wallet and restart');
 
 
 // Lobby unified stock+coin P/L: server-only exact BigInt, 2-API safety, and current-user refresh.
