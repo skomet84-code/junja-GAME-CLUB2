@@ -7,7 +7,7 @@
 <meta name="robots" content="noindex,nofollow">
 <title>SOVEREIGN GT · JUNJA PRIVATE MOTOR LAB</title>
 <link rel="stylesheet" href="/premium-sovereign.css?v=20261105-visual-v3">
-<script src="/premium-sovereign-mesh.js?v=20261105-sculpt-v3" defer></script>
+<script src="/premium-sovereign-mesh.js?v=20261105-exterior-v4" defer></script>
 <script src="/premium-sovereign-viewer.js?v=20261105-studio-ggx-v3" defer></script>
 <script src="/premium-motor-studio.js?v=20261105-design-v1" defer></script>
 </head>
@@ -21,7 +21,7 @@
 <section class="lab-intro" aria-labelledby="sovereignTitle">
  <div><p class="overline">COLLECTION ENGINEERING · 01 / 12</p>
  <h1 id="sovereignTitle">SOVEREIGN <i>GT.</i></h1>
- <p class="intro-copy">전시된 자동차를 직접 돌려보고, 도어를 열고, 색상과 전조등을 변경하는 첫 번째 3D 기술 시연. 단순히 사진을 회전시키는 화면이 아니라, 실제 삼각형 입체 구조를 렌더링합니다.</p>
+ <p class="intro-copy">차량 외관의 비율과 실루엣을 집중적으로 개선한 3D 기술 시연. 단순히 사진을 회전시키는 화면이 아니라, 실제 삼각형 입체 구조를 렌더링합니다.</p>
  <div class="intro-chips"><span><i></i> REAL 3D GEOMETRY</span><span>INTERACTIVE DESIGN ALPHA</span><span>NOT FOR SALE</span></div></div>
  <div class="intro-number" aria-hidden="true">01 <small>PRIVATE MOTOR DIVISION</small></div>
  <a class="new-model-entry" href="/premium-sovereign-atelier.html">새로운 고품질 GLB 차량 모델 시험실 보기 <span>3D ASSET STUDY →</span></a>
@@ -42,14 +42,14 @@
   <button type="button" data-sov-preset="threeQuarter" aria-pressed="true">외관 3/4</button>
   <button type="button" data-sov-preset="front" aria-pressed="false">정면</button>
   <button type="button" data-sov-preset="side" aria-pressed="false">측면</button>
-  <button type="button" data-sov-preset="cockpit" aria-pressed="false">운전석</button>
+  <button type="button" data-sov-preset="cockpit" aria-pressed="false" hidden>운전석</button>
   <button type="button" data-sov-preset="wheel" aria-pressed="false">휠 디테일</button>
  </div>
- <div class="stage-identity"><div><span class="identity-caption">OWNER</span><strong>PREVIEW / 미소유</strong></div><div><span class="identity-caption">PRODUCTION STATUS</span><strong>차체·루프·휠 디테일 개선 중 · 상용 GLB 모델 제작 전</strong></div><div><span class="identity-caption">SERIAL NUMBER</span><strong>미발급 · 시제품</strong></div></div>
+ <div class="stage-identity"><div><span class="identity-caption">OWNER</span><strong>PREVIEW / 미소유</strong></div><div><span class="identity-caption">PRODUCTION STATUS</span><strong>외관 실루엣 개선 중 · 상용 GLB 모델 제작 전</strong></div><div><span class="identity-caption">SERIAL NUMBER</span><strong>미발급 · 시제품</strong></div></div>
  <div id="sovereignControls" class="studio-controls" aria-label="소버린 GT 3D 조작">
-  <div class="controls-head"><h3>Explore the form</h3><p>회전: 드래그·방향키 · 확대: 핀치·휠·버튼 · 시점: 외관·운전석·휠 디테일</p></div>
+  <div class="controls-head"><h3>Explore the form</h3><p>회전: 드래그·방향키 · 확대: 핀치·휠·버튼 · 시점: 외관·휠 디테일</p></div>
   <div class="controls-grid">
-   <button id="sovDoor" type="button" aria-pressed="false">도어 열기</button>
+   <button id="sovDoor" type="button" aria-pressed="false" hidden>도어 열기</button>
    <button id="sovLight" type="button" aria-pressed="false">전조등 켜기</button>
    <label>차체 색상
     <select id="sovColor" aria-label="차체 페인트 선택">

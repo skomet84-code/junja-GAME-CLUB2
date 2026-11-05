@@ -108,8 +108,7 @@
   return skin('cockpit-canopy',rows,{color:'#111d2c',gloss:.98,metal:.24});
  }
  function roofCarbon(){
-  // True 3D curved coachwork roof contrasting the smoked front/rear glazing;
-  // avoid a toy-like single uninterrupted glass egg.
+  // Flush, restrained closed roof panel; no exposed roll hoops or protruding interior.
   const rows=[];
   for(let i=0;i<=28;i++){
    const z=-.64+i/28*.88;
@@ -209,22 +208,18 @@
   add(box('ground-shadow',[0,-.03,0],[2.9,.025,5.08],{color:'#070a0f',gloss:.15}));
   add(box('rear-powertrain-grille',[0,.94,-1.90],[.78,.018,.42],{color:'#0c111a',metal:.60,gloss:.35}));
   add(box('engine-cover-center-spine',[0,.945,-1.88],[.06,.018,.46],{color:'#9f835d',metal:.88,gloss:.91}));
-  // Sculpted belt line, curved A-pillars, intake grooves and dorsal crease.
+  // Exterior-only silhouette: remove raised roof rails and visible cockpit parts.
   for(const side of [-1,1]){
    add(frontSplitterWing(side));
-   add(lineTube('roof-gold-seam-'+side,[[side*.52,1.472,.24],[side*.52,1.484,-.15],[side*.50,1.475,-.63]],.014,{color:'#8f765a',metal:.91,gloss:.91}));
-   add(lineTube('windshield-header-'+side,[[side*.16,1.505,.28],[side*.46,1.475,.30],[side*.66,1.35,.62]],.019,{color:'#10151e',metal:.52,gloss:.87}));
-   add(lineTube('canopy-side-window-division-'+side,[[side*.67,1.38,-.80],[side*.70,1.23,-1.14]],.019,{color:'#232733',metal:.54,gloss:.84}));
+
+
+
    add(lineTube('belt-line-'+side,[
     [side*.57,.77,2.63],[side*.97,.89,2.23],[side*1.15,.98,1.49],
     [side*1.13,.99,.55],[side*1.15,.98,-.50],[side*1.13,.94,-1.54],[side*.85,.78,-2.38]
    ],.013,{color:'#9e916e',gloss:.93,metal:.90}));
-   add(lineTube('a-pillar-'+side,[
-    [side*.67,1.045,.95],[side*.74,1.27,.65],[side*.74,1.54,.24],[side*.72,1.62,-.13]
-   ],.035,{color:'#11151d',gloss:.86,metal:.60}));
-   add(lineTube('roof-edge-'+side,[
-    [side*.70,1.62,-.15],[side*.74,1.65,-.49],[side*.69,1.51,-.96],[side*.56,1.24,-1.39]
-   ],.027,{color:'#222932',gloss:.90,metal:.65}));
+
+
    add(lineTube('hood-crease-'+side,[
     [side*.42,1.07,.94],[side*.47,1.04,1.46],[side*.45,.92,1.88],[side*.35,.76,2.46]
    ],.010,{color:'#a0a9b0',gloss:.92,metal:.8,paint:true}));
@@ -254,10 +249,10 @@
    add(lineTube('side-air-channel-'+side,[[side*1.16,.62,-1.42],[side*1.16,.56,-.70],[side*1.15,.56,.19]],.012,{color:'#2b3542',metal:.71,gloss:.8}));
    add(lineTube('tail-led-line-'+side,[[side*.42,.83,-2.56],[side*.74,.83,-2.49],[side*.91,.81,-2.37]],
     .031,{color:'#e54b40',metal:.07,gloss:.92}));
-   // High-contrast visible leather cockpit beneath curved shaded glass.
-   add(box('seat-upholstery-'+side,[side*.40,1.23,-.44],[.39,.30,.60],{color:'#6f4a32',gloss:.30}));
-   add(box('headrest-'+side,[side*.40,1.50,-.70],[.32,.19,.22],{color:'#7d5741',gloss:.25}));
-   add(lineTube('seat-gold-stitch-'+side,[[side*.26,1.43,-.24],[side*.26,1.45,-.52],[side*.34,1.51,-.69]],.008,{color:'#e2b47c',gloss:.56}));
+   // Interior omitted by design: keep attention on clean exterior proportions.
+
+
+
    // Moving butterfly doors follow the curved shoulder instead of floating rectangles.
    add(wedge('butterfly-door-'+side,
     [side*.976,.97,.54],[side*1.112,.93,-.67],[side*1.095,.75,-.67],[side*1.005,.75,.54],
@@ -284,6 +279,7 @@
     add(box('hub-'+side+'-'+z,[side*1.267,.52,z],[.025,.13,.13],{color:'#101723',metal:.72,gloss:.84}));
    }
   }
+  // Exterior body only: no exposed steering rings or seat frames.
   // Underbody, front splitters, rear diffuser and restrained carbon spoiler.
   add(box('front-wide-intake',[0,.53,2.64],[.71,.20,.08],{color:'#030408',gloss:.14,metal:.42}));
   add(lineTube('front-splitter-edge',[[-.68,.42,2.65],[-.40,.40,2.72],[.40,.40,2.72],[.68,.42,2.65]],.019,{color:'#967950',metal:.82,gloss:.85}));
@@ -293,10 +289,10 @@
   add(box('rear-spoiler',[0,1.10,-2.18],[1.61,.045,.19],{color:'#111923',metal:.79,gloss:.9}));
   add(box('spoiler-left',[-.68,1.02,-2.15],[.042,.14,.09],{color:'#151b25',metal:.74}));
   add(box('spoiler-right',[.68,1.02,-2.15],[.042,.14,.09],{color:'#151b25',metal:.74}));
-  add(box('center-console',[0,1.19,-.22],[.20,.13,1.15],{color:'#17151c',gloss:.26,metal:.11}));
-  add(box('dashboard-instrument-screen',[-.37,1.29,.54],[.40,.035,.16],{color:'#142f42',gloss:.89,metal:.32}));
-  add(ring('real-steering-wheel',[-.39,1.47,.36],.21,.030,{color:'#151923',gloss:.6,metal:.36},'xy'));
-  add(ring('steering-gold-filigree',[-.39,1.47,.36],.176,.012,{color:'#c5a16f',gloss:.92,metal:.87},'xy'));
+
+
+
+
   add(box('sovereign-front-emblem',[0,.755,2.65],[.20,.020,.12],{color:'#d3af71',gloss:.95,metal:.92}));
   add(ring('display-gold-halo',[0,-.045,0],2.97,.022,{color:'#b89761',gloss:.9,metal:.86},'xz'));
   for(let i=0;i<24;i++){
