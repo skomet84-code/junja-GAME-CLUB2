@@ -234,10 +234,10 @@
    // Narrow aggressive boomerang LED lamps (real illuminated geometry).
    add(lineTube('headlamp-core-'+side,[
     [side*.43,.78,2.58],[side*.70,.83,2.40],[side*.91,.86,2.14],[side*1.01,.86,1.98]
-   ],.038,{color:'#f3f2e2',gloss:.98,metal:.10,group:'headlamp',light:true}));
+   ],.015,{color:'#f3f2e2',gloss:.98,metal:.10,group:'headlamp',light:true}));
    add(lineTube('headlamp-glass-'+side,[
     [side*.39,.82,2.57],[side*.66,.86,2.38],[side*.94,.89,2.13]
-   ],.051,{color:'#182c3e',gloss:.95,metal:.38}));
+   ],.020,{color:'#182c3e',gloss:.95,metal:.38}));
    // Sculpted black air inlet silhouettes, deeply inset below front LEDs.
    add(wedge('lower-intake-'+side,
     [side*.38,.54,2.62],[side*.79,.53,2.45],[side*.92,.70,2.25],[side*.48,.68,2.43],
@@ -303,7 +303,11 @@
    const a=i*TAU/24;
    add(box('dial-index-'+i,[2.84*Math.cos(a),-.044,2.84*Math.sin(a)],[.035,.013,.048],{color:'#ac8b59',metal:.89,gloss:.90}));
   }
-  return m.filter(x=>x.verts.length);
+  // Exterior-first visual gate. Earlier experimental roof tubes extended
+  // above the canopy and looked like a roll cage piercing the car roof.
+  // Do not ship misleading floating cockpit props through the shaded glass.
+  const legacyInteriorOrProtrusions=/^(a-pillar-|roof-edge-|seat-upholstery-|headrest-|seat-gold-stitch-|center-console$|dashboard-instrument-screen$|real-steering-wheel$|steering-gold-filigree$)/;
+  return m.filter(x=>x.verts.length&&!legacyInteriorOrProtrusions.test(x.name));
  }
  window.JunjaSovereignMeshes=Object.freeze({create:build});
 })();
