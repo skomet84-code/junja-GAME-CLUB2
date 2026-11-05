@@ -36,7 +36,7 @@ try{
     assert(state.modelSize?.height<2,'Car must not be displayed standing on its nose');
     assert.equal(await page.locator('#atelierDoor').isEnabled(),true);
     assert.equal(await page.locator('#atelierHood').isEnabled(),true);
-    assert((await page.locator('#atelierInfo').innerText()).includes('glTF 모델 로딩 완료'));
+    assert((await page.locator('#atelierInfo').innerText()).includes('GLB 모델 로딩 완료'));
     await page.locator('[data-at-view="front"]').click();
     assert.equal((await page.evaluate(()=>window.JunjaSovereignAtelier.snapshot())).view,'front');
     await page.locator('[data-at-view="detail"]').click();
@@ -45,6 +45,8 @@ try{
     assert.equal((await page.evaluate(()=>window.JunjaSovereignAtelier.snapshot())).paint,'gold');
     await page.locator('#atelierDoor').click();
     assert.equal((await page.evaluate(()=>window.JunjaSovereignAtelier.snapshot())).doorsOpen,true);
+    // Keep the 3D stage visible while checking rendering/mesh motion; offscreen rendering is intentionally paused.
+    await page.evaluate(()=>document.getElementById('atelierStage').scrollIntoView({block:'center',behavior:'instant'}));
     await page.waitForFunction(()=>window.JunjaSovereignAtelier.snapshot().doorAngle>.2,null,{timeout:12000});
     assert.equal(await page.locator('#atelierDoor').getAttribute('aria-pressed'),'true');
     if(width===390){
@@ -55,6 +57,7 @@ try{
     }
     await page.locator('#atelierHood').click();
     assert.equal((await page.evaluate(()=>window.JunjaSovereignAtelier.snapshot())).hoodOpen,true);
+    await page.evaluate(()=>document.getElementById('atelierStage').scrollIntoView({block:'center',behavior:'instant'}));
     await page.waitForFunction(()=>window.JunjaSovereignAtelier.snapshot().hoodAngle>.10,null,{timeout:12000});
     await page.locator('#atelierDoor').click();
     await page.locator('#atelierHood').click();
