@@ -34,8 +34,12 @@ try{
     assert(bounds.scroll<=bounds.width+2,name+' '+width+' horizontal overflow: '+JSON.stringify(bounds));
     if(before.supported){
      realWebGL++;
-     assert(before.renderCount>=1,'WebGL submitted a draw before returning');
-     assert(before.pixels>0,'Backbuffer physically sized');
+     // Safari can initialize the render context one frame before submitting
+     // the first actual draw. Wait for real renderCount, not the first snapshot.
+     await page.waitForFunction(()=>window.JunjaSovereignLab.snapshot().renderCount>=1,null,{timeout:10000});
+     const drawn=await page.evaluate(()=>window.JunjaSovereignLab.snapshot());
+     assert(drawn.renderCount>=1,'WebGL submitted a real draw');
+     assert(drawn.pixels>0,'Backbuffer physically sized');
      await page.locator('#sovDoor').click();
      assert.equal(await page.evaluate(()=>window.JunjaSovereignLab.snapshot().doorsOpen),true);
      assert.equal(await page.locator('#sovDoor').getAttribute('aria-pressed'),'true');
