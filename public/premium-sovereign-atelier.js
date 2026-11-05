@@ -114,7 +114,7 @@ try {
   const width=Math.max(canvas.clientWidth,1),height=Math.max(canvas.clientHeight,1);
   renderer.setSize(width,height,false);camera.aspect=width/height;camera.updateProjectionMatrix();renderDirty=true;repaintDeadline=performance.now()+750;
   // On orientation change, refit the full exterior to the real canvas aspect.
-  if(state.ready&&['hero','front','side','rear'].includes(state.view))setView(state.view);
+  if(state.ready&&['hero','front','side','rear'].includes(state.view))setView(state.view,false);
  };
  onResize();
  if(window.ResizeObserver)new ResizeObserver(onResize).observe(stage);
@@ -184,7 +184,7 @@ try {
   orbit.target.copy(target);
   state.autoFramed=true;
  }
-function setView(view){
+function setView(view,announce=true){
  if(!state.ready||!viewNames[view])return;
  state.view=view;
  const angles={
@@ -222,7 +222,7 @@ function setView(view){
  state.cameraDistance=+camera.position.distanceTo(orbit.target).toFixed(2);
  renderOnDemand();
  for(const b of quick)b.setAttribute('aria-pressed',String(b.dataset.atView===view));
- banner(viewNames[view]+' 실시간 3D 관찰 시점');
+ if(announce)banner(viewNames[view]+' 실시간 3D 관찰 시점');
 }
 function setPaint(key){
  if(!state.ready||!Object.hasOwn(colors,key))return;
