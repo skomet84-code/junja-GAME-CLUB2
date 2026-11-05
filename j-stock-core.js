@@ -14,11 +14,14 @@ const STOCKS=Object.freeze([
  {id:'G',name:'준자제약',sector:'제약·의약품',base:42000,vol:1300,icon:'💊'},
  {id:'H',name:'준자항공',sector:'항공·우주',base:86000,vol:850,icon:'✈️'},
  {id:'I',name:'준자로보틱스',sector:'로봇·자동화',base:112000,vol:1100,icon:'🤖'},
- {id:'J',name:'준자방산',sector:'방위산업·첨단장비',base:76000,vol:600,icon:'🛡️'}
+ {id:'J',name:'준자방산',sector:'방위산업·첨단장비',base:76000,vol:600,icon:'🛡️'},
+ {id:'K',name:'첨지 식품',sector:'식품·가공식품',base:34000,vol:520,icon:'🍱'},
+ {id:'L',name:'동동 유업',sector:'유제품·식음료',base:27000,vol:390,icon:'🥛'}
 ]);
 const MARKET_KEY='jstock:market:v1',FEE_BP=50n,MAX_SHARES=1000000000000000n,MAX_PRICE=100000000n,MIN_PRICE=100n;
-const STOCK_CATALOG_VERSION=2;
+const STOCK_CATALOG_VERSION=3;
 const ORIGINAL_STOCK_IDS=Object.freeze(['A','B','C','D','E']);
+const V2_STOCK_IDS=Object.freeze(['A','B','C','D','E','F','G','H','I','J']);
 const initialQuote=s=>({price:String(s.base),changeBp:0,history:[s.base],event:null});
 // KST = UTC+09:00. Stock sessions open at 00:00, 06:00, 12:00 and 18:00 KST.
 const MARKET_CADENCE_HOURS=6;
@@ -80,11 +83,12 @@ function createJStocks({db,exactWallet,now=Date.now,randomInt=crypto.randomInt,g
   const h=sessionHour(now());let m=read(MARKET_KEY),changed=false;
   if(!m){m=initial(h);changed=true;}
   else {
-   // Existing A-E remain authoritative. Never replace their current price,
-   // history, owned quantities, wallet, or ledger during catalog expansion.
-   if(!Number.isSafeInteger(m.hour)||!m.stocks||typeof m.stocks!=='object'||
+   // Keep ALL existing quotes and shareholder portfolios authoritative across v1/v2/v3.
+   // Only K and L are newly seeded when migrating production v2 -> v3.
+   if(!Number.isSafeInteger(m.hour)||!m.stocks||typeof m.stocks!=='object'||Array.isArray(m.stocks)||
       ORIGINAL_STOCK_IDS.some(id=>!m.stocks[id])||
-      (m.catalogVersion!==undefined&&m.catalogVersion!==STOCK_CATALOG_VERSION)||
+      (m.catalogVersion!==undefined&&m.catalogVersion!==2&&m.catalogVersion!==STOCK_CATALOG_VERSION)||
+      (m.catalogVersion===2&&V2_STOCK_IDS.some(id=>!m.stocks[id]))||
       (m.catalogVersion===STOCK_CATALOG_VERSION&&STOCKS.some(s=>!m.stocks[s.id])))
     throw Error('주식시장 저장 정보가 손상되었습니다. 관리자 확인이 필요합니다.');
    if(m.cadenceHours!==MARKET_CADENCE_HOURS){
