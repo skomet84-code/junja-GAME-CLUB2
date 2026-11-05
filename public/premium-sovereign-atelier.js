@@ -151,7 +151,7 @@ function setPaint(key){
   const finish=secondary?bodyColor.clone().multiplyScalar(.24):bodyColor;
   m.color.copy(finish);
   m.metalness=.78;
-  m.roughness=secondary?.31:.22;
+  m.roughness=secondary ? .31 : .22;
   if('clearcoat' in m){m.clearcoat=.94;m.clearcoatRoughness=.12;}
   m.envMapIntensity=1.30;
   m.needsUpdate=true;
@@ -167,7 +167,7 @@ function setWheelFinish(key){
   // Only genuine Wheel...Rim geometry is restyled. Never color tires,
   // brake discs, badges or the wheel arch as though they were rims.
   m.color.setHex(accent?finish.accent:finish.base);
-  m.metalness=accent?.94:.70;
+  m.metalness=accent ? .94 : .70;
   m.roughness=accent?finish.roughness:.32;
   m.envMapIntensity=1.25;
   m.needsUpdate=true;
