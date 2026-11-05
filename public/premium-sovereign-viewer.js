@@ -7,7 +7,7 @@
  const $=id=>document.getElementById(id),status=$('sovereignStatus'),fallback=$('sovereignFallback');
  const controls={door:$('sovDoor'),light:$('sovLight'),color:$('sovColor'),reset:$('sovReset'),view:$('sovView'),plus:$('sovZoomIn'),minus:$('sovZoomOut')};
  const state={supported:false,doorsOpen:false,lightsOn:false,color:'platinum',view:'threeQuarter',pixels:0,renderCount:0};
- const theme={platinum:[.62,.68,.78],onyx:[.060,.092,.144],champagne:[.78,.61,.38]};
+ const theme={platinum:[.25,.30,.36],onyx:[.026,.038,.060],champagne:[.49,.31,.16]};
  const target={rotation:-.44,pitch:.22,zoom:9.1,door:0},current={...target};
  const reduced=window.matchMedia?.('(prefers-reduced-motion: reduce)').matches||false;
  const setInfo=text=>status.textContent=text;
@@ -33,22 +33,44 @@
  'void main(){vec4 p=uModel*vec4(aPosition,1.0);vWorld=p.xyz;vNormal=normalize(mat3(uModel)*aNormal);gl_Position=uCamera*p;}'
  ].join('\n');
  const fragment=[
- 'precision mediump float;',
+ 'precision highp float;',
  'varying vec3 vWorld;varying vec3 vNormal;',
  'uniform vec3 uColor;uniform vec3 uEye;',
  'uniform float uGloss;uniform float uMetal;uniform float uGlow;',
+ 'const float PI=3.14159265359;',
+ 'float sat(float x){return clamp(x,0.0,1.0);}',
+ 'vec3 fresnel(float h,vec3 f0){return f0+(1.0-f0)*pow(1.0-sat(h),5.0);}',
+ 'vec3 brdf(vec3 N,vec3 V,vec3 L,vec3 base,float rough,float metal,vec3 intensity){',
+ '  float nl=sat(dot(N,L)),nv=max(.06,dot(N,V));',
+ '  if(nl<=0.0)return vec3(0.0);',
+ '  vec3 H=normalize(L+V);float nh=sat(dot(N,H)),vh=sat(dot(V,H));',
+ '  float a=rough*rough,a2=a*a;',
+ '  float d=a2/(PI*pow(nh*nh*(a2-1.0)+1.0,2.0)+.0001);',
+ '  float k=pow(rough+1.0,2.0)/8.0;',
+ '  float g=(nv/(nv*(1.0-k)+k))*(nl/(nl*(1.0-k)+k));',
+ '  vec3 f0=mix(vec3(.035),base,metal),f=fresnel(vh,f0);',
+ '  vec3 spec=d*g*f/(4.0*nl*nv+.001);',
+ '  return ((vec3(1.0)-f)*(1.0-metal)*base/PI+spec)*intensity*nl;',
+ '}',
  'void main(){',
- 'vec3 n=normalize(vNormal),v=normalize(uEye-vWorld);',
- 'vec3 warm=normalize(vec3(-0.55,1.8,1.35)),cool=normalize(vec3(1.6,1.25,-0.85));',
- 'float a=abs(dot(n,warm)),b=abs(dot(n,cool));',
- 'float rim=pow(1.0-max(0.0,dot(n,v)),3.2);',
- 'float exponent=mix(8.0,90.0,clamp(uGloss,0.0,1.0));',
- 'vec3 h1=normalize(warm+v),h2=normalize(cool+v);',
- 'float shine=pow(max(0.0,dot(n,h1)),exponent)*(.35+uMetal*.9)+pow(max(0.0,dot(n,h2)),exponent)*(.15+uMetal*.6);',
- 'vec3 radiance=uColor*(.22+warm.y*a*.68+b*.42);',
- 'radiance+=vec3(1.0,.83,.53)*shine*.82+vec3(.22,.40,.74)*rim*(.10+uMetal*.35);',
- 'radiance+=uGlow*vec3(.92,.92,.77);radiance=radiance/(radiance+vec3(.30));',
- 'gl_FragColor=vec4(pow(radiance,vec3(.94)),1.0);}'
+ '  vec3 N=normalize(vNormal),V=normalize(uEye-vWorld);',
+ '  if(dot(N,V)<0.0)N=-N;',
+ '  float rough=clamp(1.0-uGloss*.88,.085,.92),metal=sat(uMetal);',
+ '  vec3 warm=normalize(vec3(-.55,1.80,1.50)),cold=normalize(vec3(1.70,1.25,-.70));',
+ '  vec3 color=uColor*(.045+.090*sat(N.y)+.050*sat(-N.y));',
+ '  color+=brdf(N,V,warm,uColor,rough,metal,vec3(4.4,3.5,2.45));',
+ '  color+=brdf(N,V,cold,uColor,rough,metal,vec3(2.1,2.8,4.3));',
+ '  // Reflected rectangular softboxes give paint, glass and metal a studio feel.',
+ '  vec3 R=reflect(-V,N);',
+ '  float longBox=pow(sat(dot(R,normalize(vec3(-.63,.62,.48)))),18.0);',
+ '  float coolBox=pow(sat(dot(R,normalize(vec3(.64,.63,-.47)))),27.0);',
+ '  float strip=pow(1.0-sat(abs(R.y-.46)),15.0);',
+ '  color+=(vec3(.88,.78,.62)*longBox*.50+vec3(.52,.70,.96)*coolBox*.40+vec3(.72,.77,.85)*strip*.15)*(.13+metal*.87)*(1.0-rough*.55);',
+ '  color+=uGlow*vec3(3.5,3.4,2.75);',
+ '  // Filmic tone mapping, gentle lift instead of washed-out pastel shading.',
+ '  color=(color*(2.51*color+.03))/(color*(2.43*color+.59)+.14);',
+ '  gl_FragColor=vec4(pow(clamp(color,0.0,1.0),vec3(.88)),1.0);',
+ '}'
  ].join('\n');
  let gl,program,meshes=[],raf=0;
  let applyDesign=()=>false;
@@ -85,6 +107,7 @@
    const width=Math.max(1,Math.floor(rect.width*dpr)),height=Math.max(1,Math.floor(rect.height*dpr));
    if(canvas.width!==width||canvas.height!==height){canvas.width=width;canvas.height=height;gl.viewport(0,0,width,height);state.pixels=width*height;}
    const {rotation,pitch,zoom}=current;
+   const displayZoom=zoom*.88;
    // Inspect the original 3D geometry from genuine cockpit and wheel cameras;
    // these are not a photo overlay or a claim of premium item ownership.
    const detailScale=clamp(zoom/9.1,.65,1.55);
@@ -92,7 +115,7 @@
    const focus=cockpit?[-.39,1.26,1.80]:wheel?[1.30,.53,1.43]:[0,.56,0];
    const eye=cockpit?[-.40,1.51,1.80-2.03*detailScale]:
     wheel?[1.30+1.75*detailScale,.53+.55*detailScale,1.43+1.32*detailScale]:
-    [Math.sin(rotation)*Math.cos(pitch)*zoom,.85+Math.sin(pitch)*zoom,Math.cos(rotation)*Math.cos(pitch)*zoom];
+    [Math.sin(rotation)*Math.cos(pitch)*displayZoom,.85+Math.sin(pitch)*displayZoom,Math.cos(rotation)*Math.cos(pitch)*displayZoom];
    const camera=multiply(perspective(cockpit?Math.PI/2.8:Math.PI/4,width/height,.055,100),lookAt(eye,focus,[0,1,0]));
    gl.clearColor(.019,.020,.030,1);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
    gl.useProgram(program);gl.uniformMatrix4fv(loc.camera,false,new Float32Array(camera));gl.uniform3fv(loc.eye,new Float32Array(eye));
