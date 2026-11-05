@@ -28,7 +28,7 @@ assert.equal(buf.readUInt32LE(4),2);
 assert.equal(buf.readUInt32LE(8),buf.length);
 assert(buf.length>1_000_000);
 const gitSha=crypto.createHash('sha1').update('blob '+buf.length+'\0').update(buf).digest('hex');
-assert.equal(gitSha,'c0f38c989a78cc4ba63253b5338705e0afb0142f','Asset must equal pinned CC0 source');
+assert.equal(gitSha,'c0f38c989a78cc4ba63253b5338705e0afb0142f','Asset must equal pinned CC-BY source');
 assert.equal(buf.readUInt32LE(16),0x4e4f534a);
 const json=JSON.parse(buf.subarray(20,20+buf.readUInt32LE(12)).toString('utf8'));
 assert(Array.isArray(json.meshes)&&json.meshes.length>80,'Khronos detailed GLB meshes required');
@@ -38,4 +38,4 @@ assert(json.materials.some(x=>String(x.name).includes('Paint 1 Carmine')),'Must 
 assert(fs.statSync(path.join(root,'public/vendor/three/build/three.module.js')).size>10000);
 for(const f of ['build/three.core.js','examples/jsm/loaders/GLTFLoader.js','examples/jsm/controls/OrbitControls.js','examples/jsm/utils/BufferGeometryUtils.js','examples/jsm/environments/RoomEnvironment.js','LICENSE'])
  assert(fs.statSync(path.join(root,'public/vendor/three',f)).size>100);
-console.log('SOVEREIGN_ATELIER_OK: verified CC0 source sha='+gitSha+', '+json.meshes.length+' glTF meshes, '+json.materials.length+' materials, '+json.animations.length+' animations, own-hosted Three.js MIT, payments disabled');
+console.log('SOVEREIGN_ATELIER_OK: verified CC-BY 4.0 source sha='+gitSha+', '+json.meshes.length+' glTF meshes, '+json.materials.length+' materials, '+(json.animations?.length||0)+' animations, own-hosted Three.js MIT, payments disabled');
