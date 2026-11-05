@@ -51,7 +51,7 @@ assert(script.includes('function frameFullExterior(direction)')&&script.includes
 assert(script.includes('repaintDeadline=performance.now()+750')&&script.includes('if(!renderDirty&&performance.now()>repaintDeadline)return;'),'WebKit must repaint briefly after a view change, then return to idle GPU throttle');
 assert(script.includes('state.viewFitMargin=+maxNdc.toFixed(3)')&&script.includes('required*1.16'),'Mobile camera fit must check projected car silhouette with safe edge margin');
 assert(script.includes('function renderOnDemand()')&&script.match(/renderOnDemand\(\);/g)?.length>=4,'Every user-directed camera/paint/rim/light change must immediately update WebGL, even when offscreen');
-assert(script.includes("orbit.addEventListener('change',()=>{renderDirty=true;})")&&script.includes('if(!renderDirty)return;'),'Static exterior must not render at 60FPS while idle on iPhones');
+assert(script.includes("orbit.addEventListener('change',()=>{renderDirty=true;})")&&script.includes('if(!renderDirty&&performance.now()>repaintDeadline)return;'),'WebKit paints during bounded 750ms interaction bursts, then stops GPU frames while idle');
 assert(script.includes('object.parent?.name')&&script.includes('rimSource&&/^Rim[12]$/i.test(mat.name||\'\')'),'Rim-only PBR changes must recognize glTF grouped primitives, not tires');
 
 assert(script.includes('car.updateMatrixWorld(true)')&&!script.includes('car.rotation.x=-Math.PI/2'),'Preserve built-in source coordinate-axis conversion, never double-rotate the model');
