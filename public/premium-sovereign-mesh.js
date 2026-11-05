@@ -148,11 +148,11 @@
   return m;
  }
  function spoke(name,side,z,theta,o={}){
-  const m=make(name,o),x=side*1.33,y=.52;
+  const m=make(name,o),x=side*1.253,y=.52;
   // Double-tapered turbine blade, embedded flush against graphite brake rotor.
   function pt(r,a,dep=0){return [x+dep,y+r*Math.sin(a),z+r*Math.cos(a)]}
-  const a=pt(.105,theta-.10),b=pt(.307,theta-.07),c=pt(.312,theta+.068),d=pt(.112,theta+.19);
-  quad(m,a,b,c,d);quad(m,pt(.11,theta+.19,-.011),pt(.312,theta+.068,-.011),pt(.307,theta-.07,-.011),pt(.105,theta-.10,-.011));
+  const a=pt(.089,theta-.10),b=pt(.276,theta-.07),c=pt(.278,theta+.068),d=pt(.096,theta+.19);
+  quad(m,a,b,c,d);quad(m,pt(.096,theta+.19,-.011),pt(.278,theta+.068,-.011),pt(.276,theta-.07,-.011),pt(.089,theta-.10,-.011));
   return m;
  }
  function wedge(name,p1,p2,p3,p4,height,o={}){
@@ -223,19 +223,19 @@
     .012,{color:'#c2ab7a',metal:.93,gloss:.90,group:side<0?'leftDoor':'rightDoor'}));
    // Four articulated tires, turbine rims, visible rotors and brake calipers.
    for(const z of [-1.47,1.43]){
-    const x=side*1.085,face=side*1.327;
-    add(wheelPart('tire-'+side+'-'+z,[x,.52,z],.51,.325,.205,'#111318'));
-    add(ring('tire-sidewall-'+side+'-'+z,[side*1.28,.52,z],.416,.075,{color:'#14191e',gloss:.27,metal:.04},'yz'));
-    add(ring('rim-polished-edge-'+side+'-'+z,[face,.52,z],.339,.020,{color:'#cbb88a',gloss:.99,metal:.90},'yz'));
-    add(ring('gold-rim-'+side+'-'+z,[face,.52,z],.304,.012,{color:'#303840',gloss:.86,metal:.83},'yz'));
-    add(ring('brake-rotor-'+side+'-'+z,[side*1.316,.52,z],.228,.035,{color:'#4d5c69',gloss:.74,metal:.87},'yz'));
-    add(box('brake-caliper-'+side+'-'+z,[side*1.32,.69,z+.15],[.021,.14,.08],{color:'#bb573d',gloss:.81,metal:.54}));
+    const x=side*1.01,face=side*1.251;
+    add(wheelPart('tire-'+side+'-'+z,[x,.52,z],.477,.313,.183,'#111318'));
+    add(ring('tire-sidewall-'+side+'-'+z,[side*1.205,.52,z],.385,.065,{color:'#14191e',gloss:.27,metal:.04},'yz'));
+    add(ring('rim-polished-edge-'+side+'-'+z,[face,.52,z],.307,.019,{color:'#cbb88a',gloss:.99,metal:.90},'yz'));
+    add(ring('gold-rim-'+side+'-'+z,[face,.52,z],.278,.012,{color:'#303840',gloss:.86,metal:.83},'yz'));
+    add(ring('brake-rotor-'+side+'-'+z,[side*1.244,.52,z],.205,.032,{color:'#4d5c69',gloss:.74,metal:.87},'yz'));
+    add(box('brake-caliper-'+side+'-'+z,[side*1.245,.67,z+.14],[.021,.14,.08],{color:'#bb573d',gloss:.81,metal:.54}));
     for(let i=0;i<10;i++){
      const theta=i*TAU/10;
      add(spoke('turbine-spoke-'+side+'-'+z+'-'+i,side,z,theta,{color:'#aeb6b5',metal:.9,gloss:.93}));
     }
-    add(ring('hub-machined-'+side+'-'+z,[side*1.339,.52,z],.095,.029,{color:'#c9b68d',gloss:.9,metal:.92},'yz'));
-    add(box('hub-'+side+'-'+z,[side*1.347,.52,z],[.025,.13,.13],{color:'#101723',metal:.72,gloss:.84}));
+    add(ring('hub-machined-'+side+'-'+z,[side*1.261,.52,z],.080,.026,{color:'#c9b68d',gloss:.9,metal:.92},'yz'));
+    add(box('hub-'+side+'-'+z,[side*1.267,.52,z],[.025,.13,.13],{color:'#101723',metal:.72,gloss:.84}));
    }
   }
   // Underbody, front splitters, rear diffuser and restrained carbon spoiler.
