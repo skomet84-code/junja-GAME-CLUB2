@@ -10,7 +10,8 @@
 <script type="importmap">
 {"imports":{"three":"/vendor/three/build/three.module.js","three/addons/":"/vendor/three/examples/jsm/"}}
 </script>
-<script type="module" src="/premium-sovereign-atelier.js?v=20261105-exterior-v5"></script>
+<script defer src="/premium-sovereign-watchdog.js?v=20261106-loading-fix-v1"></script>
+<script type="module" src="/premium-sovereign-atelier.js?v=20261106-csp-fix-v1"></script>
 </head>
 <body>
 <header class="topbar">
@@ -30,7 +31,7 @@
     <canvas id="atelierCanvas" tabindex="0" aria-label="실제 GLB 3D 스포츠카. 한 손가락으로 회전하고 두 손가락으로 확대할 수 있습니다."></canvas>
     <div class="stage-copy"><span>JUNJA PRIVATE MOTOR</span><strong>EXTERIOR DESIGN STUDY · NOT FOR SALE</strong></div>
     <div class="loading" id="atelierLoading" role="status"><span class="ring"></span><b id="atelierStatus">3D 모델 파일을 준비하고 있어요.</b><small>다운로드·재질·장면 초기화 중</small></div>
-    <div class="fallback" id="atelierFallback" hidden><strong>이 기기에서는 고품질 3D를 표시하지 못했습니다.</strong><p id="atelierError">그래픽 기능을 확인해 주세요.</p><a href="/premium-sovereign-lab.html">기존 3D 전시실 보기</a></div>
+    <div class="fallback" id="atelierFallback" hidden><strong>이 기기에서는 고품질 3D를 표시하지 못했습니다.</strong><p id="atelierError">그래픽 기능을 확인해 주세요.</p><button type="button" id="atelierRetry" class="retry-3d" hidden>3D 다시 불러오기</button><a href="/premium-sovereign-lab.html">기존 디자인 저장·공유 보기</a></div>
   </div>
   <div class="viewbar" role="group" aria-label="3D 카메라 시점 선택">
    <button type="button" data-at-view="hero" aria-pressed="true">외관 3/4</button>
