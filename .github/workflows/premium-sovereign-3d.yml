@@ -1,0 +1,46 @@
+name: Sovereign GT True 3D Prototype
+on:
+  pull_request:
+    paths:
+      - 'public/premium-sovereign*'
+      - 'public/premium-preview.html'
+      - 'tests/premium-sovereign*'
+      - '.github/workflows/premium-sovereign-3d.yml'
+  workflow_dispatch:
+jobs:
+  geometry-security:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify real triangle mesh, syntax and no-purchase policy
+        run: |
+          node --check public/premium-sovereign-mesh.js
+          node --check public/premium-sovereign-viewer.js
+          node tests/premium-sovereign-3d.cjs
+  real-browser:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install browser testing dependencies
+        run: |
+          npm install --no-save --no-package-lock --ignore-scripts --no-audit --no-fund playwright
+          npx playwright install --with-deps chromium webkit
+      - name: Test real WebGL orbit/doors/lights/color, 8 viewports and image fallback
+        run: node tests/premium-sovereign-browser.mjs
+      - name: Save showroom preview screenshots on error
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sovereign-gt-prototype-mobile
+          path: /tmp/junja-sovereign-3d-*.png
+          if-no-files-found: ignore
