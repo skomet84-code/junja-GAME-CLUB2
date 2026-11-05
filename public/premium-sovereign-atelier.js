@@ -41,6 +41,15 @@ let environmentTexture,studioGroup,nightGroup,clock,visible=true,car=null;
 const hinges={doors:[],hood:null};
 const motion={doors:0,hood:0};
 const tmp=new THREE.Vector3();
+// A user may select a camera or finish while the canvas is outside the viewport.
+// Rendering only in the intersection-based RAF loop caused a stale image to
+// appear one selection behind on real iPhone/WebKit screenshots.
+function renderOnDemand(){
+ if(!renderer||!scene||!camera||!state.ready||state.failed)return;
+ orbit?.update();
+ renderer.render(scene,camera);
+ state.renderCount++;
+}
 try {
  // High-DPI iPhones pay a large GPU tax rendering the 11.8MB PBR model.
  // Keep physical car paint but cap the canvas cost on mobile devices.
@@ -138,6 +147,7 @@ function setView(view){
  orbit.target.set(...(view==='wheel'?[1.00,.52,1.35]:[0,.77,0]));
  orbit.update();
  state.cameraDistance=+camera.position.distanceTo(orbit.target).toFixed(2);
+ renderOnDemand();
  for(const b of quick)b.setAttribute('aria-pressed',String(b.dataset.atView===view));
  banner(viewNames[view]+' 실시간 3D 관찰 시점');
 }
@@ -157,6 +167,7 @@ function setPaint(key){
   m.envMapIntensity=1.30;
   m.needsUpdate=true;
  }
+ renderOnDemand();
  banner(paintMaterials.length?'메탈릭 차체 페인트 변경 · '+paintMaterials.length+'개 실제 도장 표면 적용':'원본 모델의 차체 도장 표면을 찾지 못했습니다.');
 }
 function setWheelFinish(key){
@@ -177,6 +188,7 @@ function setWheelFinish(key){
   m.emissiveIntensity=1;
   m.needsUpdate=true;
  }
+ renderOnDemand();
  banner(wheelMaterials.length?'휠 마감 변경 · 실제 단조 림 '+wheelMaterials.length+'개 재질 표면 적용':'휠 재질을 찾지 못했습니다.');
 }
 function setupMechanics(){
@@ -234,6 +246,7 @@ function setLights(){
  state.light=night?'night':'studio';
  studioGroup.visible=!night;nightGroup.visible=night;
  for(const m of headlightMaterials)m.emissiveIntensity=night?2.10:1.15;
+ renderOnDemand();
  light.textContent=night?'조명 · 야간':'조명 · 스튜디오';
  light.setAttribute('aria-pressed',String(!night));
  banner(night?'야간 조명으로 변경':'스튜디오 조명으로 변경');
