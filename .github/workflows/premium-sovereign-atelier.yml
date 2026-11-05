@@ -30,7 +30,7 @@ jobs:
         run: npm run build:premium-atelier
       - name: Inspect GLB, provenance, license, and absence of checkout
         run: |
-          node --check public/premium-sovereign-atelier.js
+          node --input-type=module --check < public/premium-sovereign-atelier.js
           npm run test:premium-atelier
       - name: Test genuine GLTFLoader on Chromium and WebKit, mobile and desktop
         run: node tests/premium-sovereign-atelier-browser.mjs
