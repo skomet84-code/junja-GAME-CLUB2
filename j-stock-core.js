@@ -45,14 +45,16 @@ function createJStocks({db,exactWallet,now=Date.now,randomInt=crypto.randomInt,g
    !quote.event&&!quote.ipoDiscoveryDone;
  }
  function discoveryDue(m){
+  const blocked=scheduledProtected();
   return STOCKS.some(s=>{
-   if(!ipoCandidate(m,s))return false;
+   if(!ipoCandidate(m,s)||blocked.has(s.id))return false;
    const at=m.stocks[s.id].ipoDiscoveryAt;
    return !Number.isSafeInteger(at)||at<1||now()>=at;
   });
  }
  function nextDiscoveryAt(m){
-  const times=STOCKS.filter(s=>ipoCandidate(m,s)).map(s=>m.stocks[s.id].ipoDiscoveryAt)
+  const blocked=scheduledProtected();
+  const times=STOCKS.filter(s=>ipoCandidate(m,s)&&!blocked.has(s.id)).map(s=>m.stocks[s.id].ipoDiscoveryAt)
    .filter(t=>Number.isSafeInteger(t)&&t>0);
   return times.length?Math.min(...times):null;
  }
