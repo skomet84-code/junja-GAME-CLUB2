@@ -30,15 +30,39 @@ try{
     assert.equal(state.ready,true);assert.equal(state.owned,false);assert.equal(state.paid,false);
     assert(state.meshCount>80,'Expected detailed Khronos model mesh hierarchy');
     assert(state.materialCount>20,'Expected advanced PBR variants');
-    assert.equal(state.clipCount,0,'New source has door pivots, not pre-exported animation clips');
-    assert((await page.locator('#atelierInfo').innerText()).includes('glTF 모델 로딩 완료'));
+    assert.equal(state.clipCount,0,'Source has actual door pivots, not pre-exported animation clips');
+    assert.equal(state.hingeCount,3,'Two real door pivots and one bonnet pivot must be located');
+    assert(state.modelSize?.length>state.modelSize?.height*2,'Z-up car must be leveled on Y-up showroom stage');
+    assert(state.modelSize?.height<2,'Car must not be displayed standing on its nose');
+    assert.equal(await page.locator('#atelierDoor').isEnabled(),true);
+    assert.equal(await page.locator('#atelierHood').isEnabled(),true);
+    assert((await page.locator('#atelierInfo').innerText()).includes('GLB 모델 로딩 완료'));
     await page.locator('[data-at-view="front"]').click();
     assert.equal((await page.evaluate(()=>window.JunjaSovereignAtelier.snapshot())).view,'front');
     await page.locator('[data-at-view="detail"]').click();
     assert.equal((await page.evaluate(()=>window.JunjaSovereignAtelier.snapshot())).view,'detail');
     await page.locator('#atelierPaint').selectOption('gold');
     assert.equal((await page.evaluate(()=>window.JunjaSovereignAtelier.snapshot())).paint,'gold');
-    assert.equal(await page.locator('#atelierDoor').isDisabled(),true,'Do not present unimplemented door animation as complete');
+    await page.locator('#atelierDoor').click();
+    assert.equal((await page.evaluate(()=>window.JunjaSovereignAtelier.snapshot())).doorsOpen,true);
+    // Keep the 3D stage visible while checking rendering/mesh motion; offscreen rendering is intentionally paused.
+    await page.evaluate(()=>document.getElementById('atelierStage').scrollIntoView({block:'center',behavior:'instant'}));
+    await page.waitForFunction(()=>window.JunjaSovereignAtelier.snapshot().doorAngle>.2,null,{timeout:12000});
+    assert.equal(await page.locator('#atelierDoor').getAttribute('aria-pressed'),'true');
+    if(width===390){
+     try{
+      await page.evaluate(()=>document.getElementById('atelierStage').scrollIntoView({block:'center',behavior:'instant'}));
+      await page.screenshot({path:'/tmp/junja-atelier-doors-'+name+'.png',animations:'disabled',timeout:9000});
+     }catch(err){console.log('DOOR_SCREENSHOT_SKIPPED '+name+' '+String(err.message||err).slice(0,90));}
+    }
+    await page.locator('#atelierHood').click();
+    assert.equal((await page.evaluate(()=>window.JunjaSovereignAtelier.snapshot())).hoodOpen,true);
+    await page.evaluate(()=>document.getElementById('atelierStage').scrollIntoView({block:'center',behavior:'instant'}));
+    await page.waitForFunction(()=>window.JunjaSovereignAtelier.snapshot().hoodAngle>.10,null,{timeout:12000});
+    await page.locator('#atelierDoor').click();
+    await page.locator('#atelierHood').click();
+    assert.equal((await page.evaluate(()=>window.JunjaSovereignAtelier.snapshot())).doorsOpen,false);
+    assert.equal((await page.evaluate(()=>window.JunjaSovereignAtelier.snapshot())).hoodOpen,false);
     await page.locator('#atelierReset').click();
     assert.equal((await page.evaluate(()=>window.JunjaSovereignAtelier.snapshot())).view,'hero');
     const layout=await page.evaluate(()=>({width:innerWidth,scroll:document.documentElement.scrollWidth}));
@@ -53,7 +77,7 @@ try{
      }catch(err){console.log('SCREENSHOT_SKIPPED '+name+' '+String(err.message||err).slice(0,100));}
     }
     assert.deepEqual(errors,[],'Page script errors '+name+' '+width);
-    console.log('SOVEREIGN_ATELIER_BROWSER_OK '+name+' '+width+'px, mesh='+state.meshCount+' materials='+state.materialCount+' clips='+state.clipCount);
+    console.log('SOVEREIGN_ATELIER_BROWSER_OK '+name+' '+width+'px, mesh='+state.meshCount+' materials='+state.materialCount+' clips='+state.clipCount+' physical hinges='+state.hingeCount);
     await page.close();
    }
   }finally{await browser.close();}

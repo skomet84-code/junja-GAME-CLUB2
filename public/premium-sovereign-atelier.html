@@ -10,7 +10,7 @@
 <script type="importmap">
 {"imports":{"three":"/vendor/three/build/three.module.js","three/addons/":"/vendor/three/examples/jsm/"}}
 </script>
-<script type="module" src="/premium-sovereign-atelier.js?v=20261105-at1"></script>
+<script type="module" src="/premium-sovereign-atelier.js?v=20261105-hinge-v4"></script>
 </head>
 <body>
 <header class="topbar">
@@ -20,7 +20,7 @@
 <main>
  <section class="heading">
   <div><p class="eyebrow">THE NEXT CHAPTER · LICENSED 3D ASSET STUDY</p>
-  <h1>SOVEREIGN <em>GT.</em></h1><p class="dek">이제 도형으로 조립한 자동차 대신, 실제 3D 제작 도구에서 만든 차량 에셋을 감상합니다. 실물에 가까운 도장, 유리, 휠, 실내와 도어 애니메이션을 검증하는 별도 전시실입니다.</p></div>
+  <h1>SOVEREIGN <em>GT.</em></h1><p class="dek">이제 도형으로 조립한 자동차 대신, 실제 3D 제작 도구에서 만든 차량 에셋을 감상합니다. 실물에 가까운 도장·유리·휠과 실제 3D 도어·보닛 움직임을 직접 감상하는 별도 전시실입니다.</p></div>
   <div class="seal"><span>PRIVATE COLLECTION</span><b>J–001</b><small>PREVIEW · NOT OWNED</small></div>
  </section>
  <section class="showroom" aria-label="고품질 3D 차량 전시실">
@@ -41,16 +41,16 @@
   </div>
   <div class="controlbar">
    <label>메탈릭 페인트 <select id="atelierPaint" aria-label="차체 페인트"><option value="silver">플래티넘 실버</option><option value="onyx">오닉스 블랙</option><option value="gold">샴페인 골드</option><option value="blue">스펙트럴 블루</option></select></label>
-   <button type="button" id="atelierDoor" disabled>도어 동작 · 제작 중</button>
-   <button type="button" id="atelierHood" disabled>보닛 동작 · 제작 중</button>
+   <button type="button" id="atelierDoor" aria-pressed="false" disabled>양쪽 도어 열기</button>
+   <button type="button" id="atelierHood" aria-pressed="false" disabled>보닛 열기</button>
    <button type="button" id="atelierLight" aria-pressed="true">조명 · 스튜디오</button>
    <button type="button" id="atelierReset">시점 초기화</button>
   </div>
-  <div class="underbar"><span id="atelierInfo" aria-live="polite">3D 모델 연결 중</span><span>회전 드래그 · 확대 핀치 · 브라우저에서 실시간 렌더링</span></div>
+  <div class="underbar"><span id="atelierInfo" aria-live="polite">3D 모델 연결 중</span><span>양쪽 도어·보닛 개폐 · 회전 드래그 · 핀치 확대</span></div>
  </section>
  <section class="details">
   <div><p class="eyebrow">QUALITY FIRST</p><h2>이제 모델부터 다르게.</h2><p>무료 원형 모델을 이용한 렌더링 기술 검증 버전입니다. 최종 준자 전용 조형으로 재작업하고, 모바일 품질과 실제 소유권을 확인해야 정식 명품관 상품이 됩니다.</p></div>
-  <div class="facts"><div><small>REAL ASSET</small><strong>GLB 2.0</strong></div><div><small>MATERIALS</small><strong>Clearcoat · Carbon · Glass</strong></div><div><small>DETAILS</small><strong>Paint · Glass · Interior</strong></div><div><small>RIGHTS</small><strong>CC-BY 4.0</strong></div></div>
+  <div class="facts"><div><small>REAL ASSET</small><strong>GLB 2.0</strong></div><div><small>MATERIALS</small><strong>Clearcoat · Carbon · Glass</strong></div><div><small>REAL MOVEMENT</small><strong>Doors · Bonnet · Interior</strong></div><div><small>RIGHTS</small><strong>CC-BY 4.0</strong></div></div>
  </section>
  <section class="disclosure"><strong>기술 검증 · 무료 체험 · 미소유 · 판매 불가</strong><p>차량 에셋은 <a href="https://github.com/KhronosGroup/glTF-Sample-Assets/tree/main/Models/CarConcept" target="_blank" rel="noopener noreferrer">Car Concept (Eric Chadwick / Darmstadt Graphics Group GmbH, CC-BY 4.0)</a>에서 제작되었습니다. 모델 및 텍스처: Eric Chadwick (2024). 이 페이지는 CC-BY 4.0에 따른 출처 및 변경 사항을 밝히는 기술 시험 버전이며, 일부 브랜드 관련 그래픽은 감춥니다. 이 전시실은 현재 기술·미술 검증용으로, 준자랜드의 구매·신분·자산·게임머니와 연결되지 않습니다. 해당 모델 제작자가 준자랜드를 승인하거나 후원했다는 뜻이 아닙니다. 기존 회원의 무료 디자인 저장·공유는 <a href="/premium-sovereign-lab.html">이전 3D 전시실</a>에서 계속 사용 가능합니다.</p></section>
 </main>

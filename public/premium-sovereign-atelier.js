@@ -16,7 +16,8 @@ const quick=[...document.querySelectorAll('[data-at-view]')];
 const viewNames={hero:'외관 3/4',front:'정면',side:'측면',rear:'후면',detail:'실내·디테일'};
 const colors={silver:0x9ba4ad,onyx:0x131a25,gold:0xb98b58,blue:0x144d96};
 const state={ready:false,failed:false,renderCount:0,meshCount:0,materialCount:0,clipCount:0,
- paint:'silver',view:'hero',light:'studio',lastError:null,glb:true,owned:false,paid:false};
+ paint:'silver',view:'hero',light:'studio',doorsOpen:false,hoodOpen:false,
+ doorAngle:0,hoodAngle:0,hingeCount:0,modelSize:null,lastError:null,glb:true,owned:false,paid:false};
 const banner=message=>{info.textContent=message;};
 const disabled=flag=>{for(const el of [...quick,door,hood,paint,light,reset])el.disabled=flag;};
 disabled(true);
@@ -30,8 +31,10 @@ const fail=err=>{
  banner('새 3D 모델을 표시하지 못했습니다. 기존 체험실을 이용할 수 있습니다.');
  disabled(true);
 };
-let renderer,scene,camera,orbit,mixer,clips=[],carRoot,paintMaterials=[],oldMaterials=[];
-let environmentTexture,studioGroup,nightGroup,clock,visible=true,car=null,rotationTimer=0;
+let renderer,scene,camera,orbit,mixer,clips=[],carRoot,paintMaterials=[];
+let environmentTexture,studioGroup,nightGroup,clock,visible=true,car=null;
+const hinges={doors:[],hood:null};
+const motion={doors:0,hood:0};
 const tmp=new THREE.Vector3();
 try {
  renderer=new THREE.WebGLRenderer({canvas,alpha:true,antialias:true,powerPreference:'high-performance'});
@@ -69,7 +72,7 @@ try {
  nightGroup.add(midnight,tail);nightGroup.visible=false;scene.add(nightGroup);
  const plinth=new THREE.Group();
  const stone=new THREE.Mesh(new THREE.CylinderGeometry(3.33,3.39,.16,96),
-  new THREE.MeshPhysicalMaterial({color:0x11131a,roughness:.60,metalness:.14,clearcoat:.33}));
+  new THREE.MeshPhysicalMaterial({color:0x07080d,roughness:.50,metalness:.38,clearcoat:.55,envMapIntensity:.15}));
  stone.position.y=-.10;stone.receiveShadow=true;plinth.add(stone);
  const trim=new THREE.Mesh(new THREE.TorusGeometry(3.32,.019,8,120),
   new THREE.MeshStandardMaterial({color:0xb59863,roughness:.24,metalness:.93}));
@@ -95,6 +98,17 @@ try {
   if(state.failed||document.hidden||!visible)return;
   const dt=Math.min(clock.getDelta(),.05);
   if(mixer)mixer.update(dt);
+  // Genuine grouped door/bonnet hinges stay in their source local coordinates.
+  // The GLB root already contains the Z-up -> Y-up transform; do not rotate twice.
+  const easing=1-Math.exp(-8*dt);
+  motion.doors+=((state.doorsOpen?1:0)-motion.doors)*easing;
+  motion.hood+=((state.hoodOpen?1:0)-motion.hood)*easing;
+  if(Math.abs(motion.doors-(state.doorsOpen?1:0))<.0005)motion.doors=state.doorsOpen?1:0;
+  if(Math.abs(motion.hood-(state.hoodOpen?1:0))<.0005)motion.hood=state.hoodOpen?1:0;
+  for(const hinge of hinges.doors)hinge.node.rotation.z=hinge.base+hinge.sweep*motion.doors;
+  if(hinges.hood)hinges.hood.node.rotation.x=hinges.hood.base+hinges.hood.sweep*motion.hood;
+  state.doorAngle=+(motion.doors*.93).toFixed(3);
+  state.hoodAngle=+(motion.hood*.47).toFixed(3);
   orbit.update();
   renderer.render(scene,camera);
   state.renderCount++;
@@ -106,11 +120,11 @@ function setView(view){
  if(!state.ready||!viewNames[view])return;
  state.view=view;
  const radius=6.6,coords={
-  hero:[5.3,2.5,5.2],front:[0,1.72,radius],side:[radius,1.85,0],
-  rear:[0,1.75,-radius],detail:[2.4,1.72,2.9]
+  hero:[5.2,2.7,5.4],front:[0,1.9,radius],side:[9.25,2.10,0],
+  rear:[0,1.9,-radius],detail:[2.0,1.55,1.4]
  };
  camera.position.set(...coords[view]);
- orbit.target.set(0,view==='detail'?1.20:.84,0);
+ orbit.target.set(0,view==='detail'?1.05:.75,0);
  orbit.update();
  for(const b of quick)b.setAttribute('aria-pressed',String(b.dataset.atView===view));
  banner(viewNames[view]+' 실시간 3D 관찰 시점');
@@ -125,6 +139,44 @@ function setPaint(key){
   m.needsUpdate=true;
  }
  banner(paintMaterials.length?'차체 페인트 변경 · 실제 모델의 '+paintMaterials.length+'개 표면에 적용':'선택한 모델의 색상 변경 가능 부품이 없습니다.');
+}
+function setupMechanics(){
+  // The CC-BY CarConcept hierarchy already groups each complete door under a
+  // real, correctly positioned hinge pivot, including glass and side mirrors.
+  const left=car.getObjectByName('BodyDoorLColor1');
+  const right=car.getObjectByName('BodyDoorRColor1');
+  const bonnet=car.getObjectByName('BodyHood');
+  if(left&&right&&left.children.length>=10&&right.children.length>=10){
+   hinges.doors=[
+    {node:left,base:left.rotation.z,sweep:-.93},
+    {node:right,base:right.rotation.z,sweep:.93}
+   ];
+   state.hingeCount=2;
+  }
+  if(bonnet&&bonnet.children.length>=3){
+   hinges.hood={node:bonnet,base:bonnet.rotation.x,sweep:.47};
+   state.hingeCount++;
+  }
+  door.disabled=hinges.doors.length!==2;
+  hood.disabled=!hinges.hood;
+  door.title=door.disabled?'이 에셋의 도어 피벗을 확인하지 못했습니다.':'양쪽 실제 3D 도어를 열고 닫습니다.';
+  hood.title=hood.disabled?'이 에셋의 보닛 피벗을 확인하지 못했습니다.':'실제 3D 보닛을 열고 닫습니다.';
+}
+function toggleDoor(){
+ if(!state.ready||door.disabled)return;
+ state.doorsOpen=!state.doorsOpen;
+ door.textContent=state.doorsOpen?'양쪽 도어 닫기':'양쪽 도어 열기';
+ door.setAttribute('aria-pressed',String(state.doorsOpen));
+ if(state.doorsOpen){setView('hero');stage.scrollIntoView({block:'center',behavior:'smooth'});}
+ banner(state.doorsOpen?'실제 GLB 차체 도어 2개가 부드럽게 열립니다.':'실제 도어를 닫습니다.');
+}
+function toggleHood(){
+ if(!state.ready||hood.disabled)return;
+ state.hoodOpen=!state.hoodOpen;
+ hood.textContent=state.hoodOpen?'보닛 닫기':'보닛 열기';
+ hood.setAttribute('aria-pressed',String(state.hoodOpen));
+ if(state.hoodOpen){setView('front');stage.scrollIntoView({block:'center',behavior:'smooth'});}
+ banner(state.hoodOpen?'실제 GLB 보닛이 열립니다.':'실제 보닛을 닫습니다.');
 }
 function play(keyword){
  if(!state.ready)return;
@@ -152,10 +204,16 @@ async function load(){
   const gltf=await new GLTFLoader().loadAsync('/art/royal/models/carconcept-ccby.glb',
    e=>{if(e.total>0)status.textContent='3D 다운로드 '+Math.min(100,Math.round(e.loaded/e.total*100))+'%';});
   car=gltf.scene;
-  // Khronos car is already authored for the standard glTF coordinate system.
+  // Khronos CarConcept vertices use Z-up locally, but node BodyUnderside has
+  // the matrix [1,0,0; 0,0,-1; 0,1,0], already converting to Three.js Y-up.
+  // Respect its author-provided transform to avoid pointing the nose skyward.
+  car.updateMatrixWorld(true);
   const bounds=new THREE.Box3().setFromObject(car);
   if(bounds.isEmpty())throw Error('GLB 모델에 실제 메시가 없습니다.');
   const center=bounds.getCenter(tmp.clone());
+  const size=bounds.getSize(new THREE.Vector3());
+  state.modelSize={width:+size.x.toFixed(3),height:+size.y.toFixed(3),length:+size.z.toFixed(3)};
+  if(!(size.z>size.y*2&&size.z>size.x*1.2))throw Error('모델 축 변환에 실패했습니다.');
   carRoot.position.set(-center.x,.02-bounds.min.y,-center.z);
   carRoot.add(car);
   const materialNames=new Set();
@@ -185,21 +243,20 @@ async function load(){
   mixer=clips.length?new THREE.AnimationMixer(car):null;
   state.ready=true;
   loading.hidden=true;fallback.hidden=true;disabled(false);
-  // Respect saved draft color only in old studio; the new asset is explicitly free.
+  // All moving parts are real imported hierarchy objects; no fake geometry.
+  setupMechanics();
+  // Respect saved draft color only in old studio; new asset is explicitly free.
   setPaint('silver');
   setView('hero');
-  door.disabled=true;hood.disabled=true;
-  door.title='도어 힌지 애니메이션은 정식 모델 연결 후 제공';
-  hood.title='보닛 애니메이션은 정식 모델 연결 후 제공';
   paint.disabled=!paintMaterials.length;
   status.textContent='3D 모델 로딩 완료';
-  banner('고품질 glTF 모델 로딩 완료 · 메시 '+state.meshCount+'개 · 재질 '+state.materialCount+'종 · 도어 조작 개발 중');
+  banner('고품질 GLB 모델 로딩 완료 · 실제 도어/보닛 피벗 '+state.hingeCount+'개 확인');
  }catch(e){fail(e);}
 }
 for(const button of quick)button.addEventListener('click',()=>setView(button.dataset.atView));
 paint.addEventListener('change',()=>setPaint(paint.value));
-door.addEventListener('click',()=>play('doors'));
-hood.addEventListener('click',()=>play('hood'));
+door.addEventListener('click',toggleDoor);
+hood.addEventListener('click',toggleHood);
 light.addEventListener('click',setLights);
 reset.addEventListener('click',()=>{setView('hero');});
 load();
