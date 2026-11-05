@@ -1,4 +1,12 @@
 /* JUNJA PRIVATE · original concept showroom · 3D alpha */
+.studio-exterior-gateway{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:13px 19px;background:#171820;border-bottom:1px solid #a890694c}
+.studio-exterior-gateway>div{display:grid;gap:2px}
+.studio-exterior-gateway strong{font-size:12px;color:#f0d9af}
+.studio-exterior-gateway span{font-size:11px;color:#bcb5ac}
+.studio-exterior-gateway a{padding:10px 14px;border-radius:8px;background:#453822;border:1px solid #d9bd85;color:#ffe8c1;text-decoration:none;white-space:nowrap;font-size:12px;font-weight:700}
+.studio-exterior-gateway a:hover{background:#655032}
+@media(max-width:650px){.studio-exterior-gateway{display:grid;padding:12px 10px}.studio-exterior-gateway a{text-align:center;padding:9px 13px}}
+
 .new-model-entry{display:inline-flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:13px;padding:12px 19px;border:1px solid #d3b67f;border-radius:8px;background:linear-gradient(120deg,#52412c,#2e2630);color:#fae1b4;text-decoration:none;font-weight:700;font-size:12px}.new-model-entry span{font:10px Georgia,serif;letter-spacing:.10em;color:#e6c69e}.new-model-entry:hover{background:#685037}
 :root{color-scheme:dark;--black:#090a10;--navy:#11121a;--gold:#dcc28b;--line:#ffffff23;--white:#faf5e7;--soft:#b6ada3}
 *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:radial-gradient(ellipse at 80% -12%,#382e2533,transparent 45%),#090a10;color:var(--white);font:14px/1.7 system-ui,-apple-system,"Noto Sans KR",sans-serif}a{color:inherit}button,select{font:inherit}button:focus-visible,select:focus-visible,a:focus-visible,canvas:focus-visible{outline:3px solid #ffdb92;outline-offset:3px}
