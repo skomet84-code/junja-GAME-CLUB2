@@ -77,7 +77,7 @@
  const colorHex=h=>{const v=parseInt(String(h).replace('#',''),16)||0;return [(v>>16&255)/255,(v>>8&255)/255,(v&255)/255];};
  function showFallback(reason){state.supported=false;canvas.hidden=true;fallback.hidden=false;$('sovereignControls').hidden=true;setInfo('현재 기기에서는 실시간 3D를 사용할 수 없어 정적 대체 이미지를 표시합니다. '+reason);}
  try{
-  gl=canvas.getContext('webgl',{alpha:false,antialias:true,powerPreference:'default'})||canvas.getContext('experimental-webgl',{alpha:false,antialias:true});
+  gl=canvas.getContext('webgl',{alpha:true,antialias:true,premultipliedAlpha:true,powerPreference:'default'})||canvas.getContext('experimental-webgl',{alpha:true,antialias:true,premultipliedAlpha:true});
   if(!gl)throw Error('WebGL 미지원');
   const vs=shader(gl,gl.VERTEX_SHADER,vertex),fs=shader(gl,gl.FRAGMENT_SHADER,fragment);
   program=gl.createProgram();gl.attachShader(program,vs);gl.attachShader(program,fs);gl.linkProgram(program);
@@ -117,7 +117,8 @@
     wheel?[1.30+1.75*detailScale,.53+.55*detailScale,1.43+1.32*detailScale]:
     [Math.sin(rotation)*Math.cos(pitch)*displayZoom,.85+Math.sin(pitch)*displayZoom,Math.cos(rotation)*Math.cos(pitch)*displayZoom];
    const camera=multiply(perspective(cockpit?Math.PI/2.8:Math.PI/4,width/height,.055,100),lookAt(eye,focus,[0,1,0]));
-   gl.clearColor(.019,.020,.030,1);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
+   // Transparent canvas lets the actual showroom softbox/backdrop shine behind true 3D geometry.
+   gl.clearColor(0,0,0,0);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
    gl.useProgram(program);gl.uniformMatrix4fv(loc.camera,false,new Float32Array(camera));gl.uniform3fv(loc.eye,new Float32Array(eye));
    for(const m of meshes){
     let model=identity();
