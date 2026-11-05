@@ -21,7 +21,7 @@ const wheelPalettes={
  champagne:{accent:0xc49b62,base:0x30261b,roughness:.25}
 };
 const state={ready:false,failed:false,renderCount:0,meshCount:0,materialCount:0,clipCount:0,
- paint:'silver',wheelFinish:'graphite',paintSurfaceCount:0,wheelSurfaceCount:0,headlightSurfaceCount:0,frontGrilleCount:0,brakeCaliperCount:0,wheelTargetResolved:false,cameraDistance:null,view:'hero',light:'studio',doorsOpen:false,hoodOpen:false,
+ paint:'silver',wheelFinish:'graphite',paintSurfaceCount:0,wheelSurfaceCount:0,headlightSurfaceCount:0,frontGrilleCount:0,brakeCaliperCount:0,wheelTargetResolved:false,cameraDistance:null,viewFitMargin:null,autoFramed:false,view:'hero',light:'studio',doorsOpen:false,hoodOpen:false,
  doorAngle:0,hoodAngle:0,hingeCount:0,modelSize:null,lastError:null,glb:true,owned:false,paid:false};
 const banner=message=>{info.textContent=message;};
 const disabled=flag=>{for(const el of [...quick,door,hood,paint,wheelFinish,light,reset])el.disabled=flag;};
@@ -38,7 +38,7 @@ const fail=err=>{
 };
 let renderer,scene,camera,orbit,mixer,clips=[],carRoot,paintMaterials=[],wheelMaterials=[],headlightMaterials=[],frontGrilleMaterials=[],caliperMaterials=[];
 let environmentTexture,studioGroup,nightGroup,clock,visible=true,car=null;
-let frontRimFocus=null;
+let frontRimFocus=null,exteriorBounds=null;
 const hinges={doors:[],hood:null};
 const motion={doors:0,hood:0};
 const tmp=new THREE.Vector3();
@@ -109,6 +109,8 @@ try {
  const onResize=()=>{
   const width=Math.max(canvas.clientWidth,1),height=Math.max(canvas.clientHeight,1);
   renderer.setSize(width,height,false);camera.aspect=width/height;camera.updateProjectionMatrix();renderDirty=true;
+  // On orientation change, refit the full exterior to the real canvas aspect.
+  if(state.ready&&['hero','front','side','rear'].includes(state.view))setView(state.view);
  };
  onResize();
  if(window.ResizeObserver)new ResizeObserver(onResize).observe(stage);
@@ -145,13 +147,46 @@ try {
  animate();
 }catch(e){fail(e);}
 
+// Use the *actual* positioned GLB bounds to fit every full-car view.
+ // This avoids cutting off the silhouette on narrower iPhone canvases.
+ function exteriorCorners(box){
+  const {min,max}=box;
+  return [
+   [min.x,min.y,min.z],[min.x,min.y,max.z],
+   [min.x,max.y,min.z],[min.x,max.y,max.z],
+   [max.x,min.y,min.z],[max.x,min.y,max.z],
+   [max.x,max.y,min.z],[max.x,max.y,max.z]
+  ].map(v=>new THREE.Vector3(...v));
+ }
+ function frameFullExterior(direction){
+  const target=exteriorBounds.getCenter(new THREE.Vector3());
+  const from=direction.clone().normalize();
+  const right=new THREE.Vector3().crossVectors(new THREE.Vector3(0,1,0),from).normalize();
+  const up=new THREE.Vector3().crossVectors(from,right).normalize();
+  const halfVertical=Math.tan(THREE.MathUtils.degToRad(camera.fov)*.5);
+  const halfHorizontal=halfVertical*camera.aspect;
+  let required=0;
+  for(const corner of exteriorCorners(exteriorBounds)){
+   const relative=corner.sub(target);
+   const near=relative.dot(from);
+   required=Math.max(required,
+    Math.abs(relative.dot(right))/halfHorizontal+near,
+    Math.abs(relative.dot(up))/halfVertical+near);
+  }
+  const dist=Math.max(3.2,required*1.16);
+  camera.position.copy(target).addScaledVector(from,dist);
+  orbit.target.copy(target);
+  state.autoFramed=true;
+ }
 function setView(view){
  if(!state.ready||!viewNames[view])return;
  state.view=view;
- const radius=6.6,coords={
-  hero:[5.2,2.15,5.65],front:[0,1.60,radius],frontDetail:[1.9,1.40,3.10],side:[8.05,1.68,0],
-  rear:[0,1.65,-radius]
+ const angles={
+  hero:new THREE.Vector3(5.2,1.85,5.65),front:new THREE.Vector3(0,1.1,6.6),
+  side:new THREE.Vector3(7.6,1.2,0),rear:new THREE.Vector3(0,1.15,-6.6)
  };
+ state.viewFitMargin=null;
+ state.autoFramed=false;
  if(view==='wheel'&&frontRimFocus){
   // Source model determines the real wheel centre, never a guessed front-
   // bumper coordinate. Approach nearly perpendicular to the wheel's plane,
@@ -159,11 +194,25 @@ function setView(view){
   const side=frontRimFocus.x>=0?1:-1;
   orbit.target.copy(frontRimFocus);
   camera.position.copy(frontRimFocus).add(new THREE.Vector3(side*2.55,.58,.10));
+ }else if(view==='frontDetail'){
+  camera.position.set(1.9,1.40,3.10);
+  orbit.target.set(0,.76,1.4);
+ }else if(exteriorBounds&&angles[view]){
+  frameFullExterior(angles[view]);
  }else{
-  camera.position.set(...(coords[view]||coords.hero));
-  orbit.target.set(...(view==='frontDetail'?[0,.76,1.4]:[0,.77,0]));
+  camera.position.set(5.2,2.15,5.65);
+  orbit.target.set(0,.77,0);
  }
  orbit.update();
+ if(state.autoFramed&&exteriorBounds){
+  camera.updateMatrixWorld(true);
+  let maxNdc=0;
+  for(const point of exteriorCorners(exteriorBounds)){
+   const projected=point.project(camera);
+   maxNdc=Math.max(maxNdc,Math.abs(projected.x),Math.abs(projected.y));
+  }
+  state.viewFitMargin=+maxNdc.toFixed(3);
+ }
  state.cameraDistance=+camera.position.distanceTo(orbit.target).toFixed(2);
  renderOnDemand();
  for(const b of quick)b.setAttribute('aria-pressed',String(b.dataset.atView===view));
@@ -288,6 +337,8 @@ async function load(){
   carRoot.position.set(-center.x,.02-bounds.min.y,-center.z);
   carRoot.add(car);
   carRoot.updateMatrixWorld(true);
+  exteriorBounds=new THREE.Box3().setFromObject(carRoot);
+  if(exteriorBounds.isEmpty())throw Error('자동 카메라에 필요한 차량 외관 범위가 없습니다.');
   const sourceRim=car.getObjectByName('WheelFrontLRim')||car.getObjectByName('WheelFrontRRim');
   if(sourceRim){
    const rimBounds=new THREE.Box3().setFromObject(sourceRim);
