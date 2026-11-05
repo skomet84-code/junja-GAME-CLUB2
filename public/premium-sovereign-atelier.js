@@ -41,6 +41,7 @@ let environmentTexture,studioGroup,nightGroup,clock,visible=true,car=null;
 const hinges={doors:[],hood:null};
 const motion={doors:0,hood:0};
 const tmp=new THREE.Vector3();
+let renderDirty=true;
 // A user may select a camera or finish while the canvas is outside the viewport.
 // Rendering only in the intersection-based RAF loop caused a stale image to
 // appear one selection behind on real iPhone/WebKit screenshots.
@@ -49,6 +50,7 @@ function renderOnDemand(){
  orbit?.update();
  renderer.render(scene,camera);
  state.renderCount++;
+ renderDirty=false;
 }
 try {
  // High-DPI iPhones pay a large GPU tax rendering the 11.8MB PBR model.
@@ -69,6 +71,7 @@ try {
  orbit.enablePan=false;orbit.minDistance=2.3;orbit.maxDistance=15.5;
  orbit.minPolarAngle=.12;orbit.maxPolarAngle=Math.PI*.49;
  orbit.target.set(0,.83,0);orbit.update();
+ orbit.addEventListener('change',()=>{renderDirty=true;});
  const pmrem=new THREE.PMREMGenerator(renderer);
  environmentTexture=pmrem.fromScene(new RoomEnvironment(),.05).texture;
  scene.environment=environmentTexture;
@@ -104,33 +107,39 @@ try {
  clock=new THREE.Clock();
  const onResize=()=>{
   const width=Math.max(canvas.clientWidth,1),height=Math.max(canvas.clientHeight,1);
-  renderer.setSize(width,height,false);camera.aspect=width/height;camera.updateProjectionMatrix();
+  renderer.setSize(width,height,false);camera.aspect=width/height;camera.updateProjectionMatrix();renderDirty=true;
  };
  onResize();
  if(window.ResizeObserver)new ResizeObserver(onResize).observe(stage);
  else window.addEventListener('resize',onResize);
- if(window.IntersectionObserver)new IntersectionObserver(entries=>{visible=!!entries[0]?.isIntersecting;},{threshold:0}).observe(stage);
- window.addEventListener('visibilitychange',()=>{clock.getDelta();});
+ if(window.IntersectionObserver)new IntersectionObserver(entries=>{visible=!!entries[0]?.isIntersecting;if(visible)renderDirty=true;},{threshold:0}).observe(stage);
+ window.addEventListener('visibilitychange',()=>{clock.getDelta();renderDirty=true;});
  canvas.addEventListener('webglcontextlost',event=>{event.preventDefault();fail(Error('WebGL 그래픽 연결이 끊겼습니다.'));});
  function animate(){
   requestAnimationFrame(animate);
   if(state.failed||document.hidden||!visible)return;
   const dt=Math.min(clock.getDelta(),.05);
-  if(mixer)mixer.update(dt);
+  if(mixer){mixer.update(dt);renderDirty=true;}
   // Genuine grouped door/bonnet hinges stay in their source local coordinates.
   // The GLB root already contains the Z-up -> Y-up transform; do not rotate twice.
   const easing=1-Math.exp(-8*dt);
+  const previousDoor=motion.doors,previousHood=motion.hood;
   motion.doors+=((state.doorsOpen?1:0)-motion.doors)*easing;
   motion.hood+=((state.hoodOpen?1:0)-motion.hood)*easing;
+  if(Math.abs(motion.doors-previousDoor)>1e-6||Math.abs(motion.hood-previousHood)>1e-6)renderDirty=true;
   if(Math.abs(motion.doors-(state.doorsOpen?1:0))<.0005)motion.doors=state.doorsOpen?1:0;
   if(Math.abs(motion.hood-(state.hoodOpen?1:0))<.0005)motion.hood=state.hoodOpen?1:0;
   for(const hinge of hinges.doors)hinge.node.rotation.z=hinge.base+hinge.sweep*motion.doors;
   if(hinges.hood)hinges.hood.node.rotation.x=hinges.hood.base+hinges.hood.sweep*motion.hood;
   state.doorAngle=+(motion.doors*.93).toFixed(3);
   state.hoodAngle=+(motion.hood*.47).toFixed(3);
+  // OrbitControls emits 'change' while touch drag/zoom/damping is active.
+  // Stop redraws when the user is not touching the static, nonanimated car.
   orbit.update();
+  if(!renderDirty)return;
   renderer.render(scene,camera);
   state.renderCount++;
+  renderDirty=false;
  }
  animate();
 }catch(e){fail(e);}
