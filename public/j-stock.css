@@ -77,3 +77,7 @@
 .jstock-rank-split span{display:flex;align-items:center;gap:5px}
 .jstock-rank-split b{font-size:11px;overflow-wrap:anywhere}
 @media(max-width:650px){.jstock-rank-card{padding:10px}.jstock-rank-split{row-gap:5px}}
+
+/* New-listing opening price discovery is a real persisted one-off event. */
+.jstock-name .jstock-ipo-opening,.jstock-name .jstock-ipo-opened{display:block;color:#f2d28e;font-size:10px;line-height:1.5;white-space:normal;overflow-wrap:anywhere}
+.jstock-name .jstock-ipo-opened{color:#b9eac2}
