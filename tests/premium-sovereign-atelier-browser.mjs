@@ -45,7 +45,14 @@ try{
     const layout=await page.evaluate(()=>({width:innerWidth,scroll:document.documentElement.scrollWidth}));
     assert(layout.scroll<=layout.width+2,'Horizontal overflow '+name+' '+width+': '+JSON.stringify(layout));
     await page.waitForTimeout(350);
-    if(width===390)await page.locator('#atelierStage').screenshot({path:'/tmp/junja-atelier-'+name+'.png'});
+    if(width===390){
+     // Screenshots are supplementary QA evidence. GPU repaints in software
+     // Chromium can prevent Playwright's element-stability detector from settling.
+     try{
+      await page.evaluate(()=>document.getElementById('atelierStage').scrollIntoView({block:'center',behavior:'instant'}));
+      await page.screenshot({path:'/tmp/junja-atelier-'+name+'.png',animations:'disabled',timeout:10000});
+     }catch(err){console.log('SCREENSHOT_SKIPPED '+name+' '+String(err.message||err).slice(0,100));}
+    }
     assert.deepEqual(errors,[],'Page script errors '+name+' '+width);
     console.log('SOVEREIGN_ATELIER_BROWSER_OK '+name+' '+width+'px, mesh='+state.meshCount+' materials='+state.materialCount+' clips='+state.clipCount);
     await page.close();
