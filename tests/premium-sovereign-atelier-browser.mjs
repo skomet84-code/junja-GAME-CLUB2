@@ -31,38 +31,25 @@ try{
     assert(state.meshCount>80,'Expected detailed Khronos model mesh hierarchy');
     assert(state.materialCount>20,'Expected advanced PBR variants');
     assert.equal(state.clipCount,0,'Source has actual door pivots, not pre-exported animation clips');
-    assert.equal(state.hingeCount,3,'Two real door pivots and one bonnet pivot must be located');
+    assert.equal(state.hingeCount,0,'Exterior preview must not activate unused interior mechanics');
+    assert.equal(state.doorsOpen,false);
+    assert.equal(state.hoodOpen,false);
+    assert(await page.locator('#atelierDoor').isHidden(),'Hide unnecessary door interaction');
+    assert(await page.locator('#atelierHood').isHidden(),'Hide unnecessary hood interaction');
     assert(state.modelSize?.length>state.modelSize?.height*2,'Z-up car must be leveled on Y-up showroom stage');
     assert(state.modelSize?.height<2,'Car must not be displayed standing on its nose');
-    assert.equal(await page.locator('#atelierDoor').isEnabled(),true);
-    assert.equal(await page.locator('#atelierHood').isEnabled(),true);
-    assert((await page.locator('#atelierInfo').innerText()).includes('GLB 모델 로딩 완료'));
-    await page.locator('[data-at-view="front"]').click();
-    assert.equal((await page.evaluate(()=>window.JunjaSovereignAtelier.snapshot())).view,'front');
-    await page.locator('[data-at-view="detail"]').click();
-    assert.equal((await page.evaluate(()=>window.JunjaSovereignAtelier.snapshot())).view,'detail');
+    assert((await page.locator('#atelierInfo').innerText()).includes('GLB 외관 로딩 완료'));
+    for(const mode of ['front','side','rear','wheel','hero']){
+     await page.locator('[data-at-view="'+mode+'"]').click();
+     assert.equal((await page.evaluate(()=>window.JunjaSovereignAtelier.snapshot())).view,mode);
+     assert.equal(await page.locator('[data-at-view="'+mode+'"]').getAttribute('aria-pressed'),'true');
+    }
     await page.locator('#atelierPaint').selectOption('gold');
     assert.equal((await page.evaluate(()=>window.JunjaSovereignAtelier.snapshot())).paint,'gold');
-    await page.locator('#atelierDoor').click();
-    assert.equal((await page.evaluate(()=>window.JunjaSovereignAtelier.snapshot())).doorsOpen,true);
-    // Keep the 3D stage visible while checking rendering/mesh motion; offscreen rendering is intentionally paused.
-    await page.evaluate(()=>document.getElementById('atelierStage').scrollIntoView({block:'center',behavior:'instant'}));
-    await page.waitForFunction(()=>window.JunjaSovereignAtelier.snapshot().doorAngle>.2,null,{timeout:12000});
-    assert.equal(await page.locator('#atelierDoor').getAttribute('aria-pressed'),'true');
-    if(width===390){
-     try{
-      await page.evaluate(()=>document.getElementById('atelierStage').scrollIntoView({block:'center',behavior:'instant'}));
-      await page.screenshot({path:'/tmp/junja-atelier-doors-'+name+'.png',animations:'disabled',timeout:9000});
-     }catch(err){console.log('DOOR_SCREENSHOT_SKIPPED '+name+' '+String(err.message||err).slice(0,90));}
-    }
-    await page.locator('#atelierHood').click();
-    assert.equal((await page.evaluate(()=>window.JunjaSovereignAtelier.snapshot())).hoodOpen,true);
-    await page.evaluate(()=>document.getElementById('atelierStage').scrollIntoView({block:'center',behavior:'instant'}));
-    await page.waitForFunction(()=>window.JunjaSovereignAtelier.snapshot().hoodAngle>.10,null,{timeout:12000});
-    await page.locator('#atelierDoor').click();
-    await page.locator('#atelierHood').click();
-    assert.equal((await page.evaluate(()=>window.JunjaSovereignAtelier.snapshot())).doorsOpen,false);
-    assert.equal((await page.evaluate(()=>window.JunjaSovereignAtelier.snapshot())).hoodOpen,false);
+    await page.locator('#atelierLight').click();
+    assert.equal((await page.evaluate(()=>window.JunjaSovereignAtelier.snapshot())).light,'night');
+    await page.locator('#atelierLight').click();
+    assert.equal((await page.evaluate(()=>window.JunjaSovereignAtelier.snapshot())).light,'studio');
     await page.locator('#atelierReset').click();
     assert.equal((await page.evaluate(()=>window.JunjaSovereignAtelier.snapshot())).view,'hero');
     const layout=await page.evaluate(()=>({width:innerWidth,scroll:document.documentElement.scrollWidth}));

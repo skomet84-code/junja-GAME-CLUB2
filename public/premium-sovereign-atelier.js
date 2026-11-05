@@ -13,7 +13,7 @@ const info=$('atelierInfo'),fallback=$('atelierFallback'),error=$('atelierError'
 const paint=$('atelierPaint'),door=$('atelierDoor'),hood=$('atelierHood'),light=$('atelierLight'),reset=$('atelierReset');
 const stage=$('atelierStage');
 const quick=[...document.querySelectorAll('[data-at-view]')];
-const viewNames={hero:'외관 3/4',front:'정면',side:'측면',rear:'후면',detail:'실내·디테일'};
+const viewNames={hero:'외관 3/4',front:'정면',side:'측면',rear:'후면',wheel:'전륜 디테일'};
 const colors={silver:0x9ba4ad,onyx:0x131a25,gold:0xb98b58,blue:0x144d96};
 const state={ready:false,failed:false,renderCount:0,meshCount:0,materialCount:0,clipCount:0,
  paint:'silver',view:'hero',light:'studio',doorsOpen:false,hoodOpen:false,
@@ -41,7 +41,7 @@ try {
  renderer.setPixelRatio(Math.min(1.5,Math.max(1,window.devicePixelRatio||1)));
  renderer.outputColorSpace=THREE.SRGBColorSpace;
  renderer.toneMapping=THREE.ACESFilmicToneMapping;
- renderer.toneMappingExposure=1.16;
+ renderer.toneMappingExposure=1.02;
  renderer.shadowMap.enabled=true;
  renderer.shadowMap.type=THREE.PCFSoftShadowMap;
  scene=new THREE.Scene();
@@ -56,27 +56,29 @@ try {
  environmentTexture=pmrem.fromScene(new RoomEnvironment(),.05).texture;
  scene.environment=environmentTexture;
  pmrem.dispose();
- scene.add(new THREE.HemisphereLight(0xaebad7,0x19151e,1.55));
+ scene.add(new THREE.HemisphereLight(0xb4c6dc,0x151821,1.05));
  studioGroup=new THREE.Group();
- const key=new THREE.DirectionalLight(0xffebcc,4.6);
+ const key=new THREE.DirectionalLight(0xffebda,3.5);
  key.position.set(-4,9,7);key.castShadow=true;key.shadow.mapSize.set(1024,1024);
  key.shadow.camera.left=-8;key.shadow.camera.right=8;
  key.shadow.camera.top=8;key.shadow.camera.bottom=-8;
  key.shadow.normalBias=.018;studioGroup.add(key);
- const cool=new THREE.DirectionalLight(0xa1c0ff,2.6);cool.position.set(6,4,-5);studioGroup.add(cool);
- const rim=new THREE.DirectionalLight(0xffd1a0,1.7);rim.position.set(-5,3,-6);studioGroup.add(rim);
+ const cool=new THREE.DirectionalLight(0xaccaff,2.0);cool.position.set(6,4,-5);studioGroup.add(cool);
+ const rim=new THREE.DirectionalLight(0xffd1a0,1.25);rim.position.set(-5,3,-6);studioGroup.add(rim);
  scene.add(studioGroup);
  nightGroup=new THREE.Group();
  const midnight=new THREE.DirectionalLight(0x6c88e3,1.35);midnight.position.set(2,4,5);
  const tail=new THREE.PointLight(0xff7d48,34,15,2);tail.position.set(-3,2,-3);
  nightGroup.add(midnight,tail);nightGroup.visible=false;scene.add(nightGroup);
  const plinth=new THREE.Group();
- const stone=new THREE.Mesh(new THREE.CylinderGeometry(3.33,3.39,.16,96),
-  new THREE.MeshPhysicalMaterial({color:0x07080d,roughness:.50,metalness:.38,clearcoat:.55,envMapIntensity:.15}));
- stone.position.y=-.10;stone.receiveShadow=true;plinth.add(stone);
- const trim=new THREE.Mesh(new THREE.TorusGeometry(3.32,.019,8,120),
-  new THREE.MeshStandardMaterial({color:0xb59863,roughness:.24,metalness:.93}));
- trim.rotation.x=Math.PI/2;trim.position.y=-.012;plinth.add(trim);
+ // The old brightly reflecting circular disk dominated the car on phones.
+ // Keep a thin, unlit graphite plinth so attention stays on the silhouette.
+ const stone=new THREE.Mesh(new THREE.CylinderGeometry(3.01,3.05,.075,96),
+  new THREE.MeshBasicMaterial({color:0x101218}));
+ stone.position.y=-.13;stone.receiveShadow=true;plinth.add(stone);
+ const trim=new THREE.Mesh(new THREE.TorusGeometry(3.02,.009,8,120),
+  new THREE.MeshBasicMaterial({color:0x776140}));
+ trim.rotation.x=Math.PI/2;trim.position.y=-.09;plinth.add(trim);
  const floor=new THREE.Mesh(new THREE.CircleGeometry(50,96),
   new THREE.MeshBasicMaterial({color:0x080a10}));
  floor.rotation.x=-Math.PI/2;floor.position.y=-.22;floor.receiveShadow=true;
@@ -120,11 +122,12 @@ function setView(view){
  if(!state.ready||!viewNames[view])return;
  state.view=view;
  const radius=6.6,coords={
-  hero:[5.2,2.7,5.4],front:[0,1.9,radius],side:[9.25,2.10,0],
-  rear:[0,1.9,-radius],detail:[2.0,1.55,1.4]
+  hero:[5.2,2.15,5.65],front:[0,1.60,radius],side:[8.05,1.68,0],
+  rear:[0,1.65,-radius],wheel:[3.05,1.12,2.35]
  };
  camera.position.set(...coords[view]);
- orbit.target.set(0,view==='detail'?1.05:.75,0);
+ // Only the wheel preset inspects a local exterior component. No cockpit camera.
+ orbit.target.set(...(view==='wheel'?[1.00,.52,1.35]:[0,.77,0]));
  orbit.update();
  for(const b of quick)b.setAttribute('aria-pressed',String(b.dataset.atView===view));
  banner(viewNames[view]+' 실시간 3D 관찰 시점');
@@ -243,14 +246,16 @@ async function load(){
   mixer=clips.length?new THREE.AnimationMixer(car):null;
   state.ready=true;
   loading.hidden=true;fallback.hidden=true;disabled(false);
-  // All moving parts are real imported hierarchy objects; no fake geometry.
-  setupMechanics();
+  // Exterior-first showroom: original hinge/bonnet prototypes are kept for
+  // separate QA but are not presented as member-facing product features.
+  // Keep the moving parts closed and out of the luxury exterior presentation.
+  door.disabled=true;hood.disabled=true;
   // Respect saved draft color only in old studio; new asset is explicitly free.
   setPaint('silver');
   setView('hero');
   paint.disabled=!paintMaterials.length;
   status.textContent='3D 모델 로딩 완료';
-  banner('고품질 GLB 모델 로딩 완료 · 실제 도어/보닛 피벗 '+state.hingeCount+'개 확인');
+  banner('고품질 GLB 외관 로딩 완료 · 차체 페인트·전면·측면·후면·휠 감상 가능');
  }catch(e){fail(e);}
 }
 for(const button of quick)button.addEventListener('click',()=>setView(button.dataset.atView));
