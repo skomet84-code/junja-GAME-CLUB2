@@ -20,7 +20,10 @@ for(const m of models){
  assert(m.gloss>=0&&m.gloss<=1&&m.metal>=0&&m.metal<=1);
  triangles+=m.verts.length/18;paint+=Number(m.paint);doors+=Number(['leftDoor','rightDoor'].includes(m.group));lights+=Number(m.group==='headlamp');
 }
-assert(triangles>1000,'Actual 3D car should have substantial polygon geometry');
+assert(triangles>9000,'Sovereign refinement must include actual curved geometry, not CSS detail');
+for(const part of ['real-steering-wheel','steering-gold-filigree','center-console','front-wide-intake','rim-polished-edge','brake-rotor','seat-upholstery','display-gold-halo','sovereign-front-emblem']){
+ assert(models.some(m=>m.name.startsWith(part)),'Missing sculpted premium 3D detail '+part);
+}
 assert(doors>=2,'At least two real separate moving door components');
 assert(lights>=2,'At least two light materials');
 assert(paint>=3,'Paint must affect multiple car geometry components');
