@@ -85,8 +85,15 @@
    const width=Math.max(1,Math.floor(rect.width*dpr)),height=Math.max(1,Math.floor(rect.height*dpr));
    if(canvas.width!==width||canvas.height!==height){canvas.width=width;canvas.height=height;gl.viewport(0,0,width,height);state.pixels=width*height;}
    const {rotation,pitch,zoom}=current;
-   const eye=[Math.sin(rotation)*Math.cos(pitch)*zoom,.85+Math.sin(pitch)*zoom,Math.cos(rotation)*Math.cos(pitch)*zoom];
-   const camera=multiply(perspective(Math.PI/4,width/height,.12,100),lookAt(eye,[0,.56,0],[0,1,0]));
+   // Inspect the original 3D geometry from genuine cockpit and wheel cameras;
+   // these are not a photo overlay or a claim of premium item ownership.
+   const detailScale=clamp(zoom/9.1,.65,1.55);
+   const cockpit=state.view==='cockpit',wheel=state.view==='wheel';
+   const focus=cockpit?[-.39,1.26,1.80]:wheel?[1.30,.53,1.43]:[0,.56,0];
+   const eye=cockpit?[-.40,1.51,1.80-2.03*detailScale]:
+    wheel?[1.30+1.75*detailScale,.53+.55*detailScale,1.43+1.32*detailScale]:
+    [Math.sin(rotation)*Math.cos(pitch)*zoom,.85+Math.sin(pitch)*zoom,Math.cos(rotation)*Math.cos(pitch)*zoom];
+   const camera=multiply(perspective(cockpit?Math.PI/2.8:Math.PI/4,width/height,.055,100),lookAt(eye,focus,[0,1,0]));
    gl.clearColor(.019,.020,.030,1);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
    gl.useProgram(program);gl.uniformMatrix4fv(loc.camera,false,new Float32Array(camera));gl.uniform3fv(loc.eye,new Float32Array(eye));
    for(const m of meshes){
@@ -123,16 +130,50 @@
    setInfo('저장된 디자인 시안의 차체·카메라·조명·도어 설정을 적용했습니다. 실제 소유권과는 무관합니다.');
    render();return true;
   };
-  let dragging=false,lastX=0,lastY=0;
-  canvas.addEventListener('pointerdown',e=>{dragging=true;lastX=e.clientX;lastY=e.clientY;canvas.setPointerCapture?.(e.pointerId);});
-  canvas.addEventListener('pointermove',e=>{if(!dragging)return;const dx=e.clientX-lastX,dy=e.clientY-lastY;lastX=e.clientX;lastY=e.clientY;cameraTarget(target.rotation-dx*.009,target.pitch+dy*.008,target.zoom);});
-  canvas.addEventListener('pointerup',()=>dragging=false);canvas.addEventListener('pointercancel',()=>dragging=false);
+  // Two-finger pinch zoom on phones; a single finger or mouse orbits the car.
+  // Do not rely on document-level listeners that can trap scrolling elsewhere.
+  const pointers=new Map();
+  canvas.addEventListener('pointerdown',e=>{
+   pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
+   try{canvas.setPointerCapture?.(e.pointerId)}catch{}
+  });
+  canvas.addEventListener('pointermove',e=>{
+   const previous=pointers.get(e.pointerId);if(!previous)return;
+   const point={x:e.clientX,y:e.clientY};
+   if(pointers.size===2){
+    const other=[...pointers.entries()].find(([id])=>id!==e.pointerId)?.[1];
+    if(other){
+     const before=Math.hypot(previous.x-other.x,previous.y-other.y);
+     const after=Math.hypot(point.x-other.x,point.y-other.y);
+     if(before>4&&after>4)cameraTarget(target.rotation,target.pitch,target.zoom*before/after);
+    }
+   }else if(pointers.size===1){
+    if(state.view==='cockpit'||state.view==='wheel'){
+     // Moving the camera returns to free exterior orbit, preserving the draft.
+     state.view='custom';controls.view.textContent='시점 · 자유 회전';
+    }
+    cameraTarget(target.rotation-(point.x-previous.x)*.009,target.pitch+(point.y-previous.y)*.008,target.zoom);
+   }
+   pointers.set(e.pointerId,point);
+  });
+  const endPointer=e=>{pointers.delete(e.pointerId);try{canvas.releasePointerCapture?.(e.pointerId)}catch{}};
+  canvas.addEventListener('pointerup',endPointer);
+  canvas.addEventListener('pointercancel',endPointer);
+  canvas.addEventListener('lostpointercapture',endPointer);
   canvas.addEventListener('wheel',e=>{e.preventDefault();cameraTarget(target.rotation,target.pitch,target.zoom+(e.deltaY>0?.5:-.5));},{passive:false});
   canvas.addEventListener('keydown',e=>{const keys={ArrowLeft:[-.14,0,0],ArrowRight:[.14,0,0],ArrowUp:[0,.12,0],ArrowDown:[0,-.12,0],'+':[0,0,-.5],'-':[0,0,.5]};if(!keys[e.key])return;e.preventDefault();const [x,y,z]=keys[e.key];cameraTarget(target.rotation+x,target.pitch+y,target.zoom+z);});
   controls.door.addEventListener('click',()=>{state.doorsOpen=!state.doorsOpen;target.door=state.doorsOpen?.98:0;controls.door.setAttribute('aria-pressed',String(state.doorsOpen));controls.door.textContent=state.doorsOpen?'도어 닫기':'도어 열기';setInfo(state.doorsOpen?'실제 3D 도어가 힌지를 중심으로 열렸습니다.':'도어가 닫혔습니다.');render();});
   controls.light.addEventListener('click',()=>{state.lightsOn=!state.lightsOn;controls.light.setAttribute('aria-pressed',String(state.lightsOn));controls.light.textContent=state.lightsOn?'전조등 끄기':'전조등 켜기';setInfo(state.lightsOn?'전조등 발광 재질을 켰습니다.':'전조등을 껐습니다.');render();});
   controls.color.addEventListener('change',()=>{state.color=controls.color.value;setInfo('차체 색상: '+controls.color.selectedOptions[0].text);render();});
-  controls.view.addEventListener('click',()=>{const opts=[[-.44,.22,9.1],[Math.PI/2,.20,10.6],[0,.05,7.8],[Math.PI,.32,9.6]];const views=['threeQuarter','side','front','rear'],k=(views.indexOf(state.view)+1)%views.length;state.view=views[k];cameraTarget(...opts[k]);controls.view.textContent='시점 · '+['사선','측면','정면','후면'][k];});
+  controls.view.addEventListener('click',()=>{
+   const opts=[[-.44,.22,9.1],[Math.PI/2,.20,10.6],[0,.05,7.8],[Math.PI,.32,9.6],[-.44,.22,9.1],[-.44,.22,9.1]];
+   const views=['threeQuarter','side','front','rear','cockpit','wheel'];
+   const labels=['사선','측면','정면','후면','운전석 실내','휠 디테일'];
+   const k=(views.indexOf(state.view)+1)%views.length;
+   state.view=views[k];cameraTarget(...opts[k]);
+   controls.view.textContent='시점 · '+labels[k];
+   if(k>=4)setInfo(labels[k]+' · 실제 3D 구조의 확대 관찰 시점입니다. 드래그하면 외관 자유 회전으로 돌아갑니다.');
+  });
   controls.plus.addEventListener('click',()=>cameraTarget(target.rotation,target.pitch,target.zoom-.7));
   controls.minus.addEventListener('click',()=>cameraTarget(target.rotation,target.pitch,target.zoom+.7));
   controls.reset.addEventListener('click',()=>{cameraTarget(-.44,.22,9.1);state.view='threeQuarter';state.doorsOpen=false;target.door=0;state.lightsOn=false;state.color='platinum';controls.color.value='platinum';controls.light.setAttribute('aria-pressed','false');controls.light.textContent='전조등 켜기';controls.door.setAttribute('aria-pressed','false');controls.door.textContent='도어 열기';controls.view.textContent='시점 · 사선';setInfo('시점과 외형을 기본 상태로 복구했습니다.');render();});

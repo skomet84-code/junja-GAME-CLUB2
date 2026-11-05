@@ -37,6 +37,8 @@ assert(style.includes('prefers-reduced-motion'),'Reduced-motion control required
 assert(viewer.includes("canvas.getContext('webgl'"),'Real 3D graphics context required');
 assert(viewer.includes('gl.drawArrays(gl.TRIANGLES'),'Triangles must be submitted to GPU');
 assert(viewer.includes('pointermove'),'Interactive orbit movement required');
+assert(viewer.includes('pointers.size===2'),'Two-finger mobile zoom required');
+assert(viewer.includes("state.view==='cockpit'")&&viewer.includes("state.view==='wheel'"),'True camera inspection modes required');
 assert(viewer.includes('target.door='),'Real door geometry transform required');
 assert(viewer.includes('uGlow'),'Headlight emissive shader required');
 assert(viewer.includes("Object.defineProperty(window,'JunjaSovereignLab'"),'Readonly test/debug API required');

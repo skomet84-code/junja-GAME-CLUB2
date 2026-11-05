@@ -45,6 +45,10 @@ try{
      assert.equal(await page.evaluate(()=>window.JunjaSovereignLab.snapshot().color),'champagne');
      await page.locator('#sovView').click();
      assert.equal(await page.evaluate(()=>window.JunjaSovereignLab.snapshot().view),'side');
+     for(const expected of ['front','rear','cockpit','wheel','threeQuarter']){
+      await page.locator('#sovView').click();
+      assert.equal(await page.evaluate(()=>window.JunjaSovereignLab.snapshot().view),expected,'3D camera must support '+expected);
+     }
      const zoom=await page.evaluate(()=>window.JunjaSovereignLab.snapshot().zoom);
      await page.locator('#sovZoomIn').click();
      assert((await page.evaluate(()=>window.JunjaSovereignLab.snapshot().zoom))<zoom);
