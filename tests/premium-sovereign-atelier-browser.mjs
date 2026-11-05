@@ -75,6 +75,18 @@ try{
     console.log('SOVEREIGN_ATELIER_BROWSER_OK '+name+' '+width+'px, mesh='+state.meshCount+' materials='+state.materialCount+' clips='+state.clipCount+' physical hinges='+state.hingeCount);
     await page.close();
    }
+   // Regression for the user's real failure: an imported module never loads.
+   // The classic watchdog must still show retry without relying on module JS.
+   if(name==='chromium'){
+    const broken=await browser.newPage({viewport:{width:390,height:840}});
+    await broken.route('**/vendor/three/build/three.module.js',route=>route.abort('failed'));
+    await broken.goto(base+'/premium-sovereign-atelier.html',{waitUntil:'domcontentloaded'});
+    await broken.locator('#atelierFallback:not([hidden])').waitFor({timeout:26000});
+    assert(await broken.locator('#atelierRetry').isVisible(),'Infinite spinner must recover to a visible retry button');
+    assert((await broken.locator('#atelierError').innerText()).length>10,'Recovery must explain the missing 3D engine');
+    console.log('SOVEREIGN_CSP_RECOVERY_OK: missing runtime yields a usable iPhone retry');
+    await broken.close();
+   }
   }finally{await browser.close();}
  }
 }finally{await new Promise(ok=>server.close(ok));}
