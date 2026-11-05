@@ -58,8 +58,14 @@ async function act(path,body={}){
  state.busy=true;state.actionEpoch++;message('');
  root.querySelectorAll('button[data-action]').forEach(b=>b.disabled=true);
  try{
-  const data=await api(path,body);accept(data);
-  if(!data.room)await homeRefresh();
+  const data=await api(path,body);
+  if(!data.room){
+   // Leaving a room must clear the busy flag BEFORE rendering the new home UI.
+   // Otherwise an immediate click on the AI challenge is silently discarded
+   // while the previous leave request is finishing (seen on WebKit mobile).
+   state.room=null;state.busy=false;
+   await homeRefresh();
+  }else accept(data);
  }catch(e){
    try{if(state.room){const latest=await api('/'+state.room.id);if(latest.room)accept(latest);}}catch{}
    render();message(e.message||'요청에 실패했습니다.');
