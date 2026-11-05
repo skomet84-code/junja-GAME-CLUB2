@@ -40,6 +40,7 @@ try{
     assert(state.materialCount>20,'Expected advanced PBR variants');
     assert(state.paintSurfaceCount>=5,'Actual imported metallic paint must have separately identified panels');
     assert(state.wheelSurfaceCount>=4,'All actual imported wheel rims must expose metallic finish surfaces');
+    assert(state.headlightSurfaceCount>=1,'Actual headlamp lens material must receive physically controlled LED finish');
     assert.equal(state.clipCount,0,'Source has actual door pivots, not pre-exported animation clips');
     assert.equal(state.hingeCount,0,'Exterior preview must not activate unused interior mechanics');
     assert.equal(state.doorsOpen,false);
