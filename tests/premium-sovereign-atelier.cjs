@@ -32,6 +32,7 @@ for(const mode of ['hero','front','frontDetail','side','rear','wheel'])assert(pa
 assert(script.includes('frontGrilleMaterials.push(copy)')&&script.includes('caliperMaterials.push(copy)'),'Source-geometry grille and brakes must receive independent exterior finishes');
 assert(script.includes('BodyHoodTopgrill')&&script.includes('BrakePad'),'Never invent a front grille or brake mesh in the renderer');
 assert(script.includes('state.frontGrilleCount=frontGrilleMaterials.length')&&script.includes('state.brakeCaliperCount=caliperMaterials.length'),'Real material application must be observable in browser QA');
+assert(script.includes("getObjectByName('WheelFrontLRim')")&&script.includes('new THREE.Box3().setFromObject(sourceRim)'),'Wheel camera must dynamically lock to real imported rim geometry');
 for(const id of ['atelierCanvas','atelierLoading','atelierFallback','atelierPaint','atelierDoor','atelierHood','atelierLight','atelierReset'])assert(page.includes('id="'+id+'"'));
 assert(script.includes("new GLTFLoader().loadAsync('/art/royal/models/carconcept-ccby.glb'"),'Must load real local GLB');
 assert(script.includes('new THREE.WebGLRenderer')&&script.includes('RoomEnvironment'),'Real WebGL physical lighting required');
