@@ -21,7 +21,7 @@ const wheelPalettes={
  champagne:{accent:0xc49b62,base:0x30261b,roughness:.25}
 };
 const state={ready:false,failed:false,renderCount:0,meshCount:0,materialCount:0,clipCount:0,
- paint:'silver',wheelFinish:'graphite',paintSurfaceCount:0,wheelSurfaceCount:0,headlightSurfaceCount:0,view:'hero',light:'studio',doorsOpen:false,hoodOpen:false,
+ paint:'silver',wheelFinish:'graphite',paintSurfaceCount:0,wheelSurfaceCount:0,headlightSurfaceCount:0,cameraDistance:null,view:'hero',light:'studio',doorsOpen:false,hoodOpen:false,
  doorAngle:0,hoodAngle:0,hingeCount:0,modelSize:null,lastError:null,glb:true,owned:false,paid:false};
 const banner=message=>{info.textContent=message;};
 const disabled=flag=>{for(const el of [...quick,door,hood,paint,wheelFinish,light,reset])el.disabled=flag;};
@@ -87,10 +87,10 @@ try {
  const trim=new THREE.Mesh(new THREE.TorusGeometry(3.02,.009,8,120),
   new THREE.MeshBasicMaterial({color:0x776140}));
  trim.rotation.x=Math.PI/2;trim.position.y=-.09;plinth.add(trim);
- const floor=new THREE.Mesh(new THREE.CircleGeometry(50,96),
-  new THREE.MeshBasicMaterial({color:0x080a10}));
- floor.rotation.x=-Math.PI/2;floor.position.y=-.22;floor.receiveShadow=true;
- scene.add(floor,plinth);
+ // A huge black floor disc created a hard horizontal horizon across mobile.
+ // The CSS studio gradient is a seamless background; only a thin plinth
+ // remains in WebGL so the exterior has no artificial black cut-off band.
+ scene.add(plinth);
  carRoot=new THREE.Group();scene.add(carRoot);
  clock=new THREE.Clock();
  const onResize=()=>{
@@ -137,6 +137,7 @@ function setView(view){
  // Only the wheel preset inspects a local exterior component. No cockpit camera.
  orbit.target.set(...(view==='wheel'?[1.00,.52,1.35]:[0,.77,0]));
  orbit.update();
+ state.cameraDistance=+camera.position.distanceTo(orbit.target).toFixed(2);
  for(const b of quick)b.setAttribute('aria-pressed',String(b.dataset.atView===view));
  banner(viewNames[view]+' 실시간 3D 관찰 시점');
 }
@@ -319,7 +320,10 @@ async function load(){
   banner('고품질 GLB 외관 로딩 완료 · 차체 도장 '+paintMaterials.length+'면 · 휠 림 '+wheelMaterials.length+'면 · 외관 360도');
  }catch(e){fail(e);}
 }
-for(const button of quick)button.addEventListener('click',()=>setView(button.dataset.atView));
+for(const button of quick)button.addEventListener('click',()=>{
+ setView(button.dataset.atView);
+ if(button.dataset.atView==='wheel')stage.scrollIntoView({block:'center',behavior:'smooth'});
+});
 paint.addEventListener('change',()=>setPaint(paint.value));
 wheelFinish.addEventListener('change',()=>setWheelFinish(wheelFinish.value));
 door.addEventListener('click',toggleDoor);
