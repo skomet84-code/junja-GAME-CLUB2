@@ -57,6 +57,12 @@ try{
      assert.equal((await page.evaluate(()=>window.JunjaSovereignAtelier.snapshot())).view,mode);
      assert.equal(await page.locator('[data-at-view="'+mode+'"]').getAttribute('aria-pressed'),'true');
     }
+    await page.locator('[data-at-view="frontDetail"]').click();
+    assert((await page.evaluate(()=>window.JunjaSovereignAtelier.snapshot())).cameraDistance<3.0,'Front fascia needs a true exterior close-up');
+    if(width===390){
+     try{await page.screenshot({path:'/tmp/junja-atelier-front-'+name+'.png',animations:'disabled',timeout:10000});}
+     catch(err){console.log('FRONT_SCREENSHOT_SKIPPED '+name+' '+String(err.message||err).slice(0,100));}
+    }
     await page.locator('#atelierPaint').selectOption('gold');
     assert.equal((await page.evaluate(()=>window.JunjaSovereignAtelier.snapshot())).paint,'gold');
     await page.locator('#atelierPaint').selectOption('burgundy');
