@@ -38,6 +38,8 @@ assert(script.includes('wheelMaterials.push')&&script.includes('Wheel(?:Front|Re
 assert(script.includes('paintMaterials.push({material:copy,secondary:'),'Genuine two-tone body panel differentiation required');
 assert(script.includes("secondary ? .31 : .22")&&script.includes('clearcoatRoughness=.12'),'Clearcoat paint surface should retain physical highlights');
 assert(script.includes('wheelFinish.disabled=!wheelMaterials.length'),'Disable unavailable wheel finish controls, never mislead');
+assert(script.includes('m.emissive.setRGB(.008,.009,.010)'),'Original white-emitting rim materials must not overpower actual forged finishes');
+assert(script.includes("if(mat.name==='Headlight')")&&script.includes('headlightMaterials.push(copy)'),'Original headlamp glow must be preserved but restrained on real GLB surfaces');
 assert(script.includes('state.wheelSurfaceCount=wheelMaterials.length'),'Wheel surface count must be exposed to browser QA');
 assert(script.includes('object.parent?.name')&&script.includes('rimSource&&/^Rim[12]$/i.test(mat.name||\'\')'),'Rim-only PBR changes must recognize glTF grouped primitives, not tires');
 
