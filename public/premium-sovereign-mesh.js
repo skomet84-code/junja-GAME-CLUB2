@@ -1,192 +1,261 @@
 'use strict';
-/* Original procedural proof-of-concept meshes. These are genuine 3D triangles,
-   not a still photo or CSS-rotated image. High-detail PBR production GLB TBD. */
-(()=> {
+/* SOVEREIGN GT · Original curved 3D concept geometry v2.
+ * A complete sculptural silhouette replacement, not an image/CSS rotation.
+ * Native self-contained WebGL meshes. Commercial-quality GLB/PBR asset still pending.
+ */
+(()=>{
  const TAU=Math.PI*2;
- function make(name,opts={}){return {name,verts:[],color:opts.color||'#999999',gloss:opts.gloss??0.5,metal:opts.metal??0.1,group:opts.group||'static',paint:!!opts.paint,light:!!opts.light};}
- function tri(m,a,b,c){
-  const u=[b[0]-a[0],b[1]-a[1],b[2]-a[2]],v=[c[0]-a[0],c[1]-a[1],c[2]-a[2]];
-  let n=[u[1]*v[2]-u[2]*v[1],u[2]*v[0]-u[0]*v[2],u[0]*v[1]-u[1]*v[0]];
-  const l=Math.hypot(...n)||1;n=n.map(x=>x/l);
+ const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+ const mix=(a,b,t)=>a+(b-a)*t;
+ const make=(name,o={})=>({
+  name,verts:[],color:o.color||'#647080',gloss:o.gloss??.65,metal:o.metal??.25,
+  group:o.group||'static',paint:!!o.paint,light:!!o.light
+ });
+ const sub=(a,b)=>[a[0]-b[0],a[1]-b[1],a[2]-b[2]];
+ const cross=(a,b)=>[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]];
+ const normal=a=>{const d=Math.hypot(...a)||1;return a.map(v=>v/d);};
+ function facet(m,a,b,c){
+  const n=normal(cross(sub(b,a),sub(c,a)));
   for(const p of [a,b,c])m.verts.push(...p,...n);
  }
- function quad(m,a,b,c,d){tri(m,a,b,c);tri(m,a,c,d);}
- function box(name,c,size,opts={}){
-  const m=make(name,opts),[x,y,z]=c,[a,b,d]=size.map(v=>v/2);
-  const p=[[-a,-b,-d],[a,-b,-d],[a,b,-d],[-a,b,-d],[-a,-b,d],[a,-b,d],[a,b,d],[-a,b,d]].map(q=>[q[0]+x,q[1]+y,q[2]+z]);
+ function quad(m,a,b,c,d){facet(m,a,b,c);facet(m,a,c,d);}
+ function box(name,center,size,o={}){
+  const m=make(name,o),[x,y,z]=center,[sx,sy,sz]=size.map(v=>v/2);
+  const p=[[-sx,-sy,-sz],[sx,-sy,-sz],[sx,sy,-sz],[-sx,sy,-sz],[-sx,-sy,sz],[sx,-sy,sz],[sx,sy,sz],[-sx,sy,sz]].map(v=>[v[0]+x,v[1]+y,v[2]+z]);
   for(const [a,b,c,d] of [[0,3,2,1],[4,5,6,7],[0,4,7,3],[1,2,6,5],[3,7,6,2],[0,1,5,4]])quad(m,p[a],p[b],p[c],p[d]);
   return m;
  }
- function cylinder(name,center,radius,height,sides,opts={}){
-  const m=make(name,opts),[x,y,z]=center,top=y+height/2,bottom=y-height/2;
-  for(let i=0;i<sides;i++){
-   const a=i*TAU/sides,b=(i+1)*TAU/sides;
-   const p=(t,h)=>[x+Math.cos(t)*radius,h,z+Math.sin(t)*radius];
-   quad(m,p(a,bottom),p(b,bottom),p(b,top),p(a,top));
-   tri(m,[x,top,z],p(a,top),p(b,top));tri(m,[x,bottom,z],p(b,bottom),p(a,bottom));
+ function cylinder(name,center,r,height,segments,o={}){
+  const m=make(name,o),[x,y,z]=center;
+  for(let i=0;i<segments;i++){
+   const a=i*TAU/segments,b=(i+1)*TAU/segments;
+   const pt=(t,h)=>[x+r*Math.cos(t),y+h,z+r*Math.sin(t)];
+   quad(m,pt(a,-height/2),pt(b,-height/2),pt(b,height/2),pt(a,height/2));
+   facet(m,[x,y+height/2,z],pt(a,height/2),pt(b,height/2));
   }
   return m;
  }
- function wheelPart(name,c,outer,inner,halfWidth,color,opts={}){
-  const m=make(name,{color,gloss:0.30,metal:0.08,...opts}),[x,y,z]=c,steps=24;
-  for(let i=0;i<steps;i++){
-   const a=i*TAU/steps,b=(i+1)*TAU/steps;
-   function p(rad,theta,dx){return [x+dx,y+Math.sin(theta)*rad,z+Math.cos(theta)*rad]}
-   quad(m,p(outer,a,-halfWidth),p(outer,b,-halfWidth),p(outer,b,halfWidth),p(outer,a,halfWidth));
-   quad(m,p(inner,a,halfWidth),p(inner,b,halfWidth),p(outer,b,halfWidth),p(outer,a,halfWidth));
-   quad(m,p(outer,a,-halfWidth),p(outer,b,-halfWidth),p(inner,b,-halfWidth),p(inner,a,-halfWidth));
+ // A surface grid with shared calculated vertex normals, not flat-shaded bricks.
+ function skin(name,rows,o={}){
+  const m=make(name,o),r=rows.length,c=rows[0].length,n=rows.map(row=>row.map(()=>[0,0,0]));
+  for(let i=0;i<r-1;i++)for(let j=0;j<c-1;j++){
+   const a=rows[i][j],b=rows[i+1][j],d=rows[i][j+1],e=rows[i+1][j+1];
+   const f=normal(cross(sub(b,a),sub(d,a)));
+   const g=normal(cross(sub(e,b),sub(d,b)));
+   for(const p of [[i,j],[i+1,j],[i,j+1]])n[p[0]][p[1]]=n[p[0]][p[1]].map((x,k)=>x+f[k]);
+   for(const p of [[i+1,j],[i+1,j+1],[i,j+1]])n[p[0]][p[1]]=n[p[0]][p[1]].map((x,k)=>x+g[k]);
+  }
+  function triangle(pts){
+   for(const [i,j] of pts)m.verts.push(...rows[i][j],...normal(n[i][j]));
+  }
+  for(let i=0;i<r-1;i++)for(let j=0;j<c-1;j++){
+   triangle([[i,j],[i+1,j],[i,j+1]]);
+   triangle([[i+1,j],[i+1,j+1],[i,j+1]]);
   }
   return m;
  }
- function roofLoft(){
-  // Wide fastback and narrower upper greenhouse with front swept windshield.
-  const m=make('cockpit-canopy',{color:'#121e2b',gloss:0.96,metal:0.45});
-  const sec=[
-   {z:-1.42,wide:.82,low:1.04,high:1.06,cap:.73},
-   {z:-.75,wide:.88,low:1.12,high:1.78,cap:.68},
-   {z:.45,wide:.80,low:1.12,high:1.68,cap:.63},
-   {z:1.13,wide:.88,low:1.02,high:1.04,cap:.76}
+ function interpolate(keys,t){
+  const i=Math.min(keys.length-2,Math.floor(t)),u=t-i;
+  const p0=keys[Math.max(0,i-1)],p1=keys[i],p2=keys[i+1],p3=keys[Math.min(keys.length-1,i+2)];
+  return p1.map((v,j)=>{
+   // Cardinal spline, tension 0.5; clamp extreme overshoot for panel stability.
+   const a=0.5*(p2[j]-p0[j]),b=0.5*(p3[j]-p1[j]);
+   return (2*u*u*u-3*u*u+1)*v+(u*u*u-2*u*u+u)*a+(-2*u*u*u+3*u*u)*p2[j]+(u*u*u-u*u)*b;
+  });
+ }
+ function sculptedBody(){
+  // Rear -> front. z / half-width / flank-height / crown-height / lower skirt.
+  // Continuous venturi profile and swept wheel shoulders in place of old boxy body.
+  const station=[
+   [-2.66,.58,.69,.75,.47],[-2.47,.88,.77,.83,.43],
+   [-2.13,1.09,.87,.92,.42],[-1.58,1.16,.95,1.00,.40],
+   [-1.01,1.17,.97,1.07,.42],[-.43,1.12,.96,1.09,.40],
+   [.30,1.11,.95,1.08,.39],[1.05,1.17,.94,1.03,.42],
+   [1.57,1.18,.93,.97,.43],[2.15,1.04,.79,.83,.42],
+   [2.52,.82,.70,.75,.46],[2.77,.50,.64,.65,.51]
   ];
-  for(let k=0;k<sec.length-1;k++){
-   const a=sec[k],b=sec[k+1];
-   for(const sign of [-1,1]){
-    quad(m,[sign*a.wide,a.low,a.z],[sign*b.wide,b.low,b.z],[sign*b.cap,b.high,b.z],[sign*a.cap,a.high,a.z]);
+  const rows=[];
+  for(let j=0;j<=132;j++){
+   const [z,w,s,h,b]=interpolate(station,j/132*(station.length-1));
+   const section=[];
+   for(let k=0;k<=48;k++){
+    const theta=k*TAU/48,cos=Math.cos(theta),sin=Math.sin(theta);
+    // Shoulder crest and smooth convex hood; radius at sill never becomes cuboid.
+    const x=w*cos*(1+0.014*Math.cos(3*theta));
+    const yy=sin>=0?s+(h-s)*Math.pow(sin,.68):s+(s-b)*sin;
+    section.push([x,yy,z]);
    }
-   quad(m,[-a.cap,a.high,a.z],[a.cap,a.high,a.z],[b.cap,b.high,b.z],[-b.cap,b.high,b.z]);
+   rows.push(section);
   }
-  return m;
+  return skin('sculpted-body',rows,{color:'#55616e',gloss:.97,metal:.76,paint:true});
  }
- function chassis(){
-  const m=make('sculpted-body',{color:'#8c8f9f',gloss:.96,metal:.75,paint:true});
-  const sections=[
-   {z:-2.44,w:.70,b:.54,t:.78},{z:-2.08,w:1.01,b:.49,t:1.04},
-   {z:-1.18,w:1.11,b:.46,t:1.14},{z:.35,w:1.12,b:.45,t:1.10},
-   {z:1.24,w:1.04,b:.45,t:.93},{z:2.21,w:.88,b:.44,t:.84},
-   {z:2.56,w:.59,b:.45,t:.71}
+ function roofGlass(){
+  const profile=[
+   [-1.66,.43,1.025,1.055],[-1.35,.67,1.055,1.29],[-1.00,.76,1.07,1.55],
+   [-.55,.78,1.08,1.68],[-.11,.76,1.08,1.66],[.25,.74,1.07,1.52],
+   [.65,.72,1.055,1.25],[1.02,.62,1.035,1.06]
   ];
-  for(let i=0;i<sections.length-1;i++){
-   const a=sections[i],b=sections[i+1];
-   quad(m,[-a.w,a.t,a.z],[a.w,a.t,a.z],[b.w,b.t,b.z],[-b.w,b.t,b.z]);
-   quad(m,[-a.w,a.b,a.z],[-b.w,b.b,b.z],[-b.w,b.t,b.z],[-a.w,a.t,a.z]);
-   quad(m,[a.w,a.b,a.z],[a.w,a.t,a.z],[b.w,b.t,b.z],[b.w,b.b,b.z]);
+  const rows=[];
+  for(let i=0;i<=84;i++){
+   const [z,w,base,top]=interpolate(profile,i/84*(profile.length-1));
+   const row=[];
+   for(let j=0;j<=32;j++){
+    const a=j*Math.PI/32,s=Math.sin(a);
+    row.push([w*Math.cos(a),base+(top-base)*Math.pow(s,.78),z]);
+   }
+   rows.push(row);
+  }
+  return skin('cockpit-canopy',rows,{color:'#111d2c',gloss:.98,metal:.24});
+ }
+ function lineTube(name,points,r,o={},sides=7){
+  // Smooth chrome/gold/LED seams following real spatial curves.
+  const m=make(name,o);
+  for(let j=0;j<points.length-1;j++){
+   const a=points[j],b=points[j+1],v=normal(sub(b,a));
+   const arbitrary=Math.abs(v[1])<.87?[0,1,0]:[1,0,0];
+   const u=normal(cross(v,arbitrary)),w=normal(cross(v,u));
+   const pt=(p,t)=>p.map((n,k)=>n+r*(u[k]*Math.cos(t)+w[k]*Math.sin(t)));
+   for(let i=0;i<sides;i++){
+    const p=i*TAU/sides,q=(i+1)*TAU/sides;
+    quad(m,pt(a,p),pt(b,p),pt(b,q),pt(a,q));
+   }
   }
   return m;
  }
- function wedge(name,p1,p2,p3,p4,height,opts={}){
-  const m=make(name,opts),high=p=>[p[0],p[1]+height,p[2]];
-  quad(m,p1,p2,p3,p4);
-  quad(m,high(p4),high(p3),high(p2),high(p1));
-  for(const [a,b] of [[p1,p2],[p2,p3],[p3,p4],[p4,p1]])quad(m,a,b,high(b),high(a));
-  return m;
- }
- // Curved torus triangles for wheel accents, cockpit steering and ambient
- // showroom sculpture. These are actual 3D meshes, not a photographic layer.
- function ring(name,center,major,minor,opts={},plane='xy'){
-  const m=make(name,opts),[x,y,z]=center,steps=36,tube=10;
-  const p=(u,v)=>{
-   const outer=major+Math.cos(v)*minor;
-   if(plane==='xy')return [x+Math.cos(u)*outer,y+Math.sin(u)*outer,z+Math.sin(v)*minor];
-   if(plane==='yz')return [x+Math.sin(v)*minor,y+Math.cos(u)*outer,z+Math.sin(u)*outer];
-   return [x+Math.cos(u)*outer,y+Math.sin(v)*minor,z+Math.sin(u)*outer];
+ function ring(name,c,r,tube,o={},plane='xy'){
+  const m=make(name,o),[x,y,z]=c,segments=48,tubesteps=10;
+  const pos=(a,b)=>{
+   const rr=r+tube*Math.cos(b);
+   if(plane==='yz')return [x+tube*Math.sin(b),y+rr*Math.sin(a),z+rr*Math.cos(a)];
+   if(plane==='xz')return [x+rr*Math.cos(a),y+tube*Math.sin(b),z+rr*Math.sin(a)];
+   return [x+rr*Math.cos(a),y+rr*Math.sin(a),z+tube*Math.sin(b)];
   };
-  for(let i=0;i<steps;i++)for(let j=0;j<tube;j++){
-   const u=i*TAU/steps,u2=(i+1)*TAU/steps,v=j*TAU/tube,v2=(j+1)*TAU/tube;
-   quad(m,p(u,v),p(u2,v),p(u2,v2),p(u,v2));
+  for(let i=0;i<segments;i++)for(let j=0;j<tubesteps;j++){
+   const a=i*TAU/segments,b=(i+1)*TAU/segments,c=j*TAU/tubesteps,d=(j+1)*TAU/tubesteps;
+   quad(m,pos(a,c),pos(b,c),pos(b,d),pos(a,d));
   }
   return m;
  }
- function create(){
-  const m=[];
-  const add=x=>m.push(x);
-  // Sculptural black marble display stage + two gold inset trim rings.
-  add(cylinder('obsidian-plinth',[0,-.33,0],3.64,.30,48,{color:'#11111a',gloss:.81,metal:.24}));
-  add(cylinder('champagne-gold-trim',[0,-.15,0],3.53,.055,48,{color:'#c9a86f',gloss:.83,metal:.75}));
-  add(cylinder('upper-plinth',[0,-.09,0],3.47,.10,48,{color:'#24232b',gloss:.82,metal:.32}));
-  add(box('ground-shadow',[0,-.014,0],[2.8,.015,5.12],{color:'#0a101a',gloss:.1}));
-  add(chassis());
-  add(roofLoft());
-  add(box('front-splitter',[0,.42,2.45],[1.25,.08,.23],{color:'#060a0f',gloss:.49,metal:.7}));
-  add(box('rear-diffuser',[0,.41,-2.36],[1.38,.08,.25],{color:'#0a0e13',gloss:.44,metal:.76}));
-  add(box('center-stripe',[0,1.108,.32],[.07,.012,.93],{color:'#b69d70',gloss:1,metal:.74}));
-  add(box('nose-badge',[0,.779,2.35],[.23,.017,.18],{color:'#cbb77e',gloss:.84,metal:.74}));
-  add(box('cockpit-dashboard',[0,1.18,.62],[1.25,.08,.38],{color:'#14151c',gloss:.38,metal:.2}));
-
-  // Interior craft: leather console, dashboard display, steering rim,
-  // exposed stitching and instrument components under the greenhouse.
-  add(box('center-console',[0,1.155,-.20],[.23,.17,1.25],{color:'#1e1b1d',gloss:.24,metal:.18}));
-  add(box('console-carbon-inlay',[0,1.25,-.17],[.15,.015,1.02],{color:'#303039',gloss:.72,metal:.66}));
-  add(box('dashboard-instrument-screen',[-.39,1.255,.69],[.46,.055,.19],{color:'#19344c',gloss:.96,metal:.27}));
-  add(box('dashboard-gold-bezel',[-.39,1.29,.69],[.49,.016,.23],{color:'#c1a576',gloss:.77,metal:.88}));
-  add(ring('real-steering-wheel',[-.39,1.43,.45],.24,.038,{color:'#1b1b21',gloss:.68,metal:.32},'xy'));
-  add(ring('steering-gold-filigree',[-.39,1.43,.45],.204,.012,{color:'#caaf75',gloss:.93,metal:.86},'xy'));
-  add(box('steering-hub',[-.39,1.43,.45],[.16,.15,.045],{color:'#c3a36b',gloss:.78,metal:.82}));
-  add(box('windshield-brow',[0,1.80,-.74],[1.35,.045,.055],{color:'#151722',gloss:.8,metal:.6}));
-  add(box('rear-glass-crossbar',[0,1.70,.40],[1.27,.052,.048],{color:'#1b2026',gloss:.81,metal:.63}));
-  // Sculpted nose vents and low, recessed air intakes.
-  add(box('front-wide-intake',[0,.57,2.50],[.86,.19,.085],{color:'#03060b',gloss:.23,metal:.54}));
-  for(const side of [-1,1]){
-   add(box('lower-intake-'+side,[side*.84,.61,2.36],[.32,.18,.085],{color:'#06090e',gloss:.25,metal:.53}));
-   add(box('chin-gold-accents-'+side,[side*.66,.435,2.49],[.44,.022,.08],{color:'#b39465',gloss:.92,metal:.89}));
-   add(box('hood-vent-'+side,[side*.58,1.135,1.48],[.27,.018,.63],{color:'#0a0d13',gloss:.7,metal:.71}));
-   add(box('hood-vent-inset-'+side,[side*.58,1.152,1.52],[.15,.017,.47],{color:'#24252d',gloss:.64,metal:.62}));
-   add(box('front-corner-canard-'+side,[side*.94,.53,2.32],[.22,.037,.48],{color:'#10121b',gloss:.75,metal:.71}));
-   add(box('rear-air-scoop-'+side,[side*.90,.87,-1.19],[.13,.25,.50],{color:'#090c14',gloss:.67,metal:.74}));
-   add(box('cockpit-gold-edge-'+side,[side*.71,1.747,-.64],[.045,.032,.59],{color:'#c0a36f',gloss:.98,metal:.83}));
-   add(box('seat-upholstery-'+side,[side*.44,1.28,-.45],[.40,.18,.61],{color:'#795845',gloss:.23,metal:.05}));
-   add(box('seat-gold-stitch-'+side,[side*.44,1.385,-.33],[.03,.008,.56],{color:'#bf9d6c',gloss:.4,metal:.26}));
-   add(box('headrest-inlay-'+side,[side*.44,1.65,-.67],[.28,.010,.15],{color:'#9a7652',gloss:.30,metal:.11}));
-   add(box('floor-sill-accent-'+side,[side*1.17,.51,-.23],[.026,.024,1.6],{color:'#b69d74',gloss:.91,metal:.84}));
-   // Gold inner wheel discs and ventilated brake faces, physically distinct.
-   for(const z of [-1.47,1.43]){
-    add(ring('rim-polished-edge-'+side+'-'+z,[side*1.317,.50,z],.326,.018,
-     {color:'#e3c995',gloss:.99,metal:.91},'yz'));
-    add(ring('brake-rotor-'+side+'-'+z,[side*1.273,.50,z],.222,.023,
-     {color:'#4c5765',gloss:.64,metal:.79},'yz'));
-    add(box('brake-caliper-'+side+'-'+z,[side*1.307,.67,z+.14],[.022,.15,.09],
-     {color:'#ae6040',gloss:.72,metal:.61}));
-   }
-   add(box('tail-led-line-'+side,[side*.63,.911,-2.38],[.47,.022,.04],{color:'#e64b37',gloss:.92,metal:.33}));
-   add(ring('dual-exhaust-'+side,[side*.47,.455,-2.45],.12,.02,{color:'#c5bdad',gloss:.94,metal:.82},'xy'));
+ function wheelPart(name,c,outer,inner,width,color,o={}){
+  const m=make(name,{color,gloss:.35,metal:.05,...o}),[x,y,z]=c;
+  for(let i=0;i<48;i++){
+   const a=i*TAU/48,b=(i+1)*TAU/48;
+   const p=(r,t,h)=>[x+h,y+r*Math.sin(t),z+r*Math.cos(t)];
+   quad(m,p(outer,a,-width),p(outer,b,-width),p(outer,b,width),p(outer,a,width));
+   quad(m,p(inner,a,width),p(inner,b,width),p(outer,b,width),p(outer,a,width));
+   quad(m,p(outer,a,-width),p(outer,b,-width),p(inner,b,-width),p(inner,a,-width));
   }
-  // Radial-cut engraved display plinth: actual 3D gold geometry.
-  for(let i=0;i<24;i++){
-   const angle=i*TAU/24;
-   const radius=3.27;
-   add(box('dial-index-'+i,[Math.cos(angle)*radius,.002,Math.sin(angle)*radius],
-    [.055,.012,.055],{color:'#b49563',gloss:.82,metal:.85}));
-  }
-  add(ring('display-gold-halo',[0,.015,0],3.37,.024,{color:'#c49e60',gloss:.87,metal:.78},'xz'));
-  add(box('sovereign-front-emblem',[0,.68,2.58],[.34,.025,.055],{color:'#d5b778',gloss:.94,metal:.91}));
-
-  // Individually shaded seats visible through glass canopy.
+  return m;
+ }
+ function spoke(name,side,z,theta,o={}){
+  const m=make(name,o),x=side*1.253,y=.52;
+  // Double-tapered turbine blade, embedded flush against graphite brake rotor.
+  function pt(r,a,dep=0){return [x+dep,y+r*Math.sin(a),z+r*Math.cos(a)]}
+  const a=pt(.089,theta-.10),b=pt(.276,theta-.07),c=pt(.278,theta+.068),d=pt(.096,theta+.19);
+  quad(m,a,b,c,d);quad(m,pt(.096,theta+.19,-.011),pt(.278,theta+.068,-.011),pt(.276,theta-.07,-.011),pt(.089,theta-.10,-.011));
+  return m;
+ }
+ function wedge(name,p1,p2,p3,p4,height,o={}){
+  const m=make(name,o),h=p=>[p[0],p[1]+height,p[2]];
+  quad(m,p1,p2,p3,p4);quad(m,h(p4),h(p3),h(p2),h(p1));
+  for(const [a,b] of [[p1,p2],[p2,p3],[p3,p4],[p4,p1]])quad(m,a,b,h(b),h(a));
+  return m;
+ }
+ function build(){
+  const m=[],add=x=>m.push(x),paint={paint:true,metal:.78,gloss:.97};
+  // Compact black marble exhibit; the vehicle, not the plinth, fills the frame.
+  add(cylinder('obsidian-plinth',[0,-.30,0],3.34,.25,64,{color:'#0b0d15',metal:.28,gloss:.66}));
+  add(cylinder('champagne-gold-trim',[0,-.15,0],3.30,.027,64,{color:'#8c6b3a',metal:.86,gloss:.9}));
+  add(cylinder('upper-plinth',[0,-.115,0],3.28,.070,64,{color:'#1e232b',metal:.40,gloss:.87}));
+  add(sculptedBody());
+  add(roofGlass());
+  add(box('ground-shadow',[0,-.03,0],[2.9,.025,5.08],{color:'#0b1116',gloss:.15}));
+  // Sculpted belt line, curved A-pillars, intake grooves and dorsal crease.
   for(const side of [-1,1]){
-   add(box('bucket-seat-'+side,[side*.44,1.25,-.45],[.53,.44,.72],{color:'#563b2e',gloss:.19}));
-   add(box('headrest-'+side,[side*.44,1.51,-.68],[.46,.30,.24],{color:'#70513f',gloss:.20}));
-   // Door slab geometry is attached to a real turning hinge, not CSS transforms.
+   add(lineTube('belt-line-'+side,[
+    [side*.57,.77,2.63],[side*.97,.89,2.23],[side*1.15,.98,1.49],
+    [side*1.13,.99,.55],[side*1.15,.98,-.50],[side*1.13,.94,-1.54],[side*.85,.78,-2.38]
+   ],.013,{color:'#9e916e',gloss:.93,metal:.90}));
+   add(lineTube('a-pillar-'+side,[
+    [side*.67,1.045,.95],[side*.74,1.27,.65],[side*.74,1.54,.24],[side*.72,1.62,-.13]
+   ],.035,{color:'#11151d',gloss:.86,metal:.60}));
+   add(lineTube('roof-edge-'+side,[
+    [side*.70,1.62,-.15],[side*.74,1.65,-.49],[side*.69,1.51,-.96],[side*.56,1.24,-1.39]
+   ],.027,{color:'#222932',gloss:.90,metal:.65}));
+   add(lineTube('hood-crease-'+side,[
+    [side*.42,1.07,.94],[side*.47,1.04,1.46],[side*.45,.92,1.88],[side*.35,.76,2.46]
+   ],.010,{color:'#a0a9b0',gloss:.92,metal:.8,paint:true}));
+   add(lineTube('side-sill-'+side,[
+    [side*1.155,.45,-1.10],[side*1.16,.44,-.45],[side*1.16,.45,.45],[side*1.14,.44,1.07]
+   ],.028,{color:'#a17d4f',gloss:.91,metal:.86}));
+   // Narrow aggressive boomerang LED lamps (real illuminated geometry).
+   add(lineTube('headlamp-core-'+side,[
+    [side*.43,.78,2.58],[side*.70,.83,2.40],[side*.91,.86,2.14],[side*1.01,.86,1.98]
+   ],.038,{color:'#f3f2e2',gloss:.98,metal:.10,group:'headlamp',light:true}));
+   add(lineTube('headlamp-glass-'+side,[
+    [side*.39,.82,2.57],[side*.66,.86,2.38],[side*.94,.89,2.13]
+   ],.051,{color:'#182c3e',gloss:.95,metal:.38}));
+   // Sculpted black air inlet silhouettes, deeply inset below front LEDs.
+   add(wedge('lower-intake-'+side,
+    [side*.38,.54,2.62],[side*.79,.53,2.45],[side*.92,.70,2.25],[side*.48,.68,2.43],
+    .018,{color:'#03070c',gloss:.21,metal:.38}));
+   add(lineTube('chin-gold-accents-'+side,
+    [ [side*.30,.43,2.72],[side*.63,.41,2.54],[side*.88,.40,2.27] ],
+    .015,{color:'#c1a06e',metal:.93,gloss:.92}));
+   add(wedge('rear-air-scoop-'+side,
+    [side*.95,.73,-.86],[side*1.15,.79,-1.04],[side*1.16,.58,-1.60],[side*1.01,.56,-1.49],
+    .017,{color:'#080d15',metal:.45,gloss:.25}));
+   add(lineTube('rear-intake-blade-'+side,
+    [[side*.94,.78,-.91],[side*1.14,.78,-1.06],[side*1.13,.62,-1.53]],
+    .019,{color:'#876c4a',metal:.9,gloss:.9}));
+   add(lineTube('tail-led-line-'+side,[[side*.42,.83,-2.56],[side*.74,.83,-2.49],[side*.91,.81,-2.37]],
+    .031,{color:'#e54b40',metal:.07,gloss:.92}));
+   // High-contrast visible leather cockpit beneath curved shaded glass.
+   add(box('seat-upholstery-'+side,[side*.40,1.23,-.44],[.39,.30,.60],{color:'#6f4a32',gloss:.30}));
+   add(box('headrest-'+side,[side*.40,1.50,-.70],[.32,.19,.22],{color:'#7d5741',gloss:.25}));
+   add(lineTube('seat-gold-stitch-'+side,[[side*.26,1.43,-.24],[side*.26,1.45,-.52],[side*.34,1.51,-.69]],.008,{color:'#e2b47c',gloss:.56}));
+   // Moving butterfly doors follow the curved shoulder instead of floating rectangles.
    add(wedge('butterfly-door-'+side,
-    [side*.97,.96,.53],[side*1.114,.95,-.82],[side*1.114,1.05,-.82],[side*.97,1.08,.53],
-    .032,{color:'#8c8f9f',gloss:.93,metal:.7,paint:true,group:side===-1?'leftDoor':'rightDoor'}));
-   add(box('side-sill-'+side,[side*1.085,.55,-.13],[.10,.15,1.42],{color:'#12141e',gloss:.63,metal:.5}));
-   add(box('side-mirror-'+side,[side*1.10,1.13,.60],[.25,.13,.33],{color:'#16191f',gloss:.75,metal:.6}));
-   add(box('headlamp-glass-'+side,[side*.59,.87,2.29],[.42,.08,.34],{color:'#9cbed3',gloss:.98,metal:.13,light:true}));
-   add(box('headlamp-core-'+side,[side*.57,.86,2.465],[.30,.038,.055],{color:'#f3eccf',gloss:.91,metal:.21,group:'headlamp'}));
-   add(box('tail-lamp-'+side,[side*.68,.87,-2.25],[.45,.064,.19],{color:'#a13435',gloss:.86,metal:.3}));
+    [side*.976,.97,.54],[side*1.112,.93,-.67],[side*1.095,.75,-.67],[side*1.005,.75,.54],
+    .023,{...paint,group:side<0?'leftDoor':'rightDoor'}));
+   add(lineTube('door-sweep-'+side,
+    [[side*.984,.99,.52],[side*1.114,.99,-.22],[side*1.105,.97,-.65]],
+    .012,{color:'#c2ab7a',metal:.93,gloss:.90,group:side<0?'leftDoor':'rightDoor'}));
+   // Four articulated tires, turbine rims, visible rotors and brake calipers.
    for(const z of [-1.47,1.43]){
-    const c=[side*1.08,.50,z];
-    add(wheelPart('tire-'+side+'-'+z,c,.51,.35,.19,'#0b0d12'));
-    add(wheelPart('gold-rim-'+side+'-'+z,[side*1.29,.50,z],.342,.10,.012,'#b99d69',{gloss:.94,metal:.85}));
-    for(let j=0;j<7;j++){
-     const a=j*TAU/7,z1=z+Math.cos(a)*.22,y1=.50+Math.sin(a)*.22;
-     add(box('spoke-'+side+'-'+z+'-'+j,[side*1.314, (.50+y1)/2,(z+z1)/2],
-      [.036,.045+Math.abs(y1-.50),.045+Math.abs(z1-z)],{color:'#c6b48c',gloss:.81,metal:.7}));
+    const x=side*1.01,face=side*1.251;
+    add(wheelPart('tire-'+side+'-'+z,[x,.52,z],.477,.313,.183,'#111318'));
+    add(ring('tire-sidewall-'+side+'-'+z,[side*1.205,.52,z],.385,.065,{color:'#14191e',gloss:.27,metal:.04},'yz'));
+    add(ring('rim-polished-edge-'+side+'-'+z,[face,.52,z],.307,.019,{color:'#cbb88a',gloss:.99,metal:.90},'yz'));
+    add(ring('gold-rim-'+side+'-'+z,[face,.52,z],.278,.012,{color:'#303840',gloss:.86,metal:.83},'yz'));
+    add(ring('brake-rotor-'+side+'-'+z,[side*1.244,.52,z],.205,.032,{color:'#4d5c69',gloss:.74,metal:.87},'yz'));
+    add(box('brake-caliper-'+side+'-'+z,[side*1.245,.67,z+.14],[.021,.14,.08],{color:'#bb573d',gloss:.81,metal:.54}));
+    for(let i=0;i<10;i++){
+     const theta=i*TAU/10;
+     add(spoke('turbine-spoke-'+side+'-'+z+'-'+i,side,z,theta,{color:'#aeb6b5',metal:.9,gloss:.93}));
     }
-    add(box('hub-'+side+'-'+z,[side*1.332,.50,z],[.040,.13,.13],{color:'#dad6c2',gloss:.86,metal:.74}));
+    add(ring('hub-machined-'+side+'-'+z,[side*1.261,.52,z],.080,.026,{color:'#c9b68d',gloss:.9,metal:.92},'yz'));
+    add(box('hub-'+side+'-'+z,[side*1.267,.52,z],[.025,.13,.13],{color:'#101723',metal:.72,gloss:.84}));
    }
   }
-  add(box('rear-spoiler',[0,1.17,-2.02],[1.72,.065,.28],{color:'#111720',gloss:.81,metal:.62}));
-  add(box('spoiler-left',[-.7,.99,-1.96],[.07,.3,.17],{color:'#101520',metal:.6}));
-  add(box('spoiler-right',[.7,.99,-1.96],[.07,.3,.17],{color:'#101520',metal:.6}));
+  // Underbody, front splitters, rear diffuser and restrained carbon spoiler.
+  add(box('front-wide-intake',[0,.53,2.64],[.71,.20,.08],{color:'#030408',gloss:.14,metal:.42}));
+  add(box('front-splitter',[0,.40,2.61],[1.18,.052,.25],{color:'#090d14',gloss:.42,metal:.66}));
+  add(box('rear-diffuser',[0,.40,-2.54],[1.25,.065,.24],{color:'#070b11',gloss:.36,metal:.7}));
+  add(box('rear-spoiler',[0,1.10,-2.18],[1.61,.045,.19],{color:'#111923',metal:.79,gloss:.9}));
+  add(box('spoiler-left',[-.68,1.02,-2.15],[.042,.14,.09],{color:'#151b25',metal:.74}));
+  add(box('spoiler-right',[.68,1.02,-2.15],[.042,.14,.09],{color:'#151b25',metal:.74}));
+  add(box('center-console',[0,1.19,-.22],[.20,.13,1.15],{color:'#17151c',gloss:.26,metal:.11}));
+  add(box('dashboard-instrument-screen',[-.37,1.29,.54],[.40,.035,.16],{color:'#142f42',gloss:.89,metal:.32}));
+  add(ring('real-steering-wheel',[-.39,1.47,.36],.21,.030,{color:'#151923',gloss:.6,metal:.36},'xy'));
+  add(ring('steering-gold-filigree',[-.39,1.47,.36],.176,.012,{color:'#c5a16f',gloss:.92,metal:.87},'xy'));
+  add(box('sovereign-front-emblem',[0,.755,2.65],[.20,.020,.12],{color:'#d3af71',gloss:.95,metal:.92}));
+  add(ring('display-gold-halo',[0,-.045,0],3.27,.022,{color:'#b89761',gloss:.9,metal:.86},'xz'));
+  for(let i=0;i<24;i++){
+   const a=i*TAU/24;
+   add(box('dial-index-'+i,[3.11*Math.cos(a),-.044,3.11*Math.sin(a)],[.035,.013,.048],{color:'#ac8b59',metal:.89,gloss:.90}));
+  }
   return m.filter(x=>x.verts.length);
  }
- window.JunjaSovereignMeshes=Object.freeze({create});
+ window.JunjaSovereignMeshes=Object.freeze({create:build});
 })();
