@@ -5,10 +5,10 @@
  */
 const fs=require('node:fs'),p=require('node:path'),crypto=require('node:crypto'),https=require('node:https');
 const root=p.join(__dirname,'..');
-const glbPath=p.join(root,'public/art/royal/models/spectral-gt-rs-cc0.glb');
-const expectedBlob='f5b814848453a6c75a48f5047fdadaa7bdc78969';
-const source='https://raw.githubusercontent.com/JaronKBragg7337/spectral-gt-rs/34499c501908818a2b08e589a7aecf963343cee7/spectral_gt_rs_game_ready.glb';
-const upstream='https://github.com/JaronKBragg7337/spectral-gt-rs';
+const glbPath=p.join(root,'public/art/royal/models/carconcept-ccby.glb');
+const expectedBlob='c0f38c989a78cc4ba63253b5338705e0afb0142f';
+const source='https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Assets/8f492390ddc7a2ae221a1369ef560589cf8c70fb/Models/CarConcept/glTF-Binary/CarConcept.glb';
+const upstream='https://github.com/KhronosGroup/glTF-Sample-Assets/tree/main/Models/CarConcept';
 const modules=[
  'build/three.core.js',
  'build/three.module.js',
@@ -19,10 +19,10 @@ const modules=[
  'LICENSE'
 ];
 function validate(bytes){
- if(bytes.length<1_000_000||bytes.length>16_000_000)throw Error('unexpected GLB size '+bytes.length);
+ if(bytes.length<1_000_000||bytes.length>32_000_000)throw Error('unexpected GLB size '+bytes.length);
  if(bytes.toString('ascii',0,4)!=='glTF'||bytes.readUInt32LE(4)!==2||bytes.readUInt32LE(8)!==bytes.length)throw Error('invalid GLB header');
  const sha=crypto.createHash('sha1').update('blob '+bytes.length+'\0').update(bytes).digest('hex');
- if(sha!==expectedBlob)throw Error('CC0 model changed unexpectedly: '+sha);
+ if(sha!==expectedBlob)throw Error('CC-BY concept model changed unexpectedly: '+sha);
  return sha;
 }
 function fetchBinary(url){
@@ -30,7 +30,7 @@ function fetchBinary(url){
   const req=https.get(url,{headers:{'User-Agent':'JUNJA-LAND-asset-packager/1.0','Accept':'application/octet-stream'}},res=>{
    if(res.statusCode!==200){res.resume();return reject(Error('download HTTP '+res.statusCode));}
    const parts=[];let size=0;
-   res.on('data',chunk=>{size+=chunk.length;if(size>16_000_000){req.destroy(Error('asset exceeds limit'));return;}parts.push(chunk);});
+   res.on('data',chunk=>{size+=chunk.length;if(size>32_000_000){req.destroy(Error('asset exceeds limit'));return;}parts.push(chunk);});
    res.on('end',()=>resolve(Buffer.concat(parts)));
    res.on('error',reject);
   });
@@ -61,6 +61,6 @@ function fetchBinary(url){
   fs.mkdirSync(p.dirname(glbPath),{recursive:true});
   fs.writeFileSync(glbPath,binary,{flag:'wx'});
  }
- console.log('SOVEREIGN_LICENSED_ASSET_OK: '+binary.length+' bytes; Git blob '+expectedBlob+
-  '; CC0 '+upstream+'; local Three.js MIT '+pkg.version);
+ console.log('SOVEREIGN_KHRONOS_CARCONCEPT_OK: '+binary.length+' bytes; Git blob '+expectedBlob+
+  '; CC-BY-4.0 '+upstream+'; local Three.js MIT '+pkg.version);
 })().catch(e=>{console.error(e);process.exitCode=1});
