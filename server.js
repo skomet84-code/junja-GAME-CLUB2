@@ -24,6 +24,7 @@ const {report: jplAdminReport}=require('./jpl-admin-report');
 const {auditCasinoSettlements}=require('./casino-settlement-audit');
 const {createMarketControl}=require('./market-operator');
 const {createSupportCenter}=require('./support-center-core');
+const {createMotorDesignStudio}=require('./premium-motor-design');
 const {report:commerceReadinessReport}=require('./commerce-readiness-v10');
 const createTreasureRaid = require('./treasure-raid-server');
 const createBlackroomCloud = require('./blackroom-cloud');
@@ -203,6 +204,7 @@ const kospiReference=createKospiReference({now});
 kospiReference.start();
 const ownerMarket=createMarketControl({db,now});
 const supportCenter=createSupportCenter({db,now});
+const motorDesignStudio=createMotorDesignStudio({db,now});
 const jStocks=createJStocks({db,exactWallet,now,getReference:kospiReference.get,marketMode:'kospi',getVolatilityPct:id=>ownerMarket.volatilityFor('stock',id),scheduledProtected:()=>ownerMarket.scheduledProtected('stock'),scheduledDue:()=>ownerMarket.scheduledDue('stock'),progressScheduled:m=>ownerMarket.progressScheduled('stock',m)});
 const jCoins=createJCoins({db,exactWallet,now,getVolatilityPct:id=>ownerMarket.volatilityFor('coin',id),scheduledProtected:()=>ownerMarket.scheduledProtected('coin'),scheduledDue:()=>ownerMarket.scheduledDue('coin'),progressScheduled:m=>ownerMarket.progressScheduled('coin',m)});
 // One-time 2-hour quote adjustment; idempotent state survives Railway restarts.
@@ -2790,6 +2792,34 @@ const server=http.createServer(async(req,res)=>{
         pushRefresh();
         return json(res,200,{...result,market:ownerMarket.list()});
       }catch(e){return json(res,e.code==='STALE_MARKET_PRICE'?409:400,{error:e.message});}
+    }
+    // JUNJA PRIVATE MOTOR STUDIO: member's prototype configuration only.
+    // A public visitor receives only an explicitly published design via a
+    // 144-bit random link. It NEVER grants a paid entitlement or game benefit.
+    if(url.pathname==='/api/premium/motor-studio'&&req.method==='GET'){
+      const user=requireAuth(req,res);if(!user)return;
+      if(!rateLimit('motor-studio-get:'+user.id,35,60000))return json(res,429,{error:'디자인 보관함 조회 횟수를 초과했습니다.'});
+      try{return json(res,200,motorDesignStudio.read(user.id));}
+      catch(e){return json(res,e.code==='BAD_USER'?403:400,{error:e.message});}
+    }
+    if(url.pathname==='/api/premium/motor-studio'&&req.method==='POST'){
+      const user=requireAuth(req,res);if(!user)return;
+      if(!rateLimit('motor-studio-save:'+user.id,15,3600000))return json(res,429,{error:'디자인 저장은 시간당 15회까지 가능합니다.'});
+      try{
+        const data=await readBody(req,2048);
+        const result=motorDesignStudio.save({userId:user.id,design:data.design,published:data.published,
+          rotateShare:data.rotateShare===true,expectedVersion:data.expectedVersion,requestId:data.requestId});
+        await db.flush();return json(res,200,result);
+      }catch(e){
+        const code=['STALE_DESIGN','REQUEST_CONFLICT'].includes(e.code)?409:400;
+        return json(res,code,{error:e.message});
+      }
+    }
+    const designShared=url.pathname.match(/^\/api\/premium\/motor-studio\/share\/([A-Za-z0-9_-]{24})$/);
+    if(designShared&&req.method==='GET'){
+      if(!rateLimit('motor-studio-public:'+req.socket.remoteAddress,60,60000))return json(res,429,{error:'공개 디자인 조회 횟수를 초과했습니다.'});
+      try{return json(res,200,motorDesignStudio.shared({token:designShared[1]}));}
+      catch(e){return json(res,404,{error:'현재 공개 중인 디자인을 찾을 수 없습니다.'});}
     }
     // Pre-commerce member support. Refund inquiry submission does NOT cancel a PG payment.
     // All responses remain inside the logged-in member's account or named owner control.
