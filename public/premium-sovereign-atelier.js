@@ -167,7 +167,7 @@ function toggleDoor(){
  state.doorsOpen=!state.doorsOpen;
  door.textContent=state.doorsOpen?'양쪽 도어 닫기':'양쪽 도어 열기';
  door.setAttribute('aria-pressed',String(state.doorsOpen));
- if(state.doorsOpen)setView('hero');
+ if(state.doorsOpen){setView('hero');stage.scrollIntoView({block:'center',behavior:'smooth'});}
  banner(state.doorsOpen?'실제 GLB 차체 도어 2개가 부드럽게 열립니다.':'실제 도어를 닫습니다.');
 }
 function toggleHood(){
@@ -175,7 +175,7 @@ function toggleHood(){
  state.hoodOpen=!state.hoodOpen;
  hood.textContent=state.hoodOpen?'보닛 닫기':'보닛 열기';
  hood.setAttribute('aria-pressed',String(state.hoodOpen));
- if(state.hoodOpen)setView('front');
+ if(state.hoodOpen){setView('front');stage.scrollIntoView({block:'center',behavior:'smooth'});}
  banner(state.hoodOpen?'실제 GLB 보닛이 열립니다.':'실제 보닛을 닫습니다.');
 }
 function play(keyword){
