@@ -68,6 +68,7 @@ try{
     assert((await page.evaluate(()=>window.JunjaSovereignAtelier.snapshot())).renderCount>frontBefore,'Front detail action must immediately render a fresh 3D frame');
     assert((await page.evaluate(()=>window.JunjaSovereignAtelier.snapshot())).cameraDistance<3.0,'Front fascia needs a true exterior close-up');
     if(width===390&&name==='webkit'){
+     await page.waitForTimeout(850);
      try{await page.screenshot({path:'/tmp/junja-atelier-front-'+name+'.png',animations:'disabled',timeout:8000});}
      catch(err){console.log('FRONT_SCREENSHOT_SKIPPED '+name+' '+String(err.message||err).slice(0,100));}
     }
