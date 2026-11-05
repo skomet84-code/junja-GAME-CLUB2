@@ -52,7 +52,7 @@ try{
     assert(state.modelSize?.length>state.modelSize?.height*2,'Z-up car must be leveled on Y-up showroom stage');
     assert(state.modelSize?.height<2,'Car must not be displayed standing on its nose');
     assert((await page.locator('#atelierInfo').innerText()).includes('GLB 외관 로딩 완료'));
-    for(const mode of ['front','side','rear','wheel','hero']){
+    for(const mode of ['front','frontDetail','side','rear','wheel','hero']){
      await page.locator('[data-at-view="'+mode+'"]').click();
      assert.equal((await page.evaluate(()=>window.JunjaSovereignAtelier.snapshot())).view,mode);
      assert.equal(await page.locator('[data-at-view="'+mode+'"]').getAttribute('aria-pressed'),'true');
