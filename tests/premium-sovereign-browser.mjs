@@ -49,6 +49,11 @@ try{
       await page.locator('#sovView').click();
       assert.equal(await page.evaluate(()=>window.JunjaSovereignLab.snapshot().view),expected,'3D camera must support '+expected);
      }
+     for(const mode of ['front','side','cockpit','wheel','threeQuarter']){
+      await page.locator('[data-sov-preset="'+mode+'"]').click();
+      assert.equal(await page.evaluate(()=>window.JunjaSovereignLab.snapshot().view),mode,'Quick inspection mode must be genuine WebGL camera');
+      assert.equal(await page.locator('[data-sov-preset="'+mode+'"]').getAttribute('aria-pressed'),'true');
+     }
      const zoom=await page.evaluate(()=>window.JunjaSovereignLab.snapshot().zoom);
      await page.locator('#sovZoomIn').click();
      assert((await page.evaluate(()=>window.JunjaSovereignLab.snapshot().zoom))<zoom);
