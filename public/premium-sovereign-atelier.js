@@ -21,7 +21,7 @@ const wheelPalettes={
  champagne:{accent:0xc49b62,base:0x30261b,roughness:.25}
 };
 const state={ready:false,failed:false,renderCount:0,meshCount:0,materialCount:0,clipCount:0,
- paint:'silver',wheelFinish:'graphite',paintSurfaceCount:0,wheelSurfaceCount:0,headlightSurfaceCount:0,frontGrilleCount:0,brakeCaliperCount:0,cameraDistance:null,view:'hero',light:'studio',doorsOpen:false,hoodOpen:false,
+ paint:'silver',wheelFinish:'graphite',paintSurfaceCount:0,wheelSurfaceCount:0,headlightSurfaceCount:0,frontGrilleCount:0,brakeCaliperCount:0,wheelTargetResolved:false,cameraDistance:null,view:'hero',light:'studio',doorsOpen:false,hoodOpen:false,
  doorAngle:0,hoodAngle:0,hingeCount:0,modelSize:null,lastError:null,glb:true,owned:false,paid:false};
 const banner=message=>{info.textContent=message;};
 const disabled=flag=>{for(const el of [...quick,door,hood,paint,wheelFinish,light,reset])el.disabled=flag;};
@@ -38,6 +38,7 @@ const fail=err=>{
 };
 let renderer,scene,camera,orbit,mixer,clips=[],carRoot,paintMaterials=[],wheelMaterials=[],headlightMaterials=[],frontGrilleMaterials=[],caliperMaterials=[];
 let environmentTexture,studioGroup,nightGroup,clock,visible=true,car=null;
+let frontRimFocus=null;
 const hinges={doors:[],hood:null};
 const motion={doors:0,hood:0};
 const tmp=new THREE.Vector3();
@@ -149,11 +150,19 @@ function setView(view){
  state.view=view;
  const radius=6.6,coords={
   hero:[5.2,2.15,5.65],front:[0,1.60,radius],frontDetail:[1.9,1.40,3.10],side:[8.05,1.68,0],
-  rear:[0,1.65,-radius],wheel:[3.05,1.12,2.35]
+  rear:[0,1.65,-radius]
  };
- camera.position.set(...coords[view]);
- // Only the wheel preset inspects a local exterior component. No cockpit camera.
- orbit.target.set(...(view==='wheel'?[1.00,.52,1.35]:view==='frontDetail'?[0,.76,1.4]:[0,.77,0]));
+ if(view==='wheel'&&frontRimFocus){
+  // Source model determines the real wheel centre, never a guessed front-
+  // bumper coordinate. Approach nearly perpendicular to the wheel's plane,
+  // so the hood cannot occlude the forged rim in the mobile close-up.
+  const side=frontRimFocus.x>=0?1:-1;
+  orbit.target.copy(frontRimFocus);
+  camera.position.copy(frontRimFocus).add(new THREE.Vector3(side*2.55,.58,.10));
+ }else{
+  camera.position.set(...(coords[view]||coords.hero));
+  orbit.target.set(...(view==='frontDetail'?[0,.76,1.4]:[0,.77,0]));
+ }
  orbit.update();
  state.cameraDistance=+camera.position.distanceTo(orbit.target).toFixed(2);
  renderOnDemand();
@@ -278,6 +287,15 @@ async function load(){
   if(!(size.z>size.y*2&&size.z>size.x*1.2))throw Error('모델 축 변환에 실패했습니다.');
   carRoot.position.set(-center.x,.02-bounds.min.y,-center.z);
   carRoot.add(car);
+  carRoot.updateMatrixWorld(true);
+  const sourceRim=car.getObjectByName('WheelFrontLRim')||car.getObjectByName('WheelFrontRRim');
+  if(sourceRim){
+   const rimBounds=new THREE.Box3().setFromObject(sourceRim);
+   if(!rimBounds.isEmpty()){
+    frontRimFocus=rimBounds.getCenter(new THREE.Vector3());
+    state.wheelTargetResolved=true;
+   }
+  }
   const materialNames=new Set();
   car.traverse(object=>{
    // Exclude trademark-bearing steering badge and license-plate graphics.
