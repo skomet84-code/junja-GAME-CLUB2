@@ -20,7 +20,7 @@ for(const id of ['atelierCanvas','atelierLoading','atelierFallback','atelierPain
 assert(script.includes("new GLTFLoader().loadAsync('/art/royal/models/carconcept-ccby.glb'"),'Must load real local GLB');
 assert(script.includes('new THREE.WebGLRenderer')&&script.includes('RoomEnvironment'),'Real WebGL physical lighting required');
 assert(script.includes('paintMaterials.push')&&script.includes('InteriorSteeringEmblem'),'Actual body paint and brand-removal logic required');
-assert(script.includes("car.rotation.x=-Math.PI/2"),'Imported Z-up GLB must be oriented with Y as up axis');
+assert(script.includes('car.updateMatrixWorld(true)')&&!script.includes('car.rotation.x=-Math.PI/2'),'Preserve built-in source coordinate-axis conversion, never double-rotate the model');
 for(const name of ['BodyDoorLColor1','BodyDoorRColor1','BodyHood'])assert(script.includes(name),'Original hierarchical pivot absent: '+name);
 assert(script.includes('hinge.node.rotation.z=')&&script.includes('hinges.hood.node.rotation.x='),'Moving real mesh pivots required, not CSS or images');
 assert(page.includes('id="atelierDoor" aria-pressed="false"')&&page.includes('id="atelierHood" aria-pressed="false"'),'Accessible door/bonnet controls required');
