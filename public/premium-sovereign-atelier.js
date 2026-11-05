@@ -267,7 +267,12 @@ async function load(){
      paintMaterials.push({material:copy,secondary:/^paint 2 /i.test(copy.name)});
      return copy;
     }
-    if(/^Wheel(?:Front|Rear)[LR]Rim$/i.test(object.name||'')&&/^Rim[12]$/i.test(mat.name||'')){
+    // Khronos wheel rims contain two glTF primitives each. Three.js may
+    // convert these into grouped child meshes with suffixes, so look through
+    // their immediate hierarchy instead of assuming a flat object name.
+    const rimSource=[object.name,object.parent?.name,object.parent?.parent?.name].some(name=>
+     /^Wheel(?:Front|Rear)[LR]Rim(?:$|[_ .])/i.test(name||''));
+    if(rimSource&&/^Rim[12]$/i.test(mat.name||'')){
      const copy=mat.clone();
      wheelMaterials.push({material:copy,accent:/^Rim2$/i.test(copy.name)});
      return copy;
