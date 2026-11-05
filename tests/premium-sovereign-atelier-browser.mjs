@@ -64,10 +64,13 @@ try{
     assert.equal((await page.evaluate(()=>window.JunjaSovereignAtelier.snapshot())).wheelFinish,'obsidian');
     await page.locator('#atelierWheelFinish').selectOption('champagne');
     assert.equal((await page.evaluate(()=>window.JunjaSovereignAtelier.snapshot())).wheelFinish,'champagne');
+    const previousRenderedFrames=await page.evaluate(()=>window.JunjaSovereignAtelier.snapshot().renderCount);
     await page.locator('[data-at-view="wheel"]').click();
+    assert((await page.evaluate(()=>window.JunjaSovereignAtelier.snapshot())).cameraDistance<3.4,'Wheel camera must be a genuine close-up, not another hero photo');
     if(width===390){
+     await page.evaluate(()=>document.getElementById('atelierStage').scrollIntoView({block:'center',behavior:'instant'}));
+     await page.waitForFunction(before=>window.JunjaSovereignAtelier.snapshot().renderCount>before+3,previousRenderedFrames,{timeout:15000});
      try{
-      await page.evaluate(()=>document.getElementById('atelierStage').scrollIntoView({block:'center',behavior:'instant'}));
       await page.screenshot({path:'/tmp/junja-atelier-wheel-'+name+'.png',animations:'disabled',timeout:10000});
      }catch(err){console.log('WHEEL_SCREENSHOT_SKIPPED '+name+' '+String(err.message||err).slice(0,100));}
     }
