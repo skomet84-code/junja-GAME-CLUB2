@@ -38,6 +38,8 @@ try{
     assert.equal(state.ready,true);assert.equal(state.owned,false);assert.equal(state.paid,false);
     assert(state.meshCount>80,'Expected detailed Khronos model mesh hierarchy');
     assert(state.materialCount>20,'Expected advanced PBR variants');
+    assert(state.paintSurfaceCount>=5,'Actual imported metallic paint must have separately identified panels');
+    assert(state.wheelSurfaceCount>=4,'All actual imported wheel rims must expose metallic finish surfaces');
     assert.equal(state.clipCount,0,'Source has actual door pivots, not pre-exported animation clips');
     assert.equal(state.hingeCount,0,'Exterior preview must not activate unused interior mechanics');
     assert.equal(state.doorsOpen,false);
@@ -54,6 +56,22 @@ try{
     }
     await page.locator('#atelierPaint').selectOption('gold');
     assert.equal((await page.evaluate(()=>window.JunjaSovereignAtelier.snapshot())).paint,'gold');
+    await page.locator('#atelierPaint').selectOption('burgundy');
+    assert.equal((await page.evaluate(()=>window.JunjaSovereignAtelier.snapshot())).paint,'burgundy');
+    assert(await page.locator('#atelierWheelFinish').isEnabled(),'Four real wheel rims must be individually finishable');
+    await page.locator('#atelierWheelFinish').selectOption('obsidian');
+    assert.equal((await page.evaluate(()=>window.JunjaSovereignAtelier.snapshot())).wheelFinish,'obsidian');
+    await page.locator('#atelierWheelFinish').selectOption('champagne');
+    assert.equal((await page.evaluate(()=>window.JunjaSovereignAtelier.snapshot())).wheelFinish,'champagne');
+    await page.locator('[data-at-view="wheel"]').click();
+    if(width===390){
+     try{
+      await page.evaluate(()=>document.getElementById('atelierStage').scrollIntoView({block:'center',behavior:'instant'}));
+      await page.screenshot({path:'/tmp/junja-atelier-wheel-'+name+'.png',animations:'disabled',timeout:10000});
+     }catch(err){console.log('WHEEL_SCREENSHOT_SKIPPED '+name+' '+String(err.message||err).slice(0,100));}
+    }
+    await page.locator('#atelierPaint').selectOption('silver');
+    await page.locator('#atelierWheelFinish').selectOption('graphite');
     await page.locator('#atelierLight').click();
     assert.equal((await page.evaluate(()=>window.JunjaSovereignAtelier.snapshot())).light,'night');
     await page.locator('#atelierLight').click();
