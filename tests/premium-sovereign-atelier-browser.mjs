@@ -52,7 +52,8 @@ try{
     assert(await page.locator('#atelierHood').isHidden(),'Hide unnecessary hood interaction');
     assert(state.modelSize?.length>state.modelSize?.height*2,'Z-up car must be leveled on Y-up showroom stage');
     assert(state.modelSize?.height<2,'Car must not be displayed standing on its nose');
-    assert((await page.locator('#atelierInfo').innerText()).includes('GLB 외관 로딩 완료'));
+    await page.waitForFunction(()=>document.getElementById('atelierInfo')?.textContent?.includes('GLB 외관 로딩 완료'),null,{timeout:10000});
+    assert((await page.locator('#atelierStatus').textContent()).includes('3D 모델 로딩 완료'),'Real GLB loader must complete before camera QA');
     for(const mode of ['front','frontDetail','side','rear','wheel','hero']){
      await page.locator('[data-at-view="'+mode+'"]').click();
      const framed=await page.evaluate(()=>window.JunjaSovereignAtelier.snapshot());
