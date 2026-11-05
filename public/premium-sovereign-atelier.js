@@ -98,9 +98,8 @@ try {
   if(state.failed||document.hidden||!visible)return;
   const dt=Math.min(clock.getDelta(),.05);
   if(mixer)mixer.update(dt);
-  // Smooth mechanically rooted glTF door pivots in their original local Z-up
-  // coordinates. Rotating the entire glTF -90° X into Three.js Y-up keeps
-  // the doors opening horizontally while the wheels remain on the platform.
+  // Genuine grouped door/bonnet hinges stay in their source local coordinates.
+  // The GLB root already contains the Z-up -> Y-up transform; do not rotate twice.
   const easing=1-Math.exp(-8*dt);
   motion.doors+=((state.doorsOpen?1:0)-motion.doors)*easing;
   motion.hood+=((state.hoodOpen?1:0)-motion.hood)*easing;
@@ -205,11 +204,9 @@ async function load(){
   const gltf=await new GLTFLoader().loadAsync('/art/royal/models/carconcept-ccby.glb',
    e=>{if(e.total>0)status.textContent='3D 다운로드 '+Math.min(100,Math.round(e.loaded/e.total*100))+'%';});
   car=gltf.scene;
-  // Source vertex data is Z-up (body X width, Y length, Z height). The glTF
-  // metadata confirms a 4.3 m longitudinal Y range versus ~1 m Z height.
-  // Rotate the *real GLB* into the engine's Y-up world, so the car rests
-  // horizontally on the stage and the wheels rotate around a horizontal axle.
-  car.rotation.x=-Math.PI/2;
+  // Khronos CarConcept vertices use Z-up locally, but node BodyUnderside has
+  // the matrix [1,0,0; 0,0,-1; 0,1,0], already converting to Three.js Y-up.
+  // Respect its author-provided transform to avoid pointing the nose skyward.
   car.updateMatrixWorld(true);
   const bounds=new THREE.Box3().setFromObject(car);
   if(bounds.isEmpty())throw Error('GLB 모델에 실제 메시가 없습니다.');
