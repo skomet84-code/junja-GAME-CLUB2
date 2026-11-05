@@ -51,6 +51,7 @@
  'gl_FragColor=vec4(pow(radiance,vec3(.94)),1.0);}'
  ].join('\n');
  let gl,program,meshes=[],raf=0;
+ let applyDesign=()=>false;
  const colorHex=h=>{const v=parseInt(String(h).replace('#',''),16)||0;return [(v>>16&255)/255,(v>>8&255)/255,(v&255)/255];};
  function showFallback(reason){state.supported=false;canvas.hidden=true;fallback.hidden=false;$('sovereignControls').hidden=true;setInfo('현재 기기에서는 실시간 3D를 사용할 수 없어 정적 대체 이미지를 표시합니다. '+reason);}
  try{
@@ -103,6 +104,25 @@
   }
   const render=()=>{if(!raf)raf=requestAnimationFrame(draw);};
   const cameraTarget=(yaw,pitch,zoom)=>{target.rotation=yaw;target.pitch=clamp(pitch,-.10,1.13);target.zoom=clamp(zoom,5.6,15.4);render();};
+  // Load only decorative draft settings. This API cannot set ownership,
+  // perform purchases, or send wallet requests. Server validates saved designs.
+  applyDesign=design=>{
+   if(!design||typeof design!=='object'||!Object.hasOwn(theme,design.paint)||
+    typeof design.doorsOpen!=='boolean'||typeof design.lightsOn!=='boolean'||
+    !['rotation','pitch','zoom'].every(k=>typeof design[k]==='number'&&Number.isFinite(design[k]))||
+    design.rotation< -20||design.rotation>20||design.pitch<-.1||design.pitch>1.13||design.zoom<5.6||design.zoom>15.4)return false;
+   state.color=design.paint;state.doorsOpen=design.doorsOpen;state.lightsOn=design.lightsOn;
+   target.door=design.doorsOpen?.98:0;
+   cameraTarget(design.rotation,design.pitch,design.zoom);
+   controls.color.value=design.paint;
+   controls.door.setAttribute('aria-pressed',String(design.doorsOpen));
+   controls.door.textContent=design.doorsOpen?'도어 닫기':'도어 열기';
+   controls.light.setAttribute('aria-pressed',String(design.lightsOn));
+   controls.light.textContent=design.lightsOn?'전조등 끄기':'전조등 켜기';
+   state.view='custom';controls.view.textContent='시점 · 저장된 시점';
+   setInfo('저장된 디자인 시안의 차체·카메라·조명·도어 설정을 적용했습니다. 실제 소유권과는 무관합니다.');
+   render();return true;
+  };
   let dragging=false,lastX=0,lastY=0;
   canvas.addEventListener('pointerdown',e=>{dragging=true;lastX=e.clientX;lastY=e.clientY;canvas.setPointerCapture?.(e.pointerId);});
   canvas.addEventListener('pointermove',e=>{if(!dragging)return;const dx=e.clientX-lastX,dy=e.clientY-lastY;lastX=e.clientX;lastY=e.clientY;cameraTarget(target.rotation-dx*.009,target.pitch+dy*.008,target.zoom);});
@@ -121,6 +141,7 @@
   state.supported=true;render();setInfo('실제 WebGL 3D 기술 시연 · 드래그/방향키로 회전 · '+triangles.toLocaleString('ko-KR')+'개 삼각형');
  }catch(e){showFallback('3D 초기화 실패: '+String(e.message||e).slice(0,100));}
  Object.defineProperty(window,'JunjaSovereignLab',{value:Object.freeze({
+  applyDesign,
   snapshot:()=>({supported:state.supported,rotation:target.rotation,pitch:target.pitch,zoom:target.zoom,doorsOpen:state.doorsOpen,
    lightsOn:state.lightsOn,color:state.color,view:state.view,pixels:state.pixels,renderCount:state.renderCount,paid:false,owned:false,entitlement:false})
  })});
