@@ -38,6 +38,9 @@ try{
     assert.equal(state.ready,true);assert.equal(state.owned,false);assert.equal(state.paid,false);
     assert(state.meshCount>80,'Expected detailed Khronos model mesh hierarchy');
     assert(state.materialCount>20,'Expected advanced PBR variants');
+    assert(state.paintSurfaceCount>=5,'Actual imported metallic paint must have separately identified panels');
+    assert(state.wheelSurfaceCount>=4,'All actual imported wheel rims must expose metallic finish surfaces');
+    assert(state.headlightSurfaceCount>=1,'Actual headlamp lens material must receive physically controlled LED finish');
     assert.equal(state.clipCount,0,'Source has actual door pivots, not pre-exported animation clips');
     assert.equal(state.hingeCount,0,'Exterior preview must not activate unused interior mechanics');
     assert.equal(state.doorsOpen,false);
@@ -54,6 +57,26 @@ try{
     }
     await page.locator('#atelierPaint').selectOption('gold');
     assert.equal((await page.evaluate(()=>window.JunjaSovereignAtelier.snapshot())).paint,'gold');
+    await page.locator('#atelierPaint').selectOption('burgundy');
+    assert.equal((await page.evaluate(()=>window.JunjaSovereignAtelier.snapshot())).paint,'burgundy');
+    assert(await page.locator('#atelierWheelFinish').isEnabled(),'Four real wheel rims must be individually finishable');
+    await page.locator('#atelierWheelFinish').selectOption('obsidian');
+    assert.equal((await page.evaluate(()=>window.JunjaSovereignAtelier.snapshot())).wheelFinish,'obsidian');
+    await page.locator('#atelierWheelFinish').selectOption('champagne');
+    assert.equal((await page.evaluate(()=>window.JunjaSovereignAtelier.snapshot())).wheelFinish,'champagne');
+    const previousRenderedFrames=await page.evaluate(()=>window.JunjaSovereignAtelier.snapshot().renderCount);
+    await page.locator('[data-at-view="wheel"]').click();
+    assert((await page.evaluate(()=>window.JunjaSovereignAtelier.snapshot())).cameraDistance<3.4,'Wheel camera must be a genuine close-up, not another hero photo');
+    if(width===390){
+     await page.evaluate(()=>document.getElementById('atelierStage').scrollIntoView({block:'center',behavior:'instant'}));
+     await page.waitForFunction(before=>window.JunjaSovereignAtelier.snapshot().renderCount>before+9,previousRenderedFrames,{timeout:15000});
+     await page.waitForTimeout(500);
+     try{
+      await page.screenshot({path:'/tmp/junja-atelier-wheel-'+name+'.png',animations:'disabled',timeout:10000});
+     }catch(err){console.log('WHEEL_SCREENSHOT_SKIPPED '+name+' '+String(err.message||err).slice(0,100));}
+    }
+    await page.locator('#atelierPaint').selectOption('silver');
+    await page.locator('#atelierWheelFinish').selectOption('graphite');
     await page.locator('#atelierLight').click();
     assert.equal((await page.evaluate(()=>window.JunjaSovereignAtelier.snapshot())).light,'night');
     await page.locator('#atelierLight').click();
@@ -62,7 +85,7 @@ try{
     assert.equal((await page.evaluate(()=>window.JunjaSovereignAtelier.snapshot())).view,'hero');
     const layout=await page.evaluate(()=>({width:innerWidth,scroll:document.documentElement.scrollWidth}));
     assert(layout.scroll<=layout.width+2,'Horizontal overflow '+name+' '+width+': '+JSON.stringify(layout));
-    await page.waitForTimeout(350);
+    await page.waitForTimeout(900);
     if(width===390){
      // Screenshots are supplementary QA evidence. GPU repaints in software
      // Chromium can prevent Playwright's element-stability detector from settling.

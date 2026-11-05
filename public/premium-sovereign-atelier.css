@@ -40,3 +40,16 @@ footer{border-top:1px solid #ffffff29;display:flex;justify-content:space-between
 /* 3D recovery stays usable on narrow iPhones, even if module imports fail. */
 .fallback .retry-3d{border:1px solid #eac98e;border-radius:9px;background:#57432b;color:#fff1d3;padding:12px 20px;font:700 13px system-ui;min-height:44px}
 .fallback .retry-3d[hidden]{display:none!important}
+
+/* v6 real-wheel PBR finish controls: two equal, readable selectors on phones. */
+.controlbar label{flex:1 1 180px;min-width:0;letter-spacing:.01em}
+.controlbar select{width:100%;background-color:#262831;color:#f5e8d5}
+@media(max-width:690px){
+ .controlbar{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .controlbar label{grid-column:auto;min-width:0}
+ .controlbar button{grid-column:span 1}
+ .controlbar select{font-size:11px;max-width:100%}
+}
+@media(max-width:355px){
+ .controlbar label{grid-column:1/-1}
+}

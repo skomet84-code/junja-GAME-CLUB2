@@ -33,6 +33,19 @@ for(const id of ['atelierCanvas','atelierLoading','atelierFallback','atelierPain
 assert(script.includes("new GLTFLoader().loadAsync('/art/royal/models/carconcept-ccby.glb'"),'Must load real local GLB');
 assert(script.includes('new THREE.WebGLRenderer')&&script.includes('RoomEnvironment'),'Real WebGL physical lighting required');
 assert(script.includes('paintMaterials.push')&&script.includes('InteriorSteeringEmblem'),'Actual body paint and brand-removal logic required');
+assert(page.includes('id="atelierWheelFinish"')&&page.includes('value="champagne"'),'Real wheel finish selector required');
+assert(script.includes('wheelMaterials.push')&&script.includes('Wheel(?:Front|Rear)[LR]Rim'),'Only actual named wheel rim parts may be recolored');
+assert(script.includes('paintMaterials.push({material:copy,secondary:'),'Genuine two-tone body panel differentiation required');
+assert(script.includes("secondary ? .31 : .22")&&script.includes('clearcoatRoughness=.12'),'Clearcoat paint surface should retain physical highlights');
+assert(script.includes('wheelFinish.disabled=!wheelMaterials.length'),'Disable unavailable wheel finish controls, never mislead');
+assert(script.includes('m.emissive.setRGB(.008,.009,.010)'),'Original white-emitting rim materials must not overpower actual forged finishes');
+assert(script.includes("if(mat.name==='Headlight')")&&script.includes('headlightMaterials.push(copy)'),'Original headlamp glow must be preserved but restrained on real GLB surfaces');
+assert(script.includes('state.wheelSurfaceCount=wheelMaterials.length'),'Wheel surface count must be exposed to browser QA');
+assert(!script.includes('new THREE.CircleGeometry(50,96)'),'Exterior must not render a giant black horizontal floor band');
+assert(script.includes('camera.position.distanceTo(orbit.target).toFixed(2)'),'Actual closeup camera distance must be testable');
+assert(script.includes('function renderOnDemand()')&&script.match(/renderOnDemand\(\);/g)?.length>=4,'Every user-directed camera/paint/rim/light change must immediately update WebGL, even when offscreen');
+assert(script.includes('object.parent?.name')&&script.includes('rimSource&&/^Rim[12]$/i.test(mat.name||\'\')'),'Rim-only PBR changes must recognize glTF grouped primitives, not tires');
+
 assert(script.includes('car.updateMatrixWorld(true)')&&!script.includes('car.rotation.x=-Math.PI/2'),'Preserve built-in source coordinate-axis conversion, never double-rotate the model');
 for(const name of ['BodyDoorLColor1','BodyDoorRColor1','BodyHood'])assert(script.includes(name),'Original hierarchical pivot absent: '+name);
 assert(script.includes('new THREE.WebGLRenderer')&&script.includes('setPaint('),'Genuine PBR exterior viewer and body paint required');

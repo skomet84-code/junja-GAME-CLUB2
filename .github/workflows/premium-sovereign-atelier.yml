@@ -24,7 +24,7 @@ jobs:
       - name: Install pinned Three.js and browser QA
         run: |
           npm install --no-audit --no-fund --ignore-scripts
-          npm install --no-save --no-package-lock --ignore-scripts --no-audit --no-fund playwright
+          npm install --no-save --no-package-lock --ignore-scripts --no-audit --no-fund playwright@1.64.1
           npx playwright install --with-deps chromium webkit
       - name: Copy local runtime and fetch exact CC0 licensed model
         run: npm run build:premium-atelier
