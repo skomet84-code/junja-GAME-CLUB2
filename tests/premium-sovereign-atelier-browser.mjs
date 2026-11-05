@@ -87,7 +87,7 @@ try{
     if(width===390&&name==='webkit'){
      await page.evaluate(()=>document.getElementById('atelierStage').scrollIntoView({block:'center',behavior:'instant'}));
      await page.waitForFunction(before=>window.JunjaSovereignAtelier.snapshot().renderCount>before,previousRenderedFrames,{timeout:15000});
-     await page.waitForTimeout(150);
+     await page.waitForTimeout(850);
      try{
       await page.screenshot({path:'/tmp/junja-atelier-wheel-'+name+'.png',animations:'disabled',timeout:7000});
      }catch(err){console.log('WHEEL_SCREENSHOT_SKIPPED '+name+' '+String(err.message||err).slice(0,100));}
@@ -102,7 +102,7 @@ try{
     assert.equal((await page.evaluate(()=>window.JunjaSovereignAtelier.snapshot())).view,'hero');
     const layout=await page.evaluate(()=>({width:innerWidth,scroll:document.documentElement.scrollWidth}));
     assert(layout.scroll<=layout.width+2,'Horizontal overflow '+name+' '+width+': '+JSON.stringify(layout));
-    await page.waitForTimeout(250);
+    await page.waitForTimeout(width===390&&name==='webkit'?850:250);
     if(width===390&&name==='webkit'){
      // Screenshots are supplementary QA evidence. GPU repaints in software
      // Chromium can prevent Playwright's element-stability detector from settling.
