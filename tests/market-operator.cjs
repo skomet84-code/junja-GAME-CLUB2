@@ -14,7 +14,8 @@ const read=k=>JSON.parse(db.prepare('SELECT value FROM game_state WHERE key=?').
 write(stockKey,{hour:stockSessionHour(clock),cadenceHours:6,catalogVersion:2,stocks:Object.fromEntries(stocks.map(x=>[x.id,{price:String(x.base),changeBp:0,history:[x.base],event:null}]))});
 write(coinKey,{hour:Math.floor(clock/900000)*0.25,cadenceHours:0.25,catalogVersion:1,stocks:Object.fromEntries(coins.map(x=>[x.id,{price:String(x.base),changeBp:0,history:[x.base],event:null}]))});
 const control=createMarketControl({db,now});
-assert.equal(control.list().markets.stock.length,10);
+assert.equal(control.list().markets.stock.length,12);
+assert.deepEqual(control.list().markets.stock.slice(-2).map(x=>x.name),['첨지 식품','동동 유업']);
 assert.equal(control.list().markets.coin.length,8);
 assert.equal(control.volatilityFor('stock','A'),100);
 assert.equal(percentBp('-3.25'),-325);
@@ -47,7 +48,12 @@ assert.equal(coin.price,'2320000');
 assert.equal(read(coinKey).stocks.JJC.price,'2320000');
 const moon=control.apply({actorId:1,type:'coin',symbol:'MOON',mode:'price',deltaPercent:'-57.00',expectedPrice:'10000',requestId:'market_coin_00000002'});
 assert.equal(moon.price,'4300');
-assert.equal(control.list().history.length,4);
+assert.equal(control.list().history.length,6);
+const food=control.apply({actorId:1,type:'stock',symbol:'K',mode:'price',deltaPercent:'10',expectedPrice:'34000',requestId:'market_food_000000001'});
+assert.equal(food.price,'37400');
+const dairyVol=control.apply({actorId:1,type:'stock',symbol:'L',mode:'volatility',volatilityPct:50,requestId:'market_dairy_00000001'});
+assert.equal(dairyVol.volatilityPct,50);
+assert.equal(control.volatilityFor('stock','L'),50);
 const beforeUsers=db.prepare('SELECT balance FROM users WHERE id=2').get().balance;
 const beforeLedger=db.prepare('SELECT COUNT(*) AS n FROM ledger').get().n;
 assert.equal(beforeUsers,1000000);
@@ -63,7 +69,7 @@ assert.equal(db.prepare('SELECT COUNT(*) AS n FROM ledger').get().n,beforeLedger
 const second=createMarketControl({db,now});
 assert.equal(second.list().markets.coin.find(x=>x.id==='JJC').price,'2320000');
 assert.equal(second.volatilityFor('stock','A'),200);
-assert.equal(second.list().history.length,5);
+assert.equal(second.list().history.length,7);
 assert.throws(()=>second.apply({...volInput,volatilityPct:50}),/이미 다른 시장 변경/);
 // Verify presets affect future real market-tick volatility, not only stored settings.
 const randomInt=(a,b)=>b-1;
@@ -77,4 +83,4 @@ assert.equal(second.list().markets.stock.find(x=>x.id==='A').price,sA.price);
 assert.equal(db.prepare('SELECT COUNT(*) AS n FROM ledger').get().n,1);
 // Mode default retains exact legacy market price behavior for other stocks.
 db.close();
-console.log('OWNER_MARKET_CORE_OK: 10 stocks, 8 coins, +132/-57, bounded changes, optimistic lock, idempotency, audit, persistence, real future volatility, zero wallet writes');
+console.log('OWNER_MARKET_CORE_OK: 12 stocks (incl K/L), 8 coins, +132/-57, bounded changes, optimistic lock, idempotency, audit, persistence, real future volatility, zero wallet writes');
