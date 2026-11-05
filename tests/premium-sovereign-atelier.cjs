@@ -39,7 +39,7 @@ assert(script.includes('paintMaterials.push({material:copy,secondary:'),'Genuine
 assert(script.includes("secondary ? .31 : .22")&&script.includes('clearcoatRoughness=.12'),'Clearcoat paint surface should retain physical highlights');
 assert(script.includes('wheelFinish.disabled=!wheelMaterials.length'),'Disable unavailable wheel finish controls, never mislead');
 assert(script.includes('state.wheelSurfaceCount=wheelMaterials.length'),'Wheel surface count must be exposed to browser QA');
-assert(script.includes('if(/^Wheel(?:Front|Rear)[LR]Rim$/i.test(object.name||\'\')'),'Prevent accidental tire/brake recoloring');
+assert(script.includes('object.parent?.name')&&script.includes('rimSource&&/^Rim[12]$/i.test(mat.name||\'\')'),'Rim-only PBR changes must recognize glTF grouped primitives, not tires');
 
 assert(script.includes('car.updateMatrixWorld(true)')&&!script.includes('car.rotation.x=-Math.PI/2'),'Preserve built-in source coordinate-axis conversion, never double-rotate the model');
 for(const name of ['BodyDoorLColor1','BodyDoorRColor1','BodyHood'])assert(script.includes(name),'Original hierarchical pivot absent: '+name);
