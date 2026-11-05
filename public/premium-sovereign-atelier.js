@@ -72,7 +72,7 @@ try {
  nightGroup.add(midnight,tail);nightGroup.visible=false;scene.add(nightGroup);
  const plinth=new THREE.Group();
  const stone=new THREE.Mesh(new THREE.CylinderGeometry(3.33,3.39,.16,96),
-  new THREE.MeshPhysicalMaterial({color:0x11131a,roughness:.60,metalness:.14,clearcoat:.33}));
+  new THREE.MeshPhysicalMaterial({color:0x07080d,roughness:.50,metalness:.38,clearcoat:.55,envMapIntensity:.15}));
  stone.position.y=-.10;stone.receiveShadow=true;plinth.add(stone);
  const trim=new THREE.Mesh(new THREE.TorusGeometry(3.32,.019,8,120),
   new THREE.MeshStandardMaterial({color:0xb59863,roughness:.24,metalness:.93}));
@@ -120,7 +120,7 @@ function setView(view){
  if(!state.ready||!viewNames[view])return;
  state.view=view;
  const radius=6.6,coords={
-  hero:[5.2,2.7,5.4],front:[0,1.9,radius],side:[radius,1.9,0],
+  hero:[5.2,2.7,5.4],front:[0,1.9,radius],side:[9.25,2.10,0],
   rear:[0,1.9,-radius],detail:[2.0,1.55,1.4]
  };
  camera.position.set(...coords[view]);
@@ -167,7 +167,7 @@ function toggleDoor(){
  state.doorsOpen=!state.doorsOpen;
  door.textContent=state.doorsOpen?'양쪽 도어 닫기':'양쪽 도어 열기';
  door.setAttribute('aria-pressed',String(state.doorsOpen));
- if(state.doorsOpen)setView('side');
+ if(state.doorsOpen)setView('hero');
  banner(state.doorsOpen?'실제 GLB 차체 도어 2개가 부드럽게 열립니다.':'실제 도어를 닫습니다.');
 }
 function toggleHood(){
