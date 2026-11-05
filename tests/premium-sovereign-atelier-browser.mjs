@@ -28,9 +28,9 @@ try{
     const state=await page.evaluate(()=>window.JunjaSovereignAtelier.snapshot());
     assert.equal(state.failed,false,'Pro GLB loader failed '+name+' '+width+': '+state.lastError);
     assert.equal(state.ready,true);assert.equal(state.owned,false);assert.equal(state.paid,false);
-    assert(state.meshCount>60,'Expected real detailed GLB mesh hierarchy');
-    assert(state.materialCount>10,'Expected several PBR materials');
-    assert(state.clipCount>=4,'Actual source door/hood animations missing');
+    assert(state.meshCount>80,'Expected detailed Khronos model mesh hierarchy');
+    assert(state.materialCount>20,'Expected advanced PBR variants');
+    assert.equal(state.clipCount,0,'New source has door pivots, not pre-exported animation clips');
     assert((await page.locator('#atelierInfo').innerText()).includes('3D 모델 로딩 완료'));
     await page.locator('[data-at-view="front"]').click();
     assert.equal((await page.evaluate(()=>window.JunjaSovereignAtelier.snapshot())).view,'front');
@@ -38,8 +38,7 @@ try{
     assert.equal((await page.evaluate(()=>window.JunjaSovereignAtelier.snapshot())).view,'detail');
     await page.locator('#atelierPaint').selectOption('gold');
     assert.equal((await page.evaluate(()=>window.JunjaSovereignAtelier.snapshot())).paint,'gold');
-    await page.locator('#atelierDoor').click();
-    assert((await page.locator('#atelierInfo').innerText()).includes('애니메이션'));
+    assert.equal(await page.locator('#atelierDoor').isDisabled(),true,'Do not present unimplemented door animation as complete');
     await page.locator('#atelierReset').click();
     assert.equal((await page.evaluate(()=>window.JunjaSovereignAtelier.snapshot())).view,'hero');
     const layout=await page.evaluate(()=>({width:innerWidth,scroll:document.documentElement.scrollWidth}));
