@@ -38,7 +38,7 @@ for(const part of ['front-wide-intake','rim-polished-edge','brake-rotor','displa
 // The reported old screenshot had roof bars and cabin objects penetrating the
 // exterior silhouette. These are intentionally absent from the rendered geometry.
 for(const model of models){
- assert(!/^(a-pillar-|roof-edge-|seat-upholstery-|headrest-|seat-gold-stitch-|center-console$|dashboard-instrument-screen$|real-steering-wheel$|steering-gold-filigree$)/.test(model.name),
+ assert(!/^(a-pillar-|roof-edge-|roof-gold-seam-|windshield-header-|canopy-side-window-division-|rear-spoiler$|spoiler-left$|spoiler-right$|seat-upholstery-|headrest-|seat-gold-stitch-|center-console$|dashboard-instrument-screen$|real-steering-wheel$|steering-gold-filigree$)/.test(model.name),
   'No cockpit prop or rollbar may pierce the canopy: '+model.name);
  if(!/plinth|halo|ground-shadow|dial-index/.test(model.name)){
   let highest=-Infinity;
