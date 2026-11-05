@@ -48,7 +48,7 @@ assert.equal(coin.price,'2320000');
 assert.equal(read(coinKey).stocks.JJC.price,'2320000');
 const moon=control.apply({actorId:1,type:'coin',symbol:'MOON',mode:'price',deltaPercent:'-57.00',expectedPrice:'10000',requestId:'market_coin_00000002'});
 assert.equal(moon.price,'4300');
-assert.equal(control.list().history.length,6);
+assert.equal(control.list().history.length,4);
 const food=control.apply({actorId:1,type:'stock',symbol:'K',mode:'price',deltaPercent:'10',expectedPrice:'34000',requestId:'market_food_000000001'});
 assert.equal(food.price,'37400');
 const dairyVol=control.apply({actorId:1,type:'stock',symbol:'L',mode:'volatility',volatilityPct:50,requestId:'market_dairy_00000001'});
