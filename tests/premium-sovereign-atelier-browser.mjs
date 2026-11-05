@@ -77,12 +77,12 @@ try{
     const previousRenderedFrames=await page.evaluate(()=>window.JunjaSovereignAtelier.snapshot().renderCount);
     await page.locator('[data-at-view="wheel"]').click();
     assert((await page.evaluate(()=>window.JunjaSovereignAtelier.snapshot())).cameraDistance<3.4,'Wheel camera must be a genuine close-up, not another hero photo');
-    if(width===390){
+    if(width===390&&name==='webkit'){
      await page.evaluate(()=>document.getElementById('atelierStage').scrollIntoView({block:'center',behavior:'instant'}));
      await page.waitForFunction(before=>window.JunjaSovereignAtelier.snapshot().renderCount>before,previousRenderedFrames,{timeout:15000});
-     await page.waitForTimeout(500);
+     await page.waitForTimeout(150);
      try{
-      await page.screenshot({path:'/tmp/junja-atelier-wheel-'+name+'.png',animations:'disabled',timeout:10000});
+      await page.screenshot({path:'/tmp/junja-atelier-wheel-'+name+'.png',animations:'disabled',timeout:7000});
      }catch(err){console.log('WHEEL_SCREENSHOT_SKIPPED '+name+' '+String(err.message||err).slice(0,100));}
     }
     await page.locator('#atelierPaint').selectOption('silver');
@@ -95,13 +95,13 @@ try{
     assert.equal((await page.evaluate(()=>window.JunjaSovereignAtelier.snapshot())).view,'hero');
     const layout=await page.evaluate(()=>({width:innerWidth,scroll:document.documentElement.scrollWidth}));
     assert(layout.scroll<=layout.width+2,'Horizontal overflow '+name+' '+width+': '+JSON.stringify(layout));
-    await page.waitForTimeout(900);
-    if(width===390){
+    await page.waitForTimeout(250);
+    if(width===390&&name==='webkit'){
      // Screenshots are supplementary QA evidence. GPU repaints in software
      // Chromium can prevent Playwright's element-stability detector from settling.
      try{
       await page.evaluate(()=>document.getElementById('atelierStage').scrollIntoView({block:'center',behavior:'instant'}));
-      await page.screenshot({path:'/tmp/junja-atelier-'+name+'.png',animations:'disabled',timeout:10000});
+      await page.screenshot({path:'/tmp/junja-atelier-'+name+'.png',animations:'disabled',timeout:7000});
      }catch(err){console.log('SCREENSHOT_SKIPPED '+name+' '+String(err.message||err).slice(0,100));}
     }
     assert.deepEqual(errors,[],'Page script errors '+name+' '+width);
