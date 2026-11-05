@@ -1,6 +1,6 @@
 /* JUNJA licensed GLB atelier v1.
  * This is a separated technical preview. No wallet, purchase or entitlement API.
- * Spectral GT RS asset: CC0 1.0, JaronKBragg7337. Three.js: MIT.
+ * Khronos CarConcept: CC-BY 4.0, Eric Chadwick / Darmstadt Graphics Group GmbH. Three.js: MIT.
  */
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
@@ -22,7 +22,7 @@ const disabled=flag=>{for(const el of [...quick,door,hood,paint,light,reset])el.
 disabled(true);
 Object.defineProperty(window,'JunjaSovereignAtelier',{value:Object.freeze({
  snapshot:()=>({...state}),
- modelUrl:'/art/royal/models/spectral-gt-rs-cc0.glb'
+ modelUrl:'/art/royal/models/carconcept-ccby.glb'
 })});
 const fail=err=>{
  state.failed=true;state.ready=false;state.lastError=String(err?.message||err).slice(0,140);
@@ -149,10 +149,10 @@ function setLights(){
 async function load(){
  if(state.failed||!renderer)return;
  try{
-  const gltf=await new GLTFLoader().loadAsync('/art/royal/models/spectral-gt-rs-cc0.glb',
+  const gltf=await new GLTFLoader().loadAsync('/art/royal/models/carconcept-ccby.glb',
    e=>{if(e.total>0)status.textContent='3D 다운로드 '+Math.min(100,Math.round(e.loaded/e.total*100))+'%';});
   car=gltf.scene;
-  car.rotation.y=-Math.PI/2;
+  // Khronos car is already authored for the standard glTF coordinate system.
   const bounds=new THREE.Box3().setFromObject(car);
   if(bounds.isEmpty())throw Error('GLB 모델에 실제 메시가 없습니다.');
   const center=bounds.getCenter(tmp.clone());
@@ -160,6 +160,8 @@ async function load(){
   carRoot.add(car);
   const materialNames=new Set();
   car.traverse(object=>{
+   // Exclude trademark-bearing steering badge and license-plate graphics.
+   if(/^(InteriorSteeringEmblem|License Plate)$/i.test(object.name||'')){object.visible=false;return;}
    if(!object.isMesh)return;
    state.meshCount++;
    object.castShadow=true;object.receiveShadow=true;
@@ -168,7 +170,7 @@ async function load(){
     if(!mat)return mat;
     materialNames.add(mat.name||'unnamed');
     const n=String(mat.name||'').toLowerCase();
-    if(n.includes('spectral blue')&&n.includes('clearcoat')){
+    if(/^paint [12] (carmine|pearl|graphite)/i.test(String(mat.name||''))){
      const copy=mat.clone();
      paintMaterials.push(copy);
      return copy;
@@ -186,11 +188,12 @@ async function load(){
   // Respect saved draft color only in old studio; the new asset is explicitly free.
   setPaint('silver');
   setView('hero');
-  door.disabled=!clips.some(c=>c.name.toLowerCase().includes('door'));
-  hood.disabled=!clips.some(c=>c.name.toLowerCase().includes('hood'));
+  door.disabled=true;hood.disabled=true;
+  door.title='도어 힌지 애니메이션은 정식 모델 연결 후 제공';
+  hood.title='보닛 애니메이션은 정식 모델 연결 후 제공';
   paint.disabled=!paintMaterials.length;
   status.textContent='3D 모델 로딩 완료';
-  banner('3D 모델 로딩 완료 · 메시 '+state.meshCount+'개 · 재질 '+state.materialCount+'종 · 애니메이션 '+state.clipCount+'개');
+  banner('고품질 glTF 모델 로딩 완료 · 메시 '+state.meshCount+'개 · 재질 '+state.materialCount+'종 · 도어 조작 개발 중');
  }catch(e){fail(e);}
 }
 for(const button of quick)button.addEventListener('click',()=>setView(button.dataset.atView));
