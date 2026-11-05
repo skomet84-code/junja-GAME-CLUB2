@@ -192,9 +192,9 @@
   controls.light.addEventListener('click',()=>{state.lightsOn=!state.lightsOn;controls.light.setAttribute('aria-pressed',String(state.lightsOn));controls.light.textContent=state.lightsOn?'전조등 끄기':'전조등 켜기';setInfo(state.lightsOn?'전조등 발광 재질을 켰습니다.':'전조등을 껐습니다.');render();});
   controls.color.addEventListener('change',()=>{state.color=controls.color.value;setInfo('차체 색상: '+controls.color.selectedOptions[0].text);render();});
   controls.view.addEventListener('click',()=>{
-   const opts=[[-.44,.22,9.1],[Math.PI/2,.20,10.6],[0,.05,7.8],[Math.PI,.32,9.6],[-.44,.22,9.1],[-.44,.22,9.1]];
-   const views=['threeQuarter','side','front','rear','cockpit','wheel'];
-   const labels=['사선','측면','정면','후면','운전석 실내','휠 디테일'];
+   const opts=[[-.44,.22,9.1],[Math.PI/2,.20,10.6],[0,.05,7.8],[Math.PI,.32,9.6],[-.44,.22,9.1]];
+   const views=['threeQuarter','side','front','rear','wheel'];
+   const labels=['사선','측면','정면','후면','휠 디테일'];
    const k=(views.indexOf(state.view)+1)%views.length;
    state.view=views[k];cameraTarget(...opts[k]);
    controls.view.textContent='시점 · '+labels[k];
@@ -202,8 +202,8 @@
    if(k>=4)setInfo(labels[k]+' · 실제 3D 구조의 확대 관찰 시점입니다. 드래그하면 외관 자유 회전으로 돌아갑니다.');
   });
   // Direct camera selection on mobile avoids cycling through six presets.
-  const viewPresets={threeQuarter:[-.44,.22,9.1],side:[Math.PI/2,.2,10.6],front:[0,.05,7.8],cockpit:[-.44,.22,9.1],wheel:[-.44,.22,9.1]};
-  const viewLabels={threeQuarter:'사선',side:'측면',front:'정면',cockpit:'운전석 실내',wheel:'휠 디테일'};
+  const viewPresets={threeQuarter:[-.44,.22,9.1],side:[Math.PI/2,.2,10.6],front:[0,.05,7.8],rear:[Math.PI,.32,9.6],wheel:[-.44,.22,9.1]};
+  const viewLabels={threeQuarter:'사선',side:'측면',front:'정면',rear:'후면',wheel:'휠 디테일'};
   document.querySelectorAll('[data-sov-preset]').forEach(button=>{
    button.addEventListener('click',()=>{
     const name=button.dataset.sovPreset;
