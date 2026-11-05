@@ -1,4 +1,5 @@
 /* JUNJA PRIVATE · original concept showroom · 3D alpha */
+.new-model-entry{display:inline-flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:13px;padding:12px 19px;border:1px solid #d3b67f;border-radius:8px;background:linear-gradient(120deg,#52412c,#2e2630);color:#fae1b4;text-decoration:none;font-weight:700;font-size:12px}.new-model-entry span{font:10px Georgia,serif;letter-spacing:.10em;color:#e6c69e}.new-model-entry:hover{background:#685037}
 :root{color-scheme:dark;--black:#090a10;--navy:#11121a;--gold:#dcc28b;--line:#ffffff23;--white:#faf5e7;--soft:#b6ada3}
 *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:radial-gradient(ellipse at 80% -12%,#382e2533,transparent 45%),#090a10;color:var(--white);font:14px/1.7 system-ui,-apple-system,"Noto Sans KR",sans-serif}a{color:inherit}button,select{font:inherit}button:focus-visible,select:focus-visible,a:focus-visible,canvas:focus-visible{outline:3px solid #ffdb92;outline-offset:3px}
 .lab-notice{padding:9px 20px;text-align:center;background:#372d21;color:#f6deb1;font-size:11px;letter-spacing:.02em;border-bottom:1px solid #bca06e50}

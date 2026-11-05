@@ -19,12 +19,15 @@
     "test:jstock": "node --check j-stock-core.js && node --check j-stock-kospi-reference.js && node tests/j-stock-kospi-reference.cjs && node --check public/j-stock.js && node tests/j-stock.cjs && node tests/j-investment-ranking.cjs",
     "test:jcoin": "node --check j-coin-core.js && node --check public/j-coin.js && node tests/j-coin.cjs",
     "test:casino": "node tests/casino-collateral.cjs && node tests/royal-hula-casino.cjs && node tests/j-bank.cjs",
-    "test:jpl": "node --check jpl-core.js && node --check public/football/game.js && node tests/jpl.cjs && node --check public/football/receipts.js"
+    "test:jpl": "node --check jpl-core.js && node --check public/football/game.js && node tests/jpl.cjs && node --check public/football/receipts.js",
+    "build:premium-atelier": "node scripts/prepare-sovereign-atelier.cjs",
+    "test:premium-atelier": "node tests/premium-sovereign-atelier.cjs"
   },
   "engines": {
     "node": ">=22.5.0"
   },
   "dependencies": {
-    "pg": "^8.16.3"
+    "pg": "^8.16.3",
+    "three": "0.180.0"
   }
 }
