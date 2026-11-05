@@ -306,7 +306,7 @@
   // Exterior-first visual gate. Earlier experimental roof tubes extended
   // above the canopy and looked like a roll cage piercing the car roof.
   // Do not ship misleading floating cockpit props through the shaded glass.
-  const legacyInteriorOrProtrusions=/^(a-pillar-|roof-edge-|seat-upholstery-|headrest-|seat-gold-stitch-|center-console$|dashboard-instrument-screen$|real-steering-wheel$|steering-gold-filigree$)/;
+  const legacyInteriorOrProtrusions=/^(a-pillar-|roof-edge-|roof-gold-seam-|windshield-header-|canopy-side-window-division-|rear-spoiler$|spoiler-left$|spoiler-right$|seat-upholstery-|headrest-|seat-gold-stitch-|center-console$|dashboard-instrument-screen$|real-steering-wheel$|steering-gold-filigree$)/;
   return m.filter(x=>x.verts.length&&!legacyInteriorOrProtrusions.test(x.name));
  }
  window.JunjaSovereignMeshes=Object.freeze({create:build});
