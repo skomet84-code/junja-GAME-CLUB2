@@ -48,6 +48,7 @@ assert(script.includes('state.wheelSurfaceCount=wheelMaterials.length'),'Wheel s
 assert(!script.includes('new THREE.CircleGeometry(50,96)'),'Exterior must not render a giant black horizontal floor band');
 assert(script.includes('camera.position.distanceTo(orbit.target).toFixed(2)'),'Actual closeup camera distance must be testable');
 assert(script.includes('function frameFullExterior(direction)')&&script.includes('exteriorBounds=new THREE.Box3().setFromObject(carRoot)'),'Full-car camera must fit actual imported GLB dimensions');
+assert(script.includes('repaintDeadline=performance.now()+750')&&script.includes('if(!renderDirty&&performance.now()>repaintDeadline)return;'),'WebKit must repaint briefly after a view change, then return to idle GPU throttle');
 assert(script.includes('state.viewFitMargin=+maxNdc.toFixed(3)')&&script.includes('required*1.16'),'Mobile camera fit must check projected car silhouette with safe edge margin');
 assert(script.includes('function renderOnDemand()')&&script.match(/renderOnDemand\(\);/g)?.length>=4,'Every user-directed camera/paint/rim/light change must immediately update WebGL, even when offscreen');
 assert(script.includes("orbit.addEventListener('change',()=>{renderDirty=true;})")&&script.includes('if(!renderDirty)return;'),'Static exterior must not render at 60FPS while idle on iPhones');
