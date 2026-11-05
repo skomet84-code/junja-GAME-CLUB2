@@ -79,6 +79,22 @@
   for(const [a,b] of [[p1,p2],[p2,p3],[p3,p4],[p4,p1]])quad(m,a,b,high(b),high(a));
   return m;
  }
+ // Curved torus triangles for wheel accents, cockpit steering and ambient
+ // showroom sculpture. These are actual 3D meshes, not a photographic layer.
+ function ring(name,center,major,minor,opts={},plane='xy'){
+  const m=make(name,opts),[x,y,z]=center,steps=36,tube=10;
+  const p=(u,v)=>{
+   const outer=major+Math.cos(v)*minor;
+   if(plane==='xy')return [x+Math.cos(u)*outer,y+Math.sin(u)*outer,z+Math.sin(v)*minor];
+   if(plane==='yz')return [x+Math.sin(v)*minor,y+Math.cos(u)*outer,z+Math.sin(u)*outer];
+   return [x+Math.cos(u)*outer,y+Math.sin(v)*minor,z+Math.sin(u)*outer];
+  };
+  for(let i=0;i<steps;i++)for(let j=0;j<tube;j++){
+   const u=i*TAU/steps,u2=(i+1)*TAU/steps,v=j*TAU/tube,v2=(j+1)*TAU/tube;
+   quad(m,p(u,v),p(u2,v),p(u2,v2),p(u,v2));
+  }
+  return m;
+ }
  function create(){
   const m=[];
   const add=x=>m.push(x);
@@ -94,6 +110,54 @@
   add(box('center-stripe',[0,1.108,.32],[.07,.012,.93],{color:'#b69d70',gloss:1,metal:.74}));
   add(box('nose-badge',[0,.779,2.35],[.23,.017,.18],{color:'#cbb77e',gloss:.84,metal:.74}));
   add(box('cockpit-dashboard',[0,1.18,.62],[1.25,.08,.38],{color:'#14151c',gloss:.38,metal:.2}));
+
+  // Interior craft: leather console, dashboard display, steering rim,
+  // exposed stitching and instrument components under the greenhouse.
+  add(box('center-console',[0,1.155,-.20],[.23,.17,1.25],{color:'#1e1b1d',gloss:.24,metal:.18}));
+  add(box('console-carbon-inlay',[0,1.25,-.17],[.15,.015,1.02],{color:'#303039',gloss:.72,metal:.66}));
+  add(box('dashboard-instrument-screen',[-.39,1.255,.69],[.46,.055,.19],{color:'#19344c',gloss:.96,metal:.27}));
+  add(box('dashboard-gold-bezel',[-.39,1.29,.69],[.49,.016,.23],{color:'#c1a576',gloss:.77,metal:.88}));
+  add(ring('real-steering-wheel',[-.39,1.43,.45],.24,.038,{color:'#1b1b21',gloss:.68,metal:.32},'xy'));
+  add(ring('steering-gold-filigree',[-.39,1.43,.45],.204,.012,{color:'#caaf75',gloss:.93,metal:.86},'xy'));
+  add(box('steering-hub',[-.39,1.43,.45],[.16,.15,.045],{color:'#c3a36b',gloss:.78,metal:.82}));
+  add(box('windshield-brow',[0,1.80,-.74],[1.35,.045,.055],{color:'#151722',gloss:.8,metal:.6}));
+  add(box('rear-glass-crossbar',[0,1.70,.40],[1.27,.052,.048],{color:'#1b2026',gloss:.81,metal:.63}));
+  // Sculpted nose vents and low, recessed air intakes.
+  add(box('front-wide-intake',[0,.57,2.50],[.86,.19,.085],{color:'#03060b',gloss:.23,metal:.54}));
+  for(const side of [-1,1]){
+   add(box('lower-intake-'+side,[side*.84,.61,2.36],[.32,.18,.085],{color:'#06090e',gloss:.25,metal:.53}));
+   add(box('chin-gold-accents-'+side,[side*.66,.435,2.49],[.44,.022,.08],{color:'#b39465',gloss:.92,metal:.89}));
+   add(box('hood-vent-'+side,[side*.58,1.135,1.48],[.27,.018,.63],{color:'#0a0d13',gloss:.7,metal:.71}));
+   add(box('hood-vent-inset-'+side,[side*.58,1.152,1.52],[.15,.017,.47],{color:'#24252d',gloss:.64,metal:.62}));
+   add(box('front-corner-canard-'+side,[side*.94,.53,2.32],[.22,.037,.48],{color:'#10121b',gloss:.75,metal:.71}));
+   add(box('rear-air-scoop-'+side,[side*.90,.87,-1.19],[.13,.25,.50],{color:'#090c14',gloss:.67,metal:.74}));
+   add(box('cockpit-gold-edge-'+side,[side*.71,1.747,-.64],[.045,.032,.59],{color:'#c0a36f',gloss:.98,metal:.83}));
+   add(box('seat-upholstery-'+side,[side*.44,1.28,-.45],[.40,.18,.61],{color:'#795845',gloss:.23,metal:.05}));
+   add(box('seat-gold-stitch-'+side,[side*.44,1.385,-.33],[.03,.008,.56],{color:'#bf9d6c',gloss:.4,metal:.26}));
+   add(box('headrest-inlay-'+side,[side*.44,1.65,-.67],[.28,.010,.15],{color:'#9a7652',gloss:.30,metal:.11}));
+   add(box('floor-sill-accent-'+side,[side*1.17,.51,-.23],[.026,.024,1.6],{color:'#b69d74',gloss:.91,metal:.84}));
+   // Gold inner wheel discs and ventilated brake faces, physically distinct.
+   for(const z of [-1.47,1.43]){
+    add(ring('rim-polished-edge-'+side+'-'+z,[side*1.317,.50,z],.326,.018,
+     {color:'#e3c995',gloss:.99,metal:.91},'yz'));
+    add(ring('brake-rotor-'+side+'-'+z,[side*1.273,.50,z],.222,.023,
+     {color:'#4c5765',gloss:.64,metal:.79},'yz'));
+    add(box('brake-caliper-'+side+'-'+z,[side*1.307,.67,z+.14],[.022,.15,.09],
+     {color:'#ae6040',gloss:.72,metal:.61}));
+   }
+   add(box('tail-led-line-'+side,[side*.63,.911,-2.38],[.47,.022,.04],{color:'#e64b37',gloss:.92,metal:.33}));
+   add(ring('dual-exhaust-'+side,[side*.47,.455,-2.45],.12,.02,{color:'#c5bdad',gloss:.94,metal:.82},'xy'));
+  }
+  // Radial-cut engraved display plinth: actual 3D gold geometry.
+  for(let i=0;i<24;i++){
+   const angle=i*TAU/24;
+   const radius=3.27;
+   add(box('dial-index-'+i,[Math.cos(angle)*radius,.002,Math.sin(angle)*radius],
+    [.055,.012,.055],{color:'#b49563',gloss:.82,metal:.85}));
+  }
+  add(ring('display-gold-halo',[0,.015,0],3.37,.024,{color:'#c49e60',gloss:.87,metal:.78},'xz'));
+  add(box('sovereign-front-emblem',[0,.68,2.58],[.34,.025,.055],{color:'#d5b778',gloss:.94,metal:.91}));
+
   // Individually shaded seats visible through glass canopy.
   for(const side of [-1,1]){
    add(box('bucket-seat-'+side,[side*.44,1.25,-.45],[.53,.44,.72],{color:'#563b2e',gloss:.19}));
