@@ -85,7 +85,7 @@ try{
     assert.equal((await page.evaluate(()=>window.JunjaSovereignAtelier.snapshot())).view,'hero');
     const layout=await page.evaluate(()=>({width:innerWidth,scroll:document.documentElement.scrollWidth}));
     assert(layout.scroll<=layout.width+2,'Horizontal overflow '+name+' '+width+': '+JSON.stringify(layout));
-    await page.waitForTimeout(350);
+    await page.waitForTimeout(900);
     if(width===390){
      // Screenshots are supplementary QA evidence. GPU repaints in software
      // Chromium can prevent Playwright's element-stability detector from settling.
