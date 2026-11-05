@@ -21,7 +21,7 @@ const wheelPalettes={
  champagne:{accent:0xc49b62,base:0x30261b,roughness:.25}
 };
 const state={ready:false,failed:false,renderCount:0,meshCount:0,materialCount:0,clipCount:0,
- paint:'silver',wheelFinish:'graphite',paintSurfaceCount:0,wheelSurfaceCount:0,view:'hero',light:'studio',doorsOpen:false,hoodOpen:false,
+ paint:'silver',wheelFinish:'graphite',paintSurfaceCount:0,wheelSurfaceCount:0,headlightSurfaceCount:0,view:'hero',light:'studio',doorsOpen:false,hoodOpen:false,
  doorAngle:0,hoodAngle:0,hingeCount:0,modelSize:null,lastError:null,glb:true,owned:false,paid:false};
 const banner=message=>{info.textContent=message;};
 const disabled=flag=>{for(const el of [...quick,door,hood,paint,wheelFinish,light,reset])el.disabled=flag;};
@@ -36,7 +36,7 @@ const fail=err=>{
  banner('새 3D 모델을 표시하지 못했습니다. 기존 체험실을 이용할 수 있습니다.');
  disabled(true);
 };
-let renderer,scene,camera,orbit,mixer,clips=[],carRoot,paintMaterials=[],wheelMaterials=[];
+let renderer,scene,camera,orbit,mixer,clips=[],carRoot,paintMaterials=[],wheelMaterials=[],headlightMaterials=[];
 let environmentTexture,studioGroup,nightGroup,clock,visible=true,car=null;
 const hinges={doors:[],hood:null};
 const motion={doors:0,hood:0};
@@ -170,6 +170,10 @@ function setWheelFinish(key){
   m.metalness=accent ? .94 : .70;
   m.roughness=accent?finish.roughness:.32;
   m.envMapIntensity=1.25;
+  // The sample GLB ships with emissive white Rim1/Rim2 materials.
+  // Remove that white glow so forged metal color and PBR reflections show.
+  if(m.emissive)m.emissive.setRGB(.008,.009,.010);
+  m.emissiveIntensity=1;
   m.needsUpdate=true;
  }
  banner(wheelMaterials.length?'휠 마감 변경 · 실제 단조 림 '+wheelMaterials.length+'개 재질 표면 적용':'휠 재질을 찾지 못했습니다.');
@@ -228,6 +232,7 @@ function setLights(){
  const night=state.light!=='night';
  state.light=night?'night':'studio';
  studioGroup.visible=!night;nightGroup.visible=night;
+ for(const m of headlightMaterials)m.emissiveIntensity=night?2.10:1.15;
  light.textContent=night?'조명 · 야간':'조명 · 스튜디오';
  light.setAttribute('aria-pressed',String(!night));
  banner(night?'야간 조명으로 변경':'스튜디오 조명으로 변경');
@@ -277,6 +282,16 @@ async function load(){
      wheelMaterials.push({material:copy,accent:/^Rim2$/i.test(copy.name)});
      return copy;
     }
+    if(mat.name==='Headlight'){
+     // Original model's 10x headlamp emissive strength blew out the lamp.
+     // Keep the original lens geometry and use a controlled crisp LED white.
+     const copy=mat.clone();
+     copy.emissive.setRGB(.73,.84,1);
+     copy.emissiveIntensity=1.15;
+     copy.roughness=.27;
+     headlightMaterials.push(copy);
+     return copy;
+    }
     return mat;
    });
    object.material=Array.isArray(object.material)?replacement:replacement[0];
@@ -294,6 +309,7 @@ async function load(){
   // Free, non-owned exterior preview; no user draft or purchase is written.
   state.paintSurfaceCount=paintMaterials.length;
   state.wheelSurfaceCount=wheelMaterials.length;
+  state.headlightSurfaceCount=headlightMaterials.length;
   setPaint('silver');
   setWheelFinish('graphite');
   setView('hero');
