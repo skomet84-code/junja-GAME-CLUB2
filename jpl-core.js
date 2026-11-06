@@ -315,6 +315,28 @@ function createJPL({db,exactWallet,now=Date.now,random=()=>crypto.randomBytes(4)
   const appearances=table.reduce((sum,row)=>sum+row.played,0);
   const scored=completed.reduce((sum,f)=>sum+Number(f.score?.home||0)+Number(f.score?.away||0),0);
   const goalsInTable=table.reduce((sum,row)=>sum+row.for,0);
+  // Validate the actual saved outcome against the independently persisted goal
+  // timeline, not merely against standings calculated from the same score.
+  // Keep the report read-only: a mismatch is not permission to reroll scores.
+  const discrepancies=[];
+  const clubIds=new Set(season.clubs||CLUBS.map(c=>c.id));
+  for(const f of season.fixtures){
+   if(!f.finishedAt)continue;
+   const validTeams=clubIds.has(f.home)&&clubIds.has(f.away)&&f.home!==f.away;
+   const validScore=Number.isInteger(f.score?.home)&&Number.isInteger(f.score?.away)&&
+    f.score.home>=0&&f.score.away>=0;
+   const validEnd=f.finishedAt===f.kickoff+MATCH_MS;
+   const eventGoals=Array.isArray(f.events)?{
+     home:f.events.filter(e=>e.kind==='GOAL'&&e.side==='H').length,
+     away:f.events.filter(e=>e.kind==='GOAL'&&e.side==='A').length
+   }:null;
+   if(!validTeams||!validScore||!validEnd||!eventGoals||
+      eventGoals.home!==f.score.home||eventGoals.away!==f.score.away){
+    discrepancies.push({matchId:f.id,invalidTeams:!validTeams,invalidScore:!validScore,
+     invalidFinish:!validEnd,goalTimelineMismatch:!eventGoals||
+      validScore&&(eventGoals.home!==f.score.home||eventGoals.away!==f.score.away)});
+   }
+  }
   const latest=completed[completed.length-1];
   return {
    completed:completed.length,scheduled:season.fixtures.length,
@@ -322,9 +344,9 @@ function createJPL({db,exactWallet,now=Date.now,random=()=>crypto.randomBytes(4)
    matchdays:Math.max(1,new Set(season.fixtures.map(f=>f.day)).size),
    lastFinished:latest?{id:latest.id,finishedAt:latest.finishedAt,home:latest.home,away:latest.away,score:latest.score}:null,
    nextKickoff:season.fixtures.find(f=>f.kickoff>time)?.kickoff||null,
-   integrity:{ok:overdue.length===0&&appearances===2*completed.length&&scored===goalsInTable,
+   integrity:{ok:overdue.length===0&&appearances===2*completed.length&&scored===goalsInTable&&discrepancies.length===0,
     overdueCount:overdue.length,appearanceCount:appearances,expectedAppearances:2*completed.length,
-    totalGoals:scored,tableGoals:goalsInTable}
+    totalGoals:scored,tableGoals:goalsInTable,discrepancyCount:discrepancies.length,discrepancies:discrepancies.slice(0,10)}
   };
  }
  function status(id){
