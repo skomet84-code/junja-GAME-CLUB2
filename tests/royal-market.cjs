@@ -75,6 +75,20 @@ assert.equal(owned(3,jewel.id),0);
 assert.equal(economy.gallery(3).items.length,0);
 assert.equal(JSON.parse(db.prepare('SELECT value FROM game_state WHERE key=?').get('royal:certificate:serial:'+first.certificate.serial).value).status,'BANK_REDEEMED');
 assert.throws(()=>market.bankSell(3,jewel.id),/소장/,'bank buyback once only');
+const originalSerial=first.certificate.serial;
+// A collector can rebuy a bank-redeemed edition even when the test clock
+// has not advanced. It must never resurrect the old redeemed certificate.
+economy.buy(3,jewel.id);
+const repurchased=economy.catalog(3).items.find(x=>x.id===jewel.id);
+assert.equal(repurchased.owned,true);
+assert(repurchased.certificate);
+assert.notEqual(repurchased.certificate.serial,originalSerial,'reacquisition must mint a fresh serial');
+assert.equal(repurchased.certificate.currentOwner,'member3');
+assert.equal(repurchased.certificate.history.length,1,'fresh purchase starts new provenance');
+assert.equal(JSON.parse(db.prepare('SELECT value FROM game_state WHERE key=?').get('royal:certificate:serial:'+originalSerial).value).status,'BANK_REDEEMED');
+const nextBank=market.bankSell(3,jewel.id);
+assert.equal(nextBank.serial,repurchased.certificate.serial,'second redemption uses new certificate');
+
 const other=ROYAL_ITEMS.find(x=>x.id==='jewel_royalboutique_emerald_drops');
 economy.buy(1,other.id);
 const free=market.list(1,other.id,1n*G);
