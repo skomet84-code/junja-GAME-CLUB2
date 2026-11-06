@@ -40,7 +40,7 @@ function settleSlotRound({db,exactWallet,userId,bet,multiplier,sevenJackpot,even
    .run(payout>charged?1:0,mirror(net),userId);
   db.exec('COMMIT');
   return {freePlay,regularPayout:exactWallet.output(regular),payout:exactWallet.output(payout),
-   profit:exactWallet.output(net),jackpotAward,contribution,pool:exactWallet.output(BigInt(pool)),history};
+   profit:exactWallet.output(net),jackpotAward:exactWallet.output(jackpotAward),contribution:exactWallet.output(contribution),pool:exactWallet.output(BigInt(pool)),history};
  }catch(err){try{db.exec('ROLLBACK')}catch{}throw err}
 }
 module.exports={settleSlotRound};
