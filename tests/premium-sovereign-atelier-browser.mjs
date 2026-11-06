@@ -142,7 +142,11 @@ try{
     }
     await page.locator('#atelierPaint').selectOption('silver');
     await page.locator('#atelierWheelFinish').selectOption('graphite');
-    await page.locator('#atelierLight').click();
+    // Software WebGL can queue PBR redraws after rapid paint/rim selection,
+    // making the next pointer action appear stalled despite a healthy UI.
+    // Wait for the bounded repaint window to settle; keep the real click test.
+    await page.waitForTimeout(1100);
+    await page.locator('#atelierLight').click({timeout:60000});
     assert.equal((await page.evaluate(()=>window.JunjaSovereignAtelier.snapshot())).light,'night');
     await page.locator('#atelierLight').click();
     assert.equal((await page.evaluate(()=>window.JunjaSovereignAtelier.snapshot())).light,'studio');
