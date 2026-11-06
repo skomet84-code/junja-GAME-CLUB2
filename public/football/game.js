@@ -50,7 +50,7 @@ function renderLeagueOperations(){
  $('#jplLastFinalTime').textContent=latest?shortDate(latest.finishedAt)+' · '+time(latest.finishedAt)+' KST 확정':'경기 종료 후 자동 기록';
  $('#jplLastSync').textContent=time(status.serverNow)+' KST';
  const indicator=$('#jplSyncState');
- if(!p.integrity?.ok){indicator.className='jpl-sync-state warning';indicator.textContent='기록 점검 필요 · '+p.integrity.overdueCount+'경기 지연';}
+ if(!p.integrity?.ok){indicator.className='jpl-sync-state warning';indicator.textContent=p.integrity.discrepancyCount?'⚠ 골 기록 불일치 '+p.integrity.discrepancyCount+'건':p.integrity.overdueCount?'⚠ 경기 확정 지연 '+p.integrity.overdueCount+'건':'⚠ 순위 집계 점검 필요';}
  else{indicator.className='jpl-sync-state ok';indicator.textContent='✓ 경기·순위 집계 일치';}
 }
 function renderTop(){
