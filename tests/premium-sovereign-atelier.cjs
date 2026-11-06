@@ -50,6 +50,12 @@ assert(script.includes('camera.position.distanceTo(orbit.target).toFixed(2)'),'A
 assert(script.includes('function frameFullExterior(direction)')&&script.includes('exteriorBounds=new THREE.Box3().setFromObject(carRoot)'),'Full-car camera must fit actual imported GLB dimensions');
 assert(script.includes('repaintDeadline=performance.now()+750')&&script.includes('if(!renderDirty&&performance.now()>repaintDeadline)return;'),'WebKit must repaint briefly after a view change, then return to idle GPU throttle');
 assert(script.includes('state.viewFitMargin=+maxNdc.toFixed(3)')&&script.includes('required*1.16'),'Mobile camera fit must check projected car silhouette with safe edge margin');
+assert(page.includes('id="atelierTour"')&&page.includes('360° 외관 투어'),'360 tour requires a visible, honest GLB camera control');
+assert(script.includes('const TOUR_DURATION_MS=12000,TOUR_FRAME_INTERVAL_MS=48')&&script.includes('state.tourFrameCount++'),'360 camera tour must be finite and throttle mobile WebGL work');
+assert(script.includes('frameFullExterior(new THREE.Vector3')&&script.includes('state.viewFitMargin=+maxNdc.toFixed(3)'),'Tour camera must frame the real GLB at each angular pose');
+assert(script.includes("canvas.addEventListener('pointerdown',()=>stopTour('manual'))")&&script.includes('if(document.hidden)stopTour'),'Manual touch and backgrounding must stop the 3D tour');
+assert(script.includes("reducedMotion.matches")&&script.includes("tour.disabled=reducedMotion.matches"),'Respect OS reduced-motion setting: no forced camera movement');
+assert(!script.includes('car.rotation.y+=')&&!script.includes('new THREE.BoxGeometry(5,2,10)'),'Tour must not introduce fake car mesh geometry');
 assert(script.includes('function renderOnDemand()')&&script.match(/renderOnDemand\(\);/g)?.length>=4,'Every user-directed camera/paint/rim/light change must immediately update WebGL, even when offscreen');
 assert(script.includes("orbit.addEventListener('change',()=>{renderDirty=true;})")&&script.includes('if(!renderDirty&&performance.now()>repaintDeadline)return;'),'WebKit paints during bounded 750ms interaction bursts, then stops GPU frames while idle');
 assert(script.includes('object.parent?.name')&&script.includes('rimSource&&/^Rim[12]$/i.test(mat.name||\'\')'),'Rim-only PBR changes must recognize glTF grouped primitives, not tires');
