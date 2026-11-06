@@ -43,6 +43,8 @@ assert.ok(receiptSource.includes('<th>HOME</th><th>AWAY</th>'),'receipt has sepa
 assert.ok(receiptSource.includes("jpl-home-cell")&&receiptSource.includes("jpl-away-cell"),'compact home and away table cells');
 const footballHtml=fs.readFileSync('public/football/index.html','utf8');
 assert.ok(footballHtml.includes('id="pitchFinalBanner"')&&footballHtml.includes('id="goalMarkers"'),'full-time overlay and goal markers are mounted');
+assert.ok(footballHtml.includes('id="jplTodayCount"')&&footballHtml.includes('id="jplSyncState"'),'verified premium progress board is present');
+assert.ok(gameSource.includes('renderLeagueOperations()'),'client renders authoritative status without recomputing completed matches');
 assert.ok(gameSource.includes('Math.abs((e.minute/90*(MATCH_MS/1000))'),'goal animation uses current shortened duration');
 assert.equal(CLUBS.find(c=>c.id==='junja').name,'준자 마드리드 CF');
 assert.equal(CLUBS.find(c=>c.id==='happy').name,'햅피 바르셀로나 FC');
@@ -97,6 +99,14 @@ assert.equal(first.changed,true);
 assert.equal(first.season.id,'S1');
 assert.equal(first.season.totalGames,462);
 assert.equal(first.season.matchdays,93);
+assert.equal(first.progress.scheduled,462,'progress uses actual persisted fixture count');
+assert.equal(first.progress.completed,0);
+assert.equal(first.progress.todayScheduled,5);
+assert.equal(first.progress.todayFinal,0);
+assert.equal(first.progress.matchdays,93);
+assert.equal(first.progress.integrity.ok,true);
+assert.equal(first.progress.integrity.appearanceCount,0);
+
 assert.equal(first.today.length,5,'five matches on launch day (Nov 4 KST)');
 assert.equal(first.upcoming[0].kickoff,Date.parse('2026-11-04T12:00:00+09:00'),'opening kickoff at noon today');
 assert.equal(first.rules.maxLegs,5,'server advertises maximum five-fold combinations');
@@ -148,6 +158,14 @@ clock=match.kickoff+MATCH_MS;
 const final=jpl.status(1);
 assert.equal(final.recent[0].status,'FINAL');
 assert.deepEqual(final.recent[0].score,actual.score);
+assert.equal(final.progress.completed,1,'first completed match increments season progress');
+assert.equal(final.progress.todayFinal,1,'daily counter increments exactly once');
+assert.equal(final.progress.integrity.ok,true,'played team appearances and goals match score ledger');
+assert.equal(final.progress.integrity.appearanceCount,2);
+assert.equal(final.progress.integrity.totalGoals,actual.score.home+actual.score.away);
+assert.equal(final.progress.lastFinished.id,match.id);
+assert.equal(final.progress.lastFinished.finishedAt,match.kickoff+MATCH_MS);
+
 const result=actual.score.home>actual.score.away?'H':actual.score.home<actual.score.away?'A':'D';
 const settled=jpl.status(1).tickets.find(x=>x.id===betId);
 assert.equal(settled.status,result==='H'?'WIN':'LOSE');
