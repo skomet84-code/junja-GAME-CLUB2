@@ -596,7 +596,7 @@ function slotSymbolsForBet(bet){
   const delta=seven-baseSeven;
   return SLOT_SYMBOLS.map(x=>x.s==='7️⃣'?{...x,w:seven}:x.s==='🍒'?{...x,w:x.w-delta}:x);
 }
-const SLOT_MULT = {'🍒':1,'🍋':3,'🍊':5,'🔔':8,'⭐':10,'💎':20,'7️⃣':1000,'J':800};
+const SLOT_MULT = {'🍒':1,'🍋':3,'🍊':5,'🔔':8,'⭐':10,'💎':20,'7️⃣':1000,'J':500};
 const SLOT_LINES = [
   { key:'top', label:'TOP', cssClass:'top', cells:[[0,0],[0,1],[0,2]] },
   { key:'mid', label:'MIDDLE', cssClass:'mid', cells:[[1,0],[1,1],[1,2]] },
