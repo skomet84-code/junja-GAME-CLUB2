@@ -10,7 +10,8 @@ import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 const $=id=>document.getElementById(id);
 const canvas=$('atelierCanvas'),loading=$('atelierLoading'),status=$('atelierStatus');
 const info=$('atelierInfo'),fallback=$('atelierFallback'),error=$('atelierError');
-const paint=$('atelierPaint'),wheelFinish=$('atelierWheelFinish'),door=$('atelierDoor'),hood=$('atelierHood'),light=$('atelierLight'),reset=$('atelierReset');
+const paint=$('atelierPaint'),wheelFinish=$('atelierWheelFinish'),door=$('atelierDoor'),hood=$('atelierHood'),light=$('atelierLight'),reset=$('atelierReset'),tour=$('atelierTour');
+const reducedMotion=window.matchMedia('(prefers-reduced-motion: reduce)');
 const stage=$('atelierStage');
 const quick=[...document.querySelectorAll('[data-at-view]')];
 const viewNames={hero:'외관 3/4',front:'정면',frontDetail:'전면 디자인',side:'측면',rear:'후면',wheel:'전륜 디테일'};
@@ -21,10 +22,10 @@ const wheelPalettes={
  champagne:{accent:0xc49b62,base:0x30261b,roughness:.25}
 };
 const state={ready:false,failed:false,renderCount:0,meshCount:0,materialCount:0,clipCount:0,
- paint:'silver',wheelFinish:'graphite',paintSurfaceCount:0,wheelSurfaceCount:0,headlightSurfaceCount:0,frontGrilleCount:0,brakeCaliperCount:0,wheelTargetResolved:false,cameraDistance:null,viewFitMargin:null,autoFramed:false,view:'hero',light:'studio',doorsOpen:false,hoodOpen:false,
+ paint:'silver',wheelFinish:'graphite',tourActive:false,tourProgress:0,tourFrameCount:0,paintSurfaceCount:0,wheelSurfaceCount:0,headlightSurfaceCount:0,frontGrilleCount:0,brakeCaliperCount:0,wheelTargetResolved:false,cameraDistance:null,viewFitMargin:null,autoFramed:false,view:'hero',light:'studio',doorsOpen:false,hoodOpen:false,
  doorAngle:0,hoodAngle:0,hingeCount:0,modelSize:null,lastError:null,glb:true,owned:false,paid:false};
 const banner=message=>{info.textContent=message;};
-const disabled=flag=>{for(const el of [...quick,door,hood,paint,wheelFinish,light,reset])el.disabled=flag;};
+const disabled=flag=>{for(const el of [...quick,door,hood,paint,wheelFinish,light,reset,tour])el.disabled=flag;};
 disabled(true);
 Object.defineProperty(window,'JunjaSovereignAtelier',{value:Object.freeze({
  snapshot:()=>({...state}),
@@ -44,6 +45,8 @@ const motion={doors:0,hood:0};
 const tmp=new THREE.Vector3();
 let renderDirty=true;
 let repaintDeadline=0;
+const TOUR_DURATION_MS=12000,TOUR_FRAME_INTERVAL_MS=48;
+let tourStartedAt=0,lastTourFrame=0;
 // A user may select a camera or finish while the canvas is outside the viewport.
 // Rendering only in the intersection-based RAF loop caused a stale image to
 // appear one selection behind on real iPhone/WebKit screenshots.
@@ -113,14 +116,16 @@ try {
  const onResize=()=>{
   const width=Math.max(canvas.clientWidth,1),height=Math.max(canvas.clientHeight,1);
   renderer.setSize(width,height,false);camera.aspect=width/height;camera.updateProjectionMatrix();renderDirty=true;repaintDeadline=performance.now()+750;
+  // Stop automated movement before recomputing the canvas aspect.
+  if(state.tourActive)stopTour('resize');
   // On orientation change, refit the full exterior to the real canvas aspect.
   if(state.ready&&['hero','front','side','rear'].includes(state.view))setView(state.view,false);
  };
  onResize();
  if(window.ResizeObserver)new ResizeObserver(onResize).observe(stage);
  else window.addEventListener('resize',onResize);
- if(window.IntersectionObserver)new IntersectionObserver(entries=>{visible=!!entries[0]?.isIntersecting;if(visible){renderDirty=true;repaintDeadline=performance.now()+750;}},{threshold:0}).observe(stage);
- window.addEventListener('visibilitychange',()=>{clock.getDelta();renderDirty=true;repaintDeadline=performance.now()+750;});
+ if(window.IntersectionObserver)new IntersectionObserver(entries=>{visible=!!entries[0]?.isIntersecting;if(visible){renderDirty=true;repaintDeadline=performance.now()+750;}else if(state.tourActive)stopTour('hidden');},{threshold:0}).observe(stage);
+ window.addEventListener('visibilitychange',()=>{clock.getDelta();renderDirty=true;repaintDeadline=performance.now()+750;if(document.hidden)stopTour('hidden');});
  canvas.addEventListener('webglcontextlost',event=>{event.preventDefault();fail(Error('WebGL 그래픽 연결이 끊겼습니다.'));});
  function animate(){
   requestAnimationFrame(animate);
@@ -142,6 +147,7 @@ try {
   state.hoodAngle=+(motion.hood*.47).toFixed(3);
   // OrbitControls emits 'change' while touch drag/zoom/damping is active.
   // Stop redraws when the user is not touching the static, nonanimated car.
+  if(state.tourActive)advanceTour(performance.now());
   orbit.update();
   // A single synchronous WebGL render is not enough for iPhone compositor.
   // Repaint for 750ms after interactions, then stop drawing while idle.
@@ -184,8 +190,58 @@ try {
   orbit.target.copy(target);
   state.autoFramed=true;
  }
+// A finite real-GLB 360-degree orbit. Never rotate source meshes or
+// keep drawing at 60fps indefinitely on a phone.
+function stopTour(reason='manual'){
+ if(!state.tourActive)return;
+ state.tourActive=false;
+ tourStartedAt=0;lastTourFrame=0;
+ tour.textContent='360° 외관 투어';
+ tour.setAttribute('aria-pressed','false');
+ if(reason==='manual')banner('360° 투어 중단 · 직접 차량을 회전할 수 있습니다.');
+ if(reason==='hidden'||reason==='resize')banner('화면 변경으로 360° 투어가 중단되었습니다.');
+}
+function startTour(){
+ if(!state.ready||state.failed||reducedMotion.matches)return;
+ if(state.tourActive){stopTour('manual');return;}
+ setView('hero',false);
+ state.tourProgress=0;state.tourFrameCount=0;
+ state.tourActive=true;
+ tourStartedAt=performance.now();lastTourFrame=0;
+ tour.textContent='360° 투어 중지';
+ tour.setAttribute('aria-pressed','true');
+ banner('실제 GLB 차량을 한 바퀴 돌아보는 360° 외관 투어');
+ stage.scrollIntoView({block:'center',behavior:'instant'});
+ renderDirty=true;
+}
+function advanceTour(now){
+ if(!state.tourActive||now-lastTourFrame<TOUR_FRAME_INTERVAL_MS)return;
+ lastTourFrame=now;
+ const ratio=Math.min(1,(now-tourStartedAt)/TOUR_DURATION_MS);
+ const azimuth=Math.atan2(5.2,5.65)+ratio*Math.PI*2;
+ // Refit each angle to physical source bounds to avoid clipping at the sides.
+ frameFullExterior(new THREE.Vector3(Math.sin(azimuth)*7.7,1.85,Math.cos(azimuth)*7.7));
+ orbit.update();
+ camera.updateMatrixWorld(true);
+ let maxNdc=0;
+ for(const point of exteriorCorners(exteriorBounds)){
+  const projected=point.project(camera);
+  maxNdc=Math.max(maxNdc,Math.abs(projected.x),Math.abs(projected.y));
+ }
+ state.viewFitMargin=+maxNdc.toFixed(3);
+ state.cameraDistance=+camera.position.distanceTo(orbit.target).toFixed(2);
+ state.tourProgress=+(ratio*100).toFixed(1);
+ state.tourFrameCount++;
+ renderDirty=true;
+ if(ratio===1){
+  stopTour('complete');
+  setView('hero',false);
+  banner('360° 외관 투어 완료 · 직접 회전하거나 색상을 바꿀 수 있습니다.');
+ }
+}
 function setView(view,announce=true){
  if(!state.ready||!viewNames[view])return;
+ if(state.tourActive)stopTour('view');
  state.view=view;
  const angles={
   hero:new THREE.Vector3(5.2,1.85,5.65),front:new THREE.Vector3(0,1.1,6.6),
@@ -425,6 +481,7 @@ async function load(){
   mixer=clips.length?new THREE.AnimationMixer(car):null;
   state.ready=true;
   loading.hidden=true;fallback.hidden=true;disabled(false);
+  tour.disabled=reducedMotion.matches;
   // Exterior-first showroom: original hinge/bonnet prototypes are kept for
   // separate QA but are not presented as member-facing product features.
   // Keep the moving parts closed and out of the luxury exterior presentation.
@@ -454,4 +511,11 @@ door.addEventListener('click',toggleDoor);
 hood.addEventListener('click',toggleHood);
 light.addEventListener('click',setLights);
 reset.addEventListener('click',()=>{setView('hero');});
+tour.addEventListener('click',startTour);
+canvas.addEventListener('pointerdown',()=>stopTour('manual'));
+canvas.addEventListener('wheel',()=>stopTour('manual'),{passive:true});
+if(reducedMotion.addEventListener)reducedMotion.addEventListener('change',()=>{
+ if(reducedMotion.matches)stopTour('manual');
+ tour.disabled=!state.ready||state.failed||reducedMotion.matches;
+});
 load();

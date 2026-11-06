@@ -64,6 +64,33 @@ try{
       assert(framed.viewFitMargin>0&&framed.viewFitMargin<.95,'Full car clipping risk '+name+' '+width+' '+mode+': '+framed.viewFitMargin);
      }else assert.equal(framed.autoFramed,false,'Closeup should preserve intended detail framing: '+mode);
     }
+    // The optional tour must orbit the REAL model (not a rotating image),
+    // fit each side on a phone, and stop on user input or reduced motion.
+    assert(await page.locator('#atelierTour').isEnabled(),'Manual 360 GLB tour control is unavailable');
+    if(width===390){
+     await page.locator('#atelierTour').click();
+     assert.equal((await page.evaluate(()=>window.JunjaSovereignAtelier.snapshot())).tourActive,true,'Real car tour failed to start');
+     assert.equal(await page.locator('#atelierTour').getAttribute('aria-pressed'),'true');
+     await page.waitForFunction(()=>{const s=window.JunjaSovereignAtelier.snapshot();return s.tourProgress>0&&s.tourFrameCount>=2;},null,{timeout:12000});
+     const firstTour=await page.evaluate(()=>window.JunjaSovereignAtelier.snapshot());
+     assert(firstTour.autoFramed&&firstTour.viewFitMargin<.95,'Auto-rotating GLB must fit iPhone silhouette');
+     const firstFrames=firstTour.tourFrameCount;
+     await page.waitForTimeout(300);
+     const nextFrames=(await page.evaluate(()=>window.JunjaSovereignAtelier.snapshot())).tourFrameCount;
+     assert(nextFrames-firstFrames<=8,'Tour must throttle GPU renders to roughly 20fps instead of 60fps');
+     await page.locator('[data-at-view="front"]').click();
+     assert.equal((await page.evaluate(()=>window.JunjaSovereignAtelier.snapshot())).tourActive,false,'Direct view must stop orbit');
+     assert.equal(await page.locator('#atelierTour').getAttribute('aria-pressed'),'false');
+     await page.locator('#atelierTour').click();
+     assert.equal((await page.evaluate(()=>window.JunjaSovereignAtelier.snapshot())).tourActive,true);
+     await page.locator('#atelierCanvas').click({position:{x:32,y:40}});
+     assert.equal((await page.evaluate(()=>window.JunjaSovereignAtelier.snapshot())).tourActive,false,'Touching the car must stop tour');
+     await page.emulateMedia({reducedMotion:'reduce'});
+     await page.waitForFunction(()=>document.getElementById('atelierTour').disabled);
+     await page.emulateMedia({reducedMotion:'no-preference'});
+     await page.waitForFunction(()=>!document.getElementById('atelierTour').disabled);
+     console.log('SOVEREIGN_360_GLTF_TOUR_OK '+name+' 390px');
+    }
     const frontBefore=await page.evaluate(()=>window.JunjaSovereignAtelier.snapshot().renderCount);
     await page.locator('[data-at-view="frontDetail"]').click();
     assert((await page.evaluate(()=>window.JunjaSovereignAtelier.snapshot())).renderCount>frontBefore,'Front detail action must immediately render a fresh 3D frame');
