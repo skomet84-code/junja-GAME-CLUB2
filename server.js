@@ -2873,6 +2873,13 @@ const server=http.createServer(async(req,res)=>{
       try{return json(res,200,commerceReadinessReport());}
       catch(e){console.error('[COMMERCE READINESS]',e.message);return json(res,500,{error:'출시 점검표를 검증하지 못했습니다. 결제는 계속 비활성화됩니다.'});}
     }
+    // Collector inventory operator audit: read-only, no credit or stock mutation.
+    if(url.pathname==='/api/admin/royal-inventory'&&req.method==='GET'){
+      const operator=requireAdmin(req,res);if(!operator)return;
+      if(!rateLimit('royal_inventory_audit:'+operator.id,12,60000))return json(res,429,{error:'명품관 재고 점검 요청이 너무 빠릅니다.'});
+      try{return json(res,200,royalEconomy.inventoryAudit());}
+      catch(e){console.error('[ROYAL INVENTORY AUDIT]',e);return json(res,500,{error:'명품관 소유권 점검을 완료하지 못했습니다.'});}
+    }
     if(url.pathname==='/api/admin/economy'&&req.method==='GET'){
       const u=requireAdmin(req,res);if(!u)return;
       if(!rateLimit('economy_admin:'+u.id,15,60000))return json(res,429,{error:'경제 조회 요청이 너무 빠릅니다.'});

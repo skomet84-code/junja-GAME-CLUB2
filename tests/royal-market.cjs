@@ -75,6 +75,20 @@ assert.equal(owned(3,jewel.id),0);
 assert.equal(economy.gallery(3).items.length,0);
 assert.equal(JSON.parse(db.prepare('SELECT value FROM game_state WHERE key=?').get('royal:certificate:serial:'+first.certificate.serial).value).status,'BANK_REDEEMED');
 assert.throws(()=>market.bankSell(3,jewel.id),/소장/,'bank buyback once only');
+const originalSerial=first.certificate.serial;
+// A collector can rebuy a bank-redeemed edition even when the test clock
+// has not advanced. It must never resurrect the old redeemed certificate.
+economy.buy(3,jewel.id);
+const repurchased=economy.catalog(3).items.find(x=>x.id===jewel.id);
+assert.equal(repurchased.owned,true);
+assert(repurchased.certificate);
+assert.notEqual(repurchased.certificate.serial,originalSerial,'reacquisition must mint a fresh serial');
+assert.equal(repurchased.certificate.currentOwner,'member3');
+assert.equal(repurchased.certificate.history.length,1,'fresh purchase starts new provenance');
+assert.equal(JSON.parse(db.prepare('SELECT value FROM game_state WHERE key=?').get('royal:certificate:serial:'+originalSerial).value).status,'BANK_REDEEMED');
+const nextBank=market.bankSell(3,jewel.id);
+assert.equal(nextBank.serial,repurchased.certificate.serial,'second redemption uses new certificate');
+
 const other=ROYAL_ITEMS.find(x=>x.id==='jewel_royalboutique_emerald_drops');
 economy.buy(1,other.id);
 const free=market.list(1,other.id,1n*G);
@@ -90,4 +104,15 @@ assert.equal(market.market(1).owned[0].certificate.status,'ACTIVE');
 assert.equal(market.market(1).owned[0].certificate.currentOwner,'member1');
 const publicCertificate=JSON.stringify(economy.gallery(1).items[0].certificate);
 assert(!publicCertificate.includes('currentOwnerId')&&!publicCertificate.includes('originalOwnerId'));
+// Operator reconciliation remains read-only and flags impossible stock/cert states.
+const audit=economy.inventoryAudit();
+assert.equal(audit.readOnly,true);
+assert.equal(audit.healthy,true);
+assert(audit.items.some(x=>x.id===other.id&&x.sold===1));
+const corruptedKey='royal:certificate:holder:1:'+other.id;
+db.prepare('UPDATE game_state SET value=? WHERE key=?').run(JSON.stringify('JLC-DEADBEEFDEADBEEF'),corruptedKey);
+const broken=economy.inventoryAudit();
+assert.equal(broken.healthy,false);
+assert(broken.issues.some(x=>x.type==='CERTIFICATE_MISMATCH'&&x.itemId===other.id));
+assert.equal(owned(1,other.id),1,'audit must not repair or mutate inventory');
 console.log('ROYAL_MARKET_OK: exact escrow, outbid refunds, sole settlement, bank redemption, stable certificates, provenance and expiry');

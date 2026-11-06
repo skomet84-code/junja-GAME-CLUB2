@@ -54,6 +54,24 @@ function createRoyalMarket({db,exactWallet,now,items}){
  }
  // No internal user IDs are exposed on public collector certificates.
  function scrub(c){if(!c)return null;const {originalOwnerId,currentOwnerId,...safe}=c;return safe;}
+ // Newly purchased objects receive a fresh, irreversible acquisition serial.
+ // This prevents a bank-redeemed item repurchased in the same millisecond from
+ // inheriting the previous owner's revoked provenance record.
+ function issueCertificate(uid,itemId){
+  if(!owning(uid,itemId))throw Error('소장품 구매가 확정되지 않았어.');
+  if(parse(getKey(holderKey(uid,itemId))))throw Error('이미 소유권 증명서가 발급됐어.');
+  const item=itemBy(itemId),u=goodUser(uid);
+  const receipt=parse(getKey(inscriptionKey(uid,itemId)),{});
+  const t=Number(receipt.purchasedAt||owning(uid,itemId).purchased_at||now());
+  let serial;
+  do{serial='JLC-'+crypto.randomBytes(8).toString('hex').toUpperCase()}while(getKey(certKey(serial)));
+  const cert={serial,itemId,itemName:item.name,issuedAt:t,issuedPrice:String(receipt.paid||item.price),
+   originalOwnerId:uid,originalOwner:u.nickname,currentOwnerId:uid,currentOwner:u.nickname,
+   status:'ACTIVE',transfers:0,history:[{type:'FIRST_ACQUISITION',at:t,to:u.nickname,price:String(receipt.paid||item.price)}]};
+  put(certKey(serial),cert,t);
+  put(holderKey(uid,itemId),serial,t);
+  return scrub(cert);
+ }
  function ensureCertificate(uid,itemId){
   const receipt=parse(getKey(inscriptionKey(uid,itemId)),{});
   const inventory=owning(uid,itemId);
@@ -243,6 +261,6 @@ function createRoyalMarket({db,exactWallet,now,items}){
   return {owner:current.nickname,owned,active,history,now:now(),rules:{
    durationHours:24,minimumBid:'10000000000000000',sellerFeePct:Number(MARKET_FEE_PCT),bankBuybackPct:Number(BANK_BUYBACK_PCT),minimumRaisePct:5,maxListingsPerUser:10}};
  }
- return {bankSell,bankSellInTransaction,bankOffer,list,bid,cancel,market,settleExpired,activeFor,certificate};
+ return {bankSell,bankSellInTransaction,bankOffer,list,bid,cancel,market,settleExpired,activeFor,certificate,issueCertificate};
 }
 module.exports={createRoyalMarket};
