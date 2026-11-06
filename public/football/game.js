@@ -397,26 +397,16 @@ function canvasDraw(timestamp){
  ctx.fillStyle='#f2f3da';ctx.beginPath();ctx.arc(lx+lw*.112,ly+lh/2,3.8,0,7);ctx.arc(lx+lw*.888,ly+lh/2,3.8,0,7);ctx.fill();
  ctx.strokeStyle='#d9eee19a';ctx.lineWidth=1;ctx.beginPath();ctx.arc(lx+lw*.112,ly+lh/2,64,-.92,.92);ctx.stroke();
  ctx.beginPath();ctx.arc(lx+lw*.888,ly+lh/2,64,Math.PI-.92,Math.PI+.92);ctx.stroke();
- // Movement is a fast, deterministic broadcast illustration; server score remains authoritative.
- const base=[[.06,.5],[.21,.14],[.21,.37],[.21,.63],[.21,.86],[.37,.18],[.37,.43],[.37,.57],[.37,.82],[.60,.36],[.60,.66]];
- const motion=playing||finishedVisual?1:.42;
- const possession=Math.sin(tm*.49+seed*.002)>0?'H':'A';
- const ball={
-  x:.50+.40*Math.sin(tm*.59+seed*.004),
-  y:.50+.33*Math.sin(tm*1.27+seed*.003)
- };
- if(playing&&match.events?.length){
-  const goal=match.events.filter(e=>e.kind==='GOAL')
-   .find(e=>Math.abs((e.minute/90*(MATCH_MS/1000))-tick)<1.2);
-  if(goal){ball.x=goal.side==='H'?.955:.045;ball.y=.50+.07*Math.sin(tm*4)}
- }
+ // One authored broadcast sequence drives passes, 22 players and the ball.
+ // It cannot set or modify fixture scores, odds or the actual match timeline.
+ const frame=window.JPLBroadcastMotion.frame({seconds:playing?tick:finishedVisual?MATCH_MS/1000:0,
+  minute:match?.minute||0,seed,playing,finished:finishedVisual,events:match?.events||[]});
+ const ball=frame.ball;
+ const possession=frame.side;
  const px=x=>lx+x*lw,py=y=>ly+y*lh;
  function player(side,i){
-  const hside=side==='H',p=base[i],bx=hside?p[0]:1-p[0],by=hside?p[1]:1-p[1];
-  const chase=.06+(.13+.095*Math.sin(i*2.15+tm*.78))*(i===0?.1:1)*(side===possession?1.25:1);
-  const dx=(Math.sin(tm*(1.12+i*.055)+i*2.23+(hside?0:4.5))*.049+(ball.x-bx)*chase)*motion;
-  const dy=(Math.cos(tm*(1.18+i*.061)+i*1.43)*.067+(ball.y-by)*chase*.8)*motion;
-  const xx=px(Math.max(.025,Math.min(.975,bx+dx))),yy=py(Math.max(.04,Math.min(.96,by+dy)));
+  const hside=side==='H',point=frame.players[side][i];
+  const xx=px(point.x),yy=py(point.y);
   const c=hside?home:away,fill=c.primary||'#eee';
   ctx.fillStyle='#0009';ctx.beginPath();ctx.ellipse(xx+3,yy+12,13,5,0,0,7);ctx.fill();
   if(playing){
@@ -431,18 +421,35 @@ function canvasDraw(timestamp){
  }
  for(let i=0;i<11;i++)player('H',i);
  for(let i=0;i<11;i++)player('A',i);
- const bx=px(ball.x),by=py(ball.y),bounce=3.8*Math.abs(Math.sin(tm*10));
- const vx=.40*.59*Math.cos(tm*.59+seed*.004),vy=.33*1.27*Math.cos(tm*1.27+seed*.003);
+ // A flight arc and a directional trail show the actual scripted pass.
+ const bx=px(ball.x),by=py(ball.y),bounce=ball.lift*lh+2.7*Math.abs(Math.sin(tm*8));
  if(playing){
-  for(let k=3;k>=1;k--){
-   ctx.beginPath();ctx.arc(bx-vx*32*k,by-vy*21*k-bounce,Math.max(1,6-k*1.4),0,Math.PI*2);
-   ctx.fillStyle='rgba(253,240,196,'+(.08+(3-k)*.055)+')';ctx.fill();
+  const from=frame.players[possession][frame.carrier],to=frame.players[possession][frame.receiver];
+  ctx.setLineDash([6,8]);ctx.lineWidth=1.5;ctx.strokeStyle='#ffdf9877';
+  ctx.beginPath();ctx.moveTo(px(from.x),py(from.y));ctx.lineTo(px(to.x),py(to.y));ctx.stroke();ctx.setLineDash([]);
+  for(let k=1;k<=3;k++){
+   const frac=k/9;
+   ctx.fillStyle='rgba(255,241,190,'+(.18-frac*.12)+')';
+   ctx.beginPath();ctx.arc(bx+(px(from.x)-bx)*frac,by+(py(from.y)-by)*frac-bounce*(1-frac),3.8-k*.7,0,7);ctx.fill();
   }
  }
  ctx.fillStyle='#0008';ctx.beginPath();ctx.ellipse(bx+3,by+9,10,4.5,0,0,7);ctx.fill();
  ctx.shadowColor='#fff2cd';ctx.shadowBlur=playing?13:4;
  ctx.fillStyle='#fffdf5';ctx.beginPath();ctx.arc(bx,by-bounce,8.3,0,7);ctx.fill();
  ctx.shadowBlur=0;ctx.fillStyle='#15253b';ctx.beginPath();ctx.arc(bx,by-bounce,3.3,0,7);ctx.fill();
+ // Premium broadcast graphics are visual only, driven by released match events.
+ if(frame.highlight){
+  const hEvent=frame.highlight;
+  const color=hEvent.kind==='GOAL'?'#f6d18e':'#e9f6ed';
+  ctx.fillStyle='#071318d9';ctx.fillRect(w/2-186,18,372,50);
+  ctx.strokeStyle=color;ctx.lineWidth=1.6;ctx.strokeRect(w/2-186,18,372,50);
+  ctx.textAlign='center';ctx.font='900 24px Arial';ctx.fillStyle=color;
+  ctx.fillText(hEvent.kind==='GOAL'?'⚽ GOAL!':hEvent.kind==='SHOT'?'SHOT ON GOAL':'BRILLIANT SAVE',w/2,51);
+  ctx.textAlign='left';
+ }
+ ctx.fillStyle='#0b1824d9';ctx.fillRect(lx+9,ly+8,186,28);
+ ctx.fillStyle='#e7d1a5';ctx.font='bold 13px Arial';ctx.textAlign='left';
+ ctx.fillText(finishedVisual?'FINAL / NO PLAY':playing?'LIVE · '+(match.minute||0)+'′':'PRE-MATCH STUDIO',lx+18,ly+27);
  ctx.textAlign='left';ctx.fillStyle='#e6efefcc';ctx.font='bold 14px Arial';ctx.fillText('JPL / MATCH ENGINE',X+5,h-21);
  ctx.textAlign='right';ctx.fillStyle='#d8bd83';ctx.fillText(match?.demo?'EXHIBITION  ·  NOT FOR BETTING':'JUNJA PREMIER LEAGUE',w-X-5,h-21);
 }
