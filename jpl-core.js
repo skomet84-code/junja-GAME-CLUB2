@@ -346,6 +346,47 @@ function createJPL({db,exactWallet,now=Date.now,random=()=>crypto.randomBytes(4)
    upcoming:upcoming.map(f=>fixturePublic(f,t)),recent:recently.map(f=>fixturePublic(f,t)),
    live:live.map(f=>fixturePublic(f,t)),tickets,analysisUnlocked:unlockedForUser(id,season.id)};
  }
+ // Public historical form is derived only from FINAL fixtures. Archived
+ // seasons contain results, while live-season fixtures have kickoff timestamps.
+ // Never count a kickoff simulation before finishedAt has been committed.
+ function teamReport(id,clubId,opponentId){
+  user(id);const {season,changed}=advance();
+  clubId=String(clubId||'');opponentId=String(opponentId||'');
+  if(!CLUB_MAP.has(clubId)||!CLUB_MAP.has(opponentId)||clubId===opponentId)
+   throw Error('유효한 서로 다른 두 클럽을 선택해주세요.');
+  const results=[];
+  for(let i=1;i<season.number;i++){
+   const past=read(ARCHIVE+'S'+i);if(!past||!Array.isArray(past.results))continue;
+   for(let n=0;n<past.results.length;n++){
+    const f=past.results[n];
+    if(!f?.score||!Number.isInteger(f.score.home)||!Number.isInteger(f.score.away))continue;
+    results.push({id:f.id,season:i,home:f.home,away:f.away,
+     score:{home:f.score.home,away:f.score.away},finishedAt:null,order:n});
+   }
+  }
+  for(let n=0;n<season.fixtures.length;n++){
+   const f=season.fixtures[n];if(!f.finishedAt||!f.score)continue;
+   results.push({id:f.id,season:season.number,home:f.home,away:f.away,
+    score:{home:f.score.home,away:f.score.away},finishedAt:f.finishedAt,order:n});
+  }
+  const outcome=(f,club)=>{
+   const gf=f.home===club?f.score.home:f.score.away;
+   const ga=f.home===club?f.score.away:f.score.home;
+   return {result:gf>ga?'W':gf<ga?'L':'D',gf,ga};
+  };
+  const recent=results.filter(f=>f.home===clubId||f.away===clubId).slice(-10).reverse()
+   .map(f=>({...f,...outcome(f,clubId)}));
+  const versus=results.filter(f=>(f.home===clubId&&f.away===opponentId)||(f.home===opponentId&&f.away===clubId));
+  const h2h=versus.reduce((a,f)=>{
+    const {result}=outcome(f,clubId);if(result==='W')a.wins++;else if(result==='L')a.losses++;else a.draws++;
+    return a;
+  },{total:versus.length,wins:0,draws:0,losses:0});
+  const form=recent.reduce((a,f)=>{if(f.result==='W')a.wins++;else if(f.result==='L')a.losses++;else a.draws++;a.gf+=f.gf;a.ga+=f.ga;return a;},
+   {total:recent.length,wins:0,draws:0,losses:0,gf:0,ga:0});
+  return {ok:true,changed,team:CLUB_MAP.get(clubId),opponent:CLUB_MAP.get(opponentId),
+   recent,form,h2h,headToHead:versus.slice(-10).reverse().map(f=>({...f,...outcome(f,clubId)})),
+   scope:'final_matches_only',seasonNumber:season.number};
+ }
  function analysis(id,matchId,purchase=false){
   id=Number(id);
   if(!Number.isSafeInteger(id)||id<1)throw Error('계정을 확인할 수 없습니다.');
@@ -431,6 +472,6 @@ function createJPL({db,exactWallet,now=Date.now,random=()=>crypto.randomBytes(4)
    db.exec('COMMIT');return {ok:true,duplicate:false,ticket,wallet:String(after)};
   }catch(err){try{db.exec('ROLLBACK')}catch{}throw err}
  }
- return {status,schedule,analysis,bet,tick:()=>advance().changed,clubs:CLUBS};
+ return {status,schedule,analysis,teamReport,bet,tick:()=>advance().changed,clubs:CLUBS};
 }
 module.exports={createJPL,CLUBS,RESERVES,ALL_CLUBS,makeRoundRobin,createSchedule,createSeason,oddsFor,probabilities,handicapOddsFor,handicapLine,handicapResult,DAY,MATCH_MS,MIN_STAKE,MAX_STAKE,MAX_RETURN,ANALYSIS_PRICE,analysisFor};
