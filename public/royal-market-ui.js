@@ -21,7 +21,7 @@
  function ownedCard(item){
   const picked=selectedId===item.id,selected=item.certificate||{};
   return '<button type="button" class="jrm-owned-piece '+(picked?'selected ':'')+(item.listed?'listed':'')+'" data-jrm-select="'+esc(item.id)+'">'+
-   '<div class="jrm-owned-art">'+art(item)+'</div><div class="jrm-owned-copy"><small>'+esc(item.category==='jewel'?'HAUTE JOAILLERIE':item.category==='watch'?'HAUTE HORLOGERIE':'ROYAL MASTERPIECE')+'</small><strong>'+esc(item.name)+'</strong><span>'+esc(initials(item))+'</span></div>'+
+   '<div class="jrm-owned-art">'+art(item)+'</div><div class="jrm-owned-copy"><small>'+esc(item.category==='jewel'?'HAUTE JOAILLERIE':item.category==='watch'?'HAUTE HORLOGERIE':item.category==='bag'?'HAUTE COUTURE · HANDBAGS':'ROYAL MASTERPIECE')+'</small><strong>'+esc(item.name)+'</strong><span>'+esc(initials(item))+'</span></div>'+
    '<span class="jrm-owned-state">'+(item.listed?'경매 등록 중':picked?'선택됨':'선택')+'</span></button>';
  }
  function auctionCard(item){
