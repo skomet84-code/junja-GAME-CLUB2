@@ -45,7 +45,7 @@ assert(ROYAL_ITEMS.every(item=>BigInt(item.price)>=10n**16n),'all boutique price
 assert.equal(new Set(ROYAL_ITEMS.map(x=>x.id)).size,55,'no duplicate catalog items');
 assert(ROYAL_ITEMS.every(x=>Number.isInteger(x.stock)&&x.stock>=1&&x.stock<=3),'every luxury piece has only one to three real copies');
 assert.equal(ROYAL_ITEMS.filter(x=>x.brand&&x.photoFile).length,12,'licensed brand vehicle photos');
-assert.deepEqual([...new Set(ROYAL_ITEMS.filter(x=>x.brand).map(x=>x.brand))].sort(),['aston-martin','bentley','rolls-royce']);
+assert.deepEqual([...new Set(ROYAL_ITEMS.filter(x=>x.brand).map(x=>x.brand))].sort(),['aston-martin','bentley','chanel','hermes','rolls-royce']);
 assert(ROYAL_ITEMS.filter(x=>x.category==='car').length>=5);
 assert(ROYAL_ITEMS.filter(x=>x.category==='yacht').length>=2);
 assert(ROYAL_ITEMS.filter(x=>x.category==='jet').length>=2);
