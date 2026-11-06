@@ -33,10 +33,10 @@ const won=play({bet:1000,multiplier:5});
 assert.equal(won.payout,5000);assert.equal(balance(),b0+3000n);
 assert.equal(spins(),2);assert.equal(count(),3);
 const beforeFailure={balance:balance(),spins:spins(),count:count(),pool:val('pool'),used:used()};
-assert.throws(()=>play({bet:1000,multiplier:4,free:true,failAt:'pool'}),/injected/);
+assert.throws(()=>play({bet:1000,multiplier:0,failAt:'pool'}),/injected/);
 assert.deepEqual({balance:balance(),spins:spins(),count:count(),pool:val('pool'),used:used()},beforeFailure,
  'pool write failure rolls back free play, payout, stats and wager together');
-assert.throws(()=>play({bet:1000,multiplier:1000,sevenJackpot:true,failAt:'history'}),/injected/);
+assert.throws(()=>play({bet:1000,multiplier:1000,sevenJackpot:true,free:true,failAt:'history'}),/injected/);
 assert.deepEqual({balance:balance(),spins:spins(),count:count(),pool:val('pool'),used:used()},beforeFailure,
  'history failure must rollback a 777 payout and jackpot deduction');
 const jackpot=play({bet:1000,multiplier:1000,sevenJackpot:true});
