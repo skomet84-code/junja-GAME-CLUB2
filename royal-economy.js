@@ -143,6 +143,7 @@ function createRoyalEconomy({db,exactWallet,now,getAssets}){
      if(!item.displayOnly)db.prepare('UPDATE user_loadout SET '+item.category+'=? WHERE user_id=?').run(item.id,uid);
      const inscription={ownerId:uid,ownerNickname:u.nickname,itemId:item.id,itemName:item.name,paid:String(price),purchasedAt:t};
      db.prepare('INSERT INTO game_state(key,value,updated_at) VALUES(?,?,?)').run(purchaseKey(uid,item.id),JSON.stringify(inscription),t);
+     if(market)market.issueCertificate(uid,item.id);
      db.prepare('INSERT INTO ledger(user_id,amount,balance_after,amount_exact,balance_after_exact,type,memo,created_at) VALUES(?,?,?,?,?,?,?,?)')
        .run(uid,exactWallet.mirror(-price),mirrored,String(-price),String(next),'royal_boutique_purchase','JUNJA ROYAL BOUTIQUE · '+item.name+' · 재화 영구 소멸',t);
      if(!owns.get(uid,item.id)||(!item.displayOnly&&db.prepare('SELECT '+item.category+' AS equipped FROM user_loadout WHERE user_id=?').get(uid)?.equipped!==item.id))throw new Error('구매 검증 실패');
