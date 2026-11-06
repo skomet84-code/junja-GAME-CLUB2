@@ -53,3 +53,22 @@ footer{border-top:1px solid #ffffff29;display:flex;justify-content:space-between
 @media(max-width:355px){
  .controlbar label{grid-column:1/-1}
 }
+
+/* v9: one-pass physical GLB camera tour. Prominent, accessible on mobile. */
+.controlbar .tour-btn{
+ background:linear-gradient(120deg,#705334 0%,#3a2e25 48%,#211e24 100%);
+ border:1px solid #dbb984;color:#ffecc8;font-weight:750;letter-spacing:.04em;
+ box-shadow:inset 0 0 0 1px #f0d9a019,0 3px 16px #0005;
+}
+.controlbar .tour-btn[aria-pressed="true"]{
+ background:linear-gradient(120deg,#8e653c,#51402a);
+ border-color:#f8dc9a;box-shadow:0 0 0 2px #dfc08740,inset 0 0 0 1px #ffe9b04d;
+}
+.controlbar .tour-btn:disabled{opacity:.5;cursor:not-allowed}
+@media(max-width:690px){
+ .controlbar .tour-btn{grid-column:1/-1;min-height:49px;font-size:13px}
+}
+@media(prefers-reduced-motion:reduce){
+ html{scroll-behavior:auto}
+ .controlbar .tour-btn{transition:none}
+}
