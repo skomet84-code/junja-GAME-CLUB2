@@ -58,6 +58,13 @@ const ROYAL_ITEMS=Object.freeze([
  {id:'car_royalboutique_mclaren_765lt',category:'car',name:'맥라렌 765LT 오렌지',icon:'🏎️',rarity:'mythic',price:P(60),collection:'royalboutique',art:'car-purple',displayOnly:true,stock:2,desc:'765LT의 강렬한 실루엣을 담은 가상 프라이빗 모터 컬렉션'},
  {id:'car_royalboutique_bugatti_chiron',category:'car',name:'부가티 시론 블랙 다이아',icon:'🏎️',rarity:'sovereign',price:P(1000),collection:'royalboutique',art:'car-eclipse',displayOnly:true,stock:3,desc:'블랙 다이아 감성을 표현한 가상 황제 하이퍼카 · 서버 5대 한정'},
  {id:'car_royalboutique_aston_valhalla',category:'car',name:'애스턴마틴 발할라 갓준자 에디션',brand:'aston-martin',model:'Valhalla',icon:'🚘',rarity:'sovereign',price:P(700),collection:'royalboutique',art:'car-purple',displayOnly:true,photoFile:'2026 Aston Martin Valhalla.jpg',photoBy:'MrWalkr',photoLicense:'CC BY-SA 4.0',stock:3,desc:'서버 3대 한정 · 발할라 실차 사진을 사용하는 준자랜드 가상 하이퍼카'}
+ // V14: six cinematic handbag collector editions; immutable IDs and limited inventory.
+ {id:'bag_royalboutique_hermes_birkin',category:'bag',brand:'hermes',model:'Birkin 30',name:'에르메스 버킨 오렌지 로얄',icon:'👜',rarity:'sovereign',price:P(300),collection:'royalboutique',art:'bag-birkin',displayOnly:true,stock:1,desc:'버킨 30의 오렌지 레더와 골드 하드웨어를 재해석한 준자랜드 가상 한정 컬렉션'},
+ {id:'bag_royalboutique_hermes_kelly',category:'bag',brand:'hermes',model:'Kelly 28',name:'에르메스 켈리 에토프 헤리티지',icon:'👜',rarity:'sovereign',price:P(150),collection:'royalboutique',art:'bag-kelly',displayOnly:true,stock:1,desc:'에토프 톤의 세련된 실루엣과 골드 클로저가 돋보이는 가상 왕실 소장품'},
+ {id:'bag_royalboutique_hermes_constance',category:'bag',brand:'hermes',model:'Constance',name:'에르메스 콘스탄스 H 느와르',icon:'👜',rarity:'mythic',price:P(50),collection:'royalboutique',art:'bag-constance',displayOnly:true,stock:2,desc:'블랙 레더와 시그니처 H형 골드 클로저를 모티브로 한 가상 콜렉터백'},
+ {id:'bag_royalboutique_chanel_classic',category:'bag',brand:'chanel',model:'Classic Flap',name:'샤넬 클래식 플랩 블랙 골드',icon:'👜',rarity:'mythic',price:P(30),collection:'royalboutique',art:'bag-classic',displayOnly:true,stock:2,desc:'블랙 퀼팅과 골드 체인 디테일을 시네마틱하게 재해석한 가상 콜렉터백'},
+ {id:'bag_royalboutique_chanel_255',category:'bag',brand:'chanel',model:'2.55',name:'샤넬 2.55 버건디 레거시',icon:'👜',rarity:'mythic',price:P(20),collection:'royalboutique',art:'bag-255',displayOnly:true,stock:2,desc:'버건디 레더와 빈티지 골드 체인에서 착안한 로열 헤리티지 컬렉션'},
+ {id:'bag_royalboutique_chanel_boy',category:'bag',brand:'chanel',model:'Boy Bag',name:'샤넬 보이백 블랙 엠퍼러',icon:'👜',rarity:'prestige',price:P(10),collection:'royalboutique',art:'bag-boy',displayOnly:true,stock:2,desc:'볼드한 골드 체인과 구조적 퀼팅을 가진 가상 프리미엄 리미티드 백'},
 ]);
 function retireFantasyRoyalInventory(db,now){
  const key='royal:retired-fantasy-items-v12';
