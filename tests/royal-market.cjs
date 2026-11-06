@@ -1,5 +1,6 @@
 'use strict';
 const assert=require('node:assert/strict');
+const fs=require('node:fs'),path=require('node:path');
 const {DatabaseSync}=require('node:sqlite');
 const exactWallet=require('../exact-wallet');
 const {ROYAL_ITEMS,createRoyalEconomy}=require('../royal-economy');
@@ -26,6 +27,18 @@ economy.setMarket(market);
 const bags=ROYAL_ITEMS.filter(item=>item.category==='bag');
 assert.equal(bags.length,6,'royal boutique lists six handbags');
 assert.equal(new Set(bags.map(x=>x.id)).size,6,'each bag has a stable unique item ID');
+
+const imageNames=['hermes-birkin','hermes-kelly','hermes-constance','chanel-classic','chanel-255','chanel-boy'];
+for(const name of imageNames){
+ const asset=path.join(__dirname,'..','public','art','royal','handbags',name+'.svg');
+ assert(fs.existsSync(asset),'matching handbag image exists: '+name);
+ assert(fs.readFileSync(asset,'utf8').includes('ROYAL LUXURY HALL'),'theming is preserved for '+name);
+}
+const boutiqueSource=fs.readFileSync(path.join(__dirname,'..','public','royal-economy-ui.js'),'utf8');
+const gallerySource=fs.readFileSync(path.join(__dirname,'..','public','royal-gallery.js'),'utf8');
+assert(boutiqueSource.includes("id:'bag',label:'👜 명품 가방'")&&boutiqueSource.includes('THE SEVEN ROYAL HALLS'),'handbag shop wing mounted');
+assert(gallerySource.includes("bag:'couture'"),'new collection is visible in owner museum');
+
 for(const piece of bags){
  assert(['hermes','chanel'].includes(piece.brand));
  assert(BigInt(piece.price)>=G);
