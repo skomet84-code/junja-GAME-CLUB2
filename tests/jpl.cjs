@@ -50,7 +50,7 @@ assert.ok(footballHtml.includes('id="jplMoments"')&&footballHtml.includes('id="j
 assert.ok(footballHtml.includes('id="jplTeamDialog"'),'club history dialog mounted');
 assert.ok(gameSource.includes('data-team-report')&&gameSource.includes("'/api/jpl/team-report?team='"),'clickable club buttons load public persisted history');
 assert.ok(privateServer.includes("url.pathname==='/api/jpl/team-report'"),'team history endpoint remains under private JPL access policy');
-assert.ok(gameSource.includes('Math.abs((e.minute/90*(MATCH_MS/1000))'),'goal animation uses current shortened duration');
+assert.ok(gameSource.includes('window.JPLBroadcastMotion.frame({seconds:playing?tick'),'broadcast animation uses authoritative 60-second match clock');
 assert.equal(CLUBS.find(c=>c.id==='junja').name,'준자 마드리드 CF');
 assert.equal(CLUBS.find(c=>c.id==='happy').name,'햅피 바르셀로나 FC');
 assert.equal(RESERVES.length,2,'two second-division promotion clubs');
