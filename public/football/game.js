@@ -75,9 +75,9 @@ function fixtureHTML(f){
  const handicap=f.handicap||{line:-1,odds:f.odds};
  const score=f.score?String(f.score.home)+' : '+String(f.score.away):'VS';
  return '<article class="fixture-item"><div class="fixture-main"><div class="fixture-time"><b>'+esc(time(f.kickoff))+'</b><small>'+esc(shortDate(f.kickoff))+'</small></div>'+
-  '<div class="fixture-match"><div class="fixture-team">'+badge(h)+'<span class="fixture-team-label"><b>'+esc(h.short)+'</b><small>'+esc(h.name)+'</small></span></div>'+
+  '<div class="fixture-match"><button type="button" class="fixture-team jpl-club-trigger" data-team-report="'+esc(f.home)+':'+esc(f.away)+'" aria-label="'+esc(h.name)+' 최근 경기와 상대전적 보기">'+badge(h)+'<span class="fixture-team-label"><b>'+esc(h.short)+'</b><small>'+esc(h.name)+'</small></span></button>'+
   '<div class="fixture-vs '+(f.score?'fixture-outcome':'')+'">'+esc(score)+'</div>'+
-  '<div class="fixture-team away">'+badge(a)+'<span class="fixture-team-label"><b>'+esc(a.short)+'</b><small>'+esc(a.name)+'</small></span></div></div>'+
+  '<button type="button" class="fixture-team away jpl-club-trigger" data-team-report="'+esc(f.away)+':'+esc(f.home)+'" aria-label="'+esc(a.name)+' 최근 경기와 상대전적 보기">'+badge(a)+'<span class="fixture-team-label"><b>'+esc(a.short)+'</b><small>'+esc(a.name)+'</small></span></button></div>'+
   '<div class="fixture-right"><button class="watch-btn '+(isLive?'live':'')+'" type="button" data-watch="'+esc(f.id)+'">'+
   (isLive?'● LIVE':f.status==='FINAL'?'다시보기':selected?'선택됨':'관전하기')+'</button></div></div>'+
   (f.status==='SCHEDULED'?'<div class="market-rows"><div class="market-row"><span class="market-label">일반 승무패</span><div class="odds-row" aria-label="일반 승무패 배당">'+oddButtons('NORMAL',f.odds)+'</div></div>'+
@@ -92,6 +92,36 @@ function renderFixtures(){
  $$('.fixture-tabs button').forEach(b=>b.classList.toggle('active',b.dataset.fixtureTab===fixtureTab));
  const items=fixtureTab==='today'?status.today:fixtureTab==='recent'?status.recent:status.upcoming;
  $('#fixturesList').innerHTML=items?.length?items.map(fixtureHTML).join(''):'<div class="fixture-message">이 날짜에 등록된 경기가 없어요. 다음 경기 탭을 확인해줘.</div>';
+}
+let teamReportBusy=false;
+async function openTeamReport(clubId,opponentId){
+ if(teamReportBusy)return;
+ const dialog=$('#jplTeamDialog'),body=$('#jplTeamContent');
+ body.innerHTML='<p class="jpl-team-empty">구단의 실제 종료 경기 기록을 불러오는 중...</p>';
+ if(!dialog.open)dialog.showModal();
+ teamReportBusy=true;
+ try{
+  const url='/api/jpl/team-report?team='+encodeURIComponent(clubId)+'&opponent='+encodeURIComponent(opponentId);
+  const response=await fetch(url,{credentials:'same-origin',cache:'no-store'});
+  const d=await response.json();
+  if(!response.ok)throw Error(d.error||'팀 기록을 불러올 수 없습니다.');
+  const c=d.team,o=d.opponent;
+  const scoreRow=f=>{
+   const home=team(f.home),away=team(f.away);
+   const when=f.finishedAt?shortDate(f.finishedAt):'시즌 '+f.season;
+   return '<div class="jpl-team-result"><span>'+esc(when)+'</span><span>'+esc(home.short)+' <b>'+f.score.home+' : '+f.score.away+'</b> '+esc(away.short)+'</span><em class="'+esc(f.result)+'">'+esc(f.result)+'</em></div>';
+  };
+  const summary=(stats)=>'<div class="jpl-team-wdl"><span><b>'+stats.wins+'</b> 승</span><span><b>'+stats.draws+'</b> 무</span><span><b>'+stats.losses+'</b> 패</span></div>';
+  body.innerHTML='<div class="jpl-team-hero">'+badge(c)+'<div><small>CLUB PERFORMANCE</small><h3>'+esc(c.name)+'</h3><p>비교 상대 · '+esc(o.name)+'</p></div></div>'+
+   '<div class="jpl-team-columns"><section><header><small>RECENT FORM</small><h4>최근 '+d.form.total+'경기</h4></header>'+
+    summary(d.form)+'<p class="jpl-team-sub">득점 '+d.form.gf+' · 실점 '+d.form.ga+'</p>'+
+    (d.recent.length?d.recent.map(scoreRow).join(''):'<p class="jpl-team-empty">아직 종료된 경기가 없습니다.</p>')+
+   '</section><section><header><small>HEAD TO HEAD</small><h4>상대전적 · '+d.h2h.total+'경기</h4></header>'+
+    summary(d.h2h)+'<p class="jpl-team-sub">'+esc(c.short)+' 기준 승·무·패</p>'+
+    (d.headToHead.length?d.headToHead.map(scoreRow).join(''):'<p class="jpl-team-empty">아직 두 팀의 맞대결 기록이 없습니다.</p>')+
+   '</section></div>';
+ }catch(e){body.textContent=e.message||'구단 기록을 가져올 수 없습니다.';}
+ finally{teamReportBusy=false}
 }
 function buildAnalysisCard(side,stats){
  const club=team(stats.clubId),rows=[
@@ -428,6 +458,8 @@ async function refresh(force=false){
  finally{loading=false}
 }
 document.addEventListener('click',e=>{
+ const closeTeam=e.target.closest('[data-close-team]');if(closeTeam){$('#jplTeamDialog').close();return}
+ const teamButton=e.target.closest('[data-team-report]');if(teamButton){const [club,opponent]=teamButton.dataset.teamReport.split(':');openTeamReport(club,opponent);return}
  const closeAnalysis=e.target.closest('[data-close-analysis]');if(closeAnalysis){$('#jplAnalysisDialog').close();return}
  const analyze=e.target.closest('[data-analyze]');if(analyze){openAnalysis(analyze.dataset.analyze);return}
  const view=e.target.closest('[data-ticket-receipt]');
