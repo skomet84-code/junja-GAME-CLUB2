@@ -73,4 +73,7 @@ assert.ok(html.includes('1,000,000,000,000 G'));
 assert.ok(html.includes('주식·코인 거래 수수료 100% 적립'));
 assert.ok(server.includes('const SLOT_JACKPOT_BASE = Number(SLOT_POOL_BASE);'));
 assert.ok(server.includes("if(gameStateGet('slot_jackpot_pool',null)==null)gameStateSet('slot_jackpot_pool',SLOT_JACKPOT_BASE);"),'one-shot slot odds wrapper compatibility');
+const slotPaytable=fs.readFileSync(path.join(__dirname,'..','public','index.html'),'utf8');
+assert.ok(server.includes("'7️⃣':1000,'J':500"),'server jackpot multipliers must remain 777=1000 and JJJ=500');
+assert.ok(slotPaytable.includes('<span class="pay-j">J J J</span><b>x500</b>'),'player-facing JJJ paytable matches server');
 console.log('SLOT_MARKET_FEES_JACKPOT_OK: 1T floor, buy+sell fees, retry isolation, exact huge pool, rollback, 777/JJJ auto pause');

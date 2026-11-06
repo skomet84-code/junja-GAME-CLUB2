@@ -303,6 +303,30 @@ function createJPL({db,exactWallet,now=Date.now,random=()=>crypto.randomBytes(4)
    minute:finished?90:started?minute:0,score,events:visible,seed:started?f.seed:null,
    outcome:finished?resultOf(f):null};
  }
+ // Derive league progress from the persisted fixtures, never a client-side guess.
+ // This does not rewrite older scores or touch tickets.
+ function progressFor(season,time){
+  const completed=season.fixtures.filter(f=>!!f.finishedAt);
+  const due=season.fixtures.filter(f=>f.kickoff+MATCH_MS<=time);
+  const overdue=due.filter(f=>!f.finishedAt);
+  const todayMatches=season.fixtures.filter(f=>kstDate(f.kickoff)===kstDate(time));
+  const finalToday=todayMatches.filter(f=>!!f.finishedAt);
+  const table=tableFor(season);
+  const appearances=table.reduce((sum,row)=>sum+row.played,0);
+  const scored=completed.reduce((sum,f)=>sum+Number(f.score?.home||0)+Number(f.score?.away||0),0);
+  const goalsInTable=table.reduce((sum,row)=>sum+row.for,0);
+  const latest=completed[completed.length-1];
+  return {
+   completed:completed.length,scheduled:season.fixtures.length,
+   todayScheduled:todayMatches.length,todayFinal:finalToday.length,
+   matchdays:Math.max(1,new Set(season.fixtures.map(f=>f.day)).size),
+   lastFinished:latest?{id:latest.id,finishedAt:latest.finishedAt,home:latest.home,away:latest.away,score:latest.score}:null,
+   nextKickoff:season.fixtures.find(f=>f.kickoff>time)?.kickoff||null,
+   integrity:{ok:overdue.length===0&&appearances===2*completed.length&&scored===goalsInTable,
+    overdueCount:overdue.length,appearanceCount:appearances,expectedAppearances:2*completed.length,
+    totalGoals:scored,tableGoals:goalsInTable}
+  };
+ }
  function status(id){
   const {season,changed}=advance(),t=now(),u=user(id),date=today();
   const todayMatches=season.fixtures.filter(f=>kstDate(f.kickoff)===date);
@@ -310,7 +334,8 @@ function createJPL({db,exactWallet,now=Date.now,random=()=>crypto.randomBytes(4)
   const recently=season.fixtures.filter(f=>f.finishedAt).slice(-12).reverse();
   const live=season.fixtures.filter(f=>f.kickoff<=t&&t<f.kickoff+MATCH_MS);
   const tickets=ticketsForUser(id);
-  return {ok:true,changed,serverNow:t,day:date,season:{id:season.id,number:season.number,
+  const progress=progressFor(season,t);
+  return {ok:true,changed,serverNow:t,day:date,progress,season:{id:season.id,number:season.number,
    startAt:season.startAt,endAt:season.endAt,totalGames:season.fixtures.length,finished:season.fixtures.filter(f=>f.finishedAt).length,
    matchdays:93,relegationCount:2,
     promotedFromLastSeason:season.number>1?(read(ARCHIVE+'S'+(season.number-1))?.promoted||[]):[],

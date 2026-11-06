@@ -39,6 +39,20 @@ function chooseBroadcast(){
  if(watchId){const f=findFixture(watchId);if(f)return f}
  return status?.live?.[0]||status?.today?.find(f=>f.status==='LIVE')||status?.upcoming?.[0]||status?.today?.[0]||status?.recent?.[0]||null;
 }
+function renderLeagueOperations(){
+ const p=status?.progress;if(!p)return;
+ const ratio=p.scheduled?Math.max(0,Math.min(100,(p.completed/p.scheduled)*100)):0;
+ $('#jplTodayCount').textContent=p.todayFinal+' / '+p.todayScheduled;
+ $('#jplSeasonPercent').textContent=ratio.toFixed(1)+'%';
+ $('#jplSeasonProgressFill').style.width=ratio.toFixed(2)+'%';
+ const latest=p.lastFinished;
+ $('#jplLastFinal').textContent=latest?team(latest.home).short+' '+latest.score.home+' : '+latest.score.away+' '+team(latest.away).short:'확정된 경기가 없습니다';
+ $('#jplLastFinalTime').textContent=latest?shortDate(latest.finishedAt)+' · '+time(latest.finishedAt)+' KST 확정':'경기 종료 후 자동 기록';
+ $('#jplLastSync').textContent=time(status.serverNow)+' KST';
+ const indicator=$('#jplSyncState');
+ if(!p.integrity?.ok){indicator.className='jpl-sync-state warning';indicator.textContent='기록 점검 필요 · '+p.integrity.overdueCount+'경기 지연';}
+ else{indicator.className='jpl-sync-state ok';indicator.textContent='✓ 경기·순위 집계 일치';}
+}
 function renderTop(){
  if(!status)return;
  $('#wallet').textContent=fmtMoney(status.wallet);
@@ -408,7 +422,7 @@ async function refresh(force=false){
   if(status?.season.id!==d.season.id){allSchedule=null;selection.clear();watchId=null}
   status=d;clubs=new Map(d.clubs.map(c=>[c.id,c]));serverOffset=d.serverNow-Date.now();
   if(watchId&&!findFixture(watchId))watchId=null;
-  prunePicks();renderTop();renderFixtures();renderTable();renderTickets();renderSlip();renderBroadcast();
+  prunePicks();renderTop();renderLeagueOperations();renderFixtures();renderTable();renderTickets();renderSlip();renderBroadcast();
   if(allSchedule)renderSchedule();
  }catch(e){if(!status)$('#fixturesList').textContent=e.message||'연결 실패';if(e.message?.includes('로그인'))$('#authNotice').hidden=false;else if(force)toast('리그 연결 확인: '+e.message,true)}
  finally{loading=false}
