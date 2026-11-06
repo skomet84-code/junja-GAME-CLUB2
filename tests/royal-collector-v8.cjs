@@ -17,6 +17,6 @@ assert(!/data-jrg-buy/.test(museum),'no purchase button anywhere in owned galler
 assert(/jrg-vault-grid\.jrg-vault-sparse/.test(css),'few owned pieces should be displayed in large frames');
 assert(/jrg-cert-facts/.test(css),'ornate certificate with owner provenance');
 assert(/jrg-vault-grid,#view-gallery \.jrg-vault-grid\.jrg-vault-sparse\{grid-template-columns:minmax\(0,1fr\)/.test(css),'one-column collector pieces on iPhone');
-assert(index.includes('/royal-gallery.js?v=20261103-v10'));
+assert(index.includes('/royal-gallery.js?v=20261106-bag-v14'));
 assert(index.includes('/royal-gallery.css?v=20261103-vault-v8'));
 console.log('ROYAL_COLLECTOR_V8_OK: verifiable per-owner collections, artifact frames, private serials, five wings, sort and certificates');
