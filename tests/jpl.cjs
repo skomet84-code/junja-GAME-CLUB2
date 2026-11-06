@@ -187,6 +187,22 @@ assert.equal(final.progress.integrity.totalGoals,actual.score.home+actual.score.
 assert.equal(final.progress.lastFinished.id,match.id);
 assert.equal(final.progress.lastFinished.finishedAt,match.kickoff+MATCH_MS);
 
+const seasonBeforeAudit=JSON.parse(db.prepare("SELECT value FROM game_state WHERE key='jpl:v1:current'").get().value);
+const corruptedSeason=structuredClone(seasonBeforeAudit);
+const corruptedMatch=corruptedSeason.fixtures.find(x=>x.id===match.id);
+corruptedMatch.events=corruptedMatch.events.filter(e=>e.kind!=='GOAL');
+if(corruptedMatch.score.home+corruptedMatch.score.away===0){
+ corruptedMatch.events.push({minute:33,kind:'GOAL',side:'H',text:'invalid phantom event'});
+}
+db.prepare("UPDATE game_state SET value=? WHERE key='jpl:v1:current'").run(JSON.stringify(corruptedSeason));
+const integrityFailure=jpl.status(1).progress.integrity;
+assert.equal(integrityFailure.ok,false,'goal timeline disagreement must be reported');
+assert.equal(integrityFailure.discrepancyCount,1);
+assert.equal(integrityFailure.discrepancies[0].matchId,match.id);
+db.prepare("UPDATE game_state SET value=? WHERE key='jpl:v1:current'").run(JSON.stringify(seasonBeforeAudit));
+assert.equal(jpl.status(1).progress.integrity.ok,true,'restoring original match removes warning');
+
+
 const result=actual.score.home>actual.score.away?'H':actual.score.home<actual.score.away?'A':'D';
 const settled=jpl.status(1).tickets.find(x=>x.id===betId);
 assert.equal(settled.status,result==='H'?'WIN':'LOSE');
