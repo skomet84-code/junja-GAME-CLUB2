@@ -2456,6 +2456,15 @@ const server=http.createServer(async(req,res)=>{
       try{const d=jpl.schedule(u.id);if(d.changed)await db.flush();return json(res,200,d);}
       catch(e){return json(res,400,{error:e.message})}
     }
+    if(url.pathname==='/api/jpl/team-report'&&req.method==='GET'){
+      const u=requireAuth(req,res);if(!u)return;
+      if(!rateLimit('jpl-team-report:'+u.id,25,60000))return json(res,429,{error:'팀 기록 조회가 너무 빠릅니다.'});
+      try{
+        const d=jpl.teamReport(u.id,url.searchParams.get('team'),url.searchParams.get('opponent'));
+        if(d.changed)await db.flush();
+        return json(res,200,d);
+      }catch(e){return json(res,400,{error:e.message});}
+    }
     if(url.pathname==='/api/jpl/analysis'&&req.method==='GET'){
       const u=requireAuth(req,res);if(!u)return;
       try{
