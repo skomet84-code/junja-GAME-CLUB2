@@ -16,6 +16,32 @@ const db={
 };
 db.exec('CREATE TABLE users(id INTEGER PRIMARY KEY,nickname TEXT NOT NULL,balance INTEGER,balance_exact TEXT,balance_base TEXT,is_disabled INTEGER DEFAULT 0);CREATE TABLE user_inventory(user_id INTEGER NOT NULL,item_id TEXT NOT NULL,purchase_price INTEGER,purchased_at INTEGER,PRIMARY KEY(user_id,item_id));CREATE TABLE user_loadout(user_id INTEGER PRIMARY KEY,character TEXT,costume TEXT,frame TEXT,title TEXT,pet TEXT);CREATE TABLE game_state(key TEXT PRIMARY KEY,value TEXT,updated_at INTEGER);CREATE TABLE ledger(id INTEGER PRIMARY KEY,user_id INTEGER,amount INTEGER,balance_after INTEGER,amount_exact TEXT,balance_after_exact TEXT,type TEXT,memo TEXT,created_at INTEGER);');
 const G=10n**16n,initial=10000n*G;
+
+const bags=ROYAL_ITEMS.filter(item=>item.category==='bag');
+assert.equal(bags.length,6,'royal boutique lists six handbags');
+assert.equal(new Set(bags.map(x=>x.id)).size,6,'each bag has a stable unique item ID');
+for(const piece of bags){
+ assert(['hermes','chanel'].includes(piece.brand));
+ assert(BigInt(piece.price)>=G);
+ assert(piece.stock>=1&&piece.stock<=2);
+ assert.equal(piece.displayOnly,true,'bag collectible cannot grant casino perks');
+}
+const birkin=bags.find(x=>x.model==='Birkin 30');
+const firstBagCash=exactWallet.read(db.prepare('SELECT balance,balance_exact,balance_base FROM users WHERE id=4').get(4));
+economy.buy(4,birkin.id);
+const acquiredBag=economy.catalog(4).items.find(x=>x.id===birkin.id);
+assert.equal(acquiredBag.owned,true);
+assert.equal(acquiredBag.remaining,0,'unique limited edition immediately sells out');
+assert.equal(acquiredBag.soldOut,false,'existing owner can inspect a sold-out collectible');
+assert.match(acquiredBag.certificate.serial,/^JLC-[0-9A-F]{16}$/);
+assert.equal(economy.gallery(4).items.find(x=>x.id===birkin.id).category,'bag');
+assert.equal(economy.collector(4).rooms.find(x=>x.id==='couture').owned,1);
+assert.throws(()=>economy.buy(2,birkin.id),/재고/,'other collector cannot buy sold-out bag');
+assert.equal(exactWallet.read(db.prepare('SELECT balance,balance_exact,balance_base FROM users WHERE id=4').get(4)),firstBagCash-BigInt(birkin.price));
+const bagSell=market.bankSell(4,birkin.id);
+assert.equal(bagSell.received,String(BigInt(birkin.price)*75n/100n));
+assert.equal(economy.catalog(4).items.find(x=>x.id===birkin.id).remaining,1);
+
 let clock=Date.parse('2026-11-03T22:00:00+09:00');const now=()=>clock;
 for(let id=1;id<=4;id++)db.prepare('INSERT INTO users(id,nickname,balance,balance_exact,balance_base) VALUES(?,?,?,?,?)')
  .run(id,'member'+id,9000000000000000000n,String(initial),'9000000000000000000');
