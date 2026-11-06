@@ -17,6 +17,12 @@ const db={
 db.exec('CREATE TABLE users(id INTEGER PRIMARY KEY,nickname TEXT NOT NULL,balance INTEGER,balance_exact TEXT,balance_base TEXT,is_disabled INTEGER DEFAULT 0);CREATE TABLE user_inventory(user_id INTEGER NOT NULL,item_id TEXT NOT NULL,purchase_price INTEGER,purchased_at INTEGER,PRIMARY KEY(user_id,item_id));CREATE TABLE user_loadout(user_id INTEGER PRIMARY KEY,character TEXT,costume TEXT,frame TEXT,title TEXT,pet TEXT);CREATE TABLE game_state(key TEXT PRIMARY KEY,value TEXT,updated_at INTEGER);CREATE TABLE ledger(id INTEGER PRIMARY KEY,user_id INTEGER,amount INTEGER,balance_after INTEGER,amount_exact TEXT,balance_after_exact TEXT,type TEXT,memo TEXT,created_at INTEGER);');
 const G=10n**16n,initial=10000n*G;
 
+let clock=Date.parse('2026-11-03T22:00:00+09:00');const now=()=>clock;
+for(let id=1;id<=4;id++)db.prepare('INSERT INTO users(id,nickname,balance,balance_exact,balance_base) VALUES(?,?,?,?,?)')
+ .run(id,'member'+id,9000000000000000000n,String(initial),'9000000000000000000');
+const economy=createRoyalEconomy({db,exactWallet,now,getAssets:()=>({})});
+const market=createRoyalMarket({db,exactWallet,now,items:ROYAL_ITEMS});
+economy.setMarket(market);
 const bags=ROYAL_ITEMS.filter(item=>item.category==='bag');
 assert.equal(bags.length,6,'royal boutique lists six handbags');
 assert.equal(new Set(bags.map(x=>x.id)).size,6,'each bag has a stable unique item ID');
@@ -42,12 +48,7 @@ const bagSell=market.bankSell(4,birkin.id);
 assert.equal(bagSell.received,String(BigInt(birkin.price)*75n/100n));
 assert.equal(economy.catalog(4).items.find(x=>x.id===birkin.id).remaining,1);
 
-let clock=Date.parse('2026-11-03T22:00:00+09:00');const now=()=>clock;
-for(let id=1;id<=4;id++)db.prepare('INSERT INTO users(id,nickname,balance,balance_exact,balance_base) VALUES(?,?,?,?,?)')
- .run(id,'member'+id,9000000000000000000n,String(initial),'9000000000000000000');
-const economy=createRoyalEconomy({db,exactWallet,now,getAssets:()=>({})});
-const market=createRoyalMarket({db,exactWallet,now,items:ROYAL_ITEMS});
-economy.setMarket(market);
+
 const cash=id=>exactWallet.read(db.prepare('SELECT balance,balance_exact,balance_base FROM users WHERE id=?').get(id));
 const owned=(id,item)=>db.prepare('SELECT COUNT(*) AS n FROM user_inventory WHERE user_id=? AND item_id=?').get(id,item).n;
 const jewel=ROYAL_ITEMS.find(x=>x.id==='jewel_royalboutique_pear_solitaire');
