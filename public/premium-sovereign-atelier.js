@@ -6,11 +6,12 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { createSovereignAeroKit } from './premium-sovereign-aero-v10.js';
 
 const $=id=>document.getElementById(id);
 const canvas=$('atelierCanvas'),loading=$('atelierLoading'),status=$('atelierStatus');
 const info=$('atelierInfo'),fallback=$('atelierFallback'),error=$('atelierError');
-const paint=$('atelierPaint'),wheelFinish=$('atelierWheelFinish'),door=$('atelierDoor'),hood=$('atelierHood'),light=$('atelierLight'),reset=$('atelierReset'),tour=$('atelierTour');
+const paint=$('atelierPaint'),wheelFinish=$('atelierWheelFinish'),door=$('atelierDoor'),hood=$('atelierHood'),light=$('atelierLight'),reset=$('atelierReset'),tour=$('atelierTour'),aeroToggle=$('atelierAero');
 const reducedMotion=window.matchMedia('(prefers-reduced-motion: reduce)');
 const stage=$('atelierStage');
 const quick=[...document.querySelectorAll('[data-at-view]')];
@@ -22,10 +23,10 @@ const wheelPalettes={
  champagne:{accent:0xc49b62,base:0x30261b,roughness:.25}
 };
 const state={ready:false,failed:false,renderCount:0,meshCount:0,materialCount:0,clipCount:0,
- paint:'silver',wheelFinish:'graphite',tourActive:false,tourProgress:0,tourFrameCount:0,paintSurfaceCount:0,wheelSurfaceCount:0,headlightSurfaceCount:0,frontGrilleCount:0,brakeCaliperCount:0,wheelTargetResolved:false,cameraDistance:null,viewFitMargin:null,autoFramed:false,view:'hero',light:'studio',doorsOpen:false,hoodOpen:false,
+ paint:'silver',wheelFinish:'graphite',aeroActive:true,aeroMeshCount:0,aeroFrontDepth:0,aeroRearDepth:0,aeroWithinEnvelope:false,tourActive:false,tourProgress:0,tourFrameCount:0,paintSurfaceCount:0,wheelSurfaceCount:0,headlightSurfaceCount:0,frontGrilleCount:0,brakeCaliperCount:0,wheelTargetResolved:false,cameraDistance:null,viewFitMargin:null,autoFramed:false,view:'hero',light:'studio',doorsOpen:false,hoodOpen:false,
  doorAngle:0,hoodAngle:0,hingeCount:0,modelSize:null,lastError:null,glb:true,owned:false,paid:false};
 const banner=message=>{info.textContent=message;};
-const disabled=flag=>{for(const el of [...quick,door,hood,paint,wheelFinish,light,reset,tour])el.disabled=flag;};
+const disabled=flag=>{for(const el of [...quick,door,hood,paint,wheelFinish,light,reset,tour,aeroToggle])el.disabled=flag;};
 disabled(true);
 Object.defineProperty(window,'JunjaSovereignAtelier',{value:Object.freeze({
  snapshot:()=>({...state}),
@@ -39,7 +40,7 @@ const fail=err=>{
 };
 let renderer,scene,camera,orbit,mixer,clips=[],carRoot,paintMaterials=[],wheelMaterials=[],headlightMaterials=[],frontGrilleMaterials=[],caliperMaterials=[];
 let environmentTexture,studioGroup,nightGroup,clock,visible=true,car=null;
-let frontRimFocus=null,exteriorBounds=null;
+let frontRimFocus=null,exteriorBounds=null,sourceExteriorBounds=null,aeroKit=null,aeroKitBounds=null;
 const hinges={doors:[],hood:null};
 const motion={doors:0,hood:0};
 const tmp=new THREE.Vector3();
@@ -239,6 +240,23 @@ function advanceTour(now){
   banner('360° 외관 투어 완료 · 직접 회전하거나 색상을 바꿀 수 있습니다.');
  }
 }
+function updateAeroBounds(){
+ if(!sourceExteriorBounds)return;
+ exteriorBounds=sourceExteriorBounds.clone();
+ if(aeroKit?.visible&&aeroKitBounds)exteriorBounds.union(aeroKitBounds);
+}
+function toggleAero(){
+ if(!state.ready||!aeroKit)return;
+ if(state.tourActive)stopTour('view');
+ state.aeroActive=!state.aeroActive;
+ aeroKit.visible=state.aeroActive;
+ updateAeroBounds();
+ aeroToggle.setAttribute('aria-pressed',String(state.aeroActive));
+ aeroToggle.textContent=state.aeroActive?'원본 형상 비교':'JUNJA 에어로 시안';
+ if(['hero','front','side','rear'].includes(state.view))setView(state.view,false);
+ else renderOnDemand();
+ banner(state.aeroActive?'새로운 3D 범퍼·스플리터·리어 디퓨저 시안 표시':'라이선스 원본 차량 외관으로 비교 중');
+}
 function setView(view,announce=true){
  if(!state.ready||!viewNames[view])return;
  if(state.tourActive)stopTour('view');
@@ -399,8 +417,20 @@ async function load(){
   carRoot.position.set(-center.x,.02-bounds.min.y,-center.z);
   carRoot.add(car);
   carRoot.updateMatrixWorld(true);
-  exteriorBounds=new THREE.Box3().setFromObject(carRoot);
-  if(exteriorBounds.isEmpty())throw Error('자동 카메라에 필요한 차량 외관 범위가 없습니다.');
+  sourceExteriorBounds=new THREE.Box3().setFromObject(carRoot);
+  if(sourceExteriorBounds.isEmpty())throw Error('자동 카메라에 필요한 차량 외관 범위가 없습니다.');
+  // Genuine independently authored 3D source-anchored surfaces; the donor
+  // GLB remains untouched, attributed, and available via source comparison.
+  const sculpt=createSovereignAeroKit(THREE,car,carRoot);
+  aeroKit=sculpt.group;aeroKitBounds=sculpt.bounds.clone();
+  scene.add(aeroKit);
+  state.aeroMeshCount=sculpt.meshCount;
+  state.aeroFrontDepth=sculpt.frontDepth;
+  state.aeroRearDepth=sculpt.rearDepth;
+  state.aeroWithinEnvelope=true;
+  updateAeroBounds();
+  aeroToggle.textContent='원본 형상 비교';
+  aeroToggle.setAttribute('aria-pressed','true');
   const sourceRim=car.getObjectByName('WheelFrontLRim')||car.getObjectByName('WheelFrontRRim');
   if(sourceRim){
    const rimBounds=new THREE.Box3().setFromObject(sourceRim);
@@ -505,6 +535,7 @@ for(const button of quick)button.addEventListener('click',()=>{
  setView(button.dataset.atView);
  if(['wheel','frontDetail'].includes(button.dataset.atView))stage.scrollIntoView({block:'center',behavior:'smooth'});
 });
+aeroToggle.addEventListener('click',toggleAero);
 paint.addEventListener('change',()=>setPaint(paint.value));
 wheelFinish.addEventListener('change',()=>setWheelFinish(wheelFinish.value));
 door.addEventListener('click',toggleDoor);

@@ -53,6 +53,26 @@ try{
     assert(state.modelSize?.length>state.modelSize?.height*2,'Z-up car must be leveled on Y-up showroom stage');
     assert(state.modelSize?.height<2,'Car must not be displayed standing on its nose');
     await page.waitForFunction(()=>document.getElementById('atelierInfo')?.textContent?.includes('GLB 외관 로딩 완료'),null,{timeout:10000});
+    assert(state.aeroWithinEnvelope,'Author-sculpted geometry must remain below the roof and within source bounds');
+    assert(state.aeroMeshCount>=12,'The actual source-anchored front and rear aero package must include physical meshes');
+    assert(state.aeroFrontDepth>0&&state.aeroFrontDepth<.35,'Front aero shape must change real silhouette without sticking out excessively');
+    assert(state.aeroRearDepth>0&&state.aeroRearDepth<.35,'Rear diffuser must change real silhouette without detached geometry');
+    assert.equal(state.aeroActive,true,'Show authored bodywork by default');
+    assert(await page.locator('#atelierAero').isEnabled(),'Original-model compare requires a working physical kit toggle');
+    if(width===390){
+     await page.locator('#atelierAero').click();
+     const original=await page.evaluate(()=>window.JunjaSovereignAtelier.snapshot());
+     assert.equal(original.aeroActive,false,'Original comparison must hide new 3D exterior pieces');
+     assert.equal(await page.locator('#atelierAero').getAttribute('aria-pressed'),'false');
+     assert(original.viewFitMargin<.95,'Original donor car must remain completely visible on a narrow screen');
+     await page.locator('#atelierAero').click();
+     const customized=await page.evaluate(()=>window.JunjaSovereignAtelier.snapshot());
+     assert.equal(customized.aeroActive,true,'Toggling must restore physical JUNJA aero pieces');
+     assert.equal(await page.locator('#atelierAero').getAttribute('aria-pressed'),'true');
+     assert(customized.viewFitMargin<.95,'Sculpted front and rear must remain visible on a narrow screen');
+     console.log('SOVEREIGN_V10_REAL_AERO_OK '+name+' 390px parts='+customized.aeroMeshCount);
+    }
+
     assert((await page.locator('#atelierStatus').textContent()).includes('3D 모델 로딩 완료'),'Real GLB loader must complete before camera QA');
     for(const mode of ['front','frontDetail','side','rear','wheel','hero']){
      await page.locator('[data-at-view="'+mode+'"]').click();
@@ -122,7 +142,11 @@ try{
     }
     await page.locator('#atelierPaint').selectOption('silver');
     await page.locator('#atelierWheelFinish').selectOption('graphite');
-    await page.locator('#atelierLight').click();
+    // Software WebGL can queue PBR redraws after rapid paint/rim selection,
+    // making the next pointer action appear stalled despite a healthy UI.
+    // Wait for the bounded repaint window to settle; keep the real click test.
+    await page.waitForTimeout(1100);
+    await page.locator('#atelierLight').click({timeout:60000});
     assert.equal((await page.evaluate(()=>window.JunjaSovereignAtelier.snapshot())).light,'night');
     await page.locator('#atelierLight').click();
     assert.equal((await page.evaluate(()=>window.JunjaSovereignAtelier.snapshot())).light,'studio');
