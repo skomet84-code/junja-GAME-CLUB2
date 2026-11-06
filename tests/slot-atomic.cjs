@@ -32,6 +32,7 @@ assert.equal(val('pool'),'1000000000130');
 const won=play({bet:1000,multiplier:5});
 assert.equal(won.payout,5000);assert.equal(balance(),b0+3000n);
 assert.equal(spins(),2);assert.equal(count(),3);
+assert.doesNotThrow(()=>JSON.stringify(won),'winning slot round without pool contribution has JSON-safe response');
 const beforeFailure={balance:balance(),spins:spins(),count:count(),pool:val('pool'),used:used()};
 assert.throws(()=>play({bet:1000,multiplier:0,failAt:'pool'}),/injected/);
 assert.deepEqual({balance:balance(),spins:spins(),count:count(),pool:val('pool'),used:used()},beforeFailure,
@@ -46,7 +47,8 @@ assert.equal(val('history').winner,1);
 assert.equal(count(),6,'jackpot payout records wager, 1000x and pool credit');
 assert.equal(spins(),3);
 const freeBefore=balance();
-play({bet:1000,multiplier:0,free:true});
+const freeRound=play({bet:1000,multiplier:0,free:true});
+assert.doesNotThrow(()=>JSON.stringify(freeRound),'free spin with zero contribution has JSON-safe response');
 assert.equal(balance(),freeBefore,'free ticket without win cannot reduce balance');
 assert.equal(used(),1);
 assert.equal(spins(),4);
