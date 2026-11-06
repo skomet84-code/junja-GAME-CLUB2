@@ -45,6 +45,8 @@ const footballHtml=fs.readFileSync('public/football/index.html','utf8');
 assert.ok(footballHtml.includes('id="pitchFinalBanner"')&&footballHtml.includes('id="goalMarkers"'),'full-time overlay and goal markers are mounted');
 assert.ok(footballHtml.includes('id="jplTodayCount"')&&footballHtml.includes('id="jplSyncState"'),'verified premium progress board is present');
 assert.ok(gameSource.includes('renderLeagueOperations()'),'client renders authoritative status without recomputing completed matches');
+assert.ok(gameSource.includes('renderMatchMoments(f)'),'match feed renders only events supplied by current fixture');
+assert.ok(footballHtml.includes('id="jplMoments"')&&footballHtml.includes('id="jplMomentCount"'),'live match contains a broadcast event log');
 assert.ok(footballHtml.includes('id="jplTeamDialog"'),'club history dialog mounted');
 assert.ok(gameSource.includes('data-team-report')&&gameSource.includes("'/api/jpl/team-report?team='"),'clickable club buttons load public persisted history');
 assert.ok(privateServer.includes("url.pathname==='/api/jpl/team-report'"),'team history endpoint remains under private JPL access policy');
