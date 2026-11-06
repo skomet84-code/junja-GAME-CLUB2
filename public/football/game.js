@@ -337,7 +337,20 @@ function renderBroadcast(){
  const finalBanner=$('#pitchFinalBanner');
  finalBanner.hidden=!finished;
  if(finished)$('#pitchFinalScore').textContent=h.short+' '+f.score.home+' : '+f.score.away+' '+a.short;
+ renderMatchMoments(f);
  $('#demoButton').textContent=demo?'데모 종료 ×':'1분 중계 미리보기 ↗';
+}
+// The broadcast feed uses only fixture events already released by the server;
+// the demo has its own clearly labelled independent event stream.
+function renderMatchMoments(f){
+ const items=(f?.events||[]).filter(e=>['GOAL','SHOT','SAVE','CORNER','CARD'].includes(e.kind));
+ $('#jplMomentCount').textContent=items.length+' EVENTS';
+ $('#jplMoments').innerHTML=items.length?items.slice(-8).reverse().map(e=>{
+  const club=team(e.side==='H'?f.home:f.away);
+  const kind=e.kind==='GOAL'?'GOAL':e.kind==='SHOT'?'SHOT':e.kind==='SAVE'?'SAVE':e.kind==='CORNER'?'CORNER':'BOOKING';
+  const detail=e.kind==='GOAL'?('득점 · '+(e.player||club.short)):e.text||kind;
+  return '<div class="jpl-moment '+(e.kind==='GOAL'?'goal':'')+'"><span class="jpl-moment-time">'+esc(e.minute)+'′</span><span class="jpl-moment-type">'+kind+'</span><span class="jpl-moment-club">'+esc(club.short)+'</span><span class="jpl-moment-detail">'+esc(detail)+'</span></div>';
+ }).join(''):'<p class="jpl-moment-empty">'+(f?.status==='SCHEDULED'?'킥오프 이후 실제 경기 이벤트가 표시됩니다.':'아직 기록된 경기 이벤트가 없습니다.')+'</p>';
 }
 function canvasDraw(timestamp){
  requestAnimationFrame(canvasDraw);

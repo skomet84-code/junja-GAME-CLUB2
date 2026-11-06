@@ -7,12 +7,12 @@
 <meta name="description" content="JUNJA PREMIER LEAGUE — 22개 클럽, 매일 5경기, 실시간 60초 축구 시뮬레이션과 승무패 리그. 게임머니 전용.">
 <title>JUNJA PREMIER LEAGUE · 준자랜드</title>
 <link rel="stylesheet" href="/football/style.css?v=20261104-scout-v6">
-<link rel="stylesheet" href="/football/royal-premium.css?v=20261106-club-v2">
+<link rel="stylesheet" href="/football/royal-premium.css?v=20261106-moments-v3">
 <link rel="stylesheet" href="/football/receipts.css?v=20261104-receipt-cols-v5">
 <link rel="stylesheet" href="/football/admin.css?v=20261104-operator-v1">
 <script defer src="/football/club-icons.js?v=20261104-royal-heraldry-v4"></script>
 <script defer src="/football/receipts.js?v=20261104-receipt-cols-v5"></script>
-<script defer src="/football/game.js?v=20261106-club-v2"></script>
+<script defer src="/football/game.js?v=20261106-moments-v3"></script>
 <script defer src="/football/admin.js?v=20261104-operator-v1"></script>
 </head>
 <body>
@@ -78,6 +78,10 @@
       <div class="match-progress"><div id="progressFill"></div><span class="halfmark">HT</span><div id="goalMarkers" class="goal-markers" aria-label="득점 시간 기록"></div></div>
       <div class="ticker"><span class="ticker-icon">⚽</span><p id="commentary">선수들이 입장할 준비를 하고 있습니다. 경기 시간을 확인해 주세요.</p></div>
     </div>
+    <section class="jpl-moments" aria-label="실제 경기 이벤트 기록">
+      <div class="jpl-moments-head"><span><b>LIVE MATCH LOG</b> · 주요 경기 기록</span><small id="jplMomentCount">0 EVENTS</small></div>
+      <div id="jplMoments" class="jpl-moments-list" aria-live="off"><p class="jpl-moment-empty">경기를 선택하면 경기 주요 장면이 기록됩니다.</p></div>
+    </section>
     <div class="broadcast-footer"><div>실제 경기가 아닌 준자랜드 자체 가상 시뮬레이션입니다.</div><button id="demoButton" type="button" class="text-button">1분 중계 미리보기 <span>↗</span></button></div>
    </section>
    <section class="panel fixture-panel" id="fixtures">

@@ -7,6 +7,7 @@ const crypto = require('node:crypto');
 const staticResponse = require('./static-response');
 const {atelierImportMapCsp}=require('./premium-atelier-csp');
 const exactWallet = require('./exact-wallet');
+const {settleSlotRound}=require('./slot-round-settlement');
 const casinoReceipts = require('./casino-round-receipts');
 const {ROYAL_ITEMS,createRoyalEconomy}=require('./royal-economy');
 const {createRoyalMarket}=require('./royal-market');
@@ -3062,8 +3063,7 @@ const server=http.createServer(async(req,res)=>{
     }
     if(url.pathname==='/api/slot/spin'&&req.method==='POST'){
       const u=requireAuth(req,res);if(!u)return;const b=await readBody(req),royalSlotUnlimited=Number(u.rank?.level||0)>=9;let bet;try{bet=b.useRankFree?1000:(royalSlotUnlimited?walletWager(b.bet,u.balance,1000,1000):gameWager(b.bet,1000,1000000000,1000))}catch(e){return json(res,400,{error:e.message})};
-      const freePlay=consumeRankFreePlay(u.id,'slot',!!b.useRankFree);if(freePlay.free)bet=Number(socialRankPerksForUser(u.id).freeSlotBet||10000000);if(!freePlay.free&&u.balance<bet)return json(res,400,{error:'게임머니가 부족합니다.'});
-      if(!freePlay.free)walletChange(u.id,-bet,'slot_bet',`슬롯 베팅 ${formatMoney(bet)}G`);
+      if(b.useRankFree)bet=Number(socialRankPerksForUser(u.id).freeSlotBet||10000000);
       const slotLuck=0,jackpotBoostPct=slot777BetBoostPct(bet),slotWeights=slotSymbolsForBet(bet);const pick=()=>{const weighted=slotWeights,total=100;let n=(crypto.randomInt(1000000)/1000000)*total;for(const x of weighted){if(n<x.w)return x.s;n-=x.w;}return '🍒';};
       let grid=Array.from({length:3},()=>Array.from({length:3},()=>pick()));
       const slot777EventTriggered=slot777EventActive()&&(crypto.randomInt(1000000)/1000000)<SLOT_777_EVENT_CHANCE;
@@ -3087,28 +3087,21 @@ const server=http.createServer(async(req,res)=>{
       const regularPayout=Math.floor(bet*totalMultiplier);
       const sevenJackpot=winLines.some(w=>!w.scatter&&w.symbols?.[0]==='7️⃣');
       const jJackpot=winLines.some(w=>!w.scatter&&w.symbols?.[0]==='J');
-      let jackpotAward=0n,jackpotContribution=0,pool=slotJackpotPool(),jackpotHistoryEntry=null;
-      if(regularPayout>0)walletChange(u.id,regularPayout,'slot_win',`슬롯 당첨 x${totalMultiplier}`);
-      if(sevenJackpot){
-        jackpotAward=readSlotJackpotPool(db);
-        // Exact wallet credit: a pool funded by enormous trading fees must
-        // never be rounded to Number or overflow the SQLite balance mirror.
-        if(jackpotAward>0n)exactWallet.change(db,u.id,jackpotAward,'slot_jackpot_pool',`777 누적 JACKPOT ${formatMoney(jackpotAward)}G`,now);
-        jackpotHistoryEntry=recordSlot777Jackpot(u,{jackpotAward,regularPayout,bet});
-        pool=gameStateSet('slot_jackpot_pool',SLOT_JACKPOT_BASE);
-        if(slot777EventActive())gameStateSet('slot_777_event_active',false);
-      }else{
-        const actualLoss=freePlay.free?0:Math.max(0,bet-regularPayout);jackpotContribution=Math.floor(actualLoss*.13);
-        if(jackpotContribution>0)pool=gameStateSet('slot_jackpot_pool',slotPoolOutput(readSlotJackpotPool(db)+BigInt(jackpotContribution)));
-      }
-      const payoutExact=BigInt(regularPayout)+jackpotAward;
-      const profitExact=payoutExact-BigInt(freePlay.free?0:bet);
-      const payout=exactWallet.output(payoutExact),profit=exactWallet.output(profitExact);
-      db.prepare('UPDATE stats SET slot_spins=slot_spins+1, slot_wins=slot_wins+?, slot_profit=slot_profit+? WHERE user_id=?')
-        .run(payoutExact>BigInt(freePlay.free?0:bet)?1:0,exactWallet.mirror(profitExact),u.id);
+      let settlement;
+      try{
+        settlement=settleSlotRound({db,exactWallet,userId:u.id,bet,multiplier:totalMultiplier,
+          sevenJackpot,eventTriggered:slot777EventTriggered,
+          consumeFree:()=>consumeRankFreePlay(u.id,'slot',!!b.useRankFree),
+          readPool:()=>readSlotJackpotPool(db),writePool:value=>gameStateSet('slot_jackpot_pool',slotPoolOutput(value)),
+          basePool:SLOT_POOL_BASE,isEventActive:slot777EventActive,
+          disableEvent:()=>gameStateSet('slot_777_event_active',false),
+          recordJackpot:args=>recordSlot777Jackpot(u,args),now});
+      }catch(e){console.error('[SLOT ATOMIC ROUND]',e.message);return json(res,400,{error:e.message});}
+      const {freePlay,payout,profit,jackpotAward,contribution:jackpotContribution,
+        pool,history:jackpotHistoryEntry}=settlement;
       if(sevenJackpot||slot777EventTriggered)pushRefresh();
       const jackpotLine=winLines.find(w=>!w.scatter&&(w.symbols?.[0]==='7️⃣'||w.symbols?.[0]==='J'));
-      return json(res,200,{grid,bet,payout,regularPayout,profit,totalMultiplier,winLines,user:userPublic(u.id),jackpot:!!jackpotLine,jackpotSymbol:jackpotLine?.symbols?.[0]||null,poolJackpot:sevenJackpot,jackpotAward:slotPoolOutput(jackpotAward),jackpotContribution,jackpotPool:pool,jackpotBase:SLOT_JACKPOT_BASE,jackpotHistoryEntry,slotLuckPct:slotLuck,jackpotBoostPct,rankFreePlay:freePlay});
+      return json(res,200,{grid,bet,payout,regularPayout,profit,totalMultiplier,winLines,user:userPublic(u.id),jackpot:!!jackpotLine,jackpotSymbol:jackpotLine?.symbols?.[0]||null,poolJackpot:sevenJackpot,jackpotAward:slotPoolOutput(jackpotAward),jackpotContribution:exactWallet.output(jackpotContribution),jackpotPool:pool,jackpotBase:SLOT_JACKPOT_BASE,jackpotHistoryEntry,slotLuckPct:slotLuck,jackpotBoostPct,rankFreePlay:freePlay});
     }
 
     if(url.pathname==='/api/roulette/spin'&&req.method==='POST'){
