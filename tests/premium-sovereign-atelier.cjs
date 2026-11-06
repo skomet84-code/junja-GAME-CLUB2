@@ -62,7 +62,7 @@ assert(aero.includes('export function createSovereignAeroKit(THREE, car, carRoot
 for(const name of ['BodyHoodUnder','BodyUnderside','BodyTaillightsPanels','JUNJA_V10_FRONT_SCULPTED_SPLITTER','JUNJA_V10_FRONT_CARBON_CANARD_','JUNJA_V10_FRONT_INTAKE_','JUNJA_V10_REAR_SCULPTED_DIFFUSER','JUNJA_V10_DIFFUSER_FIN_'])assert(aero.includes(name),'Missing source-anchored shape: '+name);
 assert(aero.includes('new THREE.BufferGeometry()')&&aero.includes('THREE.ShapeUtils.triangulateShape')&&aero.includes('new THREE.TubeGeometry'),'Physically triangulated meshes and trims required');
 assert(aero.includes('bounds.max.y>ground+.55')&&aero.includes('bounds.max.z>source.max.z+.35'),'Source-bound safety envelope must prevent oversized bodywork');
-assert(!/document\\.createElement\\(['"]img|new THREE\\.BoxGeometry/.test(aero),'No fake vehicle sprites or generic proxy boxes');
+assert(!aero.includes('new THREE.BoxGeometry')&&!aero.includes('document.createElement'), 'No fake vehicle sprites or generic proxy boxes');
 assert(script.includes('frameFullExterior(new THREE.Vector3')&&script.includes('state.viewFitMargin=+maxNdc.toFixed(3)'),'Tour camera must frame the real GLB at each angular pose');
 assert(script.includes("canvas.addEventListener('pointerdown',()=>stopTour('manual'))")&&script.includes('if(document.hidden)stopTour'),'Manual touch and backgrounding must stop the 3D tour');
 assert(script.includes("reducedMotion.matches")&&script.includes("tour.disabled=reducedMotion.matches"),'Respect OS reduced-motion setting: no forced camera movement');
