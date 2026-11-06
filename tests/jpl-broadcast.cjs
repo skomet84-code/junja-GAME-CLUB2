@@ -1,0 +1,32 @@
+'use strict';
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const {frame}=require('../public/football/broadcast-motion');
+const opts={seconds:18.8,minute:28,seed:999,playing:true,events:[]};
+const a=frame(opts),b=frame(opts);
+assert.deepEqual(a,b,'broadcast must be deterministic for synced viewers');
+assert.equal(a.players.H.length,11);assert.equal(a.players.A.length,11);
+for(const p of [...a.players.H,...a.players.A]){
+ assert(p.x>=.028&&p.x<=.972&&p.y>=.048&&p.y<=.952);
+}
+assert(a.ball.x>=0&&a.ball.x<=1);
+assert(a.ball.y>=0&&a.ball.y<=1);
+assert.notDeepEqual(a.ball,frame({...opts,seconds:20.3}).ball,'passes move between players');
+assert.equal(a.highlight,null,'no invented score announcements');
+const future={minute:50,kind:'GOAL',side:'H',player:'Striker'};
+assert.equal(frame({...opts,events:[future]}).highlight,null,'future goals must not leak');
+const goal=frame({...opts,minute:50,events:[future]});
+assert.equal(goal.highlight.kind,'GOAL');
+assert(goal.ball.x>.9,'home goal reaches away penalty area');
+const away=frame({...opts,minute:50,events:[{minute:50,kind:'GOAL',side:'A'}]});
+assert(away.ball.x<.1,'away goal reaches home penalty area');
+assert.equal(frame({...opts,minute:54,events:[future]}).highlight,null,'goal graphic expires');
+const done=frame({...opts,seconds:60,minute:90,finished:true,playing:false,events:[future]});
+assert.deepEqual(done.ball,{x:.5,y:.5,lift:0});assert.equal(done.highlight,null);
+assert.deepEqual(done,frame({...opts,seconds:60,minute:90,finished:true,playing:false,events:[future]}),'full time freezes');
+const html=fs.readFileSync('public/football/index.html','utf8');
+const game=fs.readFileSync('public/football/game.js','utf8');
+assert(html.indexOf('/football/broadcast-motion.js')<html.indexOf('/football/game.js'));
+assert(game.includes('window.JPLBroadcastMotion.frame'),'canvas engine must use scripted broadcast');
+assert(game.includes("frame.highlight"),'published event overlay exists');
+console.log('JPL_BROADCAST_OK: deterministic 22-player passing, goals, no future leakage and final freeze');
