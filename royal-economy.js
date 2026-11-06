@@ -274,6 +274,36 @@ function createRoyalEconomy({db,exactWallet,now,getAssets}){
      topWealth:fortunes.slice(0,10),royalRanking:rank(),assetsFailed,
      note:'오늘 장부 유입/유출에는 유저 송금·은행·투자 이동이 포함됩니다. 신규 재화 발행량과 동일하지 않습니다. 투자 평가액은 시세에 따라 변동합니다.'};
  }
- return {buy,catalog,collector,gallery,updateShowcase,decorate,dashboard,setMarket,setBank};
+ function inventoryAudit(){
+   // Read-only operator reconciliation. Never mutate inventories or certificates
+   // while inspecting production. Missing pointers are normal for legacy inventory.
+   const holdings=db.prepare('SELECT user_id,item_id FROM user_inventory').all().filter(x=>itemMap.has(x.item_id));
+   const sold=new Map(),issues=[],holder=new Map();
+   for(const record of holdings){
+     sold.set(record.item_id,(sold.get(record.item_id)||0)+1);
+     const key='royal:certificate:holder:'+record.user_id+':'+record.item_id;
+     const row=db.prepare('SELECT value FROM game_state WHERE key=?').get(key);
+     if(!row)continue;
+     let serial;try{serial=JSON.parse(row.value)}catch{serial=null}
+     if(typeof serial!=='string'||!/^JLC-[0-9A-F]{16}$/.test(serial)){
+       issues.push({type:'INVALID_POINTER',itemId:record.item_id,userId:record.user_id});continue;
+     }
+     if(holder.has(serial))issues.push({type:'DUPLICATE_SERIAL',itemId:record.item_id,userId:record.user_id});
+     holder.set(serial,record);
+     const certRow=db.prepare('SELECT value FROM game_state WHERE key=?').get('royal:certificate:serial:'+serial);
+     let cert;try{cert=certRow?JSON.parse(certRow.value):null}catch{cert=null}
+     if(!cert||cert.itemId!==record.item_id||Number(cert.currentOwnerId)!==Number(record.user_id)||cert.status!=='ACTIVE'){
+       issues.push({type:'CERTIFICATE_MISMATCH',itemId:record.item_id,userId:record.user_id});
+     }
+   }
+   const items=ROYAL_ITEMS.map(item=>{
+     const occupied=sold.get(item.id)||0,limit=item.stock??null;
+     if(limit!=null&&occupied>limit)issues.push({type:'OVERSTOCK',itemId:item.id,excess:occupied-limit});
+     return {id:item.id,name:item.name,category:item.category,price:item.price,stock:limit,sold:occupied,remaining:limit==null?null:Math.max(0,limit-occupied),soldOut:limit!=null&&occupied>=limit};
+   });
+   return {asOf:now(),totalProducts:items.length,totalOwned:holdings.length,issues,healthy:issues.length===0,items,readOnly:true,
+     note:'기존 소유권 증명서가 아직 발급되지 않은 보유품은 정상으로 취급합니다. 이상 내역은 자동 수정되지 않습니다.'};
+ }
+ return {buy,catalog,collector,gallery,updateShowcase,decorate,dashboard,inventoryAudit,setMarket,setBank};
 }
 module.exports={ROYAL_ITEMS,RETIRED_ROYAL_IDS,createRoyalEconomy,retireFantasyRoyalInventory};
