@@ -46,7 +46,7 @@ for(const piece of bags){
  assert.equal(piece.displayOnly,true,'bag collectible cannot grant casino perks');
 }
 const birkin=bags.find(x=>x.model==='Birkin 30');
-const firstBagCash=exactWallet.read(db.prepare('SELECT balance,balance_exact,balance_base FROM users WHERE id=4').get(4));
+const firstBagCash=exactWallet.read(db.prepare('SELECT balance,balance_exact,balance_base FROM users WHERE id=?').get(4));
 economy.buy(4,birkin.id);
 const acquiredBag=economy.catalog(4).items.find(x=>x.id===birkin.id);
 assert.equal(acquiredBag.owned,true);
@@ -56,7 +56,7 @@ assert.match(acquiredBag.certificate.serial,/^JLC-[0-9A-F]{16}$/);
 assert.equal(economy.gallery(4).items.find(x=>x.id===birkin.id).category,'bag');
 assert.equal(economy.collector(4).rooms.find(x=>x.id==='couture').owned,1);
 assert.throws(()=>economy.buy(2,birkin.id),/재고/,'other collector cannot buy sold-out bag');
-assert.equal(exactWallet.read(db.prepare('SELECT balance,balance_exact,balance_base FROM users WHERE id=4').get(4)),firstBagCash-BigInt(birkin.price));
+assert.equal(exactWallet.read(db.prepare('SELECT balance,balance_exact,balance_base FROM users WHERE id=?').get(4)),firstBagCash-BigInt(birkin.price));
 const bagSell=market.bankSell(4,birkin.id);
 assert.equal(bagSell.received,String(BigInt(birkin.price)*75n/100n));
 assert.equal(economy.catalog(4).items.find(x=>x.id===birkin.id).remaining,1);
