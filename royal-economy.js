@@ -113,6 +113,7 @@ function createRoyalEconomy({db,exactWallet,now,getAssets}){
   {id:'motors',name:'THE MOTOR HALL',label:'로얄 모터스',categories:['car']},
   {id:'fleet',name:'THE PRIVATE FLEET',label:'요트 · 전용기',categories:['jet','yacht']},
   {id:'jewels',name:'THE JEWEL VAULT',label:'시계 · 하이주얼리',categories:['watch','jewel']},
+  {id:'couture',name:'THE COUTURE SALON',label:'헤리티지 명품백',categories:['bag']},
   {id:'relics',name:'THE IMPERIAL ARTS',label:'황실 예술품',categories:['art','vault','estate']}
  ]);
  function decorate(item,uid){
@@ -192,7 +193,7 @@ function createRoyalEconomy({db,exactWallet,now,getAssets}){
        owned:owned.filter(item=>room.categories.includes(item.category)).length,
        total:ROYAL_ITEMS.filter(item=>room.categories.includes(item.category)).length
      })),
-     brandSets:['rolls-royce','bentley','aston-martin'].map(brand=>({
+     brandSets:['rolls-royce','bentley','aston-martin','hermes','chanel'].map(brand=>({
        brand,total:ROYAL_ITEMS.filter(item=>item.brand===brand).length,
        owned:owned.filter(item=>item.brand===brand).length
      })),
