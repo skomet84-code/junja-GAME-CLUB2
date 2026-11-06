@@ -41,7 +41,8 @@ assert.throws(()=>play({bet:1000,multiplier:1000,sevenJackpot:true,free:true,fai
 assert.deepEqual({balance:balance(),spins:spins(),count:count(),pool:val('pool'),used:used()},beforeFailure,
  'history failure must rollback a 777 payout and jackpot deduction');
 const jackpot=play({bet:1000,multiplier:1000,sevenJackpot:true});
-assert.equal(jackpot.jackpotAward,1000000000130n);
+assert.equal(jackpot.jackpotAward,1000000000130);
+assert.doesNotThrow(()=>JSON.stringify(jackpot),'jackpot must also be JSON-safe');
 assert.equal(val('pool'),'1000000000000');
 assert.equal(val('history').winner,1);
 assert.equal(count(),6,'jackpot payout records wager, 1000x and pool credit');
