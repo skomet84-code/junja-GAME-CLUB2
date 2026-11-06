@@ -3097,7 +3097,7 @@ const server=http.createServer(async(req,res)=>{
           disableEvent:()=>gameStateSet('slot_777_event_active',false),
           recordJackpot:args=>recordSlot777Jackpot(u,args),now});
       }catch(e){console.error('[SLOT ATOMIC ROUND]',e.message);return json(res,400,{error:e.message});}
-      const {freePlay,regularPayout,payout,profit,jackpotAward,contribution:jackpotContribution,
+      const {freePlay,payout,profit,jackpotAward,contribution:jackpotContribution,
         pool,history:jackpotHistoryEntry}=settlement;
       if(sevenJackpot||slot777EventTriggered)pushRefresh();
       const jackpotLine=winLines.find(w=>!w.scatter&&(w.symbols?.[0]==='7️⃣'||w.symbols?.[0]==='J'));
