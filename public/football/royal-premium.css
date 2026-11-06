@@ -468,3 +468,21 @@ footer{border-color:#d7c39d33}
 .jpl-team-note,.jpl-team-empty{color:#afbdb5;font-size:11px;line-height:1.8}
 .jpl-team-note{margin:20px 0 0}
 @media(max-width:650px){.jpl-team-shell{padding:15px 12px}.jpl-team-dialog{max-height:94dvh}.jpl-team-columns{grid-template-columns:1fr;gap:10px}.jpl-team-hero{padding:12px;gap:10px}.jpl-team-hero h3{font-size:19px}.jpl-team-hero .crest{width:45px;height:58px;flex-basis:45px}.jpl-team-columns section{padding:12px}.jpl-team-result{grid-template-columns:75px minmax(0,1fr) 24px}.jpl-team-top h2{font-size:21px}.jpl-club-trigger{padding:3px 0}}
+
+/* Authenticated match-centre data ribbon, driven by real published events. */
+.jpl-moments{margin:13px 18px 19px;border:1px solid #d8bd8954;background:linear-gradient(160deg,#182527,#0c1418);border-radius:12px;overflow:hidden}
+.jpl-moments-head{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 16px;background:linear-gradient(90deg,#d7b47620,transparent);border-bottom:1px solid #d8bd8933;color:#efe1c5;font-size:11px}
+.jpl-moments-head b{color:#ffdfa2;letter-spacing:.12em;font-size:10px}
+.jpl-moments-head small{font-weight:900;letter-spacing:.11em;color:#c5b18c}
+.jpl-moments-list{display:grid;max-height:278px;overflow:auto;scrollbar-color:#957448 #141b1b}
+.jpl-moment{display:grid;grid-template-columns:40px 74px minmax(65px,.6fr) minmax(0,1.4fr);align-items:center;gap:8px;padding:10px 15px;border-bottom:1px solid #e9d4af18;color:#ccd6d2;font-size:11px}
+.jpl-moment:last-child{border-bottom:0}
+.jpl-moment-time{color:#dfbb7d;font-weight:900;font-variant-numeric:tabular-nums}
+.jpl-moment-type{font-size:9px;letter-spacing:.12em;color:#a5bbb4;font-weight:900}
+.jpl-moment-club{color:#e7d7b7;font-weight:800}
+.jpl-moment-detail{overflow-wrap:anywhere}
+.jpl-moment.goal{background:linear-gradient(90deg,#b9954c20,transparent)}
+.jpl-moment.goal .jpl-moment-type{color:#ffdc97}
+.jpl-moment.goal .jpl-moment-detail{color:#f5e1b4;font-weight:800}
+.jpl-moment-empty{padding:15px 16px;margin:0;color:#b1bdb6;font-size:11px}
+@media(max-width:580px){.jpl-moments{margin:9px 9px 13px}.jpl-moment{grid-template-columns:30px 55px minmax(48px,.65fr) minmax(0,1.35fr);gap:4px;padding:9px 7px;font-size:9px}.jpl-moment-type{font-size:8px}.jpl-moments-head{padding:10px}.jpl-moments-head span{font-size:9px}}
