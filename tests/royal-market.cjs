@@ -104,4 +104,15 @@ assert.equal(market.market(1).owned[0].certificate.status,'ACTIVE');
 assert.equal(market.market(1).owned[0].certificate.currentOwner,'member1');
 const publicCertificate=JSON.stringify(economy.gallery(1).items[0].certificate);
 assert(!publicCertificate.includes('currentOwnerId')&&!publicCertificate.includes('originalOwnerId'));
+// Operator reconciliation remains read-only and flags impossible stock/cert states.
+const audit=economy.inventoryAudit();
+assert.equal(audit.readOnly,true);
+assert.equal(audit.healthy,true);
+assert(audit.items.some(x=>x.id===other.id&&x.sold===1));
+const corruptedKey='royal:certificate:holder:1:'+other.id;
+db.prepare('UPDATE game_state SET value=? WHERE key=?').run(JSON.stringify('JLC-DEADBEEFDEADBEEF'),corruptedKey);
+const broken=economy.inventoryAudit();
+assert.equal(broken.healthy,false);
+assert(broken.issues.some(x=>x.type==='CERTIFICATE_MISMATCH'&&x.itemId===other.id));
+assert.equal(owned(1,other.id),1,'audit must not repair or mutate inventory');
 console.log('ROYAL_MARKET_OK: exact escrow, outbid refunds, sole settlement, bank redemption, stable certificates, provenance and expiry');
