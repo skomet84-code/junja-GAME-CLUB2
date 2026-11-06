@@ -413,11 +413,24 @@ function canvasDraw(timestamp){
    ctx.strokeStyle=hside?'#ecd5a32b':'#d5e2ff24';ctx.lineWidth=5;
    ctx.beginPath();ctx.moveTo(xx,yy);ctx.lineTo(xx-8*Math.sin(tm*1.25+i),yy+6);ctx.stroke();
   }
-  ctx.beginPath();ctx.arc(xx,yy,13.3,0,Math.PI*2);ctx.fillStyle=fill;
-  ctx.shadowBlur=9;ctx.shadowColor=fill;ctx.fill();ctx.shadowBlur=0;
-  ctx.strokeStyle='#f9eed7';ctx.lineWidth=2.5;ctx.stroke();
+  // Small broadcast-style players: leg cadence, jersey, cap and possession glow.
+  const stride=playing?Math.sin(tm*5+i*1.6)*3:0;
+  ctx.strokeStyle='#0a1a26';ctx.lineWidth=5;ctx.lineCap='round';
+  ctx.beginPath();ctx.moveTo(xx-4,yy+5);ctx.lineTo(xx-6-stride,yy+15);
+  ctx.moveTo(xx+4,yy+5);ctx.lineTo(xx+6+stride,yy+15);ctx.stroke();
+  ctx.strokeStyle=fill;ctx.lineWidth=5.5;
+  ctx.beginPath();ctx.moveTo(xx-8,yy-3);ctx.lineTo(xx-13,yy+4);
+  ctx.moveTo(xx+8,yy-3);ctx.lineTo(xx+13,yy+4);ctx.stroke();
+  ctx.shadowBlur=8;ctx.shadowColor=fill;ctx.fillStyle=fill;
+  ctx.beginPath();ctx.roundRect(xx-9,yy-10,18,19,6);ctx.fill();ctx.shadowBlur=0;
+  ctx.strokeStyle='#f6e9c6';ctx.lineWidth=1.6;ctx.stroke();
+  ctx.fillStyle='#e7baa0';ctx.beginPath();ctx.arc(xx,yy-13,5,0,Math.PI*2);ctx.fill();
   ctx.fillStyle=hside&&fill==='#e4c275'?'#132332':'#fffdf2';
-  ctx.font='bold 12px Arial';ctx.textAlign='center';ctx.fillText(String(i+1),xx,yy+4);
+  ctx.font='bold 10px Arial';ctx.textAlign='center';ctx.fillText(String(i+1),xx,yy+4);
+  if(playing&&side===frame.side&&i===frame.carrier){
+   ctx.strokeStyle='#ffd783';ctx.lineWidth=2;ctx.setLineDash([3,4]);
+   ctx.beginPath();ctx.arc(xx,yy,20,0,7);ctx.stroke();ctx.setLineDash([]);
+  }
  }
  for(let i=0;i<11;i++)player('H',i);
  for(let i=0;i<11;i++)player('A',i);
