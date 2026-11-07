@@ -1,6 +1,7 @@
 'use strict';
 const assert=require('node:assert/strict');
 const fs=require('node:fs'),path=require('node:path');
+const vm=require('node:vm');
 const {DatabaseSync}=require('node:sqlite');
 const exactWallet=require('../exact-wallet');
 const {ROYAL_ITEMS,createRoyalEconomy}=require('../royal-economy');
@@ -29,6 +30,18 @@ assert.equal(bags.length,6,'royal boutique lists six handbags');
 assert.equal(new Set(bags.map(x=>x.id)).size,6,'each bag has a stable unique item ID');
 
 const imageNames=['hermes-birkin','hermes-kelly','hermes-constance','chanel-classic','chanel-255','chanel-boy'];
+const frame={window:{}};
+vm.runInNewContext(fs.readFileSync(path.join(__dirname,'..','public','royal-product-visual.js'),'utf8'),frame);
+const picture=frame.window.JunjaRoyalObjects;
+assert(picture,'royal product visual helper is exported');
+for(const piece of bags){
+ const target=piece.id.slice('bag_royalboutique_'.length).replaceAll('_','-');
+ assert.equal(picture.shot(piece).src,'/art/royal/handbags/'+target+'.svg','matching catalogue image '+target);
+ const auctionCard={category:'bag',id:'random-auction-lot-id',itemId:piece.id,name:piece.name};
+ assert.equal(picture.shot(auctionCard).src,'/art/royal/handbags/'+target+'.svg','matching auction image '+target);
+ assert.match(picture.render(auctionCard,piece.name),/data-art-item=/);
+}
+
 for(const name of imageNames){
  const asset=path.join(__dirname,'..','public','art','royal','handbags',name+'.svg');
  assert(fs.existsSync(asset),'matching handbag image exists: '+name);
