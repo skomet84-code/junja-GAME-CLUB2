@@ -23,7 +23,7 @@
  const media=window.JunjaRoyalMedia;
  const showcaseArt=item=>media?.picture(item)||('/art/royal/'+String(item?.art||'crown')+'.svg');
  const isRealPhoto=item=>!!media?.isPhoto(item)&&!window.JunjaRoyalObjects;
- const sceneArt=item=>item?.category==='bag'?'/art/royal/handbags/hermes-birkin.svg':media?.scene(item)||'/art/royal/cinematic/jewelry-showroom.webp';
+ const sceneArt=item=>item?.category==='bag'?(window.JunjaRoyalObjects?.shot(item)?.src||'/art/royal/handbags/hermes-birkin.svg'):media?.scene(item)||'/art/royal/cinematic/jewelry-showroom.webp';
  const cinematicRooms=[
  {id:'bag',english:'00 / COUTURE SALON',name:'에르메스 · 샤넬 명품백'},
  {id:'car',english:'01 / AUTOMOTIVE',name:'슈퍼카 · 명차'},
