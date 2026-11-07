@@ -37,9 +37,56 @@ for (const [name,engine] of engines) {
     await page.waitForSelector(`#view-${game}.active`,{timeout:5000});
     const visible=await page.locator(`#view-${game}`).isVisible();
     if(!visible)throw new Error(`${name} ${game} view not visible`);
+    // Regression: tap the Yut AI mode as a real mobile user, not by calling
+    // switchMode() directly. The previous binder error left this tab inert.
+    if(game==='yut'){
+      await page.locator('[data-mode-game="yut"][data-mode="solo"]').click();
+      await page.waitForFunction(()=>document.querySelector('#yutSoloArea')?.classList.contains('hidden')===false,null,{timeout:5000}).catch(async()=>{
+        throw new Error(`${name} Yut AI tab did not open after mobile tap`);
+      });
+      const aiSelected=await page.locator('[data-mode-game="yut"][data-mode="solo"]').evaluate(b=>b.classList.contains('active'));
+      if(!aiSelected)throw new Error(`${name} Yut AI tab not active after tap`);
+      await page.locator('[data-mode-game="yut"][data-mode="multi"]').click();
+      await page.waitForFunction(()=>document.querySelector('#yutMultiArea')?.classList.contains('hidden')===false,null,{timeout:5000});
+    }
     await page.evaluate(()=>typeof go==='function'&&go('lobby'));
     await page.waitForSelector('#view-lobby.active',{timeout:5000});
   }
+  // GRAND RACE v4: even a short 390x650 mobile viewport must show the full wager CTA.
+  await page.setViewportSize({width:390,height:650});
+  await page.evaluate(()=>go('horse'));
+  await page.waitForSelector('#view-horse.active');
+  await page.waitForFunction(()=>document.querySelectorAll('#horseTrack .race-lane.horizontal').length===7,null,{timeout:10000});
+  const horseLayout=await page.evaluate(()=>{
+    const selectors=['#view-horse .horse-arena','#horseTrack','#horseTrack .horse-course','#horseStartBtn'];
+    return {viewport:document.documentElement.clientWidth,items:selectors.map(s=>{
+      const e=document.querySelector(s),r=e?.getBoundingClientRect();
+      return {s,left:r?.left??-999,right:r?.right??999,width:r?.width??0};
+    }),lanes:document.querySelectorAll('#horseTrack .race-lane.horizontal').length,picks:document.querySelectorAll('#horsePickGrid [data-horse-pick]').length};
+  });
+  if(horseLayout.lanes!==7||horseLayout.picks!==7||horseLayout.items.some(x=>x.width<100||x.right>horseLayout.viewport+5||x.left< -5)){
+    throw new Error(`${name} GRAND RACE mobile overflow or missing 7 lanes ${JSON.stringify(horseLayout)}`);
+  }
+  // The mobile redesign hides the redundant horse card grid: select a horse
+  // directly from the displayed 7 lanes. No wagering side effects.
+  await page.locator('#horseTrack .race-lane.horizontal').first().click();
+  const chosen=await page.evaluate(()=>({
+    picked:document.querySelector('#horsePick1')?.value,
+    buttonDisabled:document.querySelector('#horseStartBtn')?.disabled,
+    highlighted:document.querySelectorAll('#horseTrack .race-lane.horizontal.selected').length,
+    buttonBottom:document.querySelector('#horseStartBtn')?.getBoundingClientRect().bottom,
+    viewportHeight:window.innerHeight
+  }));
+  if(!chosen.picked||chosen.buttonDisabled||chosen.highlighted!==1){
+    throw new Error(`${name} GRAND RACE lane selection failed ${JSON.stringify(chosen)}`);
+  }
+  if(chosen.buttonBottom>chosen.viewportHeight+5){
+    throw new Error(`${name} GRAND RACE bet CTA outside one screen ${JSON.stringify(chosen)}`);
+  }
+  await page.screenshot({path:`/tmp/junja-v25-horse-${name}.png`,fullPage:true});
+  await page.setViewportSize({width:390,height:844});
+  await page.evaluate(()=>go('lobby'));
+  await page.waitForSelector('#view-lobby.active');
   await page.evaluate(()=>go('slot'));
   await page.waitForSelector('#view-slot.active');
   await page.fill('#slotBetInput','200000');
@@ -54,13 +101,26 @@ for (const [name,engine] of engines) {
   if(slotMax!==null&&slotMax!=='1000000000')throw new Error(`${name} invalid slot input max: ${slotMax}`);
   await page.evaluate(()=>go('yut'));
   await page.waitForSelector('#view-yut.active');
-  await page.click('[data-mode-game="yut"][data-mode="solo"]');
-  await page.fill('#soloYutBet','200000');
+  // Exercise the app's mode switch directly to avoid a stale touch target after fast view changes.
+  await page.evaluate(()=>switchMode('yut','solo'));
+  // An iOS viewport resize after the horse page can leave WebKit's input
+  // actionability cache stale. Verify the real DOM mode, then populate the
+  // field programmatically; separate tests cover physical input taps.
+  await page.waitForFunction(()=>{const panel=document.querySelector('#yutSoloArea'),input=document.querySelector('#soloYutBet');return panel&&input&&!panel.classList.contains('hidden')&&!document.querySelector('#view-yut')?.classList.contains('hidden')},null,{timeout:8000});
+  await page.locator('#soloYutBet').evaluate(input=>{input.value='200000';input.dispatchEvent(new Event('input',{bubbles:true}));input.dispatchEvent(new Event('change',{bubbles:true}));});
   // The legacy v25 UI scales the mobile layout viewport; Playwright's
   // physical click locator can hit the input while the button itself is visible.
   // Test the bound app action here; physical touchscreen flow is covered by
   // tests/omok-mobile-smoke.mjs for the newly added multiplayer game.
   await page.locator('#startSoloYut').evaluate(button=>button.click());
+  await page.waitForTimeout(350);
+  const yutStartDebug=await page.evaluate(async()=>{
+    let apiResult;try{const r=await fetch('/api/solo/yut',{credentials:'same-origin'});const j=await r.json();apiResult={status:r.status,game:!!j.game,phase:j.game?.phase,error:j.error}}catch(e){apiResult={error:String(e)}}
+    return {toast:document.querySelector('#toast')?.textContent,soloRoomClass:document.querySelector('#yutSoloRoom')?.className,
+      soloStartClass:document.querySelector('#yutSoloStart')?.className,buttonDisabled:document.querySelector('#startSoloYut')?.disabled,
+      apiResult};
+  });
+  console.log('YUT_SOLO_START_DEBUG',name,JSON.stringify(yutStartDebug));
   await page.waitForSelector('#yutSoloRoom:not(.hidden)',{timeout:8000});
   await page.waitForSelector('#yutSoloRoom .true-yut-board',{timeout:5000});
   const boardBox=await page.locator('#yutSoloRoom .true-yut-board').boundingBox();

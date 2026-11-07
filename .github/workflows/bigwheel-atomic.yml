@@ -1,0 +1,29 @@
+name: Bigwheel atomic wager regression
+on:
+  pull_request:
+    paths:
+      - 'server.js'
+      - 'tests/bigwheel-junja-jackpot.cjs'
+      - 'tests/bigwheel-rank-free-smoke.cjs'
+      - 'tests/junja-wager-1t.cjs'
+      - '.github/workflows/bigwheel-atomic.yml'
+  workflow_dispatch:
+jobs:
+  test-bigwheel:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run exact-G atomic settlement regression
+        run: |
+          node --check server.js
+          node tests/bigwheel-junja-jackpot.cjs
+          node tests/bigwheel-rank-free-smoke.cjs
+          node tests/junja-wager-1t.cjs
+          node tests/roulette-large-wallet-smoke.cjs

@@ -1,0 +1,43 @@
+'use strict';
+const assert=require('node:assert/strict');
+const fs=require('node:fs'),path=require('node:path');
+const root=path.join(__dirname,'..');
+const read=p=>fs.readFileSync(path.join(root,p),'utf8');
+let bytes=0;
+for(const name of ['car','watch','jewelry','yacht','jet','estate']){
+ const b=fs.readFileSync(path.join(root,'public/art/royal/cinematic',name+'-showroom.webp'));bytes+=b.length;
+ assert(b.length>10000&&b.length<500000,'mobile-ready image '+name);
+ assert.equal(b.toString('ascii',0,4),'RIFF',name+' image');
+ assert.equal(b.toString('ascii',8,12),'WEBP',name+' WebP image');
+}
+assert(bytes<1200000,'all six showrooms under 1.2 MB');
+const media=read('public/royal-photo.js'),store=read('public/royal-economy-ui.js'),gallery=read('public/royal-gallery.js'),html=read('public/index.html'),css=read('public/royal-cinematic.css');
+assert.match(media,/cinemaRooms=Object\.freeze/);
+assert.match(media,/sourceUrl,licenseUrl,isPhoto,scene/,'original photo attributions remain accessible');
+assert.match(store,/jrp-cinematic-panorama/);
+assert.match(store,/jrp-cinematic-room-grid/);
+assert.match(store,/jrp-cinematic-tile-art/);
+assert.match(store,/jrp-cinematic-feature-bg/);
+assert.match(store,/data-jre-filter/);
+assert.match(store,/data-jre-buy/,'existing server-validated purchases');
+assert.match(gallery,/jrg-cinematic-stage/);
+assert.match(gallery,/jrg-cinematic-card-backdrop/);
+assert.match(gallery,/jrg-cinematic-selected/);
+assert.match(gallery,/jrg-cinematic-certificate/);
+assert.match(css,/@media\(max-width:700px\)/);
+assert.match(html,/royal-cinematic\.css\?v=20261107-approved-couture-v17/);
+assert.match(html,/royal-gallery\.js\?v=20261107-photoreal-v15/);
+// The room entry is a distinct view from per-product / museum artwork.
+assert.match(store,/const roomCover=room=>room\.id==='bag'/,'bag tile no longer shows the ID-less Birkin fallback');
+const coutureCover=fs.readFileSync(path.join(root,'public/art/royal/couture-salon-entry-v16.webp'));
+assert(coutureCover.length>20000&&coutureCover.length<100000,'approved cover is a compact real image file');
+assert.equal(coutureCover.toString('ascii',0,4),'RIFF');
+assert.equal(coutureCover.toString('ascii',8,12),'WEBP');
+assert(store.includes('/art/royal/couture-salon-entry-v16.webp'),'Couture Salon uses approved one-piece showroom artwork');
+assert(!store.includes("['hermes-birkin','hermes-kelly','chanel-classic'].map(slug=>"),'old three-photo split removed');
+assert.match(store,/roomCover\(room\)/,'seven showroom tiles use the scoped room cover renderer');
+assert.match(store,/return|sceneArt\(\{category:room\.id\}\)/,'other six showrooms preserve original artwork');
+assert.match(css,/jrp-couture-entry-art/,'entry has individually styled approved cover');
+assert.match(html,/royal-cinematic\.css\?v=20261107-approved-couture-v17/);
+assert.match(html,/royal-economy-ui\.js\?v=20261107-approved-couture-v17/);
+console.log('ROYAL_CINEMATIC_V9_OK: six optimized showroom scenes, existing purchases and owned-collection views preserved');

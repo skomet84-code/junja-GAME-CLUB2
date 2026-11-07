@@ -19,19 +19,19 @@ async function api(url,body){const r=await fetch(base+url,{method:body?'POST':'G
   const u=(await api('/api/register',login)).user;
   await stop();
   const db=new DatabaseSync(path.join(dir,'club.db'));
-  db.prepare('UPDATE users SET balance=? WHERE id=?').run(40000000000000,u.id);
+  db.prepare('UPDATE users SET balance=? WHERE id=?').run(4000000000000000,u.id);
   db.prepare('DELETE FROM stats WHERE user_id=?').run(u.id);db.close();
   await start();
   const restored=(await api('/api/login',login)).user;
-  assert.ok(restored);assert.equal(restored.balance,40000000000000);
+  assert.ok(restored);assert.equal(restored.balance,4000000000000000);
   assert.equal((await api('/api/me')).user.id,u.id);
   const shop=await api('/api/shop');const items=shop.items.filter(x=>x.collection==='ultimate');
-  assert.equal(items.length,3);assert.ok(items.every(x=>x.price===10000000000000));
+  assert.equal(items.length,3);assert.ok(items.every(x=>x.price===1000000000000000));
   const purchase=await api('/api/shop/buy',{itemId:items[0].id});
-  assert.equal(purchase.user.balance,30000000000000);
+  assert.equal(purchase.user.balance,3000000000000000);
   assert.equal(purchase.user.cosmetics.frame.id,items[0].id);
   await stop();await start();
-  assert.equal((await api('/api/me')).user.balance,30000000000000);
+  assert.equal((await api('/api/me')).user.balance,3000000000000000);
   assert.equal((await api('/api/me')).user.cosmetics.frame.id,items[0].id);
   await stop();
   // Model the production snapshot: missing stats and a zeroed admin wallet,

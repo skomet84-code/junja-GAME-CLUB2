@@ -137,8 +137,11 @@ const newWalletChange = `function walletChange(userId, amount, type, memo, escro
 }`;
 source = replaceOne(source, oldWalletChange, newWalletChange, 'bigint wallet settlement');
 
+// Shop purchases now use exactWallet.read/mirror and exact ledger writes in server.js.
+// The older replaceOne shim applies only to legacy server versions; it is optional
+// so a new atomic loan+purchase implementation is never rejected or overwritten.
 // Shop purchases must preserve exact balances above Number.MAX_SAFE_INTEGER.
-source = replaceOne(source, "    const u=db.prepare('SELECT balance FROM users WHERE id=?').get(userId);if(!u)throw new Error('사용자를 찾을 수 없습니다.');\n    if(u.balance<item.price)throw new Error(`게임머니가 부족합니다. ${formatMoney(item.price)}G가 필요합니다.`);\n    const next=u.balance-item.price,t=now();\n    db.prepare('UPDATE users SET balance=? WHERE id=?').run(next,userId);\n    db.prepare('INSERT INTO user_inventory(user_id,item_id,purchase_price,purchased_at) VALUES(?,?,?,?)').run(userId,item.id,item.price,t);\n    ensureLoadout(userId);\n    if(LOADOUT_FIELDS.has(item.category))db.prepare(`UPDATE user_loadout SET ${item.category}=? WHERE user_id=?`).run(item.id,userId);\n    db.prepare('INSERT INTO ledger(user_id,amount,balance_after,type,memo,created_at) VALUES(?,?,?,?,?,?)').run(userId,-item.price,next,'shop_purchase',`JUNJA BOUTIQUE · ${item.name} 구매 · 자동 장착`,t);\n    const ownedNow=!!db.prepare('SELECT 1 FROM user_inventory WHERE user_id=? AND item_id=?').get(userId,item.id);\n    const loadNow=ensureLoadout(userId);\n    if(!ownedNow||LOADOUT_FIELDS.has(item.category)&&loadNow[item.category]!==item.id)throw new Error('구매 저장 검증에 실패했습니다. 결제는 취소됩니다.');\n    db.exec('COMMIT');return {balance:next,item};", "    const u=db.prepare('SELECT CAST(balance AS TEXT) AS balance FROM users WHERE id=?').get(userId);if(!u)throw new Error('사용자를 찾을 수 없습니다.');\n    const current=walletInt(u.balance),price=walletInt(item.price);\n    if(current<price)throw new Error(`게임머니가 부족합니다. ${formatMoney(item.price)}G가 필요합니다.`);\n    const next=current-price,t=now();\n    db.prepare('UPDATE users SET balance=? WHERE id=?').run(next,userId);\n    db.prepare('INSERT INTO user_inventory(user_id,item_id,purchase_price,purchased_at) VALUES(?,?,?,?)').run(userId,item.id,item.price,t);\n    ensureLoadout(userId);\n    if(LOADOUT_FIELDS.has(item.category))db.prepare(`UPDATE user_loadout SET ${item.category}=? WHERE user_id=?`).run(item.id,userId);\n    db.prepare('INSERT INTO ledger(user_id,amount,balance_after,type,memo,created_at) VALUES(?,?,?,?,?,?)').run(userId,-price,next,'shop_purchase',`JUNJA BOUTIQUE · ${item.name} 구매 · 자동 장착`,t);\n    const ownedNow=!!db.prepare('SELECT 1 FROM user_inventory WHERE user_id=? AND item_id=?').get(userId,item.id);\n    const loadNow=ensureLoadout(userId);\n    if(!ownedNow||LOADOUT_FIELDS.has(item.category)&&loadNow[item.category]!==item.id)throw new Error('구매 저장 검증에 실패했습니다. 결제는 취소됩니다.');\n    db.exec('COMMIT');return {balance:walletOut(next),item};", 'exact bigint shop purchase');
+source = replaceOne(source, "    const u=db.prepare('SELECT balance FROM users WHERE id=?').get(userId);if(!u)throw new Error('사용자를 찾을 수 없습니다.');\n    if(u.balance<item.price)throw new Error(`게임머니가 부족합니다. ${formatMoney(item.price)}G가 필요합니다.`);\n    const next=u.balance-item.price,t=now();\n    db.prepare('UPDATE users SET balance=? WHERE id=?').run(next,userId);\n    db.prepare('INSERT INTO user_inventory(user_id,item_id,purchase_price,purchased_at) VALUES(?,?,?,?)').run(userId,item.id,item.price,t);\n    ensureLoadout(userId);\n    if(LOADOUT_FIELDS.has(item.category))db.prepare(`UPDATE user_loadout SET ${item.category}=? WHERE user_id=?`).run(item.id,userId);\n    db.prepare('INSERT INTO ledger(user_id,amount,balance_after,type,memo,created_at) VALUES(?,?,?,?,?,?)').run(userId,-item.price,next,'shop_purchase',`JUNJA BOUTIQUE · ${item.name} 구매 · 자동 장착`,t);\n    const ownedNow=!!db.prepare('SELECT 1 FROM user_inventory WHERE user_id=? AND item_id=?').get(userId,item.id);\n    const loadNow=ensureLoadout(userId);\n    if(!ownedNow||LOADOUT_FIELDS.has(item.category)&&loadNow[item.category]!==item.id)throw new Error('구매 저장 검증에 실패했습니다. 결제는 취소됩니다.');\n    db.exec('COMMIT');return {balance:next,item};", "    const u=db.prepare('SELECT CAST(balance AS TEXT) AS balance FROM users WHERE id=?').get(userId);if(!u)throw new Error('사용자를 찾을 수 없습니다.');\n    const current=walletInt(u.balance),price=walletInt(item.price);\n    if(current<price)throw new Error(`게임머니가 부족합니다. ${formatMoney(item.price)}G가 필요합니다.`);\n    const next=current-price,t=now();\n    db.prepare('UPDATE users SET balance=? WHERE id=?').run(next,userId);\n    db.prepare('INSERT INTO user_inventory(user_id,item_id,purchase_price,purchased_at) VALUES(?,?,?,?)').run(userId,item.id,item.price,t);\n    ensureLoadout(userId);\n    if(LOADOUT_FIELDS.has(item.category))db.prepare(`UPDATE user_loadout SET ${item.category}=? WHERE user_id=?`).run(item.id,userId);\n    db.prepare('INSERT INTO ledger(user_id,amount,balance_after,type,memo,created_at) VALUES(?,?,?,?,?,?)').run(userId,-price,next,'shop_purchase',`JUNJA BOUTIQUE · ${item.name} 구매 · 자동 장착`,t);\n    const ownedNow=!!db.prepare('SELECT 1 FROM user_inventory WHERE user_id=? AND item_id=?').get(userId,item.id);\n    const loadNow=ensureLoadout(userId);\n    if(!ownedNow||LOADOUT_FIELDS.has(item.category)&&loadNow[item.category]!==item.id)throw new Error('구매 저장 검증에 실패했습니다. 결제는 취소됩니다.');\n    db.exec('COMMIT');return {balance:walletOut(next),item};", 'exact bigint shop purchase', false);
 
 // Previous one-time hold'em payout repair has been retired; future deploys must not modify balances.
 
@@ -148,7 +151,7 @@ source = replaceOne(
   source,
   "db.exec('DELETE FROM room_escrow');",
   "db.exec('DELETE FROM room_escrow');\nconst overlapDup=28061988547800000n,overlapTarget=14030994273900000n;\nconst overlapUser=db.prepare(\"SELECT id,balance FROM users WHERE id=2 AND username='junja_admin'\").get();\nif(overlapUser&&walletInt(overlapUser.balance)===overlapDup){\n  const delta=overlapTarget-overlapDup;\n  walletChange(overlapUser.id,delta,'deploy_overlap_repair','Render 교체 배포 중복 정산값 정확 일치 1회 보정');\n  console.log('[DEPLOY OVERLAP REPAIR] corrected exact duplicate wallet to '+String(overlapTarget));\n}",
-  'exact deploy overlap wallet repair'
+  'exact deploy overlap wallet repair', false // Older global escrow wipe was intentionally removed for safe per-row recovery.
 );
 
 // Render deploys overlap old/new instances briefly. Flush the corrected new state
@@ -179,13 +182,9 @@ source = replaceOne(source,"raw>target.balance","raw>exactWallet.read(target)",'
 source = replaceOne(source,"`관리자 조정 · ${memo}`);","`관리자 조정 · ${memo}`,null,typeof b.requestKey==='string'?b.requestKey.slice(0,100):null);",'idempotent admin credit');
 source = replaceOne(source,".run(admin.id,targetId,amount>0?'credit':'debit',amount,memo,now());",".run(admin.id,targetId,amount>0?'credit':'debit',exactWallet.mirror(amount),memo,now());",'admin audit mirror');
 
+// Daily draw now uses BigInt and balance_exact in the core. Its former
+// Number-based ceiling patch is obsolete and must not block server startup.
 // Direct balance paths retained from the stable core: only remove the former 1경 ceiling.
-source = replaceOne(
-  source,
-  "const u=db.prepare('SELECT balance FROM users WHERE id=?').get(userId),next=Number(u.balance)+prize;if(!Number.isSafeInteger(next))throw new Error('보유 게임머니 한도를 초과합니다.');",
-  "const u=db.prepare('SELECT balance FROM users WHERE id=?').get(userId),next=Number(u.balance)+prize;if(!Number.isInteger(next)||next>9000000000000000000)throw new Error('보유 게임머니 저장 한도를 초과합니다.');",
-  'daily draw large wallet'
-);
 source = replaceOne(
   source,
   "const senderNext=sender.balance-total,targetNext=target.balance+amount,t=now();\n    if(!Number.isSafeInteger(senderNext)||!Number.isSafeInteger(targetNext))throw new Error('게임머니 한도를 초과합니다.');",
@@ -343,7 +342,7 @@ source = replaceOne(source, oldSevenAction, newSevenAction, 'seven exact all-in 
 // Remove the fixed game wager ceiling globally. Individual endpoints already
 // reject bets larger than the user's wallet; walletWager() remains wallet-capped.
 const oldGameWager = "function gameWager(v,min=1000,max=5000000,step=1000){\n  const n=Math.floor(Number(v));\n  if(!Number.isFinite(n)||n<min||n>max||n%step!==0) throw new Error(`금액은 ${formatMoney(min)}G~${formatMoney(max)}G 범위에서 ${formatMoney(step)}G 단위로 입력하세요.`);\n  return n;\n}";
-const newGameWager = "function gameWager(v,min=1000,max=Number.MAX_SAFE_INTEGER,step=1000){\n  const n=Math.floor(Number(v));\n  if(!Number.isSafeInteger(n)||n<min||n%step!==0) throw new Error(`금액은 최소 ${formatMoney(min)}G부터 ${formatMoney(step)}G 단위로 입력하세요.`);\n  return n;\n}";
+const newGameWager = "function gameWager(v,min=1000,max=1000000000000,step=1000){\n  const n=Math.floor(Number(v)),cap=1000000000000;\n  if(!Number.isSafeInteger(n)||n<min||n>cap||n%step!==0) throw new Error(`금액은 최소 ${formatMoney(min)}G부터 최대 ${formatMoney(cap)}G까지 입력하세요.`);\n  return n;\n}";
 source = replaceOne(source, oldGameWager, newGameWager, 'global game wager ceiling');
 
 // Yut: preserve the v2.8.8+ finish rule while applying the center shortcut.

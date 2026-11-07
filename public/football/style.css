@@ -1,0 +1,466 @@
+@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800;900&family=Noto+Sans+KR:wght@400;500;600;700;800;900&display=swap');
+:root{color-scheme:dark;--bg:#080d16;--panel:#111b2b;--panel2:#152338;--gold:#edca80;--muted:#93a0b8;--txt:#f4f5f8;--green:#79d2a8;--red:#ff7d88;--line:rgba(220,234,255,.12)}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:radial-gradient(ellipse 68% 800px at 55% -340px,#22304b 0,transparent 75%),radial-gradient(ellipse 45% 500px at -16% 16%,#1a2b2a 0,transparent 80%),var(--bg);color:var(--txt);font:500 13px/1.6 'Noto Sans KR',system-ui,-apple-system,Arial,sans-serif;min-height:100vh}
+button,input{font:inherit}
+button{cursor:pointer}
+button:disabled{cursor:not-allowed;opacity:.5}
+button:focus-visible,input:focus-visible,a:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
+a{text-decoration:none;color:inherit}
+h1,h2,h3,p{margin-top:0}
+h1,h2,h3{letter-spacing:-.04em}
+::selection{background:#b99b5b;color:#0a101c}
+.topnav{position:sticky;top:0;z-index:30;background:rgba(8,13,22,.93);border-bottom:1px solid #d7b87830;backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px)}
+.topnav-inner{max-width:1510px;margin:auto;padding:10px 28px;min-height:77px;display:flex;align-items:center;justify-content:space-between;gap:26px}
+.return-link{display:flex;align-items:center;gap:10px;font-size:11px;font-weight:800;letter-spacing:.12em;white-space:nowrap;color:#c3cbd6}
+.back-arrow{display:grid;place-items:center;width:36px;height:36px;border:1px solid #ffffff24;border-radius:50%;font-size:18px;color:var(--gold);transition:.2s}
+.return-link:hover .back-arrow{background:var(--gold);color:#101722}
+.topnav-brand{display:flex;gap:10px;align-items:center;margin-right:auto}
+.brand-shield{position:relative;display:grid;place-items:center;flex:0 0 38px;width:38px;height:42px;clip-path:polygon(9% 0,91% 0,100% 72%,50% 100%,0 72%);background:linear-gradient(145deg,#fff2c2,#cb973f);color:#141923;font:900 25px/1 Georgia,serif}
+.brand-shield span{position:absolute;bottom:4px;right:9px;font:900 9px 'Barlow Condensed',sans-serif;letter-spacing:-.05em}
+.topnav-brand strong{display:block;font:800 19px/1.05 'Barlow Condensed','Noto Sans KR',sans-serif;letter-spacing:.11em}
+.topnav-brand small{font:600 8px/1.8 'Barlow Condensed',sans-serif;letter-spacing:.22em;color:#a99b79}
+.topnav-right{display:flex;align-items:center;gap:12px}
+.season-pill,.round-chip{border:1px solid #dec48e57;background:#ad82451f;color:var(--gold);padding:8px 11px;border-radius:6px;font:800 13px 'Barlow Condensed',sans-serif;letter-spacing:.12em;white-space:nowrap}
+.wallet-top{display:flex;flex-direction:column;align-items:end;min-width:118px}
+.wallet-top span{color:#a8b3c7;font:700 10px 'Barlow Condensed',sans-serif;letter-spacing:.16em}
+.wallet-top b{font-size:15px;color:var(--gold);font-variant-numeric:tabular-nums}
+.page{max-width:1510px;padding:0 28px 50px;margin:auto}
+.welcome{position:relative;display:grid;grid-template-columns:1.35fr 1fr;align-items:center;min-height:342px;overflow:hidden;padding:24px 52px 12px;border-bottom:1px solid #edcb8035;background:radial-gradient(ellipse 480px 220px at 87% 60%,#c3aa6633,transparent 77%)}
+.welcome:after{content:'';position:absolute;inset:0;background:repeating-linear-gradient(90deg,transparent,transparent 76px,rgba(244,225,175,.017) 77px,transparent 78px);pointer-events:none}
+.welcome-copy{z-index:1}
+.eyebrow,.section-overline{display:flex;align-items:center;gap:7px;color:#d6b879;font:800 11px/1.5 'Barlow Condensed','Noto Sans KR',sans-serif;letter-spacing:.19em}
+.live-led,.signal,.onair .dot{width:7px;height:7px;border-radius:50%;display:inline-block;box-shadow:0 0 12px #50d49c;background:#55d79c;flex-shrink:0}
+.welcome h1{font-size:clamp(35px,4.4vw,68px);font-weight:900;letter-spacing:-.075em;line-height:1.22;margin:15px 0 17px}
+.welcome h1 em{font-style:normal;color:var(--gold)}
+.welcome p{font-size:14px;line-height:2;color:#abb8c9}
+.welcome-chips{display:flex;flex-wrap:wrap;gap:9px;margin-top:25px}
+.welcome-chips span{display:flex;gap:7px;align-items:center;border:1px solid #ffffff26;border-radius:3px;padding:7px 12px;color:#899ab0;font:700 12px 'Barlow Condensed','Noto Sans KR',sans-serif;letter-spacing:.09em}
+.welcome-chips b{font-size:16px;color:#e1c589}
+.welcome-symbol{position:relative;display:grid;place-items:center;min-height:305px}
+.crest-orbit{position:absolute;border:1px solid #dec18d4f;box-shadow:0 0 50px #ddad5133,inset 0 0 42px #cdac6021;border-radius:50%;width:260px;height:260px}
+.orbit-one{transform:rotate(-24deg) scaleX(.72)}
+.orbit-two{transform:rotate(26deg) scaleX(.72);border-style:dotted;opacity:.6}
+.welcome-crown{position:absolute;top:3px;color:#ddc389;font-size:36px;text-shadow:0 4px 24px #f7c96b80}
+.welcome-ball{width:184px;height:184px;display:grid;place-items:center;background:radial-gradient(circle at 30% 20%,#f8dca963,#a480472e 45%,transparent 74%);filter:drop-shadow(0 16px 22px #0008);animation:floatBall 6s ease-in-out infinite}
+.welcome-ball svg{filter:drop-shadow(0 10px 4px #0006);transform:rotate(-15deg)}
+.welcome-symbol-caption{position:absolute;bottom:12px;font:800 13px 'Barlow Condensed',sans-serif;letter-spacing:.34em;color:#e7c88d}
+@keyframes floatBall{50%{transform:translateY(-10px)}}
+.quick-stats{display:grid;grid-template-columns:repeat(4,1fr);border:1px solid var(--line);margin:22px 0 20px;border-radius:10px;background:#101a29;overflow:hidden}
+.quick-stats>div{padding:17px 22px;border-right:1px solid var(--line);min-width:0}
+.quick-stats>div:last-child{border:0}
+.quick-stats small{display:block;color:#8797ad;font:700 10px 'Barlow Condensed','Noto Sans KR',sans-serif;letter-spacing:.16em}
+.quick-stats strong{display:block;font:900 24px/1.45 'Barlow Condensed','Noto Sans KR',sans-serif;letter-spacing:.015em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.quick-stats strong span{font-size:12px;color:var(--muted)}
+.section-nav{display:flex;gap:7px;margin:0 0 20px;overflow-x:auto;padding-bottom:5px;scrollbar-width:none}
+.section-nav::-webkit-scrollbar{display:none}
+.section-nav button{border:1px solid transparent;background:transparent;color:#9daabe;padding:9px 17px;border-radius:6px;white-space:nowrap;font-size:12px;font-weight:800;letter-spacing:.01em;transition:.15s}
+.section-nav button:hover,.section-nav .nav-current{border-color:#d3b77b57;color:var(--gold);background:#c7a86b16}
+.layout{display:grid;grid-template-columns:minmax(0,1fr) 339px;gap:18px;align-items:start}
+.main-column{min-width:0;display:grid;gap:19px}
+.panel{background:linear-gradient(145deg,#131e2f,#101828);border:1px solid var(--line);border-radius:10px;box-shadow:0 8px 27px #0004;overflow:hidden}
+.panel-heading{display:flex;align-items:center;justify-content:space-between;padding:22px 23px 16px;gap:12px}
+.panel-heading h2{font:900 29px/.98 'Barlow Condensed','Noto Sans KR',sans-serif;letter-spacing:.022em;margin:7px 0 0}
+.panel-heading>small{font-size:11px;color:var(--muted)}
+.highlight{color:var(--gold)}
+.onair{display:inline-flex;gap:8px;align-items:center;border:1px solid #ffffff35;background:#131d2d;color:#abb9ca;padding:8px 11px;border-radius:4px;font:800 12px 'Barlow Condensed',sans-serif;letter-spacing:.1em;white-space:nowrap}
+.onair.live{color:#a5f3cd;border-color:#5ed49a66;background:#27855320}
+.onair.live .dot{animation:pulse 1.5s infinite}
+.onair.final{color:#f0d196;border-color:#edcd9457}
+@keyframes pulse{50%{opacity:.4;box-shadow:0 0 3px #50d49c}}
+.match-meta{display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:0 23px 13px;color:#8d9db0;font:700 11px 'Barlow Condensed','Noto Sans KR',sans-serif;letter-spacing:.11em}
+.match-meta span+span{border-left:1px solid #ffffff27;padding-left:10px}
+.scoreboard{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;min-height:116px;gap:18px;padding:14px 30px;background:linear-gradient(90deg,#1e2d43,#1c2841 44%,#1b2d41);border-top:1px solid #ffffff14;border-bottom:1px solid #ffffff14}
+.score-club{display:flex;align-items:center;gap:15px;min-width:0}
+.score-club.away{justify-content:flex-end;text-align:right}
+.score-club small{font:700 10px 'Barlow Condensed',sans-serif;color:#96a8c3;letter-spacing:.14em}
+.score-club h3{font-size:clamp(12px,1.42vw,17px);font-weight:900;line-height:1.3;word-break:keep-all;margin:3px 0 0}
+.crest{width:56px;height:65px;display:grid;place-items:center;flex-shrink:0;position:relative;clip-path:polygon(10% 2%,90% 2%,96% 20%,93% 72%,50% 98%,7% 72%,4% 20%);background:linear-gradient(145deg,var(--primary,#f7cd79) 0%,var(--primary,#b68b35) 56%,var(--secondary,#fff1cc) 57%,var(--primary,#b68b35) 100%);border:0;box-shadow:none;color:#fff}
+.crest:before{content:'';position:absolute;inset:4px;background:linear-gradient(160deg,#08101955,#11162833);clip-path:polygon(10% 2%,90% 2%,96% 20%,93% 72%,50% 98%,7% 72%,4% 20%);border:2px solid #eee8d5}
+.crest i{position:relative;z-index:1;font:900 24px Georgia,serif;font-style:normal;text-shadow:0 2px 4px #0008}
+.crest small{position:absolute;z-index:1;bottom:10px;color:#fff;font:800 9px 'Barlow Condensed',sans-serif;letter-spacing:.05em}
+.crest.placeholder{border:1px solid var(--gold)}
+.score-box{text-align:center;min-width:125px}
+.main-score{font:900 clamp(36px,4.8vw,67px)/1 'Barlow Condensed',sans-serif;letter-spacing:.07em;white-space:nowrap}
+.main-score span{color:var(--gold);font-size:.65em;position:relative;top:-.09em}
+.clock-label{display:inline-block;margin-top:3px;padding:3px 10px;font:800 11px 'Barlow Condensed','Noto Sans KR',sans-serif;letter-spacing:.1em;color:#eccb8b;background:#d2a8651e;border:1px solid #d2a86542;border-radius:3px}
+.pitch-frame{position:relative;margin:0;background:#0a1b1a;overflow:hidden;border-bottom:1px solid #ffffff23}
+.pitch-frame canvas{display:block;width:100%;aspect-ratio:1100 / 620;background:#102b25}
+.stadium-head,.pitch-corner{position:absolute;z-index:2;display:flex;justify-content:space-between;left:15px;right:15px;top:11px;font:800 11px 'Barlow Condensed',sans-serif;letter-spacing:.12em;text-shadow:0 2px 5px #000}
+.stadium-head>div{display:flex;gap:8px;align-items:center}
+.stadium-head>span{color:#e6d69e}
+.pitch-corner{top:auto;bottom:14px;justify-content:flex-end;gap:7px}
+.pitch-corner span{background:#08141cc9;border:1px solid #e8e8dc55;border-radius:3px;padding:4px 8px;color:#e7edf4}
+.timeline{padding:17px 22px 16px}
+.match-progress{height:5px;position:relative;border-radius:12px;background:#28384a;overflow:visible;margin:0 0 15px}
+.match-progress>#progressFill{position:absolute;inset:0 auto 0 0;width:0%;background:linear-gradient(90deg,#5ba6b1,#e2c37b);border-radius:12px;transition:width .35s linear}
+.halfmark{position:absolute;left:50%;top:-3px;width:1px;height:11px;background:#eef3ed8a;font-size:0}
+/* 90-minute goal history: ball sits on its precise match-minute on the progress bar. */
+.timeline{padding-top:24px}
+.match-progress{margin-bottom:29px}
+.match-progress .goal-markers{position:absolute;inset:0;z-index:4;pointer-events:none}
+.goal-marker{position:absolute;top:50%;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;min-width:22px;white-space:nowrap}
+.goal-marker b{display:grid;place-items:center;width:19px;height:19px;font-size:14px;line-height:1;background:#132c25;border:1px solid #f3dfac;border-radius:50%;box-shadow:0 2px 7px #000a}
+.goal-marker.away b{background:#223e61;border-color:#9fbbfb}
+.goal-marker small{font:800 9px/1.2 'Noto Sans KR',sans-serif;color:#ffe5a9;margin-top:3px;text-shadow:0 1px 5px #000}
+.goal-marker.away small{color:#bdd4ff}
+.pitch-final-banner[hidden]{display:none!important}
+.pitch-final-banner{position:absolute;inset:0;z-index:5;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:6px;pointer-events:none;background:radial-gradient(ellipse,#07130ddc 4%,#071611a3 65%,#07161250);text-align:center;color:#fff3d5;text-shadow:0 4px 22px #000}
+.pitch-final-banner span{font:900 clamp(10px,1.5vw,16px)/1.3 'Barlow Condensed','Noto Sans KR',sans-serif;letter-spacing:.23em;color:#e8d09c}
+.pitch-final-banner strong{font:900 clamp(27px,4.5vw,57px)/1.05 'Noto Sans KR',sans-serif;letter-spacing:.04em}
+.pitch-final-banner small{font:800 clamp(12px,2vw,20px)/1.3 'Noto Sans KR',sans-serif;color:#f5dc9f}
+.ticker{display:flex;align-items:center;gap:10px}
+.ticker-icon{display:grid;place-items:center;flex:0 0 26px;height:26px;border:1px solid #e7c78257;border-radius:50%;font-size:13px}
+.ticker p{color:#d1dae5;line-height:1.55;margin:0;font-size:12px}
+.broadcast-footer{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:12px 22px;border-top:1px solid #ffffff12;color:#8292a6;font-size:10px}
+.text-button{background:none;border:0;color:var(--gold);font-weight:800;font-size:11px;padding:4px 0}
+.text-button:hover{text-decoration:underline}
+.day-label{font:800 12px 'Barlow Condensed','Noto Sans KR',sans-serif;color:var(--gold);letter-spacing:.1em}
+.fixture-tabs{display:flex;gap:8px;margin:0 23px 16px;border-bottom:1px solid #ffffff14;padding-bottom:13px}
+.fixture-tabs button{padding:8px 12px;border:1px solid #ffffff1f;border-radius:4px;background:#172438;color:#9eb0c6;font-weight:800;font-size:12px}
+.fixture-tabs button.active{background:#c5a76a;color:#111923}
+.fixtures-list{display:grid;gap:9px;padding:0 16px 14px}
+.fixture-item{background:#172539;border:1px solid #ffffff14;border-radius:8px;padding:13px 15px}
+.fixture-main{display:grid;grid-template-columns:88px minmax(0,1fr) 146px;align-items:center;gap:13px}
+.fixture-time{display:flex;flex-direction:column;gap:1px}
+.fixture-time b{font:900 20px 'Barlow Condensed',sans-serif;color:#d5e1f0;letter-spacing:.03em}
+.fixture-time small{font:600 10px 'Barlow Condensed','Noto Sans KR',sans-serif;color:#8796ab}
+.fixture-match{display:grid;grid-template-columns:minmax(0,1fr) 31px minmax(0,1fr);gap:10px;align-items:center}
+.fixture-team{display:flex;align-items:center;gap:8px;min-width:0}
+.fixture-team.away{flex-direction:row-reverse;text-align:right}
+.fixture-team .crest{width:30px;height:36px}
+.fixture-team .crest:before{inset:3px;border-width:1px}
+.fixture-team .crest i{font-size:14px}
+.fixture-team .crest small{font-size:6px;bottom:5px}
+.fixture-team>span{font-size:12px;font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fixture-vs{font:900 16px 'Barlow Condensed',sans-serif;color:#9aa8bb;text-align:center}
+.fixture-outcome{font:900 18px 'Barlow Condensed',sans-serif;color:var(--gold);white-space:nowrap}
+.fixture-right{text-align:right}
+.watch-btn{background:#0d1825;border:1px solid #afc7d34d;border-radius:4px;color:#b6d4e5;padding:7px 11px;font-size:11px;font-weight:800;white-space:nowrap}
+.watch-btn:hover{background:#2b4158}
+.watch-btn.live{background:#258d5b;color:#effff8;border-color:#75c29b}
+.odds-row{display:flex;gap:6px;margin-top:13px;padding-top:11px;border-top:1px solid #ffffff14}
+.odds-row button{flex:1;display:flex;align-items:center;justify-content:space-between;gap:7px;min-width:0;background:#101b2b;border:1px solid #ffffff25;border-radius:5px;padding:9px 12px;color:#cbd8e5;transition:.15s}
+.odds-row button:hover:not(:disabled){border-color:var(--gold);background:#2d3237}
+.odds-row button.active{border-color:#ecc980;background:#cba56126;color:#ffe3a6}
+.odds-row button span{font:900 16px 'Barlow Condensed',sans-serif}
+.odds-row button b{font:900 16px 'Barlow Condensed',sans-serif;letter-spacing:.03em}
+.fixture-help{color:#8a9bb0;font-size:11px;padding:0 23px 20px}
+.fixture-help span{color:var(--gold);font-weight:900;margin-left:10px}
+.fixture-help span:first-child{margin-left:0}
+.fixture-message,.skeleton{padding:24px;text-align:center;color:#9cb0c2;font-size:12px}
+.table-scroll{overflow-x:auto}
+.league-table{width:100%;border-collapse:collapse;white-space:nowrap;font-variant-numeric:tabular-nums}
+.league-table thead{background:#17283c}
+.league-table th{padding:11px 8px;color:#91a4bd;font:800 11px 'Barlow Condensed','Noto Sans KR',sans-serif;letter-spacing:.04em;text-align:center}
+.league-table th:nth-child(2){text-align:left}
+.league-table td{padding:9px 8px;border-top:1px solid #ffffff13;text-align:center;color:#d1dce8;font-size:12px}
+.league-table tbody tr:hover{background:#d1a97013}
+.league-table tbody tr:first-child{background:#c0a26113}
+.league-table td:first-child{font:900 17px 'Barlow Condensed',sans-serif;color:#9eb1c5}
+.league-table tbody tr:first-child td:first-child{color:var(--gold)}
+.league-table td:last-child{padding-right:14px}
+.table-team{display:flex;align-items:center;gap:9px;text-align:left;min-width:150px}
+.table-team .crest{width:27px;height:32px}
+.table-team .crest:before{inset:2px;border-width:1px}
+.table-team .crest i{font-size:11px}
+.table-team .crest small{font-size:6px;bottom:4px}
+.table-team b{font-size:12px}
+.points{font-weight:900!important;color:#ffe2a6!important}
+.form-bubble{display:inline-flex;width:16px;height:16px;align-items:center;justify-content:center;border-radius:50%;font:800 10px 'Barlow Condensed',sans-serif;margin-right:2px}
+.form-bubble.W{background:#2b875d;color:#e4fff1}
+.form-bubble.D{background:#8c95a3;color:white}
+.form-bubble.L{background:#a7434e;color:white}
+.schedule-panel,.tickets-panel{min-height:140px}
+.schedule-filters{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:4px 23px 17px}
+.schedule-filters label{display:flex;align-items:center;gap:9px;font-size:11px;font-weight:800}
+.schedule-filters input{min-height:36px;background:#0c1928;border:1px solid #ffffff29;border-radius:4px;padding:5px 9px;color:#e9e5d9}
+.schedule-filters button{border:1px solid #d3b77b67;border-radius:4px;background:#d2b17017;color:var(--gold);padding:9px 12px;font-size:11px;font-weight:800}
+.schedule-filters>span{color:#8d9bae;font-size:10px}
+.schedule-results{padding:0 22px 22px;color:#adbbca}
+.schedule-day{margin:0 0 14px;border:1px solid #ffffff14;border-radius:6px;overflow:hidden}
+.schedule-day h3{background:#19283b;padding:10px 14px;font:800 12px 'Noto Sans KR',sans-serif;margin:0;color:#d7c18b}
+.schedule-line{display:flex;gap:10px;justify-content:space-between;align-items:center;border-top:1px solid #ffffff12;padding:10px 12px;font-size:11px}
+.schedule-line .name{flex:1;text-align:center;color:#d9e4eb}
+.schedule-line .time{color:#b3c4d4;font-weight:800;white-space:nowrap}
+.schedule-line button{background:none;border:1px solid #ffffff25;padding:5px 8px;border-radius:3px;color:#e7cca2;font-size:10px}
+.ticket-card{margin:0 17px 11px;border:1px solid #ffffff21;background:#18283a;border-radius:6px;overflow:hidden}
+.ticket-card:last-child{margin-bottom:18px}
+.ticket-head{display:flex;justify-content:space-between;align-items:center;background:#1d3146;padding:11px 13px}
+.ticket-head strong{font:900 15px 'Barlow Condensed',sans-serif;letter-spacing:.09em}
+.ticket-head small{color:#9ab0c6}
+.ticket-status{border:1px solid #b9cde058;padding:4px 7px;border-radius:3px;font:800 11px 'Barlow Condensed',sans-serif}
+.ticket-status.WIN{color:#71e9a3;border-color:#71e9a36f}
+.ticket-status.LOSE{color:#f08b96;border-color:#f08b966f}
+.ticket-status.OPEN{color:#e3be75;border-color:#e3be756f}
+.ticket-legs{padding:11px 13px;display:grid;gap:7px}
+.ticket-leg{display:flex;justify-content:space-between;gap:8px;color:#c7d7e6;font-size:11px}
+.ticket-leg .pick{color:#f5d99c;font-weight:800;white-space:nowrap}
+.ticket-footer{display:flex;flex-wrap:wrap;gap:13px;justify-content:space-between;padding:11px 13px;border-top:1px solid #ffffff19;background:#112031;color:#b1c3d4}
+.ticket-footer b{color:var(--gold)}
+.bet-rail{position:sticky;top:96px;min-width:0}
+.bet-slip{background:linear-gradient(175deg,#1f2b3e 0,#131e2d 35%,#111a28 100%);border-color:#d6b97e60}
+.slip-heading{display:flex;align-items:center;justify-content:space-between;padding:24px 20px 0;gap:9px}
+.slip-heading h2{font:900 29px 'Barlow Condensed',sans-serif;margin:6px 0 0}
+.slip-heading h2 em{color:var(--gold);font-style:normal}
+.slip-count{width:34px;height:34px;display:grid;place-items:center;border-radius:7px;background:var(--gold);color:#1b1e27;font:900 21px 'Barlow Condensed',sans-serif}
+.slip-description{padding:8px 20px 16px;margin:0;font-size:11px;color:#9dacbe}
+.slip-picks{display:grid;gap:7px;padding:0 14px;max-height:340px;overflow-y:auto}
+.slip-empty{text-align:center;padding:19px 8px 25px;background:#101b2b;border:1px dashed #e4c4894b;border-radius:7px}
+.slip-empty>span{display:block;font-size:33px;filter:grayscale(.2)}
+.slip-empty b{display:block;margin:7px 0 4px;font-size:12px}
+.slip-empty small{display:block;color:#9aacc1;font-size:10px}
+.pick-line{background:#15283d;border:1px solid #e4c48942;border-radius:6px;padding:11px}
+.pick-head{display:flex;justify-content:space-between;align-items:center;gap:6px}
+.pick-head b{font-size:11px}
+.pick-head button{background:none;color:#b0c1d3;border:0;font-size:18px;padding:0 5px}
+.pick-sub{display:flex;align-items:center;justify-content:space-between;margin-top:6px;font-size:11px;color:#abbdd2}
+.pick-sub strong{color:var(--gold);font:900 16px 'Barlow Condensed',sans-serif}
+.slip-divider{height:1px;background:#ffffff1a;margin:17px 20px}
+.slip-number{display:flex;align-items:center;justify-content:space-between;padding:0 20px 16px;font-size:12px;color:#b9c7d5}
+.slip-number strong{font:900 27px 'Barlow Condensed',sans-serif;color:var(--gold)}
+.slip-number strong small{font-size:13px}
+.amount-label{display:block;font-size:11px;font-weight:700;color:#c8d3e2;padding:0 20px 7px}
+.amount-input{display:flex;align-items:center;margin:0 20px;border:1px solid #d2b77a75;border-radius:5px;overflow:hidden;background:#0a1422}
+.amount-input input{min-width:0;flex:1;background:none;border:0;color:#fff;font:900 22px 'Barlow Condensed',sans-serif;padding:10px 12px;outline:none}
+.amount-input span{color:#bdad89;font:800 14px 'Barlow Condensed',sans-serif;padding-right:12px}
+.quick-amounts{display:flex;gap:5px;padding:10px 20px 16px}
+.quick-amounts button{flex:1;min-width:0;border-radius:3px;background:#293950;border:1px solid #ffffff1c;color:#cddbec;padding:6px 2px;font-size:11px;font-weight:800}
+.quick-amounts button:hover{border-color:#e3c68e}
+.potential{display:flex;flex-direction:column;background:#ead09b15;border-top:1px solid #d6b97e3e;border-bottom:1px solid #d6b97e3e;padding:15px 20px}
+.potential span{color:#c7b993;font-size:11px}
+.potential strong{font:900 26px 'Barlow Condensed','Noto Sans KR',sans-serif;line-height:1.8;color:var(--gold)}
+.potential small{color:#8fa0b3;font-size:10px}
+.place-bet{display:block;margin:18px 20px 0;width:calc(100% - 40px);border:0;border-radius:5px;padding:15px;background:linear-gradient(120deg,#e6bd69,#f2dbab 45%,#bd8b37);color:#141822;font-size:14px;font-weight:900;box-shadow:0 4px 20px #ddb95b18}
+.place-bet:hover:not(:disabled){filter:brightness(1.08)}
+.place-bet:disabled{background:#39465a;color:#a1afc1;box-shadow:none}
+.clear-slip{display:block;border:0;color:#9aafc4;background:none;text-decoration:underline;font-size:11px;margin:10px auto 17px}
+.responsible{margin:0;padding:12px 20px 15px;background:#090f19a3;border-top:1px solid #ffffff16;color:#8497ab;font-size:10px;text-align:center;line-height:1.8}
+.rules-mini{margin:14px 3px;color:#9babc0;font-size:11px}
+.rules-mini strong{display:block;color:#e6c88c;font:900 14px 'Barlow Condensed',sans-serif;letter-spacing:.2em;margin-bottom:7px}
+.rules-mini div{padding:7px 0;display:flex;gap:9px;align-items:flex-start}
+.rules-mini span{color:var(--gold);font:900 12px 'Barlow Condensed',sans-serif}
+footer{display:flex;justify-content:space-between;flex-wrap:wrap;align-items:center;gap:10px;margin:39px 0 0;padding:21px 0;border-top:1px solid #ffffff19;color:#7889a0;font:700 10px 'Barlow Condensed','Noto Sans KR',sans-serif;letter-spacing:.08em}
+.footer-brand{color:var(--gold);font:900 14px 'Barlow Condensed',sans-serif}
+footer a{color:#b9d1e6}
+.toast{position:fixed;z-index:100;top:91px;left:50%;transform:translateX(-50%);max-width:min(92vw,560px);padding:12px 20px;border-radius:7px;background:#204a3c;border:1px solid #60cf9b;color:#f6fff9;font-size:12px;font-weight:800;box-shadow:0 12px 35px #0008}
+.toast.error{background:#58313c;border-color:#f29caa}
+.auth-notice{background:#203146;border:1px solid #e6c07b;border-radius:9px;text-align:center;padding:28px;margin:20px 0;color:#d6e6f6}
+.auth-notice a{display:inline-block;padding:10px 17px;background:var(--gold);color:#172135;border-radius:5px;font-weight:900}
+@media(max-width:1180px){
+ .layout{grid-template-columns:minmax(0,1fr) 300px}
+ .topnav-brand strong{font-size:16px}
+ .fixture-main{grid-template-columns:68px minmax(0,1fr) 88px;gap:8px}
+ .fixture-team>span{font-size:11px}
+ .scoreboard{padding:12px 18px}
+}
+@media(max-width:970px){
+ .layout{grid-template-columns:minmax(0,1fr)}
+ .bet-rail{position:static;max-width:none;order:-1}
+ .bet-slip{display:grid;grid-template-columns:1fr 1fr;column-gap:8px}
+ .slip-heading,.slip-description,.slip-picks,.slip-divider,.slip-number{grid-column:1}
+ .amount-label,.amount-input,.quick-amounts,.potential,.place-bet,.clear-slip,.responsible{grid-column:2}
+ .slip-heading{padding-top:17px}
+ .slip-divider{margin:8px 20px}
+ .slip-picks{max-height:300px}
+ .rules-mini{display:none}
+}
+@media(max-width:650px){
+ body{font-size:12px}
+ .topnav-inner{padding:8px 12px;gap:7px;min-height:58px}
+ .return-link{gap:5px;font-size:0}
+ .back-arrow{height:34px;width:34px;font-size:18px}
+ .topnav-brand{gap:6px;margin-right:auto}
+ .brand-shield{height:33px;width:29px;flex-basis:29px;font-size:20px}
+ .brand-shield span{font-size:7px;right:5px;bottom:3px}
+ .topnav-brand strong{font-size:13px;letter-spacing:.025em}
+ .topnav-brand small{font-size:6px;letter-spacing:.08em}
+ .topnav-right{gap:7px}
+ .season-pill{display:none}
+ .wallet-top{min-width:70px}
+ .wallet-top b{font-size:12px}
+ .wallet-top span{font-size:8px}
+ .page{padding:0 10px 24px}
+ .welcome{padding:27px 14px 21px;min-height:210px;grid-template-columns:minmax(0,1fr) 112px}
+ .welcome h1{font-size:clamp(26px,6vw,38px);margin:9px 0 10px;line-height:1.2}
+ .welcome p{font-size:10px;line-height:1.8;margin:0}
+ .welcome p br{display:none}
+ .welcome .eyebrow{font-size:8px;letter-spacing:.08em}
+ .welcome-chips{gap:4px;margin-top:15px}
+ .welcome-chips span{padding:3px 6px;font-size:7px}
+ .welcome-chips b{font-size:10px}
+ .welcome-symbol{min-height:155px}
+ .crest-orbit{width:116px;height:116px}
+ .welcome-ball{width:98px;height:98px}
+ .welcome-ball svg{width:68px;height:68px}
+ .welcome-crown{top:0;font-size:23px}
+ .welcome-symbol-caption{bottom:4px;font-size:6px;letter-spacing:.13em;white-space:nowrap}
+ .quick-stats{grid-template-columns:repeat(2,minmax(0,1fr));margin:12px 0}
+ .quick-stats>div{padding:9px 12px;border-bottom:1px solid var(--line)}
+ .quick-stats>div:nth-child(even){border-right:0}
+ .quick-stats>div:nth-child(n+3){border-bottom:0}
+ .quick-stats small{font-size:8px}
+ .quick-stats strong{font-size:19px}
+ .section-nav{gap:2px;margin-bottom:13px}
+ .section-nav button{font-size:10px;padding:8px 10px}
+ .main-column{gap:13px}
+ .panel-heading{padding:15px 12px 12px}
+ .panel-heading h2{font-size:23px;margin-top:4px}
+ .section-overline{font-size:9px}
+ .onair{padding:5px 7px;font-size:10px}
+ .match-meta{padding:0 11px 9px;font-size:9px;gap:5px;letter-spacing:.01em}
+ .match-meta span+span{padding-left:5px}
+ .scoreboard{padding:10px 9px;gap:5px;min-height:89px}
+ .score-club{gap:5px}
+ .score-club h3{font-size:11px;line-height:1.2}
+ .score-club small{font-size:8px}
+ .crest{width:31px;height:37px}
+ .crest:before{inset:2px;border-width:1px}
+ .crest i{font-size:13px}
+ .crest small{font-size:6px;bottom:5px}
+ .score-box{min-width:75px}
+ .main-score{font-size:37px}
+ .clock-label{font-size:8px;padding:2px 5px;letter-spacing:.01em}
+ .stadium-head{left:6px;right:6px;top:5px;font-size:7px;letter-spacing:.01em}
+ .pitch-corner{bottom:6px;right:6px;font-size:8px}
+ .pitch-corner span{padding:2px 4px}
+ .timeline{padding:13px 12px}
+ .ticker p{font-size:10px}
+ .broadcast-footer{padding:9px 11px;font-size:9px}
+ .text-button{font-size:10px}
+ .fixture-tabs{margin:0 12px 11px}
+ .fixtures-list{padding:0 8px 10px}
+ .fixture-item{padding:10px 8px}
+ .fixture-main{grid-template-columns:43px minmax(0,1fr) 61px;gap:5px}
+ .fixture-time b{font-size:17px}
+ .fixture-time small{font-size:8px}
+ .fixture-match{grid-template-columns:minmax(0,1fr) 18px minmax(0,1fr);gap:3px}
+ .fixture-team{gap:3px}
+ .fixture-team .crest{width:21px;height:25px}
+ .fixture-team .crest i{font-size:8px}
+ .fixture-team .crest small{font-size:4px;bottom:3px}
+ .fixture-team>span{font-size:9px}
+ .fixture-vs{font-size:12px}
+ .fixture-outcome{font-size:14px}
+ .watch-btn{font-size:9px;padding:6px 4px}
+ .odds-row{gap:4px;margin-top:8px;padding-top:8px}
+ .odds-row button{padding:8px 9px}
+ .odds-row button b{font-size:15px}
+ .odds-row button span{font-size:14px}
+ .fixture-help{font-size:9px;padding:0 11px 13px}
+ .league-table th{font-size:9px;padding:7px 5px}
+ .league-table td{padding:7px 5px;font-size:10px}
+ .table-team{min-width:112px;gap:5px}
+ .table-team .crest{width:21px;height:24px}
+ .table-team .crest i{font-size:8px}
+ .table-team .crest small{display:none}
+ .table-team b{font-size:10px}
+ .form-bubble{width:12px;height:12px;font-size:8px;margin-right:1px}
+ .schedule-filters{padding:5px 12px 13px;gap:7px}
+ .schedule-results{padding:0 10px 14px}
+ .schedule-line{font-size:9px;gap:5px}
+ .ticket-card{margin:0 8px 8px}
+ .bet-slip{display:block}
+ .slip-heading{padding:17px 14px 0}
+ .slip-heading h2{font-size:24px}
+ .slip-description{padding:6px 14px 14px}
+ .slip-picks{padding:0 12px}
+ .slip-divider{margin:14px 14px}
+ .slip-number,.amount-label{padding-left:15px;padding-right:15px}
+ .amount-input{margin:0 15px}
+ .quick-amounts{padding:10px 15px 14px}
+ .potential{padding:11px 15px}
+ .place-bet{margin:13px 15px 0;width:calc(100% - 30px)}
+ .rules-mini{display:none}
+ footer{margin-top:21px;font-size:9px}
+}
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{animation:none!important;scroll-behavior:auto!important;transition:none!important}}
+
+/* 2026 JPL club-crest & 3-way handicap extension */
+.crest svg{position:relative;z-index:1;width:70%;height:67%;fill:none;stroke:#fff8df;filter:drop-shadow(0 1px 2px #000a);pointer-events:none}
+.crest svg circle,.crest svg path{vector-effect:non-scaling-stroke}
+.market-rows{border-top:1px solid #ffffff19;margin-top:10px;padding:9px 0 2px;display:grid;gap:6px}
+.market-row{display:grid;grid-template-columns:90px 1fr;align-items:center;gap:9px}
+.market-label{color:#c0d0df;font-size:10px;font-weight:900;line-height:1.4}
+.market-label.hdp{color:#f0cb80}
+.market-row .odds-row{padding:0;margin:0;border:0}
+.market-row .odds-row button{padding:7px 10px}
+.market-row .odds-row button b{font-size:15px}
+.league-table .relegation-zone{background:rgba(172,56,62,.12)}
+.league-table .relegation-zone td:first-child{color:#f28c8d}
+.league-transition{border-top:1px solid #ffffff1b;background:linear-gradient(110deg,#132b37,#1d2539);padding:15px 20px;display:grid;gap:7px}
+.league-transition>span{color:#f0c77e;font:900 11px 'Barlow Condensed',sans-serif;letter-spacing:.14em}
+.league-transition b{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:11px;color:#ecf3f8}
+.league-transition .crest{width:29px;height:34px;margin-right:-6px}
+.league-transition .crest small{font-size:6px;bottom:4px}
+.league-transition small{font-size:10px;color:#96aabb}
+.league-transition .reserve-sep{color:#e9c37a}
+.ticket-status.FORFEITED{color:#d4b48d;border-color:#d4b48d66}
+@media(max-width:650px){
+ .market-rows{margin-top:8px;gap:7px}
+ .market-row{grid-template-columns:73px 1fr;gap:6px}
+ .market-label{font-size:9px}
+ .market-row .odds-row{gap:4px}
+ .market-row .odds-row button{padding:6px 8px}
+ .market-row .odds-row button b{font-size:14px}
+ .league-transition{padding:12px}
+}
+
+@media(max-width:650px){.timeline{padding-top:22px}.match-progress{margin-bottom:27px}.goal-marker b{width:17px;height:17px;font-size:12px}.goal-marker small{font-size:8px}.pitch-final-banner{gap:3px}}
+
+/* JPL premium pre-match scouting: separate 1-trillion-G unlock, one per fixture. */
+.fixture-analysis-cta{margin-top:9px;padding-top:10px;border-top:1px solid #ffffff1b;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.fixture-analysis-cta button{border:1px solid #d7b77e77;background:linear-gradient(115deg,#2b2c27,#192734);border-radius:7px;color:#f4d79c;padding:9px 14px;font-size:12px;font-weight:900;letter-spacing:.01em}
+.fixture-analysis-cta button:hover:not(:disabled){border-color:#f5d69a;background:#33413f}
+.fixture-analysis-cta button:disabled{opacity:.43;cursor:not-allowed}
+.fixture-analysis-cta small{color:#b1bfca;font-weight:600;font-size:10px}
+.jpl-analysis-dialog{width:min(94vw,730px);max-height:90dvh;padding:0;overflow:auto;border:1px solid #ae8950;border-radius:16px;background:#0d161e;color:#f1f0e9;box-shadow:0 24px 100px #000d}
+.jpl-analysis-dialog::backdrop{background:#03070dd9;backdrop-filter:blur(7px)}
+.jpl-analysis-shell{padding:21px}
+.jpl-analysis-top{display:flex;align-items:flex-start;justify-content:space-between;gap:15px;border-bottom:1px solid #d8bc8542;padding-bottom:17px}
+.jpl-analysis-top small{font:800 11px/1.4 'Barlow Condensed',sans-serif;letter-spacing:.15em;color:#d3b274}
+.jpl-analysis-top h2{font:900 24px/1.2 'Noto Sans KR',sans-serif;margin:5px 0 0}
+.jpl-analysis-top button{flex-shrink:0;width:34px;height:34px;background:#ffffff0e;color:#f0dbb3;border:1px solid #c8ae805c;border-radius:7px;font-size:23px;line-height:1}
+.jpl-scout-match{display:flex;justify-content:center;align-items:center;gap:15px;padding:18px 0 14px;font-weight:900;font-size:20px;color:#f3e5c4}
+.jpl-scout-match b{color:#9eaaaf;font:800 12px 'Barlow Condensed',sans-serif}
+.jpl-scout-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.jpl-scout-team{min-width:0;border:1px solid #dcba7b44;border-radius:12px;padding:15px;background:linear-gradient(160deg,#24362e,#101c26)}
+.jpl-scout-team.away{background:linear-gradient(160deg,#1a2d49,#111c29);border-color:#a7b9e24d}
+.jpl-scout-team-head{display:flex;align-items:center;gap:11px;min-height:66px;border-bottom:1px solid #ffffff1d;padding-bottom:12px}
+.jpl-scout-team-head .crest{width:47px;height:55px;flex:0 0 47px}
+.jpl-scout-team-head small{font:900 10px 'Barlow Condensed',sans-serif;letter-spacing:.15em;color:#ceb784}
+.jpl-scout-team-head h3{font:900 14px/1.4 'Noto Sans KR',sans-serif;margin:4px 0 0;overflow-wrap:anywhere}
+.jpl-scout-metrics{padding-top:14px;display:grid;gap:12px}
+.jpl-scout-metric>div:first-child{display:flex;align-items:center;justify-content:space-between;gap:8px;color:#bdc8ce;font-size:12px;font-weight:800}
+.jpl-scout-metric strong{font:900 17px 'Barlow Condensed',sans-serif;color:#f5d697}
+.jpl-scout-metric strong small{color:#8298a2;font-size:10px}
+.jpl-scout-meter{height:7px;background:#ffffff1b;border-radius:8px;overflow:hidden;margin-top:5px}
+.jpl-scout-meter i{height:100%;display:block;border-radius:8px;background:linear-gradient(90deg,#668f9c,#eac681)}
+.jpl-scout-absences{margin-top:17px;padding:11px 10px;display:flex;flex-direction:column;gap:4px;background:#0003;border-radius:7px;font-size:12px}
+.jpl-scout-absences span{font-weight:900}.jpl-scout-absences b{color:#f0c989}
+.jpl-scout-absences small{color:#adb7be;font-size:10px}
+.jpl-scout-form{padding-top:10px;font-size:12px;color:#a8b7b6}
+.jpl-scout-form b{color:#e9d095;margin-left:4px}
+.jpl-scout-note{color:#e6c98c;font-size:12px;line-height:1.6;margin:17px 0 0}
+.jpl-analysis-disclaimer{color:#8ea0ac;font-size:11px;line-height:1.6;margin:14px 0 0}
+@media(max-width:560px){
+ .fixture-analysis-cta{gap:7px;margin-top:7px;padding-top:8px}
+ .fixture-analysis-cta button{font-size:11px;padding:8px 10px;flex:1 1 100%}
+ .fixture-analysis-cta small{font-size:9px}
+ .jpl-analysis-dialog{width:96vw;max-height:94dvh;border-radius:10px}
+ .jpl-analysis-shell{padding:13px}
+ .jpl-analysis-top h2{font-size:19px}
+ .jpl-scout-match{font-size:16px;padding:13px 0}
+ .jpl-scout-grid{gap:7px}
+ .jpl-scout-team{padding:10px 8px}
+ .jpl-scout-team-head{gap:7px;min-height:60px}
+ .jpl-scout-team-head .crest{width:33px;height:43px;flex-basis:33px}
+ .jpl-scout-team-head h3{font-size:11px}
+ .jpl-scout-metric>div:first-child{font-size:10px}
+ .jpl-scout-metric strong{font-size:15px}
+ .jpl-scout-absences{padding:8px 6px;font-size:10px}
+ .jpl-scout-absences small{font-size:9px}
+ .jpl-scout-form{font-size:10px}
+ .jpl-scout-note{font-size:11px}
+}

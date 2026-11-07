@@ -1,0 +1,46 @@
+'use strict';
+const assert=require('node:assert/strict');
+const fs=require('node:fs'),path=require('node:path');
+const base=path.join(__dirname,'..');
+const read=p=>fs.readFileSync(path.join(base,p),'utf8');
+const {ROYAL_ITEMS}=require('../royal-economy');
+const minimum=10n**16n;
+assert.equal(ROYAL_ITEMS.length,55,'existing catalogue plus six handbag editions');
+assert(ROYAL_ITEMS.every(i=>BigInt(i.price)>=minimum),'no 조-price items in the royal boutique');
+assert(ROYAL_ITEMS.every(i=>typeof i.art==='string'),'art for every real collector item');
+assert(ROYAL_ITEMS.some(i=>i.category==='car'),'supercars');
+assert(ROYAL_ITEMS.some(i=>i.category==='jet'),'private jets');
+assert(ROYAL_ITEMS.some(i=>i.category==='yacht'),'yachts');
+assert(ROYAL_ITEMS.some(i=>i.category==='watch'),'haute horlogerie');
+assert(ROYAL_ITEMS.some(i=>i.category==='art'),'sculpture and objects');
+assert(ROYAL_ITEMS.some(i=>i.category==='estate'),'penthouse');
+assert(ROYAL_ITEMS.some(i=>i.category==='vault'),'imperial vault');
+for(const i of ROYAL_ITEMS){
+ const p=i.category==='bag'?'public/art/royal/handbags/'+i.id.slice('bag_royalboutique_'.length).replaceAll('_','-')+'.svg':'public/art/royal/'+i.art+'.svg';
+ assert(fs.existsSync(path.join(base,p)),'missing real illustrated collectible: '+p);
+ const svg=read(p);
+ assert.match(svg,/<svg/,'asset must be SVG: '+p);
+ assert.match(svg,/<linearGradient|<radialGradient/,'art must have rich lighting: '+p);
+}
+const ui=read('public/royal-economy-ui.js');
+const css=read('public/royal-economy.css');
+const gallery=read('public/royal-gallery.js');
+const galleryCss=read('public/royal-gallery.css');
+const index=read('public/index.html');
+const app=read('public/app.js');
+const server=read('royal-economy.js');
+for(const c of ['car','yacht','jet','watch','art'])assert(ui.includes("id:'"+c+"'"),'category filter '+c);
+assert.match(ui,/jrp-motors-hero/,'photographic Rolls-Royce Bentley Aston Martin hero');
+assert.match(ui,/jrp-editorial-items/,'luxury editorial object shelves');
+assert.match(ui,/data-go="gallery"/,'own showroom CTA');
+assert.match(ui,/displayOnly/,'not offer avatar equip for display products');
+assert.match(css,/jrp-motors-photo/,'large real-model motor photography in the hero');
+assert.match(css,/@media\(max-width:760px\)/,'responsive storefront');
+assert.match(gallery,/isPanorama/,'category-aware personal museum');
+assert.match(gallery,/selected\.displayOnly/,'cannot equip display item');
+assert.match(galleryCss,/garage-hall\.svg/,'actual illustrated garage for car owners');
+assert.match(app,/x\?\.art/,'show real art on user profiles');
+assert.match(server,/if\(!item\.displayOnly\)db\.prepare\('UPDATE user_loadout/,'never attach supercars to avatar loadout');
+for(const [file,version] of [['royal-economy.css','20261106-bag-v14'],['royal-economy-ui.js','20261107-approved-couture-v17'],['royal-gallery.js','20261107-photoreal-v15'],['royal-gallery.css','20261103-vault-v8']])assert(index.includes(file+'?v='+version),'cache-bust '+file);
+for(const id of ['watch_royalboutique_patek_grand','watch_royalboutique_richard_mille','watch_royalboutique_audemars','watch_royalboutique_vacheron','watch_royalboutique_jacob','car_royalboutique_ferrari_sf90','car_royalboutique_lamborghini_svj','car_royalboutique_mclaren_765lt','car_royalboutique_bugatti_chiron']){const it=ROYAL_ITEMS.find(i=>i.id===id);assert(it&&it.displayOnly&&BigInt(it.price)>=10n**16n,'new 1경+ display-only collectible '+id)}
+console.log('ROYAL_LUXURY_V5_OK: 55 unique pieces, 1경 floor, photo-first shop and gallery, safe purchases');

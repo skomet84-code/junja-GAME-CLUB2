@@ -11,8 +11,9 @@
 <link rel="stylesheet" href="/v28-yut-horse.css?v=346">
 <link rel="stylesheet" href="/yut-royal-v1.css?v=20261025-1">
 <link rel="stylesheet" href="/yut-royal-v2.css?v=20261025-final">
-<link rel="stylesheet" href="/rank-system.css?v=god-junja-ultimate-100gyeong-20261025">
-<link rel="stylesheet" href="/j-bank.css?v=20261025-2">
+<link rel="stylesheet" href="/rank-system.css?v=20261104-mobile-rank-normalized">
+<link rel="stylesheet" href="/j-bank.css?v=20261104-jcredit-v1">
+<link rel="stylesheet" href="/j-stock.css?v=20261105-ipo-opening-v1">
 <link rel="stylesheet" href="/treasure-raid.css?v=4">
 <link rel="stylesheet" href="/goldenbell/style.css?v=1">
 <link rel="stylesheet" href="/omok/lobby.css?v=1">
@@ -22,12 +23,38 @@
 <script defer src="/goldenbell/game.js?v=20261004-hof1"></script>
 <script defer src="/network-client.js?v=20260925"></script>
 <script defer src="/treasure-raid.js?v=6"></script>
-<script defer src="/app.js?v=20261025-holdem-funds-1"></script>
-<script defer src="/rank-system.js?v=god-junja-ultimate-100gyeong-20261025"></script>
-<script defer src="/j-bank.js?v=20261025-3"></script>
+<script defer src="/horse-race-motion.js?v=20261101-finish-v5"></script>
+<script defer src="/royal-photo.js?v=20261103-photos-v7-cinematic-v9-jewel-v12"></script>
+<script defer src="/app.js?v=20261103-photos-v7-roulette-receipt-v1-loan-v13-jpl-owner-only-v1-round-receipts-v7"></script>
+<script defer src="/rank-system.js?v=promotion-cost-x10-20261103"></script>
+<script defer src="/j-bank.js?v=20261104-immediate-rehab-v3"></script>
+<script defer src="/j-stock.js?v=20261105-ipo-opening-v1"></script>
+<script defer src="/j-coin.js?v=20261104-header-sync-v1"></script>
+<script defer src="/jstock-header.js?v=20261104-stock-coin-total-v1"></script>
 <link rel="stylesheet" href="/godjunja-collection.css?v=1">
 <link rel="stylesheet" href="/royal-plus-shop.css?v=1">
 <link rel="stylesheet" href="/blackroom/lobby.css?v=1">
+<link rel="stylesheet" href="/holdem-mobile-fit.css?v=20261031-1">
+<link rel="stylesheet" href="/grand-race-v3.css?v=20261101-r1"><link rel="stylesheet" href="/grand-race-v4.css?v=20261101-shared-14s-r1"><link rel="stylesheet" href="/grand-race-v5.css?v=20261101-finish-v5">
+<link rel="stylesheet" href="/yut-toss-real-v3.css?v=20261101-2">
+<link rel="stylesheet" href="/junja-economy-v1.css?v=20261101-1">
+<link rel="stylesheet" href="/royal-economy.css?v=20261106-bag-v14">
+<link rel="stylesheet" href="/royal-gallery.css?v=20261103-vault-v8-premium-tour-v1">
+<link rel="stylesheet" href="/royal-cinematic.css?v=20261107-approved-couture-v17">
+<link rel="stylesheet" href="/royal-product-visual.css?v=20261107-photoreal-v15">
+<link rel="stylesheet" href="/royal-market.css?v=20261103-exchange-v2">
+<script defer src="/royal-product-visual.js?v=20261107-photoreal-v15"></script>
+<script defer src="/royal-market-ui.js?v=20261106-bag-v14"></script>
+<script defer src="/royal-economy-ui.js?v=20261107-approved-couture-v17"></script>
+<script defer src="/royal-gallery.js?v=20261107-photoreal-v15"></script>
+<link rel="stylesheet" href="/mobile-header.css?v=20261104-mobile-v2">
+<link rel="stylesheet" href="/football/lobby.css?v=20261104-jpl-60s-v2">
+<script defer src="/mobile-header.js?v=20261104-profit-label-v1"></script>
+<link rel="stylesheet" href="/casino-audit.css?v=20261105-receipt-proof-v7">
+<link rel="stylesheet" href="/casino-receipts.css?v=20261105-receipts-v1">
+<link rel="stylesheet" href="/owner-market.css?v=20261105-v8-schedule1">
+<link rel="stylesheet" href="/support-center.css?v=20261105-v9">
+<link rel="stylesheet" href="/commerce-readiness.css?v=20261105-v10">
 </head>
 <body>
 <div id="app">
@@ -49,6 +76,9 @@
       <div class="brand-inline" data-go="lobby"><span class="mini-mark">J</span><strong>JUNJA CLUB</strong></div>
       <button id="helpBtn" class="help-pill" type="button">? 게임방법</button><button id="shopBtn" class="shop-pill" data-go="shop" type="button">🛍️ BOUTIQUE</button><button id="friendsBtn" class="friends-pill" type="button">👥 친구</button><button id="jBankBtn" class="jbank-pill" type="button">🏦 J-BANK</button>
       <button id="adminBtn" class="admin-pill hidden" data-go="admin" type="button">⚙ ADMIN</button>
+      <div id="jstockHeaderProfit" class="jstock-header-profit flat" role="status" aria-live="polite" aria-label="주식·코인 통합수익">
+        <span>📊 주식·코인 통합수익</span><b id="jstockHeaderProfitAmount">—</b>
+      </div>
       <div class="wallet-pill"><span>보유머니</span><b id="walletBalance">0 G</b></div>
       <button id="profileBtn" class="profile-pill" type="button"><span id="avatarEmoji">😎</span><span><b id="nickName">-</b><small id="onlineCount">ONLINE 0</small></span></button>
     </header>
@@ -57,13 +87,43 @@
     <main>
       <section id="view-lobby" class="view active">
         <div class="hero panel hero-upgraded">
-          <div class="hero-copy"><div class="eyebrow">JUNJA ARCADE · VERSION 2.8.25</div><h2>친구 대전도, 혼자 AI전도.</h2><p>슬롯 · 텍사스 홀덤 · 세븐포커 · 바카라 · 윷놀이 · 섯다 · 야심찬 맞고 · 경마 · 빅휠 · 다이사이까지 한 계정으로 플레이. 채팅 없이 실시간 참여자와 귀여운 말풍선 반응으로 같이 놀 수 있어.</p><div class="hero-actions"><button id="dailyDrawBtn" class="daily-draw-launch" type="button">🎟️ 오늘의 77 뽑기</button><button id="dailyBtn" class="daily-btn" type="button">🎁 출석 +50,000 G</button><button id="rankSalaryBtn" class="daily-btn rank-salary-btn" type="button">💰 신분 일급 받기</button><button id="jBankHeroBtn" class="jbank-hero-btn" type="button">🏦 J-BANK · 신분 대출</button><button class="secondary" data-go="shop" type="button">🛍️ 아바타 상점</button><button class="secondary hero-guide" data-open-help="lobby" type="button">게임 가이드</button></div></div>
+          <div class="hero-copy"><div class="eyebrow">JUNJA ARCADE · VERSION 2.8.25</div><h2>친구 대전도, 혼자 AI전도.</h2><p>슬롯 · 텍사스 홀덤 · 세븐포커 · 바카라 · 윷놀이 · 섯다 · 야심찬 맞고 · 경마 · 빅휠 · 다이사이까지 한 계정으로 플레이. 채팅 없이 실시간 참여자와 귀여운 말풍선 반응으로 같이 놀 수 있어.</p><div class="hero-actions"><button id="dailyDrawBtn" class="daily-draw-launch" type="button">🎟️ 오늘의 77 뽑기</button><button id="dailyBtn" class="daily-btn" type="button">🎁 출석 +50,000 G</button><button id="rankSalaryBtn" class="daily-btn rank-salary-btn" type="button">💰 신분 일급 받기</button><button id="jBankHeroBtn" class="jbank-hero-btn" type="button">🏦 J-BANK · 신분 대출</button><button class="secondary" data-go="shop" type="button">🛍️ 아바타 상점</button><button class="secondary" data-go="gallery" type="button">♛ 내 전시관</button><button class="secondary" data-go="ledger" type="button">🧾 게임 정산 영수증</button><button class="secondary" id="supportCenterBtn" type="button">🛟 고객센터 · 문의접수</button><button class="secondary hero-guide" data-open-help="lobby" type="button">게임 가이드</button></div></div>
           <div class="hero-character"><img loading="lazy" decoding="async" src="/art/v26/games/host.webp" alt="게임 클럽 호스트"><div class="character-caption"><b>CLUB HOST J</b><span>오늘의 게임을 선택하세요</span></div></div>
         </div>
         <div class="lobby-live-now panel"><div class="live-orb"><i></i></div><div><small>CLUB LIVE NOW</small><b id="lobbyOnlineNow">ONLINE 0</b><span>현재 접속 중인 회원 · 닉네임, 플레이 위치, 게임중/대기중 상태를 실시간 표시</span></div><div id="lobbyLiveFaces" class="lobby-live-faces"></div></div>
-        <div class="lobby-jackpot-vault panel"><div class="jackpot-live-dot"></div><div><small>ROYAL REELS · GLOBAL 777 JACKPOT</small><b id="lobbyJackpotAmount">50,000,000 G</b><span>모든 유저의 슬롯 순손실 중 13%가 실시간 적립 · 777 적중 시 누적금 전액 지급</span></div><strong>777</strong></div>
+        <div class="lobby-jackpot-vault panel"><div class="jackpot-live-dot"></div><div><small>ROYAL REELS · GLOBAL 777 JACKPOT</small><b id="lobbyJackpotAmount">1,000,000,000,000 G</b><span>슬롯 순손실의 13% + 주식·코인 거래 수수료 100% 적립 · 777 적중 시 전액 지급</span></div><strong>777</strong></div>
 
         <div class="game-grid game-grid-eight">
+          <a class="game-card football-jpl" href="/football/" style="display:none" aria-hidden="true" tabindex="-1" aria-label="JUNJA PREMIER LEAGUE · 22구단 462경기 축구 시즌 및 승무패 베팅">
+           <span class="jpl-glow"></span>
+           <span class="jpl-art" aria-hidden="true">
+            <svg viewBox="0 0 540 280" xmlns="http://www.w3.org/2000/svg">
+             <defs>
+              <radialGradient id="jplStadium"><stop stop-color="#a8d9c1" stop-opacity=".6"/><stop offset="1" stop-color="#06171c" stop-opacity=".3"/></radialGradient>
+              <linearGradient id="jplField" x2="0" y2="1"><stop stop-color="#267756"/><stop offset="1" stop-color="#123f33"/></linearGradient>
+              <radialGradient id="jplBall" cx=".3" cy=".2" r=".7"><stop stop-color="#ffffff"/><stop offset="1" stop-color="#b0bfc3"/></radialGradient>
+             </defs>
+             <ellipse cx="280" cy="155" rx="250" ry="120" fill="url(#jplStadium)" stroke="#ecd99f" stroke-width="3" opacity=".8"/>
+             <ellipse cx="280" cy="159" rx="227" ry="97" fill="#121f2d" stroke="#778f89" stroke-width="12"/>
+             <ellipse cx="280" cy="156" rx="208" ry="79" fill="#183c3e"/>
+             <path d="M97 130 450 92 500 212 60 238Z" fill="url(#jplField)" stroke="#d7ecca" stroke-width="3"/>
+             <path d="M125 129 435 100 480 205 80 229Z" fill="none" stroke="#ffffffa8" stroke-width="2"/>
+             <path d="M280 112 282 216" stroke="#ffffffa8" stroke-width="2"/>
+             <ellipse cx="282" cy="165" rx="47" ry="33" fill="none" stroke="#ffffffa8" stroke-width="2"/>
+             <path d="M125 151 183 145 188 216 91 221 M427 112 378 116 389 208 479 204" fill="none" stroke="#ffffff94" stroke-width="2"/>
+             <g fill="#e9c781" stroke="#f8edbf" stroke-width="2"><circle cx="203" cy="151" r="8"/><circle cx="245" cy="185" r="8"/><circle cx="326" cy="137" r="8"/><circle cx="383" cy="192" r="8"/><circle cx="158" cy="192" r="8"/></g>
+             <g fill="#da5763" stroke="#f4c6ca" stroke-width="2"><circle cx="348" cy="170" r="8"/><circle cx="412" cy="146" r="8"/><circle cx="302" cy="193" r="8"/><circle cx="274" cy="144" r="8"/><circle cx="440" cy="200" r="8"/></g>
+             <circle cx="286" cy="161" r="12" fill="url(#jplBall)" stroke="#e2e5df" stroke-width="2"/><path d="m286 152 7 5-3 8h-9l-3-8Z" fill="#1a2634"/>
+             <g fill="#fff6dc"><circle cx="86" cy="63" r="5"/><circle cx="472" cy="47" r="5"/><circle cx="40" cy="145" r="5"/><circle cx="510" cy="115" r="5"/></g>
+            </svg>
+           </span>
+           <div class="jpl-tile-copy"><span class="jpl-kicker">NEW ORIGINAL · 22 CLUBS · 42 ROUNDS</span>
+            <strong>준자 <em>프리미어 리그</em></strong>
+            <p>매일 5경기 생중계 · 승무패 · 단폴/조합 베팅<br>22명 선수 1분 시뮬레이션 · 시즌 순위 경쟁</p>
+            <span class="jpl-entry">⚽ JPL 경기장 입장 <span>↗</span></span>
+           </div>
+           <small class="jpl-foot">♛ JUNJA PREMIER LEAGUE</small>
+          </a>
           <a class="game-card blackroom-tile" href="/blackroom/index.html" aria-label="준자랜드 대표 추리게임 블랙룸 제13호실 시작하기">
  <img class="blackroom-cover" loading="eager" decoding="async" src="/blackroom/scenes/hall.svg" alt="비밀스러운 황금빛 제13호실 복도">
  <span class="blackroom-film" aria-hidden="true"></span>
@@ -104,11 +164,11 @@
         <div class="slot-stage panel">
           <div class="slot-machine deluxe-machine">
             <div class="marquee"><span>LAS VEGAS</span><strong>JUNJA ROYALE</strong><span>RED 777 ×1000</span></div>
-            <div class="slot-top"><div class="slot-stat-pill"><span>현재 베팅</span><b id="currentBetLabel">10,000 G</b></div><div class="slot-stat-pill jackpot-pool-pill"><span>누적 777 JACKPOT</span><b id="slotJackpotAmount">50,000,000 G</b></div><div class="slot-stat-pill"><span>페이라인</span><b>5 LINES</b></div><div class="slot-stat-pill"><span>777 기본</span><b>x1000 + POOL</b></div></div>
+            <div class="slot-top"><div class="slot-stat-pill"><span>현재 베팅</span><b id="currentBetLabel">10,000 G</b></div><div class="slot-stat-pill jackpot-pool-pill"><span>누적 777 JACKPOT</span><b id="slotJackpotAmount">1,000,000,000,000 G</b></div><div class="slot-stat-pill"><span>페이라인</span><b>5 LINES</b></div><div class="slot-stat-pill"><span>777 기본</span><b>x1000 + POOL</b></div></div>
             <div class="slot-cabinet"><div class="slot-side-light left"></div><div id="slotGrid" class="slot-grid"><div class="slot-column" data-col="0"><div class="slot-column-inner"></div></div><div class="slot-column" data-col="1"><div class="slot-column-inner"></div></div><div class="slot-column" data-col="2"><div class="slot-column-inner"></div></div><div class="payline payline-top"></div><div class="payline payline-mid"></div><div class="payline payline-bot"></div><div class="payline payline-diag1"></div><div class="payline payline-diag2"></div></div><div class="slot-side-light right"></div></div>
-            <div id="slotResult" class="slot-result">베팅 금액을 고르고 SPIN</div><div id="slotWins" class="slot-wins"></div><div class="bet-row" id="betRow"></div><div class="custom-wager"><span>직접 입력</span><input id="slotBetInput" type="number" min="1000" max="1000000000" step="1000" value="10000"><b>G</b><small>MAX 1,000,000,000 G</small></div><div class="slot-jackpot-boost">🔥 고액 베팅 JACKPOT BOOST</div><button id="spinBtn" class="spin-btn" type="button">SPIN</button><button id="slotRankFreeBtn" class="secondary full rank-free-btn" type="button">🎟 신분 무료권</button><small id="slotRankFreeStatus" class="rank-free-status">무료권 확인 중...</small><div class="auto-spin-panel"><div class="auto-spin-head"><span>AUTO SPIN</span><b id="autoSpinStatus">수동 모드</b></div><div class="auto-spin-note"><span>🛑 777 / JJJ JACKPOT 즉시 자동중지</span><span>📱 화면을 벗어나도 자동중지</span></div><div class="auto-spin-buttons"><button class="secondary" data-auto-spin="10" type="button">10회</button><button class="secondary" data-auto-spin="50" type="button">50회</button><button class="secondary" data-auto-spin="100" type="button">100회</button><button class="secondary" data-auto-spin="1000" type="button">1,000회</button><button id="autoStopBtn" class="danger" type="button" disabled>자동 중지</button></div></div><div class="slot-session-panel"><div><small>SESSION SPINS</small><b id="slotSessionSpins">0</b></div><div><small>WINS</small><b id="slotSessionWins">0</b></div><div><small>NET</small><b id="slotSessionNet">0 G</b></div><div><small>BEST WIN</small><b id="slotSessionBest">0 G</b></div><button id="slotSessionReset" class="ghost" type="button">세션 기록 초기화</button></div><div id="slotRecent" class="slot-recent"><span>최근 결과</span><div id="slotRecentItems"></div></div>
+            <div id="slotResult" class="slot-result">베팅 금액을 고르고 SPIN</div><div id="slotWins" class="slot-wins"></div><div class="bet-row" id="betRow"></div><div class="custom-wager"><span>직접 입력</span><input id="slotBetInput" type="number" min="1000" max="1000000000" step="1000" value="10000"><b>G</b><small>MAX 1,000,000,000 G</small></div><div class="slot-jackpot-boost">🔥 고액 베팅 JACKPOT BOOST</div><button id="spinBtn" class="spin-btn" type="button">SPIN</button><button id="slotRankFreeBtn" class="secondary full rank-free-btn" type="button">🎟 신분 무료권</button><small id="slotRankFreeStatus" class="rank-free-status">무료권 확인 중...</small><div class="auto-spin-panel"><div class="auto-spin-head"><span>AUTO SPIN</span><b id="autoSpinStatus">수동 모드</b></div><div class="auto-spin-note"><span>🛑 777 / JJJ 당첨 시 자동회전 즉시 종료 · 직접 재개</span><span>📱 화면을 벗어나도 자동중지</span></div><div class="auto-spin-buttons"><button class="secondary" data-auto-spin="10" type="button">10회</button><button class="secondary" data-auto-spin="50" type="button">50회</button><button class="secondary" data-auto-spin="100" type="button">100회</button><button class="secondary" data-auto-spin="1000" type="button">1,000회</button><button id="autoStopBtn" class="danger" type="button" disabled>자동 중지</button></div></div><div class="slot-session-panel"><div><small>SESSION SPINS</small><b id="slotSessionSpins">0</b></div><div><small>WINS</small><b id="slotSessionWins">0</b></div><div><small>NET</small><b id="slotSessionNet">0 G</b></div><div><small>BEST WIN</small><b id="slotSessionBest">0 G</b></div><button id="slotSessionReset" class="ghost" type="button">세션 기록 초기화</button></div><div id="slotRecent" class="slot-recent"><span>최근 결과</span><div id="slotRecentItems"></div></div>
           </div>
-          <div class="slot-info-stack"><div class="paytable premium-panel"><h3>PAY TABLE · v2.3 ROYAL</h3><div><span class="pay-red-seven">7 7 7</span><b>x1000 + POOL</b></div><div><span class="pay-j">J J J</span><b>x800</b></div><div><span class="pay-j">J SCATTER</span><b>1개당 x2</b></div><div><span>💎 💎 💎</span><b>x20</b></div><div><span>⭐ ⭐ ⭐</span><b>x10</b></div><div><span>🔔 🔔 🔔</span><b>x8</b></div><div><span>🍊 🍊 🍊</span><b>x5</b></div><div><span>🍋 🍋 🍋</span><b>x3</b></div><div><span>🍒 🍒 🍒</span><b>x1</b></div><p class="pay-balance-note">777은 누적 잭팟 전액까지 추가 지급. 상점의 일부 최상위 아이템은 희귀 심볼 가중치를 최대 +1%까지만 올려.</p></div><div class="paytable premium-panel lines-card"><h3>PAYLINES</h3><div><span>TOP ROW</span><b>1</b></div><div><span>MIDDLE ROW</span><b>2</b></div><div><span>BOTTOM ROW</span><b>3</b></div><div><span>DIAGONAL ↘</span><b>4</b></div><div><span>DIAGONAL ↗</span><b>5</b></div></div><div class="premium-panel slot-hof-card"><div class="slot-hof-head"><div><small>ROYAL REELS RECORD</small><h3>🏆 777 명예의 전당</h3></div><span>확인된 기록 기준</span></div><div id="slotJackpotHistory" class="slot-hof-list"><div class="empty">777 기록 불러오는 중...</div></div></div></div>
+          <div class="slot-info-stack"><div class="paytable premium-panel"><h3>PAY TABLE · v2.3 ROYAL</h3><div><span class="pay-red-seven">7 7 7</span><b>x1000 + POOL</b></div><div><span class="pay-j">J J J</span><b>x500</b></div><div><span class="pay-j">J SCATTER</span><b>1개당 x2</b></div><div><span>💎 💎 💎</span><b>x20</b></div><div><span>⭐ ⭐ ⭐</span><b>x10</b></div><div><span>🔔 🔔 🔔</span><b>x8</b></div><div><span>🍊 🍊 🍊</span><b>x5</b></div><div><span>🍋 🍋 🍋</span><b>x3</b></div><div><span>🍒 🍒 🍒</span><b>x1</b></div><p class="pay-balance-note">777은 누적 잭팟 전액까지 추가 지급. 상점의 일부 최상위 아이템은 희귀 심볼 가중치를 최대 +1%까지만 올려.</p></div><div class="paytable premium-panel lines-card"><h3>PAYLINES</h3><div><span>TOP ROW</span><b>1</b></div><div><span>MIDDLE ROW</span><b>2</b></div><div><span>BOTTOM ROW</span><b>3</b></div><div><span>DIAGONAL ↘</span><b>4</b></div><div><span>DIAGONAL ↗</span><b>5</b></div></div><div class="premium-panel slot-hof-card"><div class="slot-hof-head"><div><small>ROYAL REELS RECORD</small><h3>🏆 777 명예의 전당</h3></div><span>확인된 기록 기준</span></div><div id="slotJackpotHistory" class="slot-hof-list"><div class="empty">777 기록 불러오는 중...</div></div></div></div>
         </div>
       </section>
 
@@ -125,7 +185,7 @@
         <div class="view-head"><button class="back" data-go="lobby" type="button">←</button><div><small>YUT ARENA</small><h2>윷놀이</h2></div><button class="secondary view-guide" data-open-help="yut" type="button">? 사용법</button></div>
         <div class="mode-switch"><button class="mode-btn active" data-mode-game="yut" data-mode="multi" type="button">👥 친구 멀티</button><button class="mode-btn" data-mode-game="yut" data-mode="solo" type="button">🤖 AI 1인전</button></div>
         <div id="yutMultiArea"><div id="yutBrowser" class="room-browser"><div class="panel create-room premium-panel"><h3>정통 윷놀이방 만들기</h3><div class="form-grid"><label>경기 방식<select id="yutMode"><option value="individual">개인전 2~6인</option><option value="2v2">2:2 팀전</option><option value="3v3">3:3 팀전</option></select></label><label>참가금<input id="yutBuyIn" type="number" min="5000" max="100000" step="1000" value="50000"><small>1,000G 단위 · MAX 100,000G</small></label><label id="yutMaxLabel">인원<select id="yutMax"><option>2</option><option>3</option><option selected>4</option><option>5</option><option>6</option></select></label></div><div class="rule-chip-row"><span>✓ 업기</span><span>✓ 잡기 추가턴</span><span>✓ 윷/모 추가턴</span><span>✓ 대각선 지름길</span></div><button id="createYut" class="primary full" type="button">친구방 만들기</button></div><div class="panel room-list-card premium-panel"><div class="section-head"><div><small>OPEN ROOMS</small><h3>열린 윷놀이방</h3></div><button class="ghost" id="refreshYut" type="button">새로고침</button></div><div id="yutRooms" class="room-list"></div></div></div><div id="yutRoom" class="hidden"></div></div>
-        <div id="yutSoloArea" class="hidden"><div id="yutSoloStart" class="solo-start panel"><img loading="lazy" decoding="async" src="/art/yut-mascot.svg" alt="윷 AI"><div><small>1 VS 1 YUT</small><h3>J-BOT 윷놀이 · 즉시 플레이</h3><p>윷가락을 던지고 말을 직접 선택해 이동. 잡기와 윷·모 추가턴까지 AI와 빠르게 즐길 수 있어.</p><div class="solo-bet-row"><input id="soloYutBet" type="number" min="5000" max="100000" step="1000" value="50000"></div><div class="solo-start-action"><button id="startSoloYut" class="primary" type="button">AI 대전 시작</button></div></div></div><div id="yutSoloRoom" class="hidden"></div></div>
+        <div id="yutSoloArea" class="hidden"><div id="yutSoloStart" class="solo-start panel"><img loading="lazy" decoding="async" src="/art/yut-mascot.svg" alt="윷 AI"><div><small>1 VS 1 YUT</small><h3>J-BOT 윷놀이 · 즉시 플레이</h3><p>윷가락을 던지고 말을 직접 선택해 이동. 잡기와 윷·모 추가턴까지 AI와 빠르게 즐길 수 있어.</p><div class="solo-bet-row"><input id="soloYutBet" type="number" min="5000" max="1000000000000" step="1000" value="50000"></div><div class="solo-start-action"><button id="startSoloYut" class="primary" type="button">AI 대전 시작</button></div></div></div><div id="yutSoloRoom" class="hidden"></div></div>
       </section>
 
       <section id="view-seotda" class="view">
@@ -139,21 +199,21 @@
         <div class="view-head"><button class="back" data-go="lobby" type="button">←</button><div><small>YASHIMCHAN MATGO · ORIGINAL TABLE</small><h2>야심찬 맞고</h2></div><button class="secondary view-guide" data-open-help="gostop" type="button">? 족보·규칙</button></div>
         <div class="mode-switch"><button class="active" data-mode-game="gostop" data-mode="solo" type="button">🤖 1인전</button><button data-mode-game="gostop" data-mode="multi" type="button">👥 유저 대전</button></div>
         <div id="gostopMultiArea" class="hidden"><div id="gostopBrowser" class="room-browser"><div class="panel create-room premium-panel"><small>LIVE MATGO · 1:1</small><h3>맞고 대전방</h3><p>친구와 실시간 1:1 맞고. 판돈 상한 없음.</p><div class="quick-wager-block"><span>판돈 원터치</span><div class="quick-wager-row high-stake" data-wager-group="gostopMultiBuyIn"><button type="button" data-set-wager="10000">1만</button><button type="button" data-set-wager="100000" class="active">10만</button><button type="button" data-set-wager="500000">50만</button><button type="button" data-set-wager="1000000">100만</button></div></div><input id="gostopMultiBuyIn" class="no-spinner" type="number" min="5000" step="1000" value="100000" inputmode="numeric"><button id="createGostop" class="primary full" type="button">맞고방 만들기</button></div><div class="panel room-list-card premium-panel"><div class="section-head"><div><small>OPEN MATCHES</small><h3>열린 맞고방</h3></div><button class="ghost" id="refreshGostop" type="button">새로고침</button></div><div id="gostopRooms" class="room-list"></div></div></div><div id="gostopRoom" class="hidden"></div></div>
-        <div id="gostopSoloArea"><div id="gostopStart" class="solo-start panel gostop-start matgo-entrance"><img loading="lazy" decoding="async" src="/art/gostop-mascot.svg" alt="야심찬 맞고"><div><small>PREMIUM 1:1 · VS J-BOT</small><h3>끝까지 제대로 치는 맞고</h3><p>비삼광·고도리·홍단·청단·초단부터 쪽·따닥·싹쓸이와 광박·피박·멍박·고박, 3고 배수까지 한 판에 모두 계산해.</p><div class="matgo-rule-chips"><span>7점 GO/STOP</span><span>박 자동정산</span><span>먹을 패 선택</span><span>최대 판돈 100만원</span></div><div class="quick-wager-block"><span>판돈 원터치</span><div class="quick-wager-row high-stake" data-wager-group="gostopBet"><button type="button" data-set-wager="10000">1만</button><button type="button" data-set-wager="100000" class="active">10만</button><button type="button" data-set-wager="500000">50만</button><button type="button" data-set-wager="1000000">100만</button></div></div><div class="solo-bet-row no-spinner-bet"><input id="gostopBet" type="number" min="5000" max="1000000" step="1000" value="100000" inputmode="numeric" aria-label="맞고 판돈"><button id="startGostop" class="primary" type="button">화투패 돌리기</button></div><small class="wallet-limit-note">최대 1,000,000G · 보유 게임머니 범위 내 1,000G 단위 · 현금 가치 없음</small></div></div><div id="gostopTable" class="hidden"></div></div>
+        <div id="gostopSoloArea"><div id="gostopStart" class="solo-start panel gostop-start matgo-entrance"><img loading="lazy" decoding="async" src="/art/gostop-mascot.svg" alt="야심찬 맞고"><div><small>PREMIUM 1:1 · VS J-BOT</small><h3>끝까지 제대로 치는 맞고</h3><p>비삼광·고도리·홍단·청단·초단부터 쪽·따닥·싹쓸이와 광박·피박·멍박·고박, 3고 배수까지 한 판에 모두 계산해.</p><div class="matgo-rule-chips"><span>7점 GO/STOP</span><span>박 자동정산</span><span>먹을 패 선택</span><span>승패 동일 배수 · 최대 128배 손실</span></div><div class="quick-wager-block"><span>판돈 원터치</span><div class="quick-wager-row high-stake" data-wager-group="gostopBet"><button type="button" data-set-wager="5000" class="active">5천</button><button type="button" data-set-wager="100000">10만</button><button type="button" data-set-wager="100000000">1억</button><button type="button" data-set-wager="1000000000000">1조</button></div></div><div class="solo-bet-row no-spinner-bet"><input id="gostopBet" type="number" min="5000" max="1000000000000" step="1000" value="5000" inputmode="numeric" aria-label="맞고 판돈"><button id="startGostop" class="primary" type="button">화투패 돌리기</button></div><small class="wallet-limit-note">최대 판돈 1조 G · 승패 동일 점수 × 배수 (최대 판돈의 128배) · 신분 구매가 99% 강제 매각 가능 · 담보 부족 시 입장 제한</small></div></div><div id="gostopTable" class="hidden"></div></div>
       </section>
 
 
       <section id="view-horse" class="view">
-        <div class="view-head"><button class="back" data-go="lobby" type="button">←</button><div><small>JUNJA GRAND RACE · SHARED LIVE MEET</small><h2>라이브 경마</h2></div><button class="secondary view-guide" data-open-help="horse" type="button">? 사용법</button></div>
+        <div class="view-head"><button class="back" data-go="lobby" type="button">←</button><div><small>JUNJA LAND · GRAND RACE</small><h2>경마 LIVE</h2></div><button class="secondary view-guide" data-open-help="horse" type="button">? 사용법</button></div>
         <div class="horse-arena panel horse-v22">
-          <div class="horse-stand"><div class="horse-host"><img loading="lazy" decoding="async" class="horse-host-face" src="/art/club-host.svg" alt="레이스 호스트"><div><small>JUNJA NIGHT CUP · 1200M</small><h3>7 HORSES · SAME RACE FOR EVERYONE</h3><span>우니 · 도도 · 아라 · 돼지 · 햅피 · 신동 · 준자</span></div></div><div id="horseMeetClock" class="horse-meet-clock"><small>BET CLOSE</small><b>--</b></div></div>
-          <div id="horseLiveBettors" class="horse-live-bettors"><span>이번 경주 참여자 대기 중...</span></div>
+          <div class="horse-stand"><div class="horse-host"><div><small>JUNJA NIGHT CUP · 1200M</small><h3>🏇 7 HORSES · ONE RACE</h3><span>경주판에서 말을 터치해 선택</span></div></div><div id="horseMeetClock" class="horse-meet-clock"><small>BET CLOSE</small><b>--</b></div></div>
+          <div class="horse-v3-live-status" id="horseRaceLive" aria-live="polite">① 승식 · ② 말 선택 · ③ 베팅하고 출발</div><div id="horseRaceStandings" class="horse-race-standings" role="status" aria-live="off">🏁 출발 준비 · 경주 중 1·2·3위 실시간 표시</div><div id="horseLiveBettors" class="horse-live-bettors"><span>이번 경주 참여자 대기 중...</span></div>
           <div id="horseTrack" class="horse-track vertical-race-track"><div class="start-gate-line">START</div><div class="finish-line">FINISH</div><div class="race-overlay" id="raceOverlay"><b>LIVE BETTING</b><span>같은 경주표에 모두 함께 베팅합니다.</span></div></div>
           <div class="horse-control-grid">
-            <div class="premium-panel horse-bet-panel"><div class="horse-panel-title"><div><small>ONE TOUCH · LIVE POOL</small><h3>BETTING</h3></div><span id="horsePickHint" class="horse-pick-hint">말 1마리를 눌러 선택</span></div><div class="horse-type-row"><label>승식<select id="horseBetType"><option value="win">단승 · 1등 / 2등 위로금</option><option value="quinella">복승 · 1·2등 순서 무관</option><option value="exacta">쌍승 · 1·2등 순서 정확히</option></select></label><label>베팅<input id="horseBet" class="no-spinner" type="number" min="1000" max="100000" step="1000" value="10000" inputmode="numeric"><small>최대 100,000G</small></label></div><input id="horsePick1" type="hidden"><input id="horsePick2" type="hidden"><div id="horsePickGrid" class="horse-pick-grid" aria-label="경주마 선택"></div><div id="horsePickSummary" class="horse-pick-summary">선택한 말이 없습니다.</div><div id="horseOdds" class="horse-odds">배당표 불러오는 중...</div><button id="horseStartBtn" class="primary full" type="button" disabled>🏁 베팅 접수</button><div class="horse-auto-panel"><div><b>연속 경주</b><span id="horseAutoStatus">수동</span></div><div class="horse-auto-buttons"><button data-horse-auto="10" type="button">AUTO 10</button><button data-horse-auto="30" type="button">AUTO 30</button><button data-horse-auto="50" type="button">AUTO 50</button><button id="horseAutoStop" class="danger" type="button" disabled>STOP</button></div></div></div>
-            <div class="premium-panel horse-result-panel"><div class="horse-result-head"><div><small>RESULT BOARD</small><h3>MY RACE RESULT</h3></div><span>내 선택마 순위·배당·지급액을 다음 경주까지 유지</span></div><div id="horseResult" class="horse-result"><p>아직 경주 전이야.</p></div></div>
+            <div class="premium-panel horse-bet-panel"><div class="horse-panel-title"><div><small>ONE TOUCH</small><h3>베팅하기</h3></div><span id="horsePickHint" class="horse-pick-hint">윗쪽 경주판을 터치!</span></div><div class="horse-type-row"><label>승식<select id="horseBetType"><option value="win">단승 · 1등</option><option value="quinella">복승 · 순서 무관</option><option value="exacta">쌍승 · 순서 맞추기</option></select></label><label>베팅<input id="horseBet" class="no-spinner" type="number" min="1000" max="1000000000000" step="1000" value="10000" inputmode="numeric"><small>1,000G 단위 · 최대 1조 G</small></label></div><div class="horse-v3-quick"><button data-horse-wager="10000" type="button">1만</button><button data-horse-wager="100000" type="button">10만</button><button data-horse-wager="1000000" type="button">100만</button><button data-horse-wager="1000000000000" type="button">1조</button><button data-horse-wager="max" type="button">MAX</button></div><button id="horseRepeatBet" class="horse-v3-repeat" type="button">↻ 이전 선택</button><input id="horsePick1" type="hidden"><input id="horsePick2" type="hidden"><div id="horsePickGrid" class="horse-pick-grid" aria-label="경주마 선택"></div><div id="horsePickSummary" class="horse-pick-summary">경주판에서 말 선택</div><div id="horseOdds" class="horse-odds">배당표 불러오는 중...</div><button id="horseStartBtn" class="primary full" type="button" disabled>🏁 베팅 접수</button><details class="horse-auto-panel"><summary><b>연속 경주 옵션</b><span id="horseAutoStatus">수동</span></summary><div class="horse-auto-buttons"><button data-horse-auto="10" type="button">AUTO 10</button><button data-horse-auto="30" type="button">AUTO 30</button><button data-horse-auto="50" type="button">AUTO 50</button><button id="horseAutoStop" class="danger" type="button" disabled>STOP</button></div></details></div>
+            <details class="premium-panel horse-result-panel"><summary>🏆 최근 결과 · 적중 및 정산 내역 확인</summary><div id="horseResult" class="horse-result"><p>아직 경주 전이야.</p></div></details>
           </div>
-          <div class="premium-panel horse-odds-board"><div class="section-head"><div><small>PRE-RACE ODDS</small><h3>복승 · 쌍승 전체 배당표</h3></div><span>베팅 전에 모든 조합의 확정 배당 확인</span></div><div id="horseOddsBoard" class="horse-odds-table-wrap"></div></div>
+          <details class="premium-panel horse-odds-board"><summary>상세 배당표 보기 · 복승 / 쌍승</summary><div class="section-head"><div><small>PRE-RACE ODDS</small><h3>복승 · 쌍승 전체 배당표</h3></div><span>베팅 전에 모든 조합의 확정 배당 확인</span></div><div id="horseOddsBoard" class="horse-odds-table-wrap"></div></details>
         </div>
       </section>
 
@@ -208,6 +268,7 @@
               <div class="roulette-bet-cart"><div><small>BET SLIP</small><b id="rouletteBetTotal">0 G</b><span id="rouletteBetCount">0 bets</span></div><div class="roulette-cart-actions"><button id="rouletteUndo" class="ghost" type="button">UNDO</button><button id="rouletteClear" class="secondary" type="button">CLEAR</button><button id="rouletteSpinBtn" class="primary" type="button">SPIN · NO MORE BETS</button></div></div><div id="rouletteBetList" class="roulette-bet-list"></div>
             </div>
           </div>
+          <section id="rouletteLastReceipt" hidden aria-live="polite" style="margin-top:16px;padding:14px;border:1px solid rgba(240,206,119,.28);border-radius:16px;background:linear-gradient(150deg,#181716,#080b11);color:#fff7dd"></section>
           <div id="roulettePayoutGuide" aria-label="룰렛 배당표" style="margin-top:18px;padding:16px;border:1px solid rgba(240,206,119,.26);border-radius:18px;background:linear-gradient(135deg,rgba(18,12,8,.96),rgba(34,20,10,.92));box-shadow:0 14px 32px rgba(0,0,0,.22)">
             <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:12px">
               <div><small style="display:block;color:#d9bd75;font-weight:800;letter-spacing:.12em">ROULETTE PAYOUTS</small><h4 style="margin:3px 0 0;font-size:clamp(18px,3.8vw,24px);color:#fff7dd">배당표 <span style="font-size:.58em;color:#b9aa8b;font-weight:700">· 원금 포함 총 지급</span></h4></div>
@@ -233,15 +294,102 @@
         <div id="treasureRaidRoot"></div>
       </section>
 
-      <section id="view-shop" class="view">
-        <div class="view-head boutique-head"><button class="back" data-go="lobby" type="button">←</button><div><small>JUNJA LUXURY BOUTIQUE · COLLECTION</small><h2>럭셔리 아바타 & 컬렉션 상점</h2></div><span class="boutique-badge perk">CAPPED LUXURY PERKS</span></div>
+      <section id="view-shop" class="view palace-mode">
+        <div class="view-head boutique-head"><button class="back" data-go="lobby" type="button">←</button><div><small>MAISON JUNJA · PRIVATE EDITION</small><h2>준자 럭셔리 쇼핑 갤러리</h2></div><span class="boutique-badge perk">CAPPED LUXURY PERKS</span></div>
         <div class="economy-notice panel"><div>💎</div><p><b>게임으로 벌고, 꾸미고, 자랑하는 CLUB ECONOMY.</b><br>대부분은 외형·연출 전용. 일부 LEGEND·MYTHIC·PRESTIGE 아이템에는 작은 CLUB PERK가 있으며 슬롯 희귀 심볼 가중치는 장착 아이템을 합쳐도 최대 +1%로 제한됩니다. 게임머니는 현금 가치·환전·상품 교환이 없습니다.</p></div>
-        <div id="shopContent"></div>
+        <nav class="jrp-wing-nav jrp-wing-nav-three" id="junjaShopWingNav" aria-label="로얄 명품관, 내 전시관, 일반 상점"><button type="button" data-shop-wing="palace" class="active"><small>01 / ROYAL BOUTIQUE</small>♛ 로얄 명품관</button><button type="button" data-go="gallery" class="jrp-gallery-entry"><small>02 / PRIVATE MUSEUM</small>✦ 내 전시관</button><button type="button" data-shop-wing="store"><small>03 / CLASSIC SHOP</small>🛍 일반 상점</button></nav>
+         <div id="royalBoutiqueRoot" aria-label="준자 로얄 명품관"></div>
+          <div id="junjaRoyalMarketRoot" aria-label="준자랜드 인증 명품 경매장과 J-BANK 매각 창구"></div>
+         <div id="shopContent"></div>
+      </section>
+
+      <section id="view-gallery" class="view">
+        <div class="view-head jrg-view-head"><button class="back" data-go="lobby" type="button">←</button><div><small>JUNJA PRIVATE MUSEUM · ROYAL COLLECTION</small><h2>♛ 내 전시관</h2></div><button class="secondary" data-go="shop" type="button">명품관으로</button></div>
+        <div id="junjaRoyalGalleryRoot" aria-label="구매한 준자랜드 명품을 감상하고 전시하는 개인 갤러리"></div>
       </section>
 
       <section id="view-admin" class="view">
         <div class="view-head admin-head"><button class="back" data-go="lobby" type="button">←</button><div><small>OWNER CONTROL CENTER</small><h2>관리자 센터</h2></div><span class="admin-badge">SERVER ADMIN</span></div>
-        <div class="admin-summary-grid">
+        <div id="economyCenterRoot" aria-label="운영자 전용 준자랜드 경제관리센터"></div>
+        <section class="panel support-admin" id="supportAdminPanel" aria-labelledby="supportAdminHeading">
+          <div class="support-admin-head"><div><small>OWNER CONTROL · MEMBER CARE</small><h3 id="supportAdminHeading">🛟 고객지원·환불 문의 관제센터</h3><p>접수된 문의를 확인하고 처리 상태를 기록합니다. 환불 문의는 실제 결제 취소가 아닙니다.</p></div><button type="button" id="supportAdminRefresh">문의 새로고침</button></div>
+          <label>문의 상태 필터 <select id="supportAdminFilter"><option value="all">전체</option><option value="OPEN">신규</option><option value="REVIEWING">검토 중</option><option value="NEEDS_INFO">정보 추가 요청</option><option value="RESOLVED">처리 완료</option><option value="CLOSED">종결</option></select></label>
+          <div id="supportAdminRows" class="support-admin-rows" aria-live="polite">대표 운영자 계정에서 문의를 조회할 수 있습니다.</div>
+        </section>
+        <section class="panel commerce-gates" id="commerceReadinessPanel" aria-labelledby="commerceReadinessTitle">
+          <div class="cg-head">
+            <div><small>JUNJA LAND · COMMERCIAL GATE V10</small><h3 id="commerceReadinessTitle">♛ 상용화 출시 점검센터</h3><p>고객에게 실제 현금 결제를 제공하기 전에 충족해야 할 승인·기술·법적 조건을 검토합니다.</p></div>
+            <span class="cg-payment-off">REAL PAYMENTS OFF</span>
+          </div>
+          <div class="cg-stats" id="commerceReadinessStats" aria-live="polite">승인 조건을 확인하고 있습니다.</div>
+          <div class="cg-header"><h4>필수 준비 조건 · 증빙 상태</h4><button id="commerceReadinessRefresh" type="button">최신 점검</button></div>
+          <div class="cg-items" id="commerceReadinessItems">대표 운영자 계정에서만 조회할 수 있습니다.</div>
+          <p class="cg-warning" id="commerceReadinessWarning" aria-live="polite">실제 PG 계약 및 법률 승인 없이 구매 기능을 개시하지 않습니다. 이 점검판은 결제 처리 기능이 아닙니다.</p>
+        </section>
+
+
+        <section id="ownerMarketPanel" class="panel owner-market" aria-labelledby="ownerMarketTitle">
+          <div class="om-head">
+            <div><small>JUNJA FINANCIAL CONTROL · OWNER ONLY</small><h3 id="ownerMarketTitle">📈 주식·코인 시세 관제센터</h3><p>가상시장의 종목별 가격과 향후 자동 변동폭을 직접 관리합니다. 모든 변경은 기록되며 실제 금융시장과 관계없습니다.</p></div>
+            <span class="om-private">PRIVATE CONTROL</span>
+          </div>
+          <div class="om-split">
+            <label>시장 <select id="ownerMarketType"><option value="stock">📊 J-STOCK 가상주식</option><option value="coin">🪙 J-COIN 가상코인</option></select></label>
+            <label>종목 <select id="ownerMarketAsset" aria-label="조정할 종목"><option>조회 후 표시</option></select></label>
+            <button id="ownerMarketRefresh" class="om-ghost" type="button">↻ 현재 시세 조회</button>
+          </div>
+          <div class="om-quote">
+            <div><small>현재 서버 시세</small><strong id="ownerMarketCurrent">—</strong></div>
+            <div><small>현재 변동률</small><strong id="ownerMarketChange">—</strong></div>
+            <div><small>다음 자동 변동폭</small><strong id="ownerMarketVolatility">—</strong></div>
+          </div>
+          <div class="om-actions">
+            <div class="om-control">
+              <h4>즉시 시세 변경</h4><p>선택한 종목에 상승(+) 또는 하락(-) 비율을 적용합니다.</p>
+              <div class="om-form-row"><label>적용 등락률 (%) <input type="number" id="ownerMarketPercent" step="0.01" value="5" inputmode="decimal" aria-label="시세 변경 퍼센트"></label><button id="ownerMarketApplyPrice" type="button" class="om-primary">시세 반영</button></div>
+              <p id="ownerMarketPreview" class="om-preview" aria-live="polite">시장과 종목을 선택하세요.</p>
+            </div>
+            <div class="om-control">
+              <h4>자동 시세 변동폭</h4><p>향후 정기 변동부터 적용돼요. 주식은 6시간, 코인은 15분마다 움직여요.</p>
+              <div class="om-form-row"><label>변동폭 배율 <select id="ownerMarketVolSelect"><option value="50">안정형 · 50%</option><option value="100" selected>기본형 · 100%</option><option value="200">변동형 · 200%</option></select></label><button id="ownerMarketApplyVol" type="button" class="om-secondary">변동폭 저장</button></div>
+              <p class="om-explain">개별 종목의 자동 변동 폭만 조정하며 시세를 즉시 이동시키지 않습니다.</p>
+            </div>
+          </div>
+          <section class="om-schedule" aria-labelledby="ownerMarketScheduleTitle">
+            <div class="om-schedule-head"><div><small>TIMED MARKET EVENT</small><h4 id="ownerMarketScheduleTitle">⏱ 예약 시세 이벤트</h4><p>목표 상승·하락률까지 5분 간격으로 천천히 움직입니다. 서버 재시작 후에도 진행률을 복구합니다.</p></div><span class="om-private">30 / 60 / 120 MIN</span></div>
+            <div class="om-schedule-controls">
+              <label>목표 변동률 (%) <input id="ownerMarketSchedulePercent" type="number" inputmode="decimal" step="0.01" value="10" aria-label="예약 목표 상승 또는 하락 비율"></label>
+              <label>진행 시간 <select id="ownerMarketDuration"><option value="30">30분</option><option value="60">1시간</option><option value="120">2시간</option></select></label>
+              <button id="ownerMarketScheduleStart" class="om-primary" type="button">이벤트 시작</button>
+              <button id="ownerMarketScheduleCancel" class="om-ghost" type="button" hidden>진행 중 이벤트 취소</button>
+            </div>
+            <p id="ownerMarketSchedulePreview" class="om-preview" aria-live="polite">목표 가격을 미리 확인한 다음 시작하세요.</p>
+            <div id="ownerMarketScheduleProgress" class="om-schedule-progress" aria-live="polite">진행 중인 이벤트가 없습니다.</div>
+            <p class="om-explain">진행 중에는 해당 종목의 일반 자동 시세변동과 중복 즉시 조정을 막습니다. 취소하면 이미 반영된 가격은 그대로 유지됩니다.</p>
+          </section>
+          <div class="om-history-head"><h4>최근 운영자 변경 기록</h4><span>원장 보관 · 재로그인 후 유지</span></div>
+          <div id="ownerMarketHistory" class="om-history" aria-live="polite">현재 시세 조회를 누르면 기록이 표시됩니다.</div>
+          <p id="ownerMarketStatus" class="om-status" role="status" aria-live="polite"></p>
+          <p class="om-warning">가상 시세 변경은 모든 회원의 주식·코인 평가금액에 즉시 영향을 줄 수 있습니다. 기존 진행 중인 코인 시세 이벤트와 충돌하는 종목은 조정이 거부됩니다. 게임머니 충전·현금 거래 기능은 제공하지 않습니다.</p>
+        </section>
+
+        <section class="panel casino-watch" id="casinoAuditPanel" aria-labelledby="casinoAuditHeading">
+          <div class="casino-watch-top">
+            <div><small>OWNER ONLY · FORENSIC LEDGER</small><h3 id="casinoAuditHeading">♛ 카지노 정산 관제센터</h3><p>룰렛·빅휠 지급 원장을 읽기 전용으로 대조합니다. 회원 잔액은 자동 변경하지 않습니다.</p></div>
+            <span class="casino-watch-readonly">READ ONLY</span>
+          </div>
+          <div class="casino-watch-controls">
+            <label>회원 닉네임 / ID <input id="casinoAuditMember" type="search" maxlength="32" autocomplete="off" placeholder="전체 회원"></label>
+            <label>게임 선택 <select id="casinoAuditGame"><option value="all">룰렛 + 빅휠</option><option value="roulette">룰렛만</option><option value="bigwheel">빅휠만</option></select></label>
+            <button type="button" id="casinoAuditRefresh" class="casino-watch-action">정산 기록 조회</button>
+          </div>
+          <div id="casinoAuditSummary" class="casino-watch-summary" aria-live="polite">대표 운영자만 조회할 수 있습니다.</div>
+          <div id="casinoAuditRows" class="casino-watch-rows"></div>
+          <button type="button" id="casinoAuditMore" class="casino-watch-more" hidden>이전 기록 더 보기</button>
+          <p class="casino-watch-caveat">주의: 과거 낙첨 회차는 결과 번호가 기록되지 않은 경우가 있어, 베팅 차감만으로는 당첨금 미지급을 확정할 수 없습니다. 불일치 건은 원장 확인 후 별도 조사합니다.</p>
+        </section>
+
+         <div class="admin-summary-grid">
           <div class="panel admin-summary"><span>회원 수</span><b id="adminUserCount">0</b><small>등록 계정</small></div>
           <div class="panel admin-summary"><span>전체 게임머니</span><b id="adminTotalMoney">0 G</b><small>회원 잔액 합계</small></div>
           <div class="panel admin-summary"><span>이용중지</span><b id="adminDisabledCount">0</b><small>중지 계정</small></div>
@@ -258,7 +406,15 @@
         </div>
       </section>
 
-      <section id="view-ledger" class="view"><div class="view-head"><button class="back" data-go="lobby" type="button">←</button><div><small>WALLET HISTORY</small><h2>게임머니 내역</h2></div></div><div class="panel section-card premium-panel"><div id="ledgerList" class="ledger-list"></div></div></section>
+      <section id="view-ledger" class="view"><div class="view-head"><button class="back" data-go="lobby" type="button">←</button><div><small>WALLET HISTORY · ROUND EVIDENCE</small><h2>게임머니 내역</h2></div></div>
+        <section class="round-proof" id="roundReceiptPanel" aria-labelledby="roundReceiptTitle">
+          <div class="round-proof-head"><div><small>JUNJA · VERIFIED ROUND HISTORY</small><h3 id="roundReceiptTitle">♛ 내 게임 정산 영수증</h3><p>룰렛·빅휠의 실제 결과, 지급액, 최종 잔액을 회차 번호로 확인해.</p></div><button id="roundReceiptReload" type="button">최신 기록</button></div>
+          <div class="round-proof-controls"><label>게임별 보기 <select id="roundReceiptGame"><option value="all">전체</option><option value="roulette">룰렛</option><option value="bigwheel">빅휠</option></select></label></div>
+          <div id="roundReceiptRows" class="round-proof-rows" aria-live="polite">영수증을 불러오는 중이야.</div>
+          <button id="roundReceiptMore" type="button" class="round-proof-more" hidden>이전 영수증 더 보기</button>
+          <p class="round-proof-note">영수증은 7차 업데이트 이후 새 회차에만 발행돼. 기존에 결과가 기록되지 않은 회차를 소급해 확정하지 않아. 영수증 번호를 알려주면 운영자가 지급 원장을 대조할 수 있어.</p>
+        </section>
+        <div class="panel section-card premium-panel"><div id="ledgerList" class="ledger-list"></div></div></section>
     </main>
 
     <div id="helpModal" class="help-modal hidden" aria-hidden="true"><div class="help-backdrop"></div><div class="help-card panel"><button id="closeHelp" class="sheet-close" type="button">×</button><div class="help-head"><div><small>JUNJA GAME CLUB GUIDE</small><h2>게임방법</h2><p>게임별 핵심만 빠르게 확인해.</p></div><div class="help-emoji">🎮</div></div><div class="help-tabs"><button data-help-tab="lobby" class="active" type="button">전체</button><button data-help-tab="slot" type="button">슬롯</button><button data-help-tab="holdem" type="button">홀덤</button><button data-help-tab="sevenpoker" type="button">세븐포커</button><button data-help-tab="baccarat" type="button">바카라</button><button data-help-tab="yut" type="button">윷</button><button data-help-tab="seotda" type="button">섯다</button><button data-help-tab="gostop" type="button">고스톱</button><button data-help-tab="horse" type="button">경마</button><button data-help-tab="bigwheel" type="button">빅휠</button><button data-help-tab="sicbo" type="button">다이사이</button><button data-help-tab="roulette" type="button">룰렛</button></div><div class="help-pages">
@@ -277,7 +433,7 @@
     </div><button id="helpDone" class="primary full help-done" type="button">확인했어</button></div></div>
 
     <div id="profileSheet" class="sheet hidden"><div class="sheet-card panel"><button id="closeProfile" class="sheet-close" type="button">×</button><div id="profileContent"></div><button id="logoutBtn" class="danger full" type="button">로그아웃</button></div></div>
-    <div id="slotJackpotOverlay" class="slot-jackpot-overlay hidden" role="dialog" aria-modal="true" aria-label="슬롯 잭팟"><div class="jackpot-rays"></div><div class="jackpot-stage"><div id="jackpotCrown" class="jackpot-crown">♛</div><small>JUNJA ROYALE</small><h2 id="jackpotTitle">JACKPOT</h2><div id="jackpotSymbol" class="jackpot-symbol">777</div><p id="jackpotPayout">0 G</p><b>AUTO SPIN STOPPED</b><button id="jackpotContinueBtn" class="primary" type="button">확인 · 계속하기</button></div></div>
+    <div id="slotJackpotOverlay" class="slot-jackpot-overlay hidden" role="dialog" aria-modal="true" aria-label="슬롯 잭팟"><div class="jackpot-rays"></div><div class="jackpot-stage"><div id="jackpotCrown" class="jackpot-crown">♛</div><small>JUNJA ROYALE</small><h2 id="jackpotTitle">JACKPOT</h2><div id="jackpotSymbol" class="jackpot-symbol">777</div><p id="jackpotPayout">0 G</p><b>AUTO SPIN STOPPED</b><button id="jackpotContinueBtn" class="primary" type="button">축하 확인 · 다시 돌리기</button></div></div>
     <div id="toast" class="toast"></div>
   </div>
 </div>
@@ -287,13 +443,35 @@
     <div class="daily-draw-kicker">DAILY EVENT · 하루 1회</div>
     <h2 id="dailyDrawTitle">🎟️ JUNJA 77 행운 뽑기</h2>
     <p class="daily-draw-desc">1~77번 중 하나를 골라주세요. 다른 유저가 선택한 번호는 다시 고를 수 없습니다.</p>
-    <div class="daily-draw-prizes"><b>🥇 1등 1,000억 G</b><b>🥈 2등 500억 G</b><b>🥉 3등 10억 G</b><span>4~77등 1,000만 G</span></div>
+    <div class="daily-draw-prizes"><b>🥇 1등 1,000조 G</b><b>🥈 2등 500조 G</b><b>🥉 3등 100조 G</b><b>🏅 4등 1,000억 G</b><span>5~77등 1,000만 G</span></div>
     <div id="dailyDrawStatus" class="daily-draw-status">번호 현황을 불러오는 중...</div>
     <div id="dailyDrawGrid" class="daily-draw-grid" aria-label="77개 번호 선택판"></div>
     <div id="dailyDrawResult" class="daily-draw-result hidden" aria-live="polite"></div>
     <button id="dailyDrawDone" class="daily-draw-done hidden" type="button">확인하고 닫기</button>
   </div>
 </div>
+<script src="/casino-audit-ui.js?v=20261105-receipt-proof-v7" defer></script>
+<script defer src="/casino-receipts-ui.js?v=20261105-receipts-v1"></script>
+<script defer src="/owner-market-ui.js?v=20261105-v8-schedule1"></script>
+<div id="supportCenterModal" class="support-modal" role="dialog" aria-modal="true" aria-labelledby="supportCenterHeading" hidden>
+  <div class="support-shell">
+    <header class="support-header"><div><small>JUNJA LAND · MEMBER SUPPORT</small><h2 id="supportCenterHeading">🛟 고객센터</h2><p>게임 정산, 계정, 프리미엄 전시관 문의를 접수할 수 있어요.</p></div><button id="supportCenterClose" type="button" aria-label="고객센터 닫기">×</button></header>
+    <div class="support-body">
+      <form id="supportForm">
+        <label>문의 종류 <select id="supportCategory" required><option value="game_settlement">게임 정산·영수증 확인</option><option value="account">계정·접속</option><option value="premium_preview">프리미엄 전시관 체험</option><option value="refund_inquiry">환불 문의 · 실제 결제/환불 불가</option><option value="other">기타 문의</option></select></label>
+        <label>제목 <input id="supportSubject" required minlength="4" maxlength="75" placeholder="어떤 도움이 필요하세요?"></label>
+        <label>내용 <textarea id="supportMessage" required minlength="8" maxlength="600" rows="4" placeholder="게임명·회차번호 등 확인에 필요한 내용만 적어주세요. 카드번호나 비밀번호는 입력하지 마세요."></textarea></label>
+        <p class="support-notice">현재 프리미엄 상품 현금 결제는 중단 상태입니다. 이곳은 문의 접수 창구이며, 환불 문의를 제출해도 실제 환불이나 게임머니 지급이 자동 실행되지는 않습니다.</p>
+        <button id="supportSubmit" type="submit">문의 접수하기</button>
+      </form>
+      <div class="support-history-head"><h3>내 문의 기록</h3><button id="supportRefresh" type="button">목록 새로고침</button></div>
+      <div id="supportMyRows" class="support-rows" aria-live="polite">문의를 불러오는 중입니다.</div>
+      <p id="supportStatus" class="support-status" role="status" aria-live="polite"></p>
+    </div>
+  </div>
+</div>
+<script src="/support-center-ui.js?v=20261105-v9" defer></script>
+<script src="/commerce-readiness-ui.js?v=20261105-v10" defer></script>
 </body>
 </html>
 

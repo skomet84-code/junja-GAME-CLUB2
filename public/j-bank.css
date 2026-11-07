@@ -24,3 +24,50 @@
 .jbank-sell-btn{background:linear-gradient(125deg,#f1c083,#fbe3ac)!important;color:#301d0d!important}
 .jbank-sale-muted{margin:14px 0 0;color:#a9abb8;font-size:11px}
 @media(max-width:430px){.jbank-sale-summary{grid-template-columns:1fr}}
+
+
+/* Asset-backed credit — same restrained private-bank language as J-BANK. */
+#jbankCredit.jcredit-panel{
+ margin:17px 0;padding:18px;border-radius:19px;
+ background:linear-gradient(155deg,#151d32,#18172a 70%,#100f1b);
+ border:1px solid rgba(218,179,108,.38);
+ box-shadow:inset 0 1px rgba(255,255,255,.045);
+}
+.jcredit-heading{display:flex;align-items:center;gap:12px;margin-bottom:15px}
+.jcredit-heading h3{margin:3px 0 5px!important;color:#f6e2ba;font-size:19px}
+.jcredit-heading small{font-size:9px;font-weight:900;letter-spacing:.18em;color:#cbb080}
+.jcredit-heading p{font-size:11px;margin:0;color:#b3b7c5;line-height:1.45}
+.jcredit-mark{
+ width:56px;height:56px;display:grid;place-items:center;flex:0 0 56px;border-radius:16px;
+ border:1px solid #eccb8680;color:#ffe7af;background:linear-gradient(135deg,#554022,#2c2436);
+ font-weight:900;font-size:20px;font-variant-numeric:tabular-nums;
+}
+#jbankCredit .jbank-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:0 0 12px}
+#jbankCredit .jbank-grid>div{min-width:0;overflow:hidden;padding:11px;background:rgba(5,8,18,.55)}
+#jbankCredit .jbank-grid small{font-size:10px;color:#abb5c9;line-height:1.45}
+#jbankCredit .jbank-grid strong{display:block;overflow-wrap:anywhere;color:#f4d590;font-size:clamp(12px,3.2vw,16px)}
+.jcredit-details{border:1px solid rgba(255,255,255,.13);border-radius:12px;padding:11px 13px;margin:11px 0;background:#0a0f1da8}
+.jcredit-details>summary{font-weight:800;cursor:pointer;color:#e6c995;font-size:12px}
+.jcredit-details>p{font-size:11px;line-height:1.5;color:#a7b0c1}
+.jcredit-breakdown{display:grid;gap:8px;margin-top:12px}
+.jcredit-breakdown>div{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;font-size:11px}
+.jcredit-breakdown>div>span{color:#aab6c9;white-space:nowrap}
+.jcredit-breakdown b{text-align:right;color:#f2e0b6;overflow-wrap:anywhere}
+.jbank-blocked-reason{
+ margin:11px 0!important;padding:11px 12px;border-radius:11px;
+ border:1px solid rgba(235,185,107,.27);background:rgba(85,60,36,.22);
+ color:#e6cda4;font-size:11px;line-height:1.6;
+}
+.jcredit-due{font-size:12px;font-weight:800;color:#f0cb88;line-height:1.5}
+#jbankCredit .jbank-forms{margin-top:15px}
+#jbankCredit .jbank-forms>section{border-color:rgba(226,194,128,.2)}
+#jbankCredit .jbank-forms h3{font-size:14px;margin-bottom:12px}
+#jbankCredit .jcredit-borrow{background:linear-gradient(125deg,#f8e0a4,#cfab63)}
+@media(max-width:600px){
+ #jbankCredit.jcredit-panel{margin:14px 0;padding:13px;border-radius:15px}
+ #jbankCredit .jbank-grid>div{padding:9px}
+ #jbankCredit .jbank-grid strong{font-size:12px}
+ .jcredit-heading{gap:9px}
+ .jcredit-heading h3{font-size:17px}
+ .jcredit-mark{width:46px;height:46px;flex-basis:46px;font-size:16px;border-radius:13px}
+}

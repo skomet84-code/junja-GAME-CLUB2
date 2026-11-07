@@ -5,9 +5,29 @@ const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
 const staticResponse = require('./static-response');
+const {atelierImportMapCsp}=require('./premium-atelier-csp');
 const exactWallet = require('./exact-wallet');
+const {settleSlotRound}=require('./slot-round-settlement');
+const casinoReceipts = require('./casino-round-receipts');
+const {ROYAL_ITEMS,createRoyalEconomy}=require('./royal-economy');
+const {createRoyalMarket}=require('./royal-market');
+const echoReward=require('./echo-rewards');
 const {createJBank}=require('./j-bank-core');
+const {createJCredit}=require('./j-credit');
+const {createCasinoCollateral}=require('./casino-collateral');
+const {createJStocks}=require('./j-stock-core');
+const {createKospiReference}=require('./j-stock-kospi-reference');
+const {createJCoins}=require('./j-coin-core');
+const {createJPL}=require('./jpl-core');
+const {BASE:SLOT_POOL_BASE,output:slotPoolOutput,readPool:readSlotJackpotPool}=require('./slot-jackpot-pool');
+const {combinedInvestmentRanking}=require('./j-investment-ranking');
 const { DatabaseSync } = require('./persistent-db');
+const {report: jplAdminReport}=require('./jpl-admin-report');
+const {auditCasinoSettlements}=require('./casino-settlement-audit');
+const {createMarketControl}=require('./market-operator');
+const {createSupportCenter}=require('./support-center-core');
+const {createMotorDesignStudio}=require('./premium-motor-design');
+const {report:commerceReadinessReport}=require('./commerce-readiness-v10');
 const createTreasureRaid = require('./treasure-raid-server');
 const createBlackroomCloud = require('./blackroom-cloud');
 
@@ -159,7 +179,50 @@ ensureColumn('users','is_archived','INTEGER NOT NULL DEFAULT 0');
 ensureColumn('users','rank_level','INTEGER NOT NULL DEFAULT 0');
 ensureColumn('user_loadout','character','TEXT');
 
-const SLOT_JACKPOT_BASE = 50000000;
+// One-time operator-requested nickname correction (2026-11-02).
+// Preserve account ID, username/login, balances, inventory and all play history.
+(function renamePositiveToCherryOnce(){
+  const from='긍정', to='체리';
+  try{
+    const target=db.prepare('SELECT id FROM users WHERE nickname=? COLLATE NOCASE').get(from);
+    if(!target){console.log('[NICKNAME CHANGE] No account named 긍정; nothing modified.');return;}
+    const collision=db.prepare('SELECT id FROM users WHERE nickname=? COLLATE NOCASE').get(to);
+    if(collision){console.warn('[NICKNAME CHANGE] 체리 already belongs to another account; no change.',{targetId:target.id,collisionId:collision.id});return;}
+    db.exec('BEGIN IMMEDIATE');
+    try{
+      const result=db.prepare('UPDATE users SET nickname=? WHERE id=? AND nickname=? COLLATE NOCASE').run(to,target.id,from);
+      if(Number(result.changes)!==1)throw new Error('Expected exactly one nickname update, got '+String(result.changes));
+      db.exec('COMMIT');
+    }catch(e){db.exec('ROLLBACK');throw e;}
+    console.log('[NICKNAME CHANGE] 긍정 -> 체리 successful, userId='+target.id);
+    void db.flush().catch(e=>console.error('[NICKNAME CHANGE] Persistence flush failed:',e.message));
+  }catch(e){console.error('[NICKNAME CHANGE] No mutation completed:',e.message);}
+})();
+
+
+// The stock exchange is isolated from the SOCIAL_RANKS test-evaluated block.
+const kospiReference=createKospiReference({now});
+// Public market quotes are optional; the server and users' funds work without them.
+kospiReference.start();
+const ownerMarket=createMarketControl({db,now});
+const supportCenter=createSupportCenter({db,now});
+const motorDesignStudio=createMotorDesignStudio({db,now});
+const jStocks=createJStocks({db,exactWallet,now,getReference:kospiReference.get,marketMode:'kospi',getVolatilityPct:id=>ownerMarket.volatilityFor('stock',id),scheduledProtected:()=>ownerMarket.scheduledProtected('stock'),scheduledDue:()=>ownerMarket.scheduledDue('stock'),progressScheduled:m=>ownerMarket.progressScheduled('stock',m)});
+const jCoins=createJCoins({db,exactWallet,now,getVolatilityPct:id=>ownerMarket.volatilityFor('coin',id),scheduledProtected:()=>ownerMarket.scheduledProtected('coin'),scheduledDue:()=>ownerMarket.scheduledDue('coin'),progressScheduled:m=>ownerMarket.progressScheduled('coin',m)});
+// One-time 2-hour quote adjustment; idempotent state survives Railway restarts.
+try{const campaign=jCoins.startAdjustment();console.log('[J-COIN EVENT]',JSON.stringify({startedAt:campaign.startedAt,endsAt:campaign.endsAt,targetPct:campaign.targetPct}));}catch(e){console.error('[J-COIN EVENT] Start failed:',e.message)}
+// Attach the same authoritative stock + coin leaderboard to GET and trade
+// responses. Keep the original portfolios, exact balances and ledgers intact.
+function withInvestmentRanking(response,userId,market){
+ const result=response.status||response;
+ const other=market==='stock'?jCoins.status(userId):jStocks.status(userId);
+ const stocks=market==='stock'?result:other;
+ const coins=market==='coin'?result:other;
+ const ranking=combinedInvestmentRanking({db,stockQuotes:stocks.stocks,coinQuotes:coins.stocks});
+ const status={...result,ranking,rankingType:'combined',changed:Boolean(result.changed||other.changed)};
+ return response.status?{...response,status}:status;
+}
+const SLOT_JACKPOT_BASE = Number(SLOT_POOL_BASE);
 function gameStateGet(key,fallback=null){
   const row=db.prepare('SELECT value FROM game_state WHERE key=?').get(String(key));
   if(!row)return fallback;
@@ -171,10 +234,12 @@ function gameStateSet(key,value){
   return value;
 }
 function slotJackpotPool(){
-  const n=Number(gameStateGet('slot_jackpot_pool',SLOT_JACKPOT_BASE));
-  return Number.isSafeInteger(n)&&n>=SLOT_JACKPOT_BASE?n:SLOT_JACKPOT_BASE;
+  return slotPoolOutput(readSlotJackpotPool(db));
 }
+// Preserve the existing pool when it is already above 1 trillion G;
+// raise legacy lower balances to the new minimum without erasing history.
 if(gameStateGet('slot_jackpot_pool',null)==null)gameStateSet('slot_jackpot_pool',SLOT_JACKPOT_BASE);
+if(BigInt(gameStateGet('slot_jackpot_pool',SLOT_JACKPOT_BASE))<SLOT_POOL_BASE)gameStateSet('slot_jackpot_pool',SLOT_JACKPOT_BASE);
 const SLOT_777_EVENT_CHANCE = 0.10;
 function slot777EventActive(){return gameStateGet('slot_777_event_active',false)===true;}
 
@@ -198,8 +263,8 @@ function recordSlot777Jackpot(user,{jackpotAward,regularPayout,bet}){
   const awardedAt=now();
   const entry={
     round,winnerUserId:Number(user?.id)||null,nickname:String(user?.nickname||'알 수 없음').slice(0,40),
-    jackpotAmount:Number(jackpotAward)||0,regularPayout:Number(regularPayout)||0,
-    totalPayout:(Number(jackpotAward)||0)+(Number(regularPayout)||0),bet:Number(bet)||0,
+    jackpotAmount:slotPoolOutput(jackpotAward),regularPayout:Number(regularPayout)||0,
+    totalPayout:slotPoolOutput(BigInt(jackpotAward)+BigInt(regularPayout)),bet:Number(bet)||0,
     awardedAt,awardedDate:kstDate(),source:'live'
   };
   rows.push(entry);
@@ -212,7 +277,7 @@ const goldenbell=require('./goldenbell-server')({db,crypto,readBody,requireAuth,
   isUserBusy:id=>!!findUserRoom(id)||!!baccaratFindUser(id)||treasureRaid.hasUser(id)||sichuanBattle.hasUser(id)||omok.hasUser(id)||liar.hasUser(id)||janggi.hasUser(id)||royalCards.hasUser(id),
   notify:(ids,roomId)=>{for(const [,client] of sseClients)if(ids.includes(Number(client.userId))){try{client.res.write(`event: refresh\ndata: ${JSON.stringify({goldenbell:true,roomId})}\n\n`);}catch{}}}
 });
-const omok=require('./omok-server')({db,crypto,readBody,requireAuth,json,rateLimit,
+const omok=require('./omok-server')({db,crypto,exactWallet,readBody,requireAuth,json,rateLimit,
   isUserBusy:id=>!!findUserRoom(id)||!!baccaratFindUser(id)||treasureRaid.hasUser(id)||goldenbell.hasUser(id)||sichuanBattle.hasUser(id),
   notify:(ids,roomId)=>{for(const [,client] of sseClients)if(ids.includes(Number(client.userId))){try{client.res.write(`event: refresh\ndata: ${JSON.stringify({omok:true,roomId})}\n\n`);}catch{}}}
 });
@@ -229,9 +294,26 @@ const janggi=require('./janggi-server')({db,crypto,readBody,requireAuth,json,rat
 // If the server restarted while rooms were active, return virtual chips safely.
 const staleEscrows = db.prepare('SELECT room_id,user_id,COALESCE(amount_exact,CAST(amount AS TEXT)) AS amount,game FROM room_escrow').all();
 for (const e of staleEscrows) {
-  if (e.amount > 0) walletChange(e.user_id, e.amount, 'recovery', `${e.game} 방 서버 재시작 자동 환급`,e.room_id);
+  // A restarted room can have a stale escrow row alongside an already-used
+  // recovery request key. Never generate a new key or double-credit a wallet.
+  // A conflicting previous recovery is quarantined for manual reconciliation
+  // instead of preventing the entire production server from starting.
+  const amount=exactWallet.integer(e.amount);
+  if(amount<=0n){
+    db.prepare('DELETE FROM room_escrow WHERE room_id=? AND user_id=?').run(e.room_id,e.user_id);
+    continue;
+  }
+  try{
+    exactWallet.change(db,Number(e.user_id),amount,'recovery',`${e.game} 방 서버 재시작 자동 환급`,now,
+      {escrowRoomId:e.room_id,requestKey:'escrow_recovery_'+e.room_id});
+    // change() removes rows on a new refund. For an idempotent replay it
+    // returns early; only then do we remove that already-refunded stale row.
+    db.prepare('DELETE FROM room_escrow WHERE room_id=? AND user_id=?').run(e.room_id,e.user_id);
+  }catch(err){
+    if(err?.message!=='이미 사용한 요청 번호입니다.')throw err;
+    console.error('[ESCROW RECOVERY CONFLICT] Keeping escrow pending for audit:',String(e.room_id),String(e.user_id));
+  }
 }
-db.exec('DELETE FROM room_escrow');
 
 db.exec('DELETE FROM sessions WHERE expires_at < ' + Date.now());
 // A missing statistics row must never make an existing account disappear.
@@ -348,7 +430,7 @@ const SHOP_ITEMS = [
   {id:'char_m_cosmos',category:'character',gender:'M',asset:'/art/v26/characters/char_m_cosmos.webp',name:'코스모스 레이',icon:'★',rarity:'legendary',price:450000000,desc:'별빛 블루 수트와 코스믹 오라가 흐르는 캐릭터'},
   {id:'char_m_emperor',category:'character',gender:'M',asset:'/art/v26/characters/char_m_emperor.webp',name:'엠퍼러 J',icon:'J♛',rarity:'mythic',price:650000000,desc:'황제 골드와 J 시그니처를 결합한 신화급 남캐'},
   {id:'char_m_royal',category:'character',gender:'M',asset:'/art/v26/characters/char_m_royal.webp',name:'로열 아르카나',icon:'✧',rarity:'mythic',price:800000000,desc:'퍼플 젬과 아르카나 무드의 최상위 로열 캐릭터'},
-  {id:'char_m_junja',category:'character',gender:'M',asset:'/art/v26/characters/char_m_junja.webp',name:'JUNJA KING',icon:'♛',rarity:'prestige',price:1000000000,desc:'10억 G 프레스티지. 왕관·골드 오라를 가진 남캐 최종 컬렉션',featured:true},
+  {id:'char_m_junja',category:'character',gender:'M',asset:'/art/v26/characters/char_m_junja.webp',name:'JUNJA KING',icon:'♛',rarity:'prestige',price:1000000000,desc:'1000억 G 프레스티지. 왕관·골드 오라를 가진 남캐 최종 컬렉션',featured:true},
 
   {id:'char_f_aria',category:'character',gender:'F',asset:'/art/v26/characters/char_f_aria.webp',name:'아리아',icon:'♥',rarity:'rare',price:5000000,desc:'핑크 리본과 단발 헤어의 밝고 세련된 여성 캐릭터'},
   {id:'char_f_yuna',category:'character',gender:'F',asset:'/art/v26/characters/char_f_yuna.webp',name:'유나',icon:'✦',rarity:'rare',price:8000000,desc:'블루 퍼플 드레스와 롱헤어의 청순 VIP'},
@@ -364,7 +446,7 @@ const SHOP_ITEMS = [
   {id:'char_f_seraph',category:'character',gender:'F',asset:'/art/v26/characters/char_f_seraph.webp',name:'세라프',icon:'☼',rarity:'legendary',price:450000000,desc:'화이트 골드 드레스와 천상 오라의 세라프'},
   {id:'char_f_empress',category:'character',gender:'F',asset:'/art/v26/characters/char_f_empress.webp',name:'엠프레스 J',icon:'J♛',rarity:'mythic',price:650000000,desc:'황제 크라운과 J 시그니처를 가진 신화급 여성 캐릭터'},
   {id:'char_f_venus',category:'character',gender:'F',asset:'/art/v26/characters/char_f_venus.webp',name:'비너스 로열',icon:'✦',rarity:'mythic',price:800000000,desc:'로즈 젬과 로열 드레스의 최상위 여성 캐릭터'},
-  {id:'char_f_junja',category:'character',gender:'F',asset:'/art/v26/characters/char_f_junja.webp',name:'JUNJA EMPRESS',icon:'♕',rarity:'prestige',price:1000000000,desc:'10억 G 프레스티지. 황금 왕관과 오라를 가진 여캐 최종 컬렉션',featured:true},
+  {id:'char_f_junja',category:'character',gender:'F',asset:'/art/v26/characters/char_f_junja.webp',name:'JUNJA EMPRESS',icon:'♕',rarity:'prestige',price:1000000000,desc:'1000억 G 프레스티지. 황금 왕관과 오라를 가진 여캐 최종 컬렉션',featured:true},
 
   {id:'char_m_blade',category:'character',gender:'M',asset:'/art/v29/characters/char_m_blade.png',name:'블레이드 렌',icon:'⚔',rarity:'mythic',price:120000000,desc:'JUNJA LAND 신규 프리미엄 컬렉션 캐릭터'},
   {id:'char_m_sirius',category:'character',gender:'M',asset:'/art/v29/characters/char_m_sirius.png',name:'시리우스',icon:'✦',rarity:'mythic',price:180000000,desc:'JUNJA LAND 신규 프리미엄 컬렉션 캐릭터'},
@@ -475,9 +557,22 @@ const SHOP_ITEMS = [
   {id:'title_rank_royal',category:'title',name:'JUNJA ROYAL',icon:'J',rarity:'prestige',price:3000000000,rankTier:5,desc:'신분 상점 TIER 5 · JUNJA ROYAL 전용 칭호'}
 ]
 // v2.3 Luxury perks: equipped premium pieces provide tiny transparent benefits, hard-capped.
+SHOP_ITEMS.push(...ROYAL_ITEMS);
 const SHOP_PERKS={char_m_junja:{slotLuckPct:.4,dailyBonusPct:2},char_f_junja:{slotLuckPct:.4,dailyBonusPct:2},char_m_royal:{slotLuckPct:.2},char_f_empress:{slotLuckPct:.2},frame_legend:{slotLuckPct:.3},frame_junjaroyal:{slotLuckPct:.2},pet_guardian:{slotLuckPct:.3,dailyBonusPct:2},pet_phoenix:{slotLuckPct:.15},title_thejunja:{dailyBonusPct:1}};
-for(const item of SHOP_ITEMS){if(SHOP_PERKS[item.id])item.perk={...SHOP_PERKS[item.id]};}
+for(const item of SHOP_ITEMS){
+  if(item.collection!=='royalboutique'&&Number.isSafeInteger(item.price)&&item.price>0)item.price*=100; // Prior x10 plus a new x10; already owned items unchanged.
+  if(SHOP_PERKS[item.id])item.perk={...SHOP_PERKS[item.id]};
+}
 const SHOP_BY_ID = Object.fromEntries(SHOP_ITEMS.map(x=>[x.id,Object.freeze({...x})]));
+const royalEconomy=createRoyalEconomy({db,exactWallet,now,getAssets:id=>({bank:jBank.status(id),stock:jStocks.status(id),coin:jCoins.status(id)})});
+const royalMarket=createRoyalMarket({db,exactWallet,now,items:ROYAL_ITEMS});
+royalEconomy.setMarket(royalMarket);
+setInterval(()=>{
+ try{
+  const settled=royalMarket.settleExpired();
+  if(settled){void db.flush().then(()=>pushRefresh()).catch(e=>console.error('[ROYAL AUCTION] Persistence:',e.message));}
+ }catch(e){console.error('[ROYAL AUCTION] Settlement:',e.message)}
+},60000).unref();
 const LOADOUT_FIELDS = new Set(['character','costume','frame','title','pet','table_skin','card_back','bubble_pack']);
 const SLOT_SYMBOLS = [
   // v2.8.15: lower only the base 7 symbol chance to 1.0%; keep J at 1.5%.
@@ -502,7 +597,7 @@ function slotSymbolsForBet(bet){
   const delta=seven-baseSeven;
   return SLOT_SYMBOLS.map(x=>x.s==='7️⃣'?{...x,w:seven}:x.s==='🍒'?{...x,w:x.w-delta}:x);
 }
-const SLOT_MULT = {'🍒':1,'🍋':3,'🍊':5,'🔔':8,'⭐':10,'💎':20,'7️⃣':1000,'J':800};
+const SLOT_MULT = {'🍒':1,'🍋':3,'🍊':5,'🔔':8,'⭐':10,'💎':20,'7️⃣':1000,'J':500};
 const SLOT_LINES = [
   { key:'top', label:'TOP', cssClass:'top', cells:[[0,0],[0,1],[0,2]] },
   { key:'mid', label:'MIDDLE', cssClass:'mid', cells:[[1,0],[1,1],[1,2]] },
@@ -523,7 +618,7 @@ function gameWager(v,min=1000,max=5000000,step=1000){
   return n;
 }
 function walletWager(v,balance,min=1000,step=1000){
-  const n=Math.floor(Number(v)),cap=Math.floor(Number(balance||0));
+  const n=Math.floor(Number(v)),cap=Math.min(1000000000000,Math.floor(Number(balance||0)));
   if(!Number.isSafeInteger(n)||n<min||n%step!==0) throw new Error(`금액은 최소 ${formatMoney(min)}G부터 ${formatMoney(step)}G 단위로 입력하세요.`);
   if(n>cap) throw new Error(`보유 게임머니(${formatMoney(cap)}G)를 초과해서 걸 수 없습니다.`);
   return n;
@@ -561,7 +656,7 @@ function ensureAdminAccount(){
 }
 ensureAdminAccount();
 
-function dailyDrawPrize(rank){return rank===1?100000000000:rank===2?50000000000:rank===3?1000000000:10000000;}
+function dailyDrawPrize(rank){return rank===1?1_000_000_000_000_000:rank===2?500_000_000_000_000:rank===3?100_000_000_000_000:rank===4?100_000_000_000:10_000_000;}
 function dailyDrawRanks(date){
   const key='daily_draw_ranks_'+date;let ranks=gameStateGet(key,null);
   if(Array.isArray(ranks)&&ranks.length===77)return ranks;
@@ -575,7 +670,7 @@ function dailyDrawState(userId){
   const top3=used.filter(x=>Number(x.rank)>=1&&Number(x.rank)<=3).sort((a,b)=>Number(a.rank)-Number(b.rank)).map(x=>{const u=db.prepare('SELECT nickname FROM users WHERE id=?').get(Number(x.user_id));return {rank:Number(x.rank),number:Number(x.number),prize:Number(x.prize),nickname:u?.nickname||'알 수 없음'};});
   return {date,usedNumbers:used.map(x=>x.number),top3,mine:mine.length?{number:mine[mine.length-1].number,rank:mine[mine.length-1].rank,prize:mine[mine.length-1].prize,pickedAt:mine[mine.length-1].picked_at}:null,
     myPicks:mine.map(x=>({number:x.number,rank:x.rank,prize:x.prize,pickedAt:x.picked_at})),usedAttempts:mine.length,maxAttempts:perks.dailyDraws,attemptsLeft:Math.max(0,perks.dailyDraws-mine.length),
-    remaining:77-used.length,rankPerks:perks,prizes:{1:100000000000,2:50000000000,3:1000000000,other:10000000}};
+    remaining:77-used.length,rankPerks:perks,prizes:{1:1_000_000_000_000_000,2:500_000_000_000_000,3:100_000_000_000_000,4:100_000_000_000,other:10_000_000}};
 }
 function dailyDrawPick(userId,number){
   number=Number(number);if(!Number.isInteger(number)||number<1||number>77)throw new Error('1~77번 중 하나를 선택해주세요.');
@@ -589,10 +684,11 @@ function dailyDrawPick(userId,number){
     const rank=Number(ranks[number-1]),prize=dailyDrawPrize(rank),pickedAt=now();
     if(usedAttempts===0)db.prepare('INSERT INTO daily_draw_picks(draw_date,number,user_id,rank,prize,picked_at) VALUES(?,?,?,?,?,?)').run(date,number,userId,rank,prize,pickedAt);
     else db.prepare('INSERT INTO daily_draw_bonus_picks(draw_date,number,user_id,pick_slot,rank,prize,picked_at) VALUES(?,?,?,?,?,?,?)').run(date,number,userId,usedAttempts+1,rank,prize,pickedAt);
-    const u=db.prepare('SELECT balance FROM users WHERE id=?').get(userId),next=Number(u.balance)+prize;if(!Number.isSafeInteger(next))throw new Error('보유 게임머니 한도를 초과합니다.');
-    db.prepare('UPDATE users SET balance=? WHERE id=?').run(next,userId);
-    db.prepare('INSERT INTO ledger(user_id,amount,balance_after,type,memo,created_at) VALUES(?,?,?,?,?,?)').run(userId,prize,next,'daily_draw',`77 출석 뽑기 ${number}번 · ${rank}등 · ${usedAttempts+1}/${perks.dailyDraws}회`,pickedAt);
-    db.exec('COMMIT');return {number,rank,prize,balance:next,state:dailyDrawState(userId)};
+    const u=db.prepare('SELECT balance,balance_exact,balance_base FROM users WHERE id=?').get(userId);
+    const next=exactWallet.read(u)+BigInt(prize),mirror=exactWallet.mirror(next);
+    db.prepare('UPDATE users SET balance=?,balance_exact=?,balance_base=? WHERE id=?').run(mirror,String(next),String(mirror),userId);
+    db.prepare('INSERT INTO ledger(user_id,amount,balance_after,amount_exact,balance_after_exact,type,memo,created_at) VALUES(?,?,?,?,?,?,?,?)').run(userId,prize,mirror,String(prize),String(next),'daily_draw',`77 출석 뽑기 ${number}번 · ${rank}등 · ${usedAttempts+1}/${perks.dailyDraws}회`,pickedAt);
+    db.exec('COMMIT');return {number,rank,prize,balance:exactWallet.output(next),state:dailyDrawState(userId)};
   }catch(e){try{db.exec('ROLLBACK')}catch{}throw e;}
 }
 
@@ -677,10 +773,11 @@ function shopState(userId){
   const load=ensureLoadout(userId),owned=inventoryIds(userId),u=db.prepare('SELECT is_admin FROM users WHERE id=?').get(userId),happy=isHappyUser(userId),shopTier=Number(socialRankPerksForUser(userId).shopTier||0);
   if(u?.is_admin)for(const item of SHOP_ITEMS)if(item.adminOnly)owned.add(item.id);
   if(happy)owned.add('char_f_happy_exclusive');
-  return {items:SHOP_ITEMS.filter(x=>(!x.adminOnly||u?.is_admin)&&(!x.happyOnly||happy)).map(x=>({...x,owned:owned.has(x.id),equipped:load[x.category]===x.id,rankShopUnlocked:shopTier>=Number(x.rankTier||0),rankShopTier:shopTier})),loadout:cosmeticsPublic(userId,true),ownedCount:owned.size,rankShopTier:shopTier,rankShopUnlocked:shopTier>0};
+  return {items:SHOP_ITEMS.filter(x=>x.collection!=='royalboutique'&&(!x.adminOnly||u?.is_admin)&&(!x.happyOnly||happy)).map(x=>({...x,owned:owned.has(x.id),equipped:load[x.category]===x.id,rankShopUnlocked:shopTier>=Number(x.rankTier||0),rankShopTier:shopTier})),loadout:cosmeticsPublic(userId,true),ownedCount:owned.size,rankShopTier:shopTier,rankShopUnlocked:shopTier>0,financing:(()=>{const b=jBank.status(userId);return {available:b.available,canBorrow:b.canBorrow,minLoan:b.minLoan,loanLimit:b.loanLimit,outstanding:b.outstanding,wallet:String(b.wallet),dailyInterestPct:b.dailyInterestPct}})()};
 }
-function buyShopItem(userId,itemId){
+function buyShopItem(userId,itemId,options={}){
   const item=SHOP_BY_ID[String(itemId||'')];if(!item)throw new Error('존재하지 않는 상점 아이템입니다.');
+   if(item.collection==='royalboutique')return royalEconomy.buy(userId,item,options);
   if(item.adminOnly)throw new Error('GOD JUNJA는 갓준자 관리자 전용 캐릭터입니다.');
   if(item.happyOnly)throw new Error('HAPPY 캐릭터는 햅피 전용 캐릭터입니다.');
   if(Number(item.rankTier||0)>Number(socialRankPerksForUser(userId).shopTier||0))throw new Error(`현재 신분으로는 구매할 수 없는 신분 전용 아이템입니다.`);
@@ -699,18 +796,25 @@ function buyShopItem(userId,itemId){
   }
   db.exec('BEGIN IMMEDIATE');
   try{
-    const u=db.prepare('SELECT balance FROM users WHERE id=?').get(userId);if(!u)throw new Error('사용자를 찾을 수 없습니다.');
-    if(u.balance<item.price)throw new Error(`게임머니가 부족합니다. ${formatMoney(item.price)}G가 필요합니다.`);
-    const next=u.balance-item.price,t=now();
-    db.prepare('UPDATE users SET balance=? WHERE id=?').run(next,userId);
+    const u=db.prepare('SELECT balance,balance_exact,balance_base FROM users WHERE id=?').get(userId);
+    if(!u)throw new Error('사용자를 찾을 수 없습니다.');
+    const price=BigInt(item.price),before=exactWallet.read(u);
+    let loanAmount='0';
+    if(before<price){
+      if(options.loanPurchase!==true)throw new Error('게임머니가 부족해. 구매 시 은행 대출구매를 선택할 수 있어.');
+      loanAmount=jBank.borrowForPurchase(userId,String(price),item.name).loanAmount;
+    }
+    const next=before+BigInt(loanAmount)-price,t=now(),mirror=exactWallet.mirror(next);
+    if(next<0n)throw new Error('구매 금액이 대출한도를 초과해.');
+    db.prepare('UPDATE users SET balance=?,balance_exact=?,balance_base=? WHERE id=?').run(mirror,String(next),String(mirror),userId);
     db.prepare('INSERT INTO user_inventory(user_id,item_id,purchase_price,purchased_at) VALUES(?,?,?,?)').run(userId,item.id,item.price,t);
     ensureLoadout(userId);
     if(LOADOUT_FIELDS.has(item.category))db.prepare(`UPDATE user_loadout SET ${item.category}=? WHERE user_id=?`).run(item.id,userId);
-    db.prepare('INSERT INTO ledger(user_id,amount,balance_after,type,memo,created_at) VALUES(?,?,?,?,?,?)').run(userId,-item.price,next,'shop_purchase',`JUNJA BOUTIQUE · ${item.name} 구매 · 자동 장착`,t);
+    db.prepare('INSERT INTO ledger(user_id,amount,balance_after,amount_exact,balance_after_exact,type,memo,created_at) VALUES(?,?,?,?,?,?,?,?)').run(userId,exactWallet.mirror(-price),mirror,String(-price),String(next),'shop_purchase',`JUNJA BOUTIQUE · ${item.name} 구매 · 자동 장착`,t);
     const ownedNow=!!db.prepare('SELECT 1 FROM user_inventory WHERE user_id=? AND item_id=?').get(userId,item.id);
     const loadNow=ensureLoadout(userId);
     if(!ownedNow||LOADOUT_FIELDS.has(item.category)&&loadNow[item.category]!==item.id)throw new Error('구매 저장 검증에 실패했습니다. 결제는 취소됩니다.');
-    db.exec('COMMIT');return {balance:next,item};
+    db.exec('COMMIT');return {balance:String(next),item,loanAmount};
   }catch(e){try{db.exec('ROLLBACK')}catch{};throw e;}
 }
 function equipShopItem(userId,category,itemId){
@@ -728,22 +832,54 @@ function equipShopItem(userId,category,itemId){
 
 const SOCIAL_RANKS = [
   {level:0,name:'평민',icon:'◇',cost:0,className:'commoner'},
-  {level:1,name:'상인',icon:'🪙',cost:1000000000,className:'merchant'},
-  {level:2,name:'부호',icon:'💎',cost:10000000000,className:'tycoon'},
-  {level:3,name:'귀족',icon:'✦',cost:100000000000,className:'noble'},
-  {level:4,name:'남작',icon:'♜',cost:500000000000,className:'baron'},
-  {level:5,name:'자작',icon:'♞',cost:1000000000000,className:'viscount'},
-  {level:6,name:'백작',icon:'♛',cost:3000000000000,className:'count'},
-  {level:7,name:'후작',icon:'⚜',cost:5000000000000,className:'marquis'},
-  {level:8,name:'공작',icon:'👑',cost:10000000000000,className:'duke'},
-  {level:9,name:'왕',icon:'♔',cost:30000000000000,className:'king'},
-  {level:10,name:'황제',icon:'🏰',cost:100000000000000,className:'emperor'},
-  {level:11,name:'JUNJA ROYAL',icon:'J',cost:300000000000000,className:'royal'},
-  {level:12,name:'THE ABSOLUTE',icon:'∞',cost:10000000000000000,className:'god'},
-  // GOD JUNJA final tier, 100경 G · decimal string is exact beyond Number.MAX_SAFE_INTEGER.
-  {level:13,name:'GOD JUNJA',icon:'G',cost:'1000000000000000000',className:'absolute'}
+  {level:1,name:'상인',icon:'🪙',cost:10000000000,className:'merchant'},
+  {level:2,name:'부호',icon:'💎',cost:100000000000,className:'tycoon'},
+  {level:3,name:'귀족',icon:'✦',cost:1000000000000,className:'noble'},
+  {level:4,name:'남작',icon:'♜',cost:5000000000000,className:'baron'},
+  {level:5,name:'자작',icon:'♞',cost:10000000000000,className:'viscount'},
+  {level:6,name:'백작',icon:'♛',cost:30000000000000,className:'count'},
+  {level:7,name:'후작',icon:'⚜',cost:50000000000000,className:'marquis'},
+  {level:8,name:'공작',icon:'👑',cost:100000000000000,className:'duke'},
+  {level:9,name:'왕',icon:'♔',cost:300000000000000,className:'king'},
+  {level:10,name:'황제',icon:'🏰',cost:1000000000000000,className:'emperor'},
+  {level:11,name:'JUNJA ROYAL',icon:'J',cost:3000000000000000,className:'royal'},
+  {level:12,name:'THE ABSOLUTE',icon:'∞',cost:'100000000000000000',className:'god'},
+  // GOD JUNJA final tier, 1,000경 G · decimal string is exact beyond Number.MAX_SAFE_INTEGER.
+  {level:13,name:'GOD JUNJA',icon:'G',cost:'10000000000000000000',className:'absolute'}
 ];
-const jBank=createJBank({db,exactWallet,levels:SOCIAL_RANKS,now,kstDate});
+const RANK_RESALE_LEGACY_COSTS=Object.freeze(["0","1000000000","10000000000","100000000000","500000000000","1000000000000","3000000000000","5000000000000","10000000000000","30000000000000","100000000000000","300000000000000","10000000000000000","1000000000000000000"]);
+const jBank=createJBank({db,exactWallet,levels:SOCIAL_RANKS,legacyRankCosts:RANK_RESALE_LEGACY_COSTS,now,kstDate});
+const jCredit=createJCredit({db,exactWallet,now,kstDate,items:ROYAL_ITEMS,royalMarket});
+jBank.setCredit(jCredit);
+royalEconomy.setBank(jBank);
+const casinoCollateral=createCasinoCollateral({db,exactWallet,jBank,levels:SOCIAL_RANKS,now});
+const jpl=createJPL({db,exactWallet,now});
+// A single persistent server clock settles fictional matches even without viewers.
+let jplTickBusy=false;
+setInterval(async()=>{
+ if(jplTickBusy)return;
+ jplTickBusy=true;
+ try{if(jpl.tick()){await db.flush();pushRefresh();}}
+ catch(e){console.error('[JPL] football tick:',e.message)}
+ finally{jplTickBusy=false}
+},15000).unref();
+let bankCollectionsBusy=false;
+async function checkOverdueBanks(){
+  if(bankCollectionsBusy)return;bankCollectionsBusy=true;let changed=false;
+  try{
+    const rows=db.prepare("SELECT key FROM game_state WHERE key LIKE 'jbank:account:%' OR key LIKE 'jcredit:account:%'").all();
+    const ids=new Set(rows.map(row=>Number(String(row.key).split(':').pop())).filter(Number.isSafeInteger));
+    for(const id of ids){
+      try{
+        // Make forced sales use the same up-to-date market as ordinary trading.
+        jStocks.status(id);jCoins.status(id);
+        if(jBank.enforceOverdue(id).processed)changed=true;
+      }catch(e){console.error('[J-BANK] overdue liquidation deferred',id,e.message);}
+    }
+    if(changed){await db.flush();pushRefresh();}
+  }finally{bankCollectionsBusy=false;}
+}
+setInterval(()=>checkOverdueBanks().catch(e=>console.error('[J-BANK] scheduled collection',e.message)),3600000).unref();
 function socialRankPerks(level){
   level=Math.max(0,Math.min(SOCIAL_RANKS.length-1,Number(level)||0));
   const extraDraws=level>=13?9:level>=12?6:level>=11?4:level>=9?3:level>=6?2:level>=3?1:0;
@@ -796,6 +932,7 @@ function promoteSocialRank(userId){
     const next=SOCIAL_RANKS[level+1];
     if(!next)throw new Error('이미 GOD JUNJA · 갓준자 최고 신분입니다.');
     if(jBank.owed(userId)>0n)throw new Error('J-BANK 원금과 이자를 완납해야 신분 상승이 가능합니다.');
+    if(db.prepare("SELECT 1 FROM room_escrow WHERE user_id=? AND game LIKE 'casino_%' LIMIT 1").get(userId))throw new Error('진행 중인 카지노에 담보가 묶여 있어 신분 상승이 제한됩니다.');
     // Keep rank purchases on the same exact-integer wallet path as the rest of JUNJA LAND.
     const current=exactWallet.read(u),cost=BigInt(next.cost);
     if(current<cost)throw new Error(`신분 상승에 ${formatMoney(next.cost)} G가 필요합니다.`);
@@ -818,7 +955,7 @@ function userPublic(userId){
     FROM users u LEFT JOIN stats s ON s.user_id=u.id WHERE u.id=?`).get(userId);
   if(!u) return null;
   const exactBalance=exactWallet.output(exactWallet.read(u));delete u.balance_exact;delete u.balance_base;
-  return {...u, balance:exactBalance, avatarEmoji:AVATARS[u.avatar%AVATARS.length], cosmetics:cosmeticsPublic(userId,true), rank:socialRankPublic(userId), dailyAvailable:u.last_daily!==kstDate(), rankSalaryAvailable:u.last_rank_salary!==kstDate()};
+  return {...u, balance:exactBalance, jpl_access:!!u.is_admin&&String(u.username).toLowerCase()===ADMIN_USERNAME, avatarEmoji:AVATARS[u.avatar%AVATARS.length], cosmetics:cosmeticsPublic(userId,true), rank:socialRankPublic(userId), dailyAvailable:u.last_daily!==kstDate(), rankSalaryAvailable:u.last_rank_salary!==kstDate()};
 }
 
 function parseCookies(req){
@@ -1009,6 +1146,15 @@ function currentTurnUserId(r){if(r.game==='holdem')return r.hand?.phase!=='compl
 function closeRoomAndRefund(r,reason='방 종료 환급'){
   const playing=roomStatus(r)==='PLAYING';
   for(const p of [...r.players]){
+    if(r.game==='gostop'){
+      const current=db.prepare('SELECT game FROM room_escrow WHERE room_id=? AND user_id=?').get(r.id,p.userId);
+      if(current?.game==='casino_matgo_multi'){
+        db.exec('BEGIN IMMEDIATE');
+        try{casinoCollateral.settle(r.id,p.userId,0n,0n);db.exec('COMMIT');}
+        catch(e){try{db.exec('ROLLBACK');}catch{}throw e;}
+        continue;
+      }
+    }
     let refund=0;
     if(r.game==='holdem'){
       const hp=r.hand?.p?.[p.userId];
@@ -1233,7 +1379,14 @@ function yutNextStep(p,firstStep,routeChoice='shortcut'){
 function yutAdvance(piece,move,routeChoice='shortcut'){
   let p=yutClonePiece(piece);const trace=[];
   if(move<0){
-    if(p.node==='READY'||p.node==='FINISH'||!p.path.length)return {piece:p,trace,legal:false};
+    if(p.node==='READY'||p.node==='FINISH')return {piece:p,trace,legal:false};
+    // First 도 -> first O1 -> 빽도 reaches HOME, not O20/READY.
+    // Accept a missing history on legacy O1 pieces as well as a fresh READY origin.
+    if(p.node==='O1'&&(!p.path.length||p.path[p.path.length-1].node==='READY')){
+      p={node:'START',route:'outer',path:[{node:'READY',route:'outer'},...Array.from({length:20},(_,i)=>({node:'O'+(i+1),route:'outer'}))]};
+      trace.push('START');return {piece:p,trace,legal:true,luckyHome:true};
+    }
+    if(!p.path.length)return {piece:p,trace,legal:false};
     const prev=p.path.pop();p={node:prev.node,route:prev.route||'outer',path:p.path};trace.push(yutPhysical(p));return {piece:p,trace,legal:true};
   }
   for(let i=0;i<move;i++){const history={node:p.node,route:p.route||'outer'};const next=yutNextStep(p,i===0,routeChoice);p={...next,path:[...p.path,history]};trace.push(yutPhysical(p));if(p.node==='FINISH')break;}
@@ -1264,7 +1417,7 @@ function yutCurrentPlayer(r,y){return orderedPlayers(r)[y.turnIndex%orderedPlaye
 function yutStart(r){
   if(r.players.length<2)throw new Error('2명 이상 필요합니다.');
   if((r.yutMode==='2v2'||r.yutMode==='3v3')&&r.players.length!==r.maxPlayers)throw new Error(`${yutModeLabel(r.yutMode)}은 ${r.maxPlayers}명이 모두 입장해야 시작할 수 있습니다.`);
-  r.yut={phase:'playing',turnIndex:0,sides:yutMakeSides(r),pending:[],awaitingThrow:true,captureBonus:0,last:null,winnerSideId:null,startedAt:now(),ruleSet:'club-standard-v09-home-exit-finish'};
+  r.yut={phase:'playing',turnIndex:0,sides:yutMakeSides(r),pending:[],awaitingThrow:true,captureBonus:0,last:null,winnerSideId:null,startedAt:now(),ruleSet:'club-standard-v10-first-do-backdo-home'};
 }
 function yutThrow(r,userId){
   const y=r.yut;if(!y||y.phase!=='playing')throw new Error('게임이 진행 중이 아닙니다.');
@@ -1276,7 +1429,7 @@ function yutThrow(r,userId){
     y.last={type:'throw',userId,sideId:side?.id,name:result.name,move:result.move,sticks:result.sticks,backdo:true,skipped:true,message:'빽도! 이동할 말이 없어 이번 차례는 쉬어갑니다.',at:now()};return result;
   }
   y.pending.push(result);y.awaitingThrow=!!result.extra;
-  y.last={type:'throw',userId,sideId:yutSideForUser(y,userId)?.id,name:result.name,move:result.move,sticks:result.sticks,at:now()};
+  y.last={type:'throw',userId,sideId:yutSideForUser(y,userId)?.id,name:result.name,move:result.move,sticks:result.sticks,backdo:!!result.backdo,at:now()};
   return result;
 }
 function yutSettle(r,y,winnerSide){
@@ -1312,7 +1465,7 @@ function yutMove(r,userId,pieceIndex,moveIndex=0,routeChoice='shortcut'){
   y.pending.splice(moveIndex,1);
   if(captured.length)y.captureBonus++;
   const stacked=destPhysical!=='READY'&&destPhysical!=='FINISH'?side.pieces.filter(p=>yutPhysical(p)===destPhysical).length:stackIndexes.length;
-  const message=captured.length?`상대 말 ${captured.length}개를 잡았다! 한 번 더!`:stacked>stackIndexes.length?`우리 말 ${stacked}개가 업혔다! 함께 이동!`:moveResult.backdo?'빽도! 한 칸 뒤로 이동!':`${moveResult.name} · ${Math.abs(moveResult.move)}칸 이동`;
+  const message=captured.length?`상대 말 ${captured.length}개를 잡았다! 한 번 더!`:advanced.luckyHome?'🍀 행운의 빽도! 출발점 HOME 도착 · 다음 전진 이동이면 바로 완주!':fromPhysical==='START'&&destPhysical==='FINISH'?'🏁 HOME에서 출발해 즉시 완주!':stacked>stackIndexes.length?`우리 말 ${stacked}개가 업혔다! 함께 이동!`:moveResult.backdo?'빽도! 한 칸 뒤로 이동!':`${moveResult.name} · ${Math.abs(moveResult.move)}칸 이동`;
   y.last={type:'move',userId,sideId:side.id,name:moveResult.name,move:moveResult.move,sticks:moveResult.sticks,backdo:!!moveResult.backdo,from:fromPhysical,to:destPhysical,trace:advanced.trace,captured,stacked,message,at:now()};
   if(side.pieces.every(yutFinished)){yutSettle(r,y,side);return;}
   if(y.pending.length){y.awaitingThrow=false;return;}
@@ -1393,7 +1546,7 @@ function soloYutMoveSide(s,side,pieceIndex,moveIndex=0,routeChoice='shortcut'){
   if(to!=='READY'&&to!=='FINISH')s.sides[other].forEach((p,i)=>{if(yutPhysical(p)===to){s.sides[other][i]=yutNewPiece();captured.push(i)}});
   s.pending.splice(moveIndex,1);if(captured.length)s.captureBonus++;
   const stacked=to!=='READY'&&to!=='FINISH'?soloYutPhysicalPieces(s,side,to).length:stack.length;
-  const message=captured.length?`상대 말을 잡았다! 한 번 더!`:stacked>stack.length?`우리 말 ${stacked}개가 업혔다!`:moveResult.backdo?'빽도! 한 칸 뒤로 이동!':`${moveResult.name} · ${Math.abs(moveResult.move)}칸 이동`;
+  const message=captured.length?'상대 말을 잡았다! 한 번 더!':adv.luckyHome?'🍀 행운의 빽도! 출발점 HOME 도착 · 다음 전진 이동이면 바로 완주!':from==='START'&&to==='FINISH'?'🏁 HOME에서 출발해 즉시 완주!':stacked>stack.length?`우리 말 ${stacked}개가 업혔다!`:moveResult.backdo?'빽도! 한 칸 뒤로 이동!':`${moveResult.name} · ${Math.abs(moveResult.move)}칸 이동`;
   s.last={type:'move',side,name:moveResult.name,move:moveResult.move,sticks:moveResult.sticks,backdo:!!moveResult.backdo,from,to,trace:adv.trace,captured,stacked,message,at:now()};if(side==='bot')s.replay.push({...s.last});
   if(s.sides[side].every(yutFinished)){s.phase='complete';s.winner=side;s.pending=[];s.awaitingThrow=false;return;}
   if(s.pending.length){s.awaitingThrow=false;return;}
@@ -1497,40 +1650,62 @@ function settleRace(userId,bet,type,picks,card,order){
   return {won,placeBonus,finishRank,mult,payout,basePayout,rankBonus,rankBonusPct,winMult};
 }
 let horseMeet=null;
-const HORSE_RUN_MS=6500,HORSE_RESULT_MS=5000;
+const HORSE_RUN_MS=6500,HORSE_RESULT_MS=4200,HORSE_BET_MS=14000;
 function newHorseMeet(){
   const t=now();horseMeet={id:randomToken(5).toUpperCase(),card:horseCard(),phase:'betting',openedAt:t,startedAt:null,finishAt:null,resultUntil:null,order:null,bets:new Map(),ready:new Set(),results:new Map()};return horseMeet;
 }
 function horseStartIfReady(r){
-  if(r.phase!=='betting'||r.bets.size<1)return r;
-  for(const uid of r.bets.keys())if(!r.ready.has(uid))return r;
-  const t=now();r.order=horseRun(r.card);r.phase='running';r.startedAt=t;r.finishAt=t+HORSE_RUN_MS;
-  for(const [uid,b] of r.bets){
-    try{const result=settleRace(uid,b.bet,b.type,b.picks,r.card,r.order);r.results.set(uid,result);}catch(e){console.error('[HORSE] settle failed',uid,e.message);}
-    escrowDelete(`HORSE_${r.id}`,uid);
-  }
+  if(r.phase!=='betting')return r;
+  const t=now(),deadline=r.openedAt+HORSE_BET_MS;
+  // Shared 14-second betting window is authoritative for everyone.
+  // A single ready bettor must NEVER start the race early; other players
+  // can still join until this exact server-side deadline.
+  if(t<deadline)return r;
+  r.order=horseRun(r.card);r.phase='running';r.startedAt=t;r.finishAt=t+HORSE_RUN_MS;
+  // No payout is credited until the horses actually cross the finish line.
   return r;
+}
+function horseSettleFinished(r){
+  for(const [uid,b] of r.bets){
+    if(r.results.has(uid))continue; // network polling may advance the same race repeatedly
+    try{
+      const result=settleRace(uid,b.bet,b.type,b.picks,r.card,r.order);
+      r.results.set(uid,result);
+      escrowDelete(`HORSE_${r.id}`,uid);
+    }catch(e){
+      console.error('[HORSE] settle failed, keeping escrow for audit',uid,e.message);
+    }
+  }
 }
 function horseAdvanceMeet(){
   let r=horseMeet||newHorseMeet(),t=now();horseStartIfReady(r);
-  if(r.phase==='running'&&t>=r.finishAt){r.phase='result';r.resultUntil=t+HORSE_RESULT_MS;}
-  if(r.phase==='result'&&t>=r.resultUntil){r=newHorseMeet();}
+  if(r.phase==='running'&&t>=r.finishAt){
+    horseSettleFinished(r);r.phase='result';r.resultUntil=t+HORSE_RESULT_MS;
+  }
+  if(r.phase==='result'){
+    if(r.results.size<r.bets.size)horseSettleFinished(r);
+    if(t>=r.resultUntil&&r.results.size===r.bets.size)r=newHorseMeet();
+  }
   return r;
 }
 function horseMeetPublic(userId){
   const r=horseAdvanceMeet(),uid=Number(userId),myBet=r.bets.get(uid)||null,myResult=r.results.get(uid)||null;
-  const participants=[...r.bets.entries()].map(([id,b])=>{const u=userPublic(id);return u?{userId:id,nickname:u.nickname,avatar:u.avatar,cosmetics:u.cosmetics,type:b.type,picks:b.picks,bet:b.bet,ready:r.ready.has(id)}:null}).filter(Boolean);
-  return {round:{id:r.id,phase:r.phase,openedAt:r.openedAt,startedAt:r.startedAt,finishAt:r.finishAt,resultUntil:r.resultUntil,card:r.card,order:r.order?r.order.map((h,i)=>({id:h.id,name:h.name,color:h.color,coat:h.coat,finish:i+1})):null,participants,myBet,myReady:r.ready.has(uid),myResult,serverNow:now()}};
+  const participants=[...r.bets.entries()].map(([id,b])=>{const u=userPublic(id);if(!u)return null;const result=r.phase==='result'?r.results.get(id):null;return {userId:id,nickname:u.nickname,avatar:u.avatar,cosmetics:u.cosmetics,type:b.type,picks:b.picks,bet:b.bet,ready:r.ready.has(id),...(result?{won:!!result.won,placeBonus:!!result.placeBonus,payout:Number(result.payout||0)}:{})}}).filter(Boolean);
+  return {round:{id:r.id,phase:r.phase,openedAt:r.openedAt,betClosesAt:r.openedAt+HORSE_BET_MS,startedAt:r.startedAt,finishAt:r.finishAt,resultUntil:r.resultUntil,card:r.card,order:r.order?r.order.map((h,i)=>({id:h.id,name:h.name,color:h.color,coat:h.coat,finish:i+1})):null,participants,myBet,myReady:r.ready.has(uid),myResult,serverNow:now()}};
 }
 function horsePlaceBet(user,body){
   const r=horseAdvanceMeet();if(r.phase!=='betting')throw new Error('현재 경주는 접수가 마감됐어. 다음 경주를 기다려줘.');
   if(r.bets.has(user.id))throw new Error('이번 경주에는 이미 베팅했어.');
   const type=['win','quinella','exacta'].includes(body.type)?body.type:'win';const picks=(Array.isArray(body.picks)?body.picks:[]).map(Number);const need=type==='win'?1:2;
   if(picks.length!==need||picks.some(x=>!r.card.horses.some(h=>h.id===x))||(need===2&&picks[0]===picks[1]))throw new Error('선택한 말을 확인해줘.');
-  const bet=gameWager(body.bet,1000,10000000,1000);if(user.balance<bet)throw new Error('게임머니가 부족합니다.');
+  const bet=gameWager(body.bet,1000,1000000000000,1000);if(user.balance<bet)throw new Error('게임머니가 부족합니다.');
   const mult=raceMultiplier(type,picks,r.card);if(!mult)throw new Error('배당 정보를 확인할 수 없어.');
-  walletChange(user.id,-bet,'horse_bet',`경마 ${type} ${picks.join('/')} · x${mult} · ${formatMoney(bet)}G`);
-  r.bets.set(user.id,{userId:user.id,type,picks,bet,mult,placedAt:now()});escrowSet(`HORSE_${r.id}`,user.id,bet,'horse');return horseMeetPublic(user.id);
+  // Keep a per-round exact-integer receipt: the wager is debited immediately,
+  // while a winner's payout is only credited when the race finishes.
+  const prior=exactWallet.read(db.prepare('SELECT balance,balance_exact,balance_base FROM users WHERE id=?').get(user.id));
+  const next=walletChange(user.id,-bet,'horse_bet',`경마 ${type} ${picks.join('/')} · x${mult} · ${formatMoney(bet)}G`);
+  r.bets.set(user.id,{userId:user.id,type,picks,bet,mult,placedAt:now(),balanceBefore:String(prior),balanceAfter:String(next)});
+  escrowSet(`HORSE_${r.id}`,user.id,bet,'horse');return horseMeetPublic(user.id);
 }
 function horseReady(user){
   const r=horseAdvanceMeet();if(r.phase!=='betting')throw new Error('이미 경주가 시작됐어.');
@@ -1568,16 +1743,16 @@ function rouletteSpin(user,rawBets){
   let result,eventWinner=false;
   db.exec('BEGIN IMMEDIATE');
   try{
-    const fresh=db.prepare('SELECT CAST(balance AS TEXT) AS balance FROM users WHERE id=?').get(user.id);
+    const fresh=db.prepare('SELECT CAST(balance AS TEXT) AS balance,balance_exact,balance_base FROM users WHERE id=?').get(user.id);
     if(!fresh)throw new Error('사용자를 찾을 수 없습니다.');
-    const balance=BigInt(fresh.balance),remaining=balance-totalBet;
+    // Use the authoritative exact-G wallet. The legacy int64 mirror can be capped at 9e18.
+    const balance=exactWallet.read(fresh),remaining=balance-totalBet;
     if(remaining<0n)throw new Error('전체 베팅금이 보유 게임머니보다 많아.');
     const stats=db.prepare('SELECT CAST(roulette_profit AS TEXT) AS profit FROM stats WHERE user_id=?').get(user.id);
     const previousProfit=BigInt(stats?.profit||0),winningNumbers=[];
     // Reject an unpayable slip before drawing or debiting; never forfeit a winning payout.
     for(let n=0;n<=36;n++){
       const paid=bets.reduce((a,b)=>a+(rouletteBetWins(b,n)?BigInt(b.amount)*BigInt(b.mult):0n),0n);
-      if(remaining+paid>9000000000000000000n)throw new Error('예상 당첨금이 게임머니 저장 한도를 초과합니다. 베팅금액을 줄여주세요.');
       const net=previousProfit+paid-totalBet;
       if(net>9223372036854775807n||net< -9223372036854775808n)throw new Error('룰렛 누적 손익 저장 한도를 초과합니다.');
       if(paid>0n)winningNumbers.push(n);
@@ -1588,12 +1763,19 @@ function rouletteSpin(user,rawBets){
     let payout=0n;
     const settled=bets.map(b=>{const won=rouletteBetWins(b,number),returned=won?BigInt(b.amount)*BigInt(b.mult):0n;payout+=returned;return {...b,won,returned:returned.toString()};});
     const profit=payout-totalBet,next=remaining+payout,t=now();
-    db.prepare('UPDATE users SET balance=? WHERE id=?').run(next,user.id);
-    const ledger=db.prepare('INSERT INTO ledger(user_id,amount,balance_after,type,memo,created_at) VALUES(?,?,?,?,?,?)');
-    ledger.run(user.id,-totalBet,remaining,'roulette_bet',`유럽식 룰렛 ${bets.length}개 베팅 · ${formatMoney(totalBet)}G`,t);
-    if(payout>0n)ledger.run(user.id,payout,next,'roulette_win',`룰렛 ${number} ${color.toUpperCase()} · 지급 ${formatMoney(payout)}G`,t);
+    const nextMirror=exactWallet.mirror(next),remainingMirror=exactWallet.mirror(remaining);
+    db.prepare('UPDATE users SET balance=?,balance_exact=?,balance_base=? WHERE id=?').run(nextMirror,String(next),String(nextMirror),user.id);
+    const ledger=db.prepare('INSERT INTO ledger(user_id,amount,balance_after,amount_exact,balance_after_exact,type,memo,created_at) VALUES(?,?,?,?,?,?,?,?)');
+    const roundEvidence={game:'roulette',wagerG:String(totalBet),spentG:String(totalBet),
+      payoutG:String(payout),balanceG:String(next),free:false,won:payout>0n,
+      outcome:{number,color},bets:settled};
+    const betMemo=`유럽식 룰렛 ${bets.length}개 · ${formatMoney(totalBet)}G | ${bets.map(b=>`${b.kind}:${Array.isArray(b.target)?b.target.join('/'):b.target??'-'}:${b.amount}G`).join(', ')}`;
+    const betWrite=ledger.run(user.id,exactWallet.mirror(-totalBet),remainingMirror,String(-totalBet),String(remaining),
+      'roulette_bet',casinoReceipts.attachRoundEvidence(betMemo,roundEvidence),t);
+    const receiptId=Number(betWrite.lastInsertRowid);
+    if(payout>0n)ledger.run(user.id,exactWallet.mirror(payout),nextMirror,String(payout),String(next),'roulette_win',`룰렛 ${number} ${color.toUpperCase()} · 지급 ${formatMoney(payout)}G`,t);
     db.prepare('UPDATE stats SET roulette_plays=roulette_plays+1,roulette_wins=roulette_wins+?,roulette_profit=? WHERE user_id=?').run(payout>0n?1:0,previousProfit+profit,user.id);
-    result={number,color,index:ROULETTE_WHEEL.indexOf(number),bets:settled,totalBet:totalBet.toString(),payout:payout.toString(),profit:profit.toString()};
+    result={number,color,index:ROULETTE_WHEEL.indexOf(number),bets:settled,totalBet:totalBet.toString(),payout:payout.toString(),profit:profit.toString(),receiptId};
     db.exec('COMMIT');
   }catch(e){db.exec('ROLLBACK');throw e;}
   if(eventWinner)rouletteEventArmed=false;
@@ -1613,14 +1795,54 @@ const BIG_WHEEL_KEYS=['junja','x2','x3','x2','x3','x2','x3','x2','x3','x2','x3',
 const BIG_WHEEL_SEGMENTS=BIG_WHEEL_KEYS.map(key=>BIG_WHEEL_DEFS[key]);
 const BIG_WHEEL_BETS = [...new Map(BIG_WHEEL_SEGMENTS.map(x=>[x.key,x])).values()];
 function bigWheelSpin(userId,bet,key,useRankFree=false){
-  bet=gameWager(bet,1000,10000000,1000);if(bet>10000000)throw new Error('빅휠 최대 베팅은 10,000,000G입니다.');
-  const u=userPublic(userId);if(!u)throw new Error('사용자를 찾을 수 없습니다.');
-  const target=BIG_WHEEL_BETS.find(x=>x.key===key);if(!target)throw new Error('배당 선택을 확인해주세요.');
-  const freePlay=consumeRankFreePlay(userId,'wheel',!!useRankFree);if(freePlay.free)bet=Number(socialRankPerksForUser(userId).freeSlotBet||10000000);if(!freePlay.free&&u.balance<bet)throw new Error('게임머니가 부족합니다.');if(!freePlay.free)walletChange(userId,-bet,'bigwheel_bet',`빅휠 ${target.label} 베팅 ${formatMoney(bet)}G`);
-  const index=crypto.randomInt(BIG_WHEEL_SEGMENTS.length),landed=BIG_WHEEL_SEGMENTS[index],jackpot=landed.key==='junja',won=jackpot||landed.key===target.key,payout=won?bet*landed.mult:0;
-  if(payout)walletChange(userId,payout,'bigwheel_win',`빅휠 ${landed.label} ${jackpot?'잭팟':'적중'} x${landed.mult}`);
-  db.prepare('UPDATE stats SET bigwheel_plays=bigwheel_plays+1, bigwheel_wins=bigwheel_wins+?, bigwheel_profit=bigwheel_profit+? WHERE user_id=?').run(won?1:0,payout-(freePlay.free?0:bet),userId);
-  return {index,landed,target,jackpot,won,payout,profit:payout-(freePlay.free?0:bet),segments:BIG_WHEEL_SEGMENTS.length,rankFreePlay:freePlay};
+  // Atomic, exact-G settlement: one debit/payout/stats transaction including free-play consumption.
+  // Payment failures must not leave a charged bet, forged win or consumed rank ticket.
+  const stake=gameWager(bet,1000,1000000000000,1000);
+  const target=BIG_WHEEL_BETS.find(x=>x.key===key);
+  if(!target)throw new Error('배당 선택을 확인해주세요.');
+  db.exec('BEGIN IMMEDIATE');
+  try{
+    const uid=Number(userId);
+    if(!Number.isSafeInteger(uid)||uid<1)throw new Error('사용자를 찾을 수 없습니다.');
+    const u=db.prepare('SELECT id,is_disabled,CAST(balance AS TEXT) AS balance,balance_exact,balance_base FROM users WHERE id=?').get(uid);
+    if(!u||u.is_disabled)throw new Error('사용자를 찾을 수 없습니다.');
+    const before=exactWallet.read(u);
+    const freePlay=consumeRankFreePlay(uid,'wheel',!!useRankFree);
+    const amount=BigInt(freePlay.free?Number(socialRankPerksForUser(uid).freeSlotBet||10000000):stake);
+    if(amount<1000n||amount>1000000000000n)throw new Error('빅휠 무료권 베팅금이 올바르지 않습니다.');
+    const spent=freePlay.free?0n:amount;
+    if(before<spent)throw new Error('게임머니가 부족합니다.');
+    const index=crypto.randomInt(BIG_WHEEL_SEGMENTS.length),landed=BIG_WHEEL_SEGMENTS[index];
+    const jackpot=landed.key==='junja',won=jackpot||landed.key===target.key;
+    const payout=won?amount*BigInt(landed.mult):0n;
+    const profit=payout-spent,afterBet=before-spent,next=afterBet+payout;
+    const previous=db.prepare('SELECT CAST(bigwheel_profit AS TEXT) AS profit FROM stats WHERE user_id=?').get(uid);
+    if(!previous)throw new Error('빅휠 통계를 찾지 못했습니다.');
+    const aggregate=BigInt(previous.profit||0)+profit;
+    if(aggregate>9223372036854775807n||aggregate< -9223372036854775808n)throw new Error('빅휠 손익 기록 한도를 초과합니다.');
+    const m=exactWallet.mirror(next),time=now();
+    db.prepare('UPDATE users SET balance=?,balance_exact=?,balance_base=? WHERE id=?').run(m,String(next),String(m),uid);
+    const ledger=db.prepare('INSERT INTO ledger(user_id,amount,balance_after,amount_exact,balance_after_exact,type,memo,created_at) VALUES(?,?,?,?,?,?,?,?)');
+    const evidence={game:'bigwheel',wagerG:String(amount),spentG:String(spent),payoutG:String(payout),
+      balanceG:String(next),free:freePlay.free,won,selection:target.key,
+      outcome:{index,key:landed.key,label:landed.label,multiplier:landed.mult}};
+    let receiptWrite;
+    if(spent>0n)receiptWrite=ledger.run(uid,exactWallet.mirror(-spent),exactWallet.mirror(afterBet),
+      String(-spent),String(afterBet),'bigwheel_bet',
+      casinoReceipts.attachRoundEvidence('빅휠 '+target.label+' 베팅 '+formatMoney(spent)+'G',evidence),time);
+    if(payout>0n){
+      const winMemo='빅휠 '+landed.label+' '+(jackpot?'잭팟':'적중')+' x'+landed.mult;
+      const wrote=ledger.run(uid,exactWallet.mirror(payout),m,String(payout),String(next),
+        'bigwheel_win',spent===0n?casinoReceipts.attachRoundEvidence(winMemo,evidence):winMemo,time);
+      if(spent===0n)receiptWrite=wrote;
+    }
+    if(spent===0n&&payout===0n)receiptWrite=ledger.run(uid,0,m,'0',String(next),'bigwheel_receipt',
+      casinoReceipts.attachRoundEvidence('빅휠 무료권 · '+landed.label+' 낙첨',evidence),time);
+    const receiptId=Number(receiptWrite.lastInsertRowid);
+    db.prepare('UPDATE stats SET bigwheel_plays=bigwheel_plays+1,bigwheel_wins=bigwheel_wins+?,bigwheel_profit=? WHERE user_id=?').run(won?1:0,aggregate,uid);
+    db.exec('COMMIT');
+    return {index,landed,target,jackpot,won,payout:Number(payout),profit:Number(profit),segments:BIG_WHEEL_SEGMENTS.length,rankFreePlay:freePlay,receiptId};
+  }catch(e){try{db.exec('ROLLBACK');}catch{}throw e;}
 }
 const SICBO_TOTAL_GROSS={4:51,5:19,6:15,7:13,8:9,9:7,10:6,11:6,12:7,13:9,14:13,15:15,16:19,17:51};
 function sicboBetMeta(key){
@@ -1743,11 +1965,31 @@ function matgoShake(s,side,month){month=Number(month);const hand=s.hands[side].f
 function matgoSweep(s,side){if(s.floor.length===0&&takeOnePi(s,side==='user'?'bot':'user',side))matgoEvent(s,'싹쓸이! 상대 피 1장 획득','gold');}
 function gostopDrawAndCapture(s,side,context={}){const card=s.deck.pop();if(!card)return {done:true};s.lastDraw=card;if(card.bonusPi){takeBonusPi(s,side,card);return gostopDrawAndCapture(s,side,context);}const matches=s.floor.filter(c=>c.m===card.m);let result;if(matches.length===2){const best=[...matches].sort((a,b)=>({광:4,'열끗':3,'띠':2,'피':1}[b.type]-({광:4,'열끗':3,'띠':2,'피':1}[a.type])))[0];result=matgoCapture(s,side,card,best.id);}else result=matgoCapture(s,side,card);if(context.playedMonth===card.m&&context.playMatched===false&&result.matched){if(takeOnePi(s,side==='user'?'bot':'user',side))matgoEvent(s,'쪽! 상대 피 1장 획득','red');}if(context.playedMonth===card.m&&context.playMatched&&result.matched){if(takeOnePi(s,side==='user'?'bot':'user',side))matgoEvent(s,'따닥! 상대 피 1장 획득','red');}if(result.count>=3&&takeOnePi(s,side==='user'?'bot':'user',side))matgoEvent(s,'판쓸이! 상대 피 1장 획득','gold');matgoSweep(s,side);return result;}
 function gostopCanDecision(s,side){const sc=gostopScore(s.captured[side]).score;return sc>=7&&sc>s.lastDecisionScore[side];}
+// Casino house cap: combined score and bonuses can never cost more than 128x.
+// Displayed maximum stake liability is insured BEFORE cards are dealt.
+const MATGO_MAX_FACTOR=128n;
+const matgoMaxLoss=bet=>BigInt(bet)*MATGO_MAX_FACTOR;
+const matgoAward=(bet,base,mult)=>BigInt(bet)*(BigInt(base)*BigInt(mult)>MATGO_MAX_FACTOR?MATGO_MAX_FACTOR:BigInt(base)*BigInt(mult));
 function matgoMultiplier(s,winner){const loser=winner==='user'?'bot':'user',ws=gostopScore(s.captured[winner]),ls=gostopScore(s.captured[loser]);let mult=1;const reasons=[];if(ws.g>=3&&ls.g===0){mult*=2;reasons.push('광박');}if(ws.p>=10&&ls.p>0&&ls.p<=7){mult*=2;reasons.push('피박');}if(ws.a>=7){mult*=2;reasons.push('멍박');}if(s.goCount[loser]>0){mult*=2;reasons.push('고박');}if(s.shakes[winner]>0){mult*=2**s.shakes[winner];reasons.push(`${s.shakes[winner]}흔들`);}if(s.goCount[winner]>=3){mult*=2**(s.goCount[winner]-2);reasons.push(`${s.goCount[winner]}고`);}return {mult,reasons,ws,ls};}
-function gostopFinish(userId,winner,reason){const s=soloGostop.get(userId);if(!s||s.phase==='complete')return;escrowDelete(`GOSTOP${userId}`,userId);s.phase='complete';s.winner=winner;const calc=matgoMultiplier(s,winner);let payout=0;const base=Math.max(1,calc.ws.score+s.goCount[winner]);if(winner==='user'){payout=s.bet*base*calc.mult;walletChange(userId,payout,'gostop_win',`야심찬 맞고 승리 ${base}점 x${calc.mult}`);}db.prepare('UPDATE stats SET gostop_games=gostop_games+1, gostop_wins=gostop_wins+? WHERE user_id=?').run(winner==='user'?1:0,userId);s.result={reason,payout,userScore:calc.ws,botScore:calc.ls,base,multiplier:calc.mult,bonuses:calc.reasons};matgoEvent(s,`${reason} · ${base}점 ×${calc.mult}`,'gold');}
-function gostopAfterTurn(userId,side){const s=soloGostop.get(userId);if(gostopCanDecision(s,side)){s.lastDecisionScore[side]=gostopScore(s.captured[side]).score;if(side==='user'){s.needDecision=true;return;}const sc=gostopScore(s.captured.bot).score;if(sc>=9||s.hands.bot.length<=2||Math.random()<.48){gostopFinish(userId,'bot','J-BOT 스톱');return;}s.goCount.bot++;matgoEvent(s,`J-BOT ${s.goCount.bot}고`,'red');}if(!s.hands[side].length&&!s.deck.length){const us=gostopScore(s.captured.user).score,bs=gostopScore(s.captured.bot).score;if(Math.max(us,bs)<7){s.phase='complete';s.winner=null;s.result={reason:'나가리',payout:0,userScore:gostopScore(s.captured.user),botScore:gostopScore(s.captured.bot),base:0,multiplier:2,bonuses:['다음 판 2배']};escrowDelete(`GOSTOP${userId}`,userId);db.prepare('UPDATE stats SET gostop_games=gostop_games+1 WHERE user_id=?').run(userId);return;}gostopFinish(userId,us>=bs?'user':'bot','패 소진');}}
+function gostopFinish(userId,winner,reason){
+ const s=soloGostop.get(userId);if(!s||s.phase==='complete')return;
+ const calc=matgoMultiplier(s,winner),base=Math.max(1,calc.ws.score+s.goCount[winner]);
+ const award=matgoAward(s.bet,base,calc.mult);
+ db.exec('BEGIN IMMEDIATE');
+ try{
+  casinoCollateral.settle('GOSTOP'+userId,userId,winner==='bot'?award:0n,winner==='user'?award:0n);
+  db.prepare('UPDATE stats SET gostop_games=gostop_games+1, gostop_wins=gostop_wins+? WHERE user_id=?').run(winner==='user'?1:0,userId);
+  db.exec('COMMIT');
+ }catch(e){try{db.exec('ROLLBACK');}catch{}throw e;}
+ s.phase='complete';s.winner=winner;
+ s.result={reason,payout:exactWallet.output(winner==='user'?award:0n),net:exactWallet.output(winner==='user'?award:-award),
+  userScore:calc.ws,botScore:calc.ls,base,multiplier:calc.mult,maxFactor:Number(MATGO_MAX_FACTOR),bonuses:calc.reasons};
+ matgoEvent(s,`${reason} · ${base}점 ×${calc.mult} (상한 128배)`,'gold');
+}
+function gostopAfterTurn(userId,side){const s=soloGostop.get(userId);if(gostopCanDecision(s,side)){s.lastDecisionScore[side]=gostopScore(s.captured[side]).score;if(side==='user'){s.needDecision=true;return;}const sc=gostopScore(s.captured.bot).score;if(sc>=9||s.hands.bot.length<=2||Math.random()<.48){gostopFinish(userId,'bot','J-BOT 스톱');return;}s.goCount.bot++;matgoEvent(s,`J-BOT ${s.goCount.bot}고`,'red');}if(!s.hands[side].length&&!s.deck.length){const us=gostopScore(s.captured.user).score,bs=gostopScore(s.captured.bot).score;if(Math.max(us,bs)<7||us===bs){db.exec('BEGIN IMMEDIATE');try{casinoCollateral.settle('GOSTOP'+userId,userId,0n,0n);db.prepare('UPDATE stats SET gostop_games=gostop_games+1 WHERE user_id=?').run(userId);db.exec('COMMIT');}catch(e){try{db.exec('ROLLBACK');}catch{}throw e;}
+ s.phase='complete';s.winner=null;s.result={reason:us===bs?'동점':'나가리',payout:0,net:0,userScore:gostopScore(s.captured.user),botScore:gostopScore(s.captured.bot),base:0,multiplier:2,bonuses:['다음 판 2배']};return;}gostopFinish(userId,us>=bs?'user':'bot','패 소진');}}
 function gostopBotTurn(userId){const s=soloGostop.get(userId);if(!s||s.phase!=='playing')return;let best=0,bestScore=-1;s.hands.bot.forEach((c,i)=>{const matches=s.floor.filter(f=>f.m===c.m).length;const score=matches*30+({광:8,'열끗':5,'띠':3,'피':1}[c.type]||0)+(c.bird||c.ribbon?4:0);if(score>bestScore){bestScore=score;best=i}});const card=s.hands.bot.splice(best,1)[0],matches=s.floor.filter(c=>c.m===card.m);const choice=matches.length===2?[...matches].sort((a,b)=>({광:4,'열끗':3,'띠':2,'피':1}[b.type]-({광:4,'열끗':3,'띠':2,'피':1}[a.type])))[0].id:null;const played=matgoCapture(s,'bot',card,choice);gostopDrawAndCapture(s,'bot',{playedMonth:card.m,playMatched:played.matched});gostopAfterTurn(userId,'bot');if(s.phase==='playing'&&!s.needDecision)s.turn='user';}
-function soloGostopStart(user,bet){bet=walletWager(bet,user.balance,5000,1000);if(bet>1000000)throw new Error('고스톱 최대 배팅금액은 1,000,000G입니다.');const old=soloGostop.get(user.id);if(old&&old.phase!=='complete')throw new Error('이미 맞고 판이 진행 중입니다.');const previousWinner=old?.phase==='complete'?old.winner:null;if(old)soloGostop.delete(user.id);walletChange(user.id,-bet,'gostop_bet',`야심찬 맞고 판돈 ${formatMoney(bet)}G`);escrowSet(`GOSTOP${user.id}`,user.id,bet,'gostop');const d=hwatuDeck(),opening=previousWinner?null:matgoOpeningDraw(d),starter=previousWinner||opening.starter,s={bet,phase:'playing',hands:{user:[],bot:[]},floor:[],captured:{user:[],bot:[]},deck:d,turn:starter,goCount:{user:0,bot:0},lastDecisionScore:{user:0,bot:0},needDecision:false,pendingChoice:null,shakes:{user:0,bot:0},shakenMonths:{user:[],bot:[]},bombSkips:{user:0,bot:0},events:[],lastDraw:null,winner:null,result:null,opening};for(let i=0;i<10;i++){s.hands.user.push(d.pop());s.hands.bot.push(d.pop());}for(let i=0;i<8;i++)s.floor.push(d.pop());addMatgoBonusPi(s);matgoEvent(s,opening?`선 정하기 · 나 ${opening.user.m}월 vs J-BOT ${opening.bot.m}월 · 높은 패가 선`:'지난 판 승자가 선','gold');soloGostop.set(user.id,s);if(starter==='bot')gostopBotTurn(user.id);return s;}
+function soloGostopStart(user,bet){bet=gameWager(bet,5000,1000000000000,1000);const old=soloGostop.get(user.id);if(old&&old.phase!=='complete')throw new Error('이미 맞고 판이 진행 중입니다.');const previousWinner=old?.phase==='complete'?old.winner:null;db.exec('BEGIN IMMEDIATE');try{casinoCollateral.reserve('GOSTOP'+user.id,user.id,matgoMaxLoss(bet),'matgo_solo');db.exec('COMMIT');}catch(e){try{db.exec('ROLLBACK');}catch{}throw e;}if(old)soloGostop.delete(user.id);const d=hwatuDeck(),opening=previousWinner?null:matgoOpeningDraw(d),starter=previousWinner||opening.starter,s={bet,phase:'playing',hands:{user:[],bot:[]},floor:[],captured:{user:[],bot:[]},deck:d,turn:starter,goCount:{user:0,bot:0},lastDecisionScore:{user:0,bot:0},needDecision:false,pendingChoice:null,shakes:{user:0,bot:0},shakenMonths:{user:[],bot:[]},bombSkips:{user:0,bot:0},events:[],lastDraw:null,winner:null,result:null,opening};for(let i=0;i<10;i++){s.hands.user.push(d.pop());s.hands.bot.push(d.pop());}for(let i=0;i<8;i++)s.floor.push(d.pop());addMatgoBonusPi(s);matgoEvent(s,opening?`선 정하기 · 나 ${opening.user.m}월 vs J-BOT ${opening.bot.m}월 · 높은 패가 선`:'지난 판 승자가 선','gold');soloGostop.set(user.id,s);if(starter==='bot')gostopBotTurn(user.id);return s;}
 function soloGostopSpecial(userId,action,month){const s=soloGostop.get(userId);if(!s||s.phase!=='playing')throw new Error('진행 중인 맞고가 없습니다.');if(s.turn!=='user'||s.needDecision)throw new Error('지금은 특수패를 사용할 수 없습니다.');if(action==='shake'){matgoShake(s,'user',month);return s;}if(action==='bomb'){matgoBomb(s,'user',month);gostopAfterTurn(userId,'user');if(s.phase==='playing'&&!s.needDecision){s.turn='bot';gostopBotTurn(userId);}return s;}throw new Error('지원하지 않는 맞고 특수 액션입니다.');}
 function soloGostopPlay(userId,cardId,choiceId=null){const s=soloGostop.get(userId);if(!s||s.phase!=='playing')throw new Error('진행 중인 맞고가 없습니다.');if(s.turn!=='user'||s.needDecision)throw new Error('지금은 패를 낼 수 없습니다.');if(s.pendingChoice){if(!choiceId)throw new Error('먹을 바닥패를 선택해주세요.');const p=s.pendingChoice;s.pendingChoice=null;const played=matgoCapture(s,'user',p.card,choiceId);gostopDrawAndCapture(s,'user',{playedMonth:p.card.m,playMatched:played.matched});gostopAfterTurn(userId,'user');if(s.phase==='playing'&&!s.needDecision){s.turn='bot';gostopBotTurn(userId);}return s;}const idx=s.hands.user.findIndex(c=>c.id===cardId);if(idx<0)throw new Error('손패에 없는 카드입니다.');const card=s.hands.user.splice(idx,1)[0],matches=s.floor.filter(c=>c.m===card.m);if(matches.length===2){s.pendingChoice={card,options:matches};matgoEvent(s,`${card.m}월 패 중 먹을 패 선택`);return s;}const played=matgoCapture(s,'user',card);gostopDrawAndCapture(s,'user',{playedMonth:card.m,playMatched:played.matched});gostopAfterTurn(userId,'user');if(s.phase==='playing'&&!s.needDecision){s.turn='bot';gostopBotTurn(userId);}return s;}
 function soloGostopDecision(userId,decision){const s=soloGostop.get(userId);if(!s||s.phase!=='playing')throw new Error('진행 중인 맞고가 없습니다.');if(s.turn!=='user')throw new Error('지금은 내 결정 차례가 아닙니다.');const score=gostopScore(s.captured.user).score;if(!s.needDecision&&score<7)throw new Error('고/스톱을 선택할 차례가 아닙니다.');s.needDecision=false;s.lastDecisionScore.user=Math.max(Number(s.lastDecisionScore.user||0),score);if(decision==='stop'){gostopFinish(userId,'user','스톱!');return s;}if(decision!=='go')throw new Error('고 또는 스톱을 선택해주세요.');s.goCount.user++;matgoEvent(s,`나 ${s.goCount.user}고`,'gold');if(!s.hands.user.length){if(!s.deck.length){gostopAfterTurn(userId,'user');return s;}gostopDrawAndCapture(s,'user',{playedMonth:null,playMatched:false});matgoEvent(s,'손패가 없어 더미에서 한 장 뒤집음','gold');gostopAfterTurn(userId,'user');if(s.phase==='playing'&&!s.needDecision){s.turn='bot';gostopBotTurn(userId);}return s;}s.turn='bot';gostopBotTurn(userId);return s;}
@@ -1759,24 +2001,38 @@ function matgoOpeningValue(card){return (({'광':4,'열끗':3,'띠':2,'피':1}[c
 function matgoOpeningDraw(d){let a=d.pop(),b=d.pop();while(matgoOpeningValue(a)===matgoOpeningValue(b)){d.push(b);shuffle(d);b=d.pop()}const starter=matgoOpeningValue(a)>matgoOpeningValue(b)?'user':'bot';const opening={user:a,bot:b,starter};d.push(a,b);shuffle(d);return opening}
 function roomGostopStart(r){
   if(r.players.length!==2)throw new Error('맞고는 2명이 있어야 시작할 수 있습니다.');
+  db.exec('BEGIN IMMEDIATE');
+  try{for(const p of r.players)casinoCollateral.reserve(r.id,p.userId,matgoMaxLoss(r.buyIn),'matgo_multi',{existing:true});db.exec('COMMIT');}
+  catch(e){try{db.exec('ROLLBACK');}catch{}throw e;}
   const ps=orderedPlayers(r),previousWinner=r.gostop?.phase==='complete'?r.gostop.winner:null,d=hwatuDeck(),opening=previousWinner?null:matgoOpeningDraw(d),starter=previousWinner||opening.starter,s={bet:r.buyIn,phase:'playing',userA:ps[0].userId,userB:ps[1].userId,hands:{user:[],bot:[]},floor:[],captured:{user:[],bot:[]},deck:d,turn:starter,goCount:{user:0,bot:0},lastDecisionScore:{user:0,bot:0},needDecision:false,pendingChoice:null,shakes:{user:0,bot:0},shakenMonths:{user:[],bot:[]},bombSkips:{user:0,bot:0},events:[],lastDraw:null,winner:null,result:null,opening};
   for(let i=0;i<10;i++){s.hands.user.push(d.pop());s.hands.bot.push(d.pop())}for(let i=0;i<8;i++)s.floor.push(d.pop());addMatgoBonusPi(s);matgoEvent(s,opening?`선 정하기 · ${opening.user.m}월 vs ${opening.bot.m}월 · 높은 패가 선`:`지난 판 승자가 선`,'gold');r.gostop=s;for(const p of r.players)p.ready=false;
 }
 function roomGostopSide(s,userId){if(Number(userId)===Number(s.userA))return'user';if(Number(userId)===Number(s.userB))return'bot';throw new Error('이 맞고방 참가자가 아닙니다.')}
 function roomGostopFinish(r,winner,reason){
- const s=r.gostop;if(!s||s.phase==='complete')return;s.phase='complete';s.winner=winner;const winnerId=winner==='user'?s.userA:winner==='bot'?s.userB:null;
- const us=gostopScore(s.captured.user),bs=gostopScore(s.captured.bot),calc=winner?matgoMultiplier(s,winner):null;
- const base=winner?Math.max(1,calc.ws.score+s.goCount[winner]):0,multiplier=calc?calc.mult:1,netWin=winnerId?Math.floor(r.buyIn*base*multiplier):0;
- s.result={reason,base,multiplier,payout:netWin,bonuses:calc?.reasons||[]};
- for(const p of r.players)escrowDelete(r.id,p.userId);
- if(winnerId){
-   const loserId=winnerId===s.userA?s.userB:s.userA,extra=Math.max(0,netWin-r.buyIn);
-   if(extra)walletChange(loserId,-extra,'gostop_multi_loss',`${r.name} 맞고 ${base}점 x${multiplier}`);
-   walletChange(winnerId,netWin+r.buyIn,'gostop_multi_win',`${r.name} 맞고 승리 ${base}점 x${multiplier}`);
+ const s=r.gostop;if(!s||s.phase==='complete')return;
+ const winnerId=winner==='user'?s.userA:winner==='bot'?s.userB:null;
+ const calc=winner?matgoMultiplier(s,winner):null;
+ const base=winner?Math.max(1,calc.ws.score+s.goCount[winner]):0;
+ const mult=calc?calc.mult:1,award=winnerId?matgoAward(r.buyIn,base,mult):0n;
+ db.exec('BEGIN IMMEDIATE');
+ try{
+  if(winnerId){
+   const loserId=winnerId===s.userA?s.userB:s.userA;
+   casinoCollateral.settle(r.id,loserId,award,0n);
+   casinoCollateral.settle(r.id,winnerId,0n,award);
    db.prepare('UPDATE stats SET gostop_games=gostop_games+1, gostop_wins=gostop_wins+1 WHERE user_id=?').run(winnerId);
    db.prepare('UPDATE stats SET gostop_games=gostop_games+1 WHERE user_id=?').run(loserId);
- } else {for(const p of r.players)walletChange(p.userId,r.buyIn,'gostop_multi_draw',`${r.name} 나가리 환급`);for(const p of r.players)db.prepare('UPDATE stats SET gostop_games=gostop_games+1 WHERE user_id=?').run(p.userId);}
- matgoEvent(s,`${reason}${winner?' · '+base+'점 ×'+multiplier:''}`,'gold');
+  }else{
+   for(const p of r.players){
+    casinoCollateral.settle(r.id,p.userId,0n,0n);
+    db.prepare('UPDATE stats SET gostop_games=gostop_games+1 WHERE user_id=?').run(p.userId);
+   }
+  }
+  db.exec('COMMIT');
+ }catch(e){try{db.exec('ROLLBACK');}catch{}throw e;}
+ s.phase='complete';s.winner=winner;
+ s.result={reason,base,multiplier:mult,payout:exactWallet.output(award),maxFactor:Number(MATGO_MAX_FACTOR),bonuses:calc?.reasons||[]};
+ matgoEvent(s,`${reason}${winner?' · '+base+'점 ×'+mult+' (상한 128배)':''}`,'gold');
 }
 function roomGostopAfterTurn(r,side){
  const s=r.gostop,sc=gostopScore(s.captured[side]).score;if(sc>=7&&sc>s.lastDecisionScore[side]){s.lastDecisionScore[side]=sc;s.needDecision=true;s.turn=side;return}
@@ -2064,7 +2320,7 @@ const treasureRaid=createTreasureRaid({
 });
 
 
-const royalCards=require('./royal-cards-server')({db,crypto,readBody,requireAuth,json,rateLimit,
+const royalCards=require('./royal-cards-server')({db,crypto,exactWallet,casinoCollateral,readBody,requireAuth,json,rateLimit,
   otherBusy:id=>!!findUserRoom(id)||!!baccaratFindUser(id)||treasureRaid.hasUser(id)||goldenbell.hasUser(id)||omok.hasUser(id)||liar.hasUser(id)||janggi.hasUser(id)||sichuanBattle.hasUser(id),
   notify:(ids,roomId)=>{for(const [,client] of sseClients)if(ids.includes(Number(client.userId))){try{client.res.write('event: refresh\n'+'data: '+JSON.stringify({royalcards:true,roomId})+'\n\n');}catch{}}}
 });
@@ -2077,7 +2333,16 @@ function serveStatic(req,res,url){
   const file=path.join(__dirname,'public',p);
   if(!file.startsWith(path.join(__dirname,'public'))||!fs.existsSync(file)||fs.statSync(file).isDirectory()){res.writeHead(404,securityHeaders());res.end('Not found');return;}
   const ext=path.extname(file).toLowerCase();const ct={'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'application/javascript; charset=utf-8','.json':'application/json; charset=utf-8','.webmanifest':'application/manifest+json','.png':'image/png','.webp':'image/webp','.avif':'image/avif','.svg':'image/svg+xml'}[ext]||'application/octet-stream';
-  const st=fs.statSync(file);staticResponse(req,res,file,st,ct,securityHeaders());
+  const st=fs.statSync(file);
+  const headers=securityHeaders();
+  // The licensed 3D showroom needs a static inline importmap to resolve its
+  // pinned local Three.js modules. Production CSP used to block this inline
+  // map, leaving mobile Safari on the loading spinner before any GLB request.
+  // Whitelist only this exact importmap by its SHA-256, never unsafe-inline.
+  if(p==='/premium-sovereign-atelier.html'){
+    headers['Content-Security-Policy']=atelierImportMapCsp(fs.readFileSync(file,'utf8'),headers['Content-Security-Policy']);
+  }
+  staticResponse(req,res,file,st,ct,headers);
 }
 
 const blackroomCloud=createBlackroomCloud({requireAuth,readBody,json,gameStateGet,gameStateSet});
@@ -2093,6 +2358,17 @@ const server=http.createServer(async(req,res)=>{
     if(url.pathname.startsWith('/api/goldenbell')){if(await goldenbell.handle(req,res,url))return;}
     if(url.pathname.startsWith('/api/treasure-raid')){if(await treasureRaid.handle(req,res,url))return;}
     if(url.pathname.startsWith('/api/sichuan/battle')){if(await sichuanBattle.handle(req,res,url))return;}
+    // JPL PRIVATE PREVIEW: only the verified primary owner may use or load the league.
+    // Gate assets and API at the server boundary; hiding a homepage card alone is insecure.
+    // Existing tickets and simulated fixtures are preserved; this restriction only controls access.
+    if(url.pathname==='/football'||url.pathname.startsWith('/football/')||
+       url.pathname==='/api/jpl'||url.pathname.startsWith('/api/jpl/')){
+      const viewer=authUser(req);
+      if(!viewer?.jpl_access){
+        if(url.pathname.startsWith('/api/'))return json(res,403,{error:'준자 프리미어리그는 운영자 전용으로 비공개 운영 중입니다.'});
+        return json(res,404,{error:'페이지를 찾을 수 없습니다.'});
+      }
+    }
     if(url.pathname==='/healthz')return json(res,200,{ok:true,rooms:rooms.size+baccaratRooms.size+sichuanBattle.roomCount()+treasureRaid.roomCount()+goldenbell.roomCount()+omok.roomCount()+liar.roomCount()+janggi.roomCount()+royalCards.roomCount(),online:onlineCount()});
     if(url.pathname==='/api/admin/claim'&&req.method==='POST'){
       const caller=String(req.headers['x-forwarded-for']||req.socket.remoteAddress||'').split(',')[0].trim();
@@ -2155,15 +2431,130 @@ const server=http.createServer(async(req,res)=>{
       const token=parseCookies(req).sid;if(token)db.prepare('DELETE FROM sessions WHERE token=?').run(token);return json(res,200,{ok:true},{'Set-Cookie':'sid=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0'});
     }
     if(url.pathname==='/api/me'&&req.method==='GET'){const u=requireAuth(req,res);if(!u)return;const includePresence=url.searchParams.get('presence')==='1';return json(res,200,{user:u,online:onlineCount(),presence:includePresence?presenceSnapshot():[]});}
+    // Only verified operators may inspect all members' JPL tickets.
+    if(url.pathname==='/api/admin/jpl-bets'&&req.method==='GET'){
+      const admin=requireAdmin(req,res);if(!admin)return;
+      if(!admin.jpl_access)return json(res,403,{error:'준자리그 관제센터는 대표 운영자 전용입니다.'});
+      if(!rateLimit('jpl-admin-report:'+admin.id,30,60000))
+        return json(res,429,{error:'베팅 현황 조회가 너무 빠릅니다.'});
+      try{
+        const result=jplAdminReport(db,{
+          season:url.searchParams.get('season')||'current',
+          status:url.searchParams.get('status')||'ALL',
+          user:url.searchParams.get('user')||'',
+          page:url.searchParams.get('page')||'1'
+        });
+        return json(res,200,result);
+      }catch(e){return json(res,400,{error:e.message});}
+    }
+    if(url.pathname==='/api/jpl/status'&&req.method==='GET'){
+      const u=requireAuth(req,res);if(!u)return;
+      try{const d=jpl.status(u.id);if(d.changed)await db.flush();return json(res,200,d);}
+      catch(e){return json(res,400,{error:e.message})}
+    }
+    if(url.pathname==='/api/jpl/schedule'&&req.method==='GET'){
+      const u=requireAuth(req,res);if(!u)return;
+      try{const d=jpl.schedule(u.id);if(d.changed)await db.flush();return json(res,200,d);}
+      catch(e){return json(res,400,{error:e.message})}
+    }
+    if(url.pathname==='/api/jpl/team-report'&&req.method==='GET'){
+      const u=requireAuth(req,res);if(!u)return;
+      if(!rateLimit('jpl-team-report:'+u.id,25,60000))return json(res,429,{error:'팀 기록 조회가 너무 빠릅니다.'});
+      try{
+        const d=jpl.teamReport(u.id,url.searchParams.get('team'),url.searchParams.get('opponent'));
+        if(d.changed)await db.flush();
+        return json(res,200,d);
+      }catch(e){return json(res,400,{error:e.message});}
+    }
+    if(url.pathname==='/api/jpl/analysis'&&req.method==='GET'){
+      const u=requireAuth(req,res);if(!u)return;
+      try{
+        const d=jpl.analysis(u.id,url.searchParams.get('matchId'),false);
+        if(d.changed)await db.flush();
+        return json(res,200,d);
+      }catch(e){return json(res,400,{error:e.message});}
+    }
+    if(url.pathname==='/api/jpl/analysis'&&req.method==='POST'){
+      const u=requireAuth(req,res);if(!u)return;
+      if(!rateLimit('jpl-analysis:'+u.id,12,60000))return json(res,429,{error:'경기분석 구매 요청이 너무 빠릅니다.'});
+      try{
+        const b=await readBody(req),d=jpl.analysis(u.id,b.matchId,true);
+        await db.flush();pushRefresh();
+        return json(res,200,d);
+      }catch(e){return json(res,400,{error:e.message});}
+    }
+    if(url.pathname==='/api/jpl/bet'&&req.method==='POST'){
+      const u=requireAuth(req,res);if(!u)return;
+      if(!rateLimit('jpl-bet:'+u.id,12,60000))return json(res,429,{error:'축구 베팅 요청이 너무 빠릅니다.'});
+      try{
+        const b=await readBody(req),d=jpl.bet(u.id,b.legs,b.amount,b.requestId);
+        await db.flush();pushRefresh();
+        return json(res,200,{...d,user:userPublic(u.id)});
+      }catch(e){return json(res,400,{error:e.message})}
+    }
+    if(url.pathname==='/api/jstock'&&req.method==='GET'){
+      const u=requireAuth(req,res);if(!u)return;
+      try{const status=withInvestmentRanking(jStocks.status(u.id),u.id,'stock');if(status.changed)await db.flush();return json(res,200,status);}
+      catch(e){return json(res,400,{error:e.message});}
+    }
+    if(url.pathname==='/api/jstock/trade'&&req.method==='POST'){
+      const u=requireAuth(req,res);if(!u)return;
+      if(!rateLimit('jstock:'+u.id,20,60000))return json(res,429,{error:'주식 주문을 너무 자주 보내고 있습니다.'});
+      try{
+        const b=await readBody(req),result=withInvestmentRanking(jStocks.trade(u.id,b.side,b.stockId,b.quantity,b.requestId),u.id,'stock');
+        await db.flush();pushRefresh();
+        return json(res,200,{...result,user:userPublic(u.id)});
+      }catch(e){return json(res,400,{error:e.message});}
+    }
+    if(url.pathname==='/api/jcoin'&&req.method==='GET'){
+      const u=requireAuth(req,res);if(!u)return;
+      try{const status=withInvestmentRanking(jCoins.status(u.id),u.id,'coin');if(status.changed)await db.flush();return json(res,200,status);}catch(e){return json(res,400,{error:e.message});}
+    }
+    if(url.pathname==='/api/jcoin/trade'&&req.method==='POST'){
+      const u=requireAuth(req,res);if(!u)return;
+      if(!rateLimit('jcoin:'+u.id,20,60000))return json(res,429,{error:'코인 주문을 너무 자주 보내고 있습니다.'});
+      try{const b=await readBody(req),result=withInvestmentRanking(jCoins.trade(u.id,b.side,b.stockId,b.quantity,b.requestId),u.id,'coin');await db.flush();pushRefresh();return json(res,200,{...result,user:userPublic(u.id)});}
+      catch(e){return json(res,400,{error:e.message});}
+    }
     if(url.pathname==='/api/jbank'&&req.method==='GET'){
       const u=requireAuth(req,res);if(!u)return;
-      try{return json(res,200,{ok:true,...jBank.status(u.id)});}catch(e){return json(res,400,{error:e.message});}
+      try{
+        // Refresh price snapshots before estimating total assets or foreclosing.
+        jStocks.status(u.id);jCoins.status(u.id);
+        const recovered=jBank.enforceOverdue(u.id);
+        if(recovered.processed){await db.flush();pushRefresh();}
+        return json(res,200,{ok:true,...jBank.status(u.id)});
+      }catch(e){return json(res,400,{error:e.message});}
     }
-    if((url.pathname==='/api/jbank/borrow'||url.pathname==='/api/jbank/repay'||url.pathname==='/api/jbank/sell-rank')&&req.method==='POST'){
+    if((url.pathname==='/api/jcredit/borrow'||url.pathname==='/api/jcredit/repay')&&req.method==='POST'){
+      const u=requireAuth(req,res);if(!u)return;
+      if(!rateLimit('jcredit:'+u.id,8,60000))return json(res,429,{error:'신용대출 요청이 너무 빠릅니다.'});
+      try{
+        // Asset quotes must be initialized OUTSIDE the bank's atomic transaction.
+        jStocks.status(u.id);jCoins.status(u.id);
+        const recovered=jBank.enforceOverdue(u.id);
+        if(recovered.processed){await db.flush();pushRefresh();}
+        const b=await readBody(req),action=url.pathname.endsWith('/borrow')?'borrow':'repay';
+        const result=jCredit[action](u.id,b.amount,b.requestId);
+        await db.flush();pushRefresh();
+        return json(res,200,{ok:true,duplicate:result.duplicate,status:jBank.status(u.id),user:userPublic(u.id)});
+      }catch(e){return json(res,400,{error:e.message});}
+    }
+    if(url.pathname==='/api/jbank/rehabilitation'&&req.method==='POST'){
+      const u=requireAuth(req,res);if(!u)return;
+      if(!rateLimit('jbank:rehab:'+u.id,3,3600000))return json(res,429,{error:'개인회생 신청 횟수를 초과했어.'});
+      try{
+       const b=await readBody(req),result=jBank.rehabilitation(u.id,b.confirmation,b.requestId);
+       await db.flush();pushRefresh();
+       return json(res,200,{ok:true,result,status:jBank.status(u.id),user:userPublic(u.id)});
+      }catch(e){return json(res,400,{error:e.message});}
+    }
+    if((['installmentOpen','installmentPay','installmentClaim','installmentCancel'].some(action=>url.pathname==='/api/jbank/'+action)||url.pathname==='/api/jbank/deposit'||url.pathname==='/api/jbank/withdraw'||url.pathname==='/api/jbank/borrow'||url.pathname==='/api/jbank/repay'||url.pathname==='/api/jbank/sell-rank')&&req.method==='POST'){
       const u=requireAuth(req,res);if(!u)return;
       if(!rateLimit('jbank:'+u.id,12,60000))return json(res,429,{error:'은행 거래 요청이 너무 빠릅니다. 잠시 후 다시 시도하세요.'});
       try{
-        const b=await readBody(req),action=url.pathname.endsWith('/borrow')?'borrow':url.pathname.endsWith('/sell-rank')?'sellRank':'repay';
+        const b=await readBody(req),action=url.pathname.endsWith('/sell-rank')?'sellRank':url.pathname.split('/').pop();
+        jBank.enforceOverdue(u.id);
         const result=action==='sellRank'?jBank.sellRank(u.id,b.confirmation,b.requestId):jBank[action](u.id,b.amount,b.requestId);
         await db.flush();pushRefresh();
         return json(res,200,{...result,user:userPublic(u.id)});
@@ -2175,10 +2566,65 @@ const server=http.createServer(async(req,res)=>{
       if(!rateLimit('rank_promote:'+u.id,6,60000))return json(res,429,{error:'신분 상승 요청이 너무 빠릅니다.'});
       try{const result=promoteSocialRank(u.id);pushRefresh();return json(res,200,{ok:true,...result,user:userPublic(u.id)});}catch(e){return json(res,400,{error:e.message});}
     }
+    if(url.pathname==='/api/royal-economy'&&req.method==='GET'){
+      const u=requireAuth(req,res);if(!u)return;
+      return json(res,200,royalEconomy.catalog(u.id));
+    }
+    if(url.pathname==='/api/royal-market'&&req.method==='GET'){
+      const u=requireAuth(req,res);if(!u)return;
+      if(!rateLimit('royal_market_read:'+u.id,40,60000))return json(res,429,{error:'경매장 조회를 잠시 쉬었다 진행해줘.'});
+      try{
+        const settled=royalMarket.settleExpired();
+        if(settled){await db.flush();pushRefresh();}
+        return json(res,200,royalMarket.market(u.id));
+      }catch(e){return json(res,400,{error:e.message});}
+    }
+    if(url.pathname.startsWith('/api/royal-market/')&&req.method==='POST'){
+      const u=requireAuth(req,res);if(!u)return;
+      if(!rateLimit('royal_market_action:'+u.id,18,60000))return json(res,429,{error:'경매 거래 요청이 너무 잦아. 잠시 후 다시 시도해줘.'});
+      try{
+        const settled=royalMarket.settleExpired();if(settled){await db.flush();pushRefresh();}
+        const body=await readBody(req),action=url.pathname.slice('/api/royal-market/'.length);
+        let result;
+        if(action==='auction/list')result=royalMarket.list(u.id,String(body.itemId||''),String(body.start||''));
+        else if(action==='auction/bid')result=royalMarket.bid(u.id,String(body.lotId||''),String(body.amount||''));
+        else if(action==='auction/cancel')result=royalMarket.cancel(u.id,String(body.lotId||''));
+        else if(action==='bank/sell')result=royalMarket.bankSell(u.id,String(body.itemId||''));
+        else return json(res,404,{error:'알 수 없는 명품 거래 방식이야.'});
+        await db.flush();pushRefresh();
+        return json(res,200,{ok:true,...result,user:userPublic(u.id)});
+      }catch(e){return json(res,400,{error:e.message});}
+    }
+    if(url.pathname==='/api/royal-economy/gallery'&&req.method==='GET'){
+      const u=requireAuth(req,res);if(!u)return;
+      if(!rateLimit('royal_gallery:'+u.id,30,60000))return json(res,429,{error:'전시관 방문 요청이 너무 빠릅니다.'});
+      const nickname=escText(url.searchParams.get('nickname')||'',14);
+      if(!nickname)return json(res,400,{error:'전시관 주인의 닉네임을 입력해줘.'});
+      const target=db.prepare('SELECT id,is_disabled FROM users WHERE nickname=? COLLATE NOCASE').get(nickname);
+      if(!target||target.is_disabled)return json(res,404,{error:'공개된 전시관을 찾을 수 없어.'});
+      return json(res,200,royalEconomy.gallery(target.id));
+    }
+    if(url.pathname==='/api/royal-economy/buy'&&req.method==='POST'){
+      const u=requireAuth(req,res);if(!u)return;
+      if(!rateLimit('royal_buy:'+u.id,12,60000))return json(res,429,{error:'구매 요청을 너무 빠르게 반복하고 있습니다.'});
+      try{
+        const body=await readBody(req),receipt=royalEconomy.buy(u.id,String(body.itemId||''),{loanPurchase:body.loanPurchase===true});
+        await db.flush();pushRefresh();
+        return json(res,200,{ok:true,...receipt,user:userPublic(u.id)});
+      }catch(e){return json(res,400,{error:e.message});}
+    }
+    if(url.pathname==='/api/royal-economy/showcase'&&req.method==='POST'){
+      const u=requireAuth(req,res);if(!u)return;
+      if(!rateLimit('royal_showcase:'+u.id,20,60000))return json(res,429,{error:'전시 설정을 너무 자주 변경하고 있습니다.'});
+      try{
+        const body=await readBody(req),collector=royalEconomy.updateShowcase(u.id,body.selectedIds);
+        await db.flush();pushRefresh();return json(res,200,{ok:true,collector});
+      }catch(e){return json(res,400,{error:e.message});}
+    }
     if(url.pathname==='/api/shop'&&req.method==='GET'){const u=requireAuth(req,res);if(!u)return;return json(res,200,{...shopState(u.id),user:userPublic(u.id)});}
     if(url.pathname==='/api/shop/buy'&&req.method==='POST'){
       const u=requireAuth(req,res);if(!u)return;if(!rateLimit('shop_buy:'+u.id,20,60000))return json(res,429,{error:'구매를 너무 빠르게 반복하고 있어. 잠시 후 다시 시도해줘.'});
-      const b=await readBody(req);try{const r=buyShopItem(u.id,b.itemId);await db.flush();pushRefresh();return json(res,200,{ok:true,item:r.item,user:userPublic(u.id),state:shopState(u.id)});}catch(e){return json(res,400,{error:e.message});}
+      const b=await readBody(req);try{const r=buyShopItem(u.id,b.itemId,{loanPurchase:b.loanPurchase===true});await db.flush();pushRefresh();return json(res,200,{ok:true,item:r.item,user:userPublic(u.id),state:shopState(u.id)});}catch(e){return json(res,400,{error:e.message});}
     }
     if(url.pathname==='/api/shop/equip'&&req.method==='POST'){
       const u=requireAuth(req,res);if(!u)return;const b=await readBody(req);try{const cosmetics=equipShopItem(u.id,b.category,b.itemId);await db.flush();pushRefresh();return json(res,200,{ok:true,cosmetics,user:userPublic(u.id),state:shopState(u.id)});}catch(e){return json(res,400,{error:e.message});}
@@ -2191,14 +2637,14 @@ const server=http.createServer(async(req,res)=>{
       const target=db.prepare('SELECT id,nickname,avatar,is_disabled FROM users WHERE nickname=? COLLATE NOCASE').get(nickname);
       if(!target||target.is_disabled)return json(res,404,{error:'해당 닉네임의 친구를 찾을 수 없어.'});
       if(Number(target.id)===Number(u.id))return json(res,400,{error:'자기 자신에게는 보낼 수 없어.'});
-      const owned=inventoryIds(target.id);const ownedItems=SHOP_ITEMS.filter(x=>owned.has(x.id)&&!x.adminOnly).map(itemPublic).slice(0,60);return json(res,200,{user:{id:target.id,nickname:target.nickname,avatar:target.avatar,avatarEmoji:AVATARS[target.avatar%AVATARS.length],cosmetics:cosmeticsPublic(target.id),rank:socialRankPublic(target.id),ownedCount:owned.size,ownedItems}});
+      const owned=inventoryIds(target.id);const ownedItems=SHOP_ITEMS.filter(x=>owned.has(x.id)&&!x.adminOnly).map(itemPublic).slice(0,60);return json(res,200,{user:{id:target.id,nickname:target.nickname,avatar:target.avatar,avatarEmoji:AVATARS[target.avatar%AVATARS.length],cosmetics:cosmeticsPublic(target.id),rank:socialRankPublic(target.id),ownedCount:owned.size,ownedItems,royal:royalEconomy.collector(target.id)}});
     }
     if(url.pathname==='/api/shop/gift'&&req.method==='POST'){
       const u=requireAuth(req,res);if(!u)return;
       if(!rateLimit('shop_gift:'+u.id,10,60000))return json(res,429,{error:'아이템 선물을 너무 빠르게 반복하고 있어. 잠시 후 다시 시도해줘.'});
       const b=await readBody(req),targetId=Number(b.targetId),item=SHOP_BY_ID[String(b.itemId||'')];
       if(!Number.isInteger(targetId)||targetId<1||targetId===Number(u.id))return json(res,400,{error:'선물할 친구를 다시 확인해줘.'});
-      if(!item||item.adminOnly)return json(res,400,{error:'선물할 수 없는 아이템이야.'});
+      if(!item||item.adminOnly||item.collection==='royalboutique')return json(res,400,{error:'로얄 명품은 소유권 증명서를 통한 경매로만 양도할 수 있어.'});
       const target=db.prepare('SELECT id,nickname,is_disabled FROM users WHERE id=?').get(targetId);
       if(!target||target.is_disabled)return json(res,404,{error:'선물 받을 친구를 찾을 수 없어.'});
       if(Number(item.rankTier||0)>Number(socialRankPerksForUser(targetId).shopTier||0))return json(res,403,{error:'친구의 현재 신분으로는 받을 수 없는 신분 전용 아이템이야.'});
@@ -2275,11 +2721,190 @@ const server=http.createServer(async(req,res)=>{
         return json(res,200,{ok:true,amount:Number(salary),balance:exactWallet.output(balance),rank:rank.name,user:userPublic(u.id)});
       }catch(e){try{db.exec('ROLLBACK')}catch{}throw e;}
     }
+    // v7 round receipts: immutable ledger-backed evidence. Members can read ONLY their own entries.
+    if(url.pathname==='/api/casino/receipts'&&req.method==='GET'){
+      const u=requireAuth(req,res);if(!u)return;
+      if(!rateLimit('casino-receipts:'+u.id,24,60000))return json(res,429,{error:'영수증 조회가 너무 빠릅니다.'});
+      try{
+        const rawLimit=url.searchParams.get('limit')||'20';
+        const rawBefore=url.searchParams.get('beforeId');
+        const rawId=url.searchParams.get('receiptId');
+        if(!/^[1-9]\d{0,1}$/.test(rawLimit)||
+          rawBefore!==null&&!/^[1-9]\d{0,14}$/.test(rawBefore)||
+          rawId!==null&&!/^[1-9]\d{0,14}$/.test(rawId))throw new Error('영수증 조회 조건이 올바르지 않습니다.');
+        const report=casinoReceipts.listRoundReceipts(db,{
+          userId:u.id,game:url.searchParams.get('game')||'all',
+          limit:Number(rawLimit),
+          beforeId:rawBefore===null?null:Number(rawBefore),
+          receiptId:rawId===null?null:Number(rawId)
+        });
+        return json(res,200,report);
+      }catch(e){return json(res,400,{error:e.message});}
+    }
     if(url.pathname==='/api/ledger'&&req.method==='GET'){
       const u=requireAuth(req,res);if(!u)return;const rows=db.prepare('SELECT id,COALESCE(amount_exact,amount) AS amount,COALESCE(balance_after_exact,balance_after) AS balance_after,type,memo,created_at FROM ledger WHERE user_id=? ORDER BY id DESC LIMIT 30').all(u.id);return json(res,200,{rows});
     }
     if(url.pathname==='/api/leaderboard'&&req.method==='GET'){
       const u=requireAuth(req,res);if(!u)return;const rows=db.prepare(`SELECT u.id,u.nickname,u.balance,u.avatar,s.poker_wins,s.yut_wins,s.slot_profit,s.seotda_wins,s.gostop_wins FROM users u JOIN stats s ON s.user_id=u.id ORDER BY u.balance DESC LIMIT 20`).all().map(x=>({...x,avatarEmoji:AVATARS[x.avatar%AVATARS.length],cosmetics:cosmeticsPublic(x.id),rank:socialRankPublic(x.id)}));return json(res,200,{rows});
+    }
+    if(url.pathname==='/api/echo/start'&&req.method==='POST'){
+      const u=requireAuth(req,res);if(!u)return;
+      if(!rateLimit('echo:start:'+u.id,12,3600000))return json(res,429,{error:'에코 시작 횟수 제한'});
+      const runId=randomToken(16),key='echo:run:'+u.id,startedAt=now();
+      db.prepare('INSERT INTO game_state(key,value,updated_at) VALUES(?,?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value,updated_at=excluded.updated_at')
+        .run(key,JSON.stringify({runId,startedAt,claimed:false}),startedAt);
+      await db.flush();
+      return json(res,200,{runId,startedAt,tiers:echoReward.TIERS});
+    }
+    if(url.pathname==='/api/echo/finish'&&req.method==='POST'){
+      const u=requireAuth(req,res);if(!u)return;
+      if(!rateLimit('echo:finish:'+u.id,12,3600000))return json(res,429,{error:'에코 정산 횟수 제한'});
+      const b=await readBody(req),score=Number(b.score),runId=String(b.runId||''),time=now();
+      db.exec('BEGIN IMMEDIATE');
+      try{
+        const key='echo:run:'+u.id,entry=db.prepare('SELECT value FROM game_state WHERE key=?').get(key);
+        if(!entry)throw Error('시작된 에코 게임이 없습니다.');
+        const record=JSON.parse(entry.value),elapsed=time-Number(record.startedAt||0);
+        if(record.runId!==runId||record.claimed)throw Error('이미 정산했거나 다른 게임 기록입니다.');
+        if(!echoReward.plausible(score,elapsed))throw Error('게임 시간과 점수 검증에 실패했습니다.');
+        const dayKey='echo:daily:'+u.id+':'+kstDate(),old=db.prepare('SELECT value FROM game_state WHERE key=?').get(dayKey);
+        const count=old?Number(JSON.parse(old.value).count||0):0;
+        if(count>=5)throw Error('오늘의 에코 보상 5회 한도에 도달했습니다.');
+        const amount=BigInt(echoReward.prizeFor(score)),priorUser=db.prepare('SELECT balance,balance_exact,balance_base FROM users WHERE id=?').get(u.id);
+        const prior=exactWallet.read(priorUser),next=prior+amount,mirror=exactWallet.mirror(next);
+        db.prepare('UPDATE users SET balance=?,balance_exact=?,balance_base=? WHERE id=?').run(mirror,String(next),String(mirror),u.id);
+        if(amount>0n)db.prepare('INSERT INTO ledger(user_id,amount,balance_after,amount_exact,balance_after_exact,type,memo,created_at) VALUES(?,?,?,?,?,?,?,?)')
+          .run(u.id,exactWallet.mirror(amount),mirror,String(amount),String(next),'echo_reward','준자에코 점수 '+score+'점 · '+amount+' G 보상',time);
+        db.prepare('INSERT INTO game_state(key,value,updated_at) VALUES(?,?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value,updated_at=excluded.updated_at')
+          .run(key,JSON.stringify({...record,claimed:true,score,prize:String(amount),endedAt:time}),time);
+        db.prepare('INSERT INTO game_state(key,value,updated_at) VALUES(?,?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value,updated_at=excluded.updated_at')
+          .run(dayKey,JSON.stringify({count:count+1}),time);
+        db.exec('COMMIT');await db.flush();pushRefresh();
+        return json(res,200,{prize:String(amount),score,dailyCount:count+1,balance:String(next)});
+      }catch(e){try{db.exec('ROLLBACK')}catch{}return json(res,400,{error:e.message});}
+    }
+    // Fictional stock/coin operator controls, isolated from real securities.
+    // Full admin + named owner authorization. No wallet, holdings or trade mutations.
+    if(url.pathname==='/api/admin/market-control'&&req.method==='GET'){
+      const owner=requireAdmin(req,res);if(!owner)return;
+      if(!owner.jpl_access)return json(res,403,{error:'주식·코인 시세 관제센터는 대표 운영자 전용입니다.'});
+      if(!rateLimit('market-owner-view:'+owner.id,20,60000))return json(res,429,{error:'시장 조회 횟수를 초과했습니다.'});
+      try{
+        const stock=jStocks.status(owner.id),coin=jCoins.status(owner.id);
+        if(stock.changed||coin.changed)await db.flush();
+        return json(res,200,{...ownerMarket.list(),coinCampaign:coin.temporaryAdjustment?.complete?null:coin.temporaryAdjustment});
+      }catch(e){return json(res,400,{error:e.message});}
+    }
+    if(url.pathname==='/api/admin/market-control'&&req.method==='POST'){
+      const owner=requireAdmin(req,res);if(!owner)return;
+      if(!owner.jpl_access)return json(res,403,{error:'주식·코인 시세 조정은 대표 운영자 전용입니다.'});
+      if(!rateLimit('market-owner-write:'+owner.id,8,60000))return json(res,429,{error:'시세 조정 횟수를 초과했습니다. 잠시 후 다시 시도하세요.'});
+      try{
+        const body=await readBody(req,4096);
+        // Final market tick/campaign reconciliation before optimistic quote validation.
+        jStocks.status(owner.id);jCoins.status(owner.id);
+        const result=ownerMarket.apply({
+          actorId:owner.id,type:body.type,symbol:body.symbol,mode:body.mode,
+          deltaPercent:body.deltaPercent,volatilityPct:body.volatilityPct,
+          expectedPrice:body.expectedPrice,durationMinutes:body.durationMinutes,targetEventId:body.targetEventId,requestId:body.requestId
+        });
+        await db.flush();
+        pushRefresh();
+        return json(res,200,{...result,market:ownerMarket.list()});
+      }catch(e){return json(res,e.code==='STALE_MARKET_PRICE'?409:400,{error:e.message});}
+    }
+    // JUNJA PRIVATE MOTOR STUDIO: member's prototype configuration only.
+    // A public visitor receives only an explicitly published design via a
+    // 144-bit random link. It NEVER grants a paid entitlement or game benefit.
+    if(url.pathname==='/api/premium/motor-studio'&&req.method==='GET'){
+      const user=requireAuth(req,res);if(!user)return;
+      if(!rateLimit('motor-studio-get:'+user.id,35,60000))return json(res,429,{error:'디자인 보관함 조회 횟수를 초과했습니다.'});
+      try{return json(res,200,motorDesignStudio.read(user.id));}
+      catch(e){return json(res,e.code==='BAD_USER'?403:400,{error:e.message});}
+    }
+    if(url.pathname==='/api/premium/motor-studio'&&req.method==='POST'){
+      const user=requireAuth(req,res);if(!user)return;
+      if(!rateLimit('motor-studio-save:'+user.id,15,3600000))return json(res,429,{error:'디자인 저장은 시간당 15회까지 가능합니다.'});
+      try{
+        const data=await readBody(req,2048);
+        const result=motorDesignStudio.save({userId:user.id,design:data.design,published:data.published,
+          rotateShare:data.rotateShare===true,expectedVersion:data.expectedVersion,requestId:data.requestId});
+        await db.flush();return json(res,200,result);
+      }catch(e){
+        const code=['STALE_DESIGN','REQUEST_CONFLICT'].includes(e.code)?409:400;
+        return json(res,code,{error:e.message});
+      }
+    }
+    const designShared=url.pathname.match(/^\/api\/premium\/motor-studio\/share\/([A-Za-z0-9_-]{24})$/);
+    if(designShared&&req.method==='GET'){
+      if(!rateLimit('motor-studio-public:'+req.socket.remoteAddress,60,60000))return json(res,429,{error:'공개 디자인 조회 횟수를 초과했습니다.'});
+      try{return json(res,200,motorDesignStudio.shared({token:designShared[1]}));}
+      catch(e){return json(res,404,{error:'현재 공개 중인 디자인을 찾을 수 없습니다.'});}
+    }
+    // Pre-commerce member support. Refund inquiry submission does NOT cancel a PG payment.
+    // All responses remain inside the logged-in member's account or named owner control.
+    if(url.pathname==='/api/support/cases'&&req.method==='GET'){
+      const u=requireAuth(req,res);if(!u)return;
+      if(!rateLimit('support-member-read:'+u.id,24,60000))return json(res,429,{error:'고객센터 조회가 너무 빠릅니다.'});
+      try{return json(res,200,supportCenter.userList(u.id,{limit:30}));}
+      catch(e){return json(res,400,{error:e.message});}
+    }
+    if(url.pathname==='/api/support/cases'&&req.method==='POST'){
+      const u=requireAuth(req,res);if(!u)return;
+      if(!rateLimit('support-member-write:'+u.id,4,3600000))return json(res,429,{error:'문의는 시간당 4회까지만 접수할 수 있습니다.'});
+      try{
+        const b=await readBody(req,4096);
+        const item=supportCenter.create({userId:u.id,category:b.category,subject:b.subject,message:b.message,requestId:b.requestId});
+        await db.flush();return json(res,item.duplicate?200:201,{ok:true,item});
+      }catch(e){return json(res,400,{error:e.message});}
+    }
+    if(url.pathname==='/api/admin/support/cases'&&req.method==='GET'){
+      const owner=requireAdmin(req,res);if(!owner)return;
+      if(!owner.jpl_access)return json(res,403,{error:'고객센터 문의 운영은 대표 운영자 전용입니다.'});
+      if(!rateLimit('support-owner-read:'+owner.id,25,60000))return json(res,429,{error:'고객센터 관리 조회가 너무 빠릅니다.'});
+      try{return json(res,200,supportCenter.adminList({status:url.searchParams.get('status')||'all',limit:80}));}
+      catch(e){return json(res,400,{error:e.message});}
+    }
+    if(url.pathname==='/api/admin/support/cases'&&req.method==='POST'){
+      const owner=requireAdmin(req,res);if(!owner)return;
+      if(!owner.jpl_access)return json(res,403,{error:'문의 상태 변경은 대표 운영자 전용입니다.'});
+      if(!rateLimit('support-owner-update:'+owner.id,20,60000))return json(res,429,{error:'문의 상태 변경 횟수를 초과했습니다.'});
+      try{
+        const b=await readBody(req,4096);
+        const item=supportCenter.update({operatorId:owner.id,id:Number(b.id),status:b.status,adminNote:b.adminNote,expectedVersion:Number(b.expectedVersion),requestId:b.requestId});
+        await db.flush();return json(res,200,{ok:true,item});
+      }catch(e){return json(res,e.code==='STALE_CASE'?409:400,{error:e.message});}
+    }
+    // V10 commercial readiness: operator report only, no checkout endpoints or PG secret data.
+    if(url.pathname==='/api/admin/commerce-readiness'&&req.method==='GET'){
+      const owner=requireAdmin(req,res);if(!owner)return;
+      if(!owner.jpl_access)return json(res,403,{error:'상용화 출시 점검은 대표 운영자 전용입니다.'});
+      if(!rateLimit('commerce-readiness:'+owner.id,12,60000))return json(res,429,{error:'출시 점검 조회 횟수를 초과했습니다.'});
+      try{return json(res,200,commerceReadinessReport());}
+      catch(e){console.error('[COMMERCE READINESS]',e.message);return json(res,500,{error:'출시 점검표를 검증하지 못했습니다. 결제는 계속 비활성화됩니다.'});}
+    }
+    // Collector inventory operator audit: read-only, no credit or stock mutation.
+    if(url.pathname==='/api/admin/royal-inventory'&&req.method==='GET'){
+      const operator=requireAdmin(req,res);if(!operator)return;
+      if(!rateLimit('royal_inventory_audit:'+operator.id,12,60000))return json(res,429,{error:'명품관 재고 점검 요청이 너무 빠릅니다.'});
+      try{return json(res,200,royalEconomy.inventoryAudit());}
+      catch(e){console.error('[ROYAL INVENTORY AUDIT]',e);return json(res,500,{error:'명품관 소유권 점검을 완료하지 못했습니다.'});}
+    }
+    if(url.pathname==='/api/admin/economy'&&req.method==='GET'){
+      const u=requireAdmin(req,res);if(!u)return;
+      if(!rateLimit('economy_admin:'+u.id,15,60000))return json(res,429,{error:'경제 조회 요청이 너무 빠릅니다.'});
+      try{return json(res,200,royalEconomy.dashboard());}
+      catch(e){console.error('[ROYAL ECONOMY]',e);return json(res,500,{error:'경제 통계를 계산하지 못했습니다.'});}
+    }
+    if(url.pathname==='/api/admin/bank-assets'&&req.method==='GET'){
+      const admin=requireAdmin(req,res);if(!admin)return;
+      const id=Number(url.searchParams.get('userId'));
+      if(!Number.isSafeInteger(id)||id<1||!db.prepare('SELECT 1 FROM users WHERE id=?').get(id))return json(res,404,{error:'회원을 찾을 수 없어.'});
+      try{
+       const bank=jBank.status(id),stock=jStocks.status(id),coin=jCoins.status(id);
+       return json(res,200,{bank:{savings:bank.savings,installment:bank.installment,outstanding:bank.outstanding,rank:bank.rank},
+       stock:{marketValue:stock.marketValue},coin:{marketValue:coin.marketValue}});
+      }catch(e){return json(res,400,{error:e.message});}
     }
     if(url.pathname==='/api/admin/users'&&req.method==='GET'){
       const admin=requireAdmin(req,res);if(!admin)return;
@@ -2293,6 +2918,55 @@ const server=http.createServer(async(req,res)=>{
         WHERE (?='' OR u.username LIKE ? OR u.nickname LIKE ?) AND (?=1 OR u.is_archived=0)
         ORDER BY u.is_admin DESC,u.id DESC LIMIT 100`).all(q,like,like,showArchived?1:0).map(x=>({...x,avatarEmoji:AVATARS[x.avatar%AVATARS.length]}));
       return json(res,200,{rows});
+    }
+    // Casino settlement oversight: strictly read-only and only accessible to the named lead operator.
+    // Legacy losing rounds do not store the result number; no missing payout is inferred from debit-only records.
+    // Admin receipt inspection requires operator access and explicit member id; no money-changing operations.
+    if(url.pathname==='/api/admin/casino-receipts'&&req.method==='GET'){
+      const admin=requireAdmin(req,res);if(!admin)return;
+      if(!admin.jpl_access)return json(res,403,{error:'대표 운영자 전용 영수증 조회입니다.'});
+      if(!rateLimit('casino-receipts-admin:'+admin.id,20,60000))return json(res,429,{error:'영수증 조회 제한입니다.'});
+      try{
+        const rawUser=url.searchParams.get('userId');
+        const rawId=url.searchParams.get('receiptId');
+        if(!/^[1-9]\d{0,12}$/.test(rawUser||'')||
+          rawId!==null&&!/^[1-9]\d{0,14}$/.test(rawId))throw new Error('회원 또는 영수증 번호를 올바르게 입력해주세요.');
+        const uid=Number(rawUser);
+        if(!db.prepare('SELECT 1 FROM users WHERE id=?').get(uid))return json(res,404,{error:'회원을 찾을 수 없습니다.'});
+        const report=casinoReceipts.listRoundReceipts(db,{
+          userId:uid,game:url.searchParams.get('game')||'all',
+          receiptId:rawId===null?null:Number(rawId),limit:20
+        });
+        return json(res,200,report);
+      }catch(e){return json(res,400,{error:e.message});}
+    }
+    if(url.pathname==='/api/admin/casino-settlements'&&req.method==='GET'){
+      const admin=requireAdmin(req,res);if(!admin)return;
+      if(!admin.jpl_access)return json(res,403,{error:'카지노 정산 관제센터는 대표 운영자 전용입니다.'});
+      if(!rateLimit('casino-audit:'+admin.id,12,60000))return json(res,429,{error:'정산 원장 조회가 너무 빠릅니다.'});
+      try{
+        const search=String(url.searchParams.get('member')||'').trim().slice(0,32);
+        let userId=null;
+        if(search){
+          if(/^\d{1,12}$/.test(search)){
+            userId=Number(search);
+            if(!Number.isSafeInteger(userId)||userId<1)throw new Error('유효하지 않은 회원 번호입니다.');
+          }else{
+            const found=db.prepare('SELECT id FROM users WHERE nickname=? COLLATE NOCASE OR username=? COLLATE NOCASE LIMIT 1').get(search,search);
+            if(!found)return json(res,404,{error:'일치하는 회원을 찾지 못했습니다.'});
+            userId=Number(found.id);
+          }
+        }
+        const rawLimit=url.searchParams.get('limit')||'40';
+        if(!/^\d{1,2}$/.test(rawLimit))throw new Error('조회 개수가 올바르지 않습니다.');
+        const rawBefore=url.searchParams.get('beforeId');
+        if(rawBefore!==null&&!/^\d{1,15}$/.test(rawBefore))throw new Error('조회 커서가 올바르지 않습니다.');
+        const report=auditCasinoSettlements(db,{
+          userId,game:url.searchParams.get('game')||'all',limit:Number(rawLimit),
+          beforeId:rawBefore===null?null:Number(rawBefore)
+        });
+        return json(res,200,report);
+      }catch(e){return json(res,400,{error:e.message});}
     }
     if(url.pathname==='/api/admin/audit'&&req.method==='GET'){
       const admin=requireAdmin(req,res);if(!admin)return;
@@ -2389,8 +3063,7 @@ const server=http.createServer(async(req,res)=>{
     }
     if(url.pathname==='/api/slot/spin'&&req.method==='POST'){
       const u=requireAuth(req,res);if(!u)return;const b=await readBody(req),royalSlotUnlimited=Number(u.rank?.level||0)>=9;let bet;try{bet=b.useRankFree?1000:(royalSlotUnlimited?walletWager(b.bet,u.balance,1000,1000):gameWager(b.bet,1000,1000000000,1000))}catch(e){return json(res,400,{error:e.message})};
-      const freePlay=consumeRankFreePlay(u.id,'slot',!!b.useRankFree);if(freePlay.free)bet=Number(socialRankPerksForUser(u.id).freeSlotBet||10000000);if(!freePlay.free&&u.balance<bet)return json(res,400,{error:'게임머니가 부족합니다.'});
-      if(!freePlay.free)walletChange(u.id,-bet,'slot_bet',`슬롯 베팅 ${formatMoney(bet)}G`);
+      if(b.useRankFree)bet=Number(socialRankPerksForUser(u.id).freeSlotBet||10000000);
       const slotLuck=0,jackpotBoostPct=slot777BetBoostPct(bet),slotWeights=slotSymbolsForBet(bet);const pick=()=>{const weighted=slotWeights,total=100;let n=(crypto.randomInt(1000000)/1000000)*total;for(const x of weighted){if(n<x.w)return x.s;n-=x.w;}return '🍒';};
       let grid=Array.from({length:3},()=>Array.from({length:3},()=>pick()));
       const slot777EventTriggered=slot777EventActive()&&(crypto.randomInt(1000000)/1000000)<SLOT_777_EVENT_CHANCE;
@@ -2414,21 +3087,21 @@ const server=http.createServer(async(req,res)=>{
       const regularPayout=Math.floor(bet*totalMultiplier);
       const sevenJackpot=winLines.some(w=>!w.scatter&&w.symbols?.[0]==='7️⃣');
       const jJackpot=winLines.some(w=>!w.scatter&&w.symbols?.[0]==='J');
-      let jackpotAward=0,jackpotContribution=0,pool=slotJackpotPool(),jackpotHistoryEntry=null;
-      if(regularPayout>0)walletChange(u.id,regularPayout,'slot_win',`슬롯 당첨 x${totalMultiplier}`);
-      if(sevenJackpot){
-        jackpotAward=pool;if(jackpotAward>0)walletChange(u.id,jackpotAward,'slot_jackpot_pool',`777 누적 JACKPOT ${formatMoney(jackpotAward)}G`);
-        jackpotHistoryEntry=recordSlot777Jackpot(u,{jackpotAward,regularPayout,bet});
-        pool=gameStateSet('slot_jackpot_pool',SLOT_JACKPOT_BASE);
-        if(slot777EventActive())gameStateSet('slot_777_event_active',false);
-      }else{
-        const actualLoss=freePlay.free?0:Math.max(0,bet-regularPayout);jackpotContribution=Math.floor(actualLoss*.13);
-        if(jackpotContribution>0)pool=gameStateSet('slot_jackpot_pool',pool+jackpotContribution);
-      }
-      const payout=regularPayout+jackpotAward,profit=payout-(freePlay.free?0:bet);
-      db.prepare('UPDATE stats SET slot_spins=slot_spins+1, slot_wins=slot_wins+?, slot_profit=slot_profit+? WHERE user_id=?').run(payout>(freePlay.free?0:bet)?1:0,profit,u.id);if(sevenJackpot||slot777EventTriggered)pushRefresh();
+      let settlement;
+      try{
+        settlement=settleSlotRound({db,exactWallet,userId:u.id,bet,multiplier:totalMultiplier,
+          sevenJackpot,eventTriggered:slot777EventTriggered,
+          consumeFree:()=>consumeRankFreePlay(u.id,'slot',!!b.useRankFree),
+          readPool:()=>readSlotJackpotPool(db),writePool:value=>gameStateSet('slot_jackpot_pool',slotPoolOutput(value)),
+          basePool:SLOT_POOL_BASE,isEventActive:slot777EventActive,
+          disableEvent:()=>gameStateSet('slot_777_event_active',false),
+          recordJackpot:args=>recordSlot777Jackpot(u,args),now});
+      }catch(e){console.error('[SLOT ATOMIC ROUND]',e.message);return json(res,400,{error:e.message});}
+      const {freePlay,payout,profit,jackpotAward,contribution:jackpotContribution,
+        pool,history:jackpotHistoryEntry}=settlement;
+      if(sevenJackpot||slot777EventTriggered)pushRefresh();
       const jackpotLine=winLines.find(w=>!w.scatter&&(w.symbols?.[0]==='7️⃣'||w.symbols?.[0]==='J'));
-      return json(res,200,{grid,bet,payout,regularPayout,profit,totalMultiplier,winLines,user:userPublic(u.id),jackpot:!!jackpotLine,jackpotSymbol:jackpotLine?.symbols?.[0]||null,poolJackpot:sevenJackpot,jackpotAward,jackpotContribution,jackpotPool:pool,jackpotBase:SLOT_JACKPOT_BASE,jackpotHistoryEntry,slotLuckPct:slotLuck,jackpotBoostPct,rankFreePlay:freePlay});
+      return json(res,200,{grid,bet,payout,regularPayout,profit,totalMultiplier,winLines,user:userPublic(u.id),jackpot:!!jackpotLine,jackpotSymbol:jackpotLine?.symbols?.[0]||null,poolJackpot:sevenJackpot,jackpotAward:slotPoolOutput(jackpotAward),jackpotContribution:exactWallet.output(jackpotContribution),jackpotPool:pool,jackpotBase:SLOT_JACKPOT_BASE,jackpotHistoryEntry,slotLuckPct:slotLuck,jackpotBoostPct,rankFreePlay:freePlay});
     }
 
     if(url.pathname==='/api/roulette/spin'&&req.method==='POST'){
@@ -2460,7 +3133,7 @@ const server=http.createServer(async(req,res)=>{
     if(url.pathname==='/api/solo/gostop'&&req.method==='GET'){const u=requireAuth(req,res);if(!u)return;return json(res,200,{game:publicGostop(soloGostop.get(u.id)||null)});}
     if(url.pathname==='/api/solo/gostop/play'&&req.method==='POST'){const u=requireAuth(req,res);if(!u)return;const b=await readBody(req);try{const game=b.action?soloGostopSpecial(u.id,String(b.action),Number(b.month)):soloGostopPlay(u.id,String(b.cardId||''),b.choiceId?String(b.choiceId):null);return json(res,200,{game:publicGostop(game),user:userPublic(u.id)});}catch(e){return json(res,409,{error:e.message,restartRequired:e.message==='진행 중인 맞고가 없습니다.'});}}
     if(url.pathname==='/api/solo/gostop/decision'&&req.method==='POST'){const u=requireAuth(req,res);if(!u)return;const b=await readBody(req);try{const game=soloGostopDecision(u.id,b.decision);return json(res,200,{game:publicGostop(game),user:userPublic(u.id)});}catch(e){return json(res,409,{error:e.message,restartRequired:e.message==='진행 중인 맞고가 없습니다.'||e.message.includes('선택할 차례')});}}
-    if(url.pathname==='/api/solo/gostop/reset'&&req.method==='POST'){const u=requireAuth(req,res);if(!u)return;const s=soloGostop.get(u.id);if(s&&s.phase!=='complete'){escrowDelete(`GOSTOP${u.id}`,u.id);walletChange(u.id,-Math.max(0,Number(s.bet||0)),'gostop_forfeit','야심찬 맞고 중도 종료');db.prepare('UPDATE stats SET gostop_games=gostop_games+1 WHERE user_id=?').run(u.id);}soloGostop.delete(u.id);return json(res,200,{ok:true,user:userPublic(u.id)});}
+    if(url.pathname==='/api/solo/gostop/reset'&&req.method==='POST'){const u=requireAuth(req,res);if(!u)return;const s=soloGostop.get(u.id);if(s&&s.phase!=='complete'){db.exec('BEGIN IMMEDIATE');try{casinoCollateral.settle('GOSTOP'+u.id,u.id,matgoMaxLoss(s.bet),0n);db.prepare('UPDATE stats SET gostop_games=gostop_games+1 WHERE user_id=?').run(u.id);db.exec('COMMIT');}catch(e){try{db.exec('ROLLBACK');}catch{}return json(res,409,{error:e.message});}}soloGostop.delete(u.id);return json(res,200,{ok:true,user:userPublic(u.id)});}
 
 
     if(url.pathname==='/api/bigwheel/spin'&&req.method==='POST'){
@@ -2559,6 +3232,7 @@ const server=http.createServer(async(req,res)=>{
     if(url.pathname==='/api/rooms'&&req.method==='POST'){
       const u=requireAuth(req,res);if(!u)return;if(findUserRoom(u.id)||baccaratFindUser(u.id)||treasureRaid.hasUser(u.id)||goldenbell.hasUser(u.id)||omok.hasUser(u.id)||liar.hasUser(u.id)||janggi.hasUser(u.id)||royalCards.hasUser(u.id))return json(res,409,{error:'이미 다른 게임방에 참가 중입니다. 먼저 그 방에서 나와주세요.'});const b=await readBody(req),requested=String(b.game||'holdem'),game=['holdem','yut','seotda','sevenpoker','gostop'].includes(requested)?requested:'holdem';
       const yutMode=game==='yut'&&['individual','2v2','3v3'].includes(b.yutMode)?b.yutMode:'individual';const maxPlayers=(game==='holdem'||game==='sevenpoker')?clampInt(b.maxPlayers,2,6):game==='yut'?(yutMode==='2v2'?4:yutMode==='3v3'?6:clampInt(b.maxPlayers,2,6)):2;const chipGame=game==='holdem'||game==='sevenpoker';let buyIn;try{buyIn=chipGame?Math.floor(Number(u.balance||0)):game==='seotda'?walletWager(b.buyIn,u.balance,5000,1000):game==='gostop'?gameWager(b.buyIn,5000,Number.MAX_SAFE_INTEGER,1000):gameWager(b.buyIn,5000,100000,1000)}catch(e){return json(res,400,{error:e.message})};
+      if(['yut','seotda','gostop'].includes(game)&&buyIn>1000000000000)return json(res,400,{error:'최대 판돈은 1조 G입니다.'});
       if(!Number.isSafeInteger(buyIn)||buyIn<1000)return json(res,400,{error:'포커 테이블 입장에는 최소 1,000G가 필요합니다.'});if(u.balance<buyIn)return json(res,400,{error:'방 참가금보다 보유 게임머니가 적습니다.'});
       const id=makeRoomId();const name=game==='holdem'?`홀덤 테이블 ${id}`:game==='yut'?`윷놀이 방 ${id}`:game==='seotda'?`3장 섯다 듀얼 ${id}`:game==='gostop'?`맞고 대전방 ${id}`:`세븐포커 테이블 ${id}`;walletChange(u.id,-buyIn,`${game}_buyin`,chipGame?`${name} 전액 스택 입장`:`${name} 참가금`);
       const t=now(),sb=game==='holdem'?Math.max(1000,Math.min(50000,Math.floor((buyIn*.002)/1000)*1000||1000)):0;const r={id,name,game,buyIn,maxPlayers,allWallet:chipGame,hostId:u.id,smallBlind:sb,bigBlind:game==='holdem'?sb*2:0,players:[{userId:u.id,nickname:u.nickname,avatar:u.avatar,seat:0,stack:chipGame?buyIn:0,ready:false,joinedAt:t}],createdAt:t,updatedAt:t,version:1,hand:null,seven:null,seotda:null,gostop:null,yut:null,yutMode,dealerSeat:null,reactions:{}};

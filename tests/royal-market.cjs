@@ -1,0 +1,175 @@
+'use strict';
+const assert=require('node:assert/strict');
+const fs=require('node:fs'),path=require('node:path');
+const vm=require('node:vm');
+const {DatabaseSync}=require('node:sqlite');
+const exactWallet=require('../exact-wallet');
+const {ROYAL_ITEMS,createRoyalEconomy}=require('../royal-economy');
+const {createRoyalMarket}=require('../royal-market');
+const native=new DatabaseSync(':memory:');
+const normalize=value=>{
+ if(typeof value==='bigint')return value<=BigInt(Number.MAX_SAFE_INTEGER)&&value>=-BigInt(Number.MAX_SAFE_INTEGER)?Number(value):String(value);
+ if(value&&typeof value==='object'){for(const k of Object.keys(value))value[k]=normalize(value[k]);}return value;
+};
+const db={
+ exec(sql){return native.exec(sql)},
+ prepare(sql){const stmt=native.prepare(sql);stmt.setReadBigInts(true);
+  return {run(...args){return stmt.run(...args)},get(...args){return normalize(stmt.get(...args))},all(...args){return stmt.all(...args).map(normalize)}}}
+};
+db.exec('CREATE TABLE users(id INTEGER PRIMARY KEY,nickname TEXT NOT NULL,balance INTEGER,balance_exact TEXT,balance_base TEXT,is_disabled INTEGER DEFAULT 0);CREATE TABLE user_inventory(user_id INTEGER NOT NULL,item_id TEXT NOT NULL,purchase_price INTEGER,purchased_at INTEGER,PRIMARY KEY(user_id,item_id));CREATE TABLE user_loadout(user_id INTEGER PRIMARY KEY,character TEXT,costume TEXT,frame TEXT,title TEXT,pet TEXT);CREATE TABLE game_state(key TEXT PRIMARY KEY,value TEXT,updated_at INTEGER);CREATE TABLE ledger(id INTEGER PRIMARY KEY,user_id INTEGER,amount INTEGER,balance_after INTEGER,amount_exact TEXT,balance_after_exact TEXT,type TEXT,memo TEXT,created_at INTEGER);');
+const G=10n**16n,initial=10000n*G;
+
+let clock=Date.parse('2026-11-03T22:00:00+09:00');const now=()=>clock;
+for(let id=1;id<=4;id++)db.prepare('INSERT INTO users(id,nickname,balance,balance_exact,balance_base) VALUES(?,?,?,?,?)')
+ .run(id,'member'+id,9000000000000000000n,String(initial),'9000000000000000000');
+const economy=createRoyalEconomy({db,exactWallet,now,getAssets:()=>({})});
+const market=createRoyalMarket({db,exactWallet,now,items:ROYAL_ITEMS});
+economy.setMarket(market);
+const bags=ROYAL_ITEMS.filter(item=>item.category==='bag');
+assert.equal(bags.length,6,'royal boutique lists six handbags');
+assert.equal(new Set(bags.map(x=>x.id)).size,6,'each bag has a stable unique item ID');
+
+const imageNames=['hermes-birkin','hermes-kelly','hermes-constance','chanel-classic','chanel-255','chanel-boy'];
+const frame={window:{}};
+vm.runInNewContext(fs.readFileSync(path.join(__dirname,'..','public','royal-product-visual.js'),'utf8'),frame);
+const picture=frame.window.JunjaRoyalObjects;
+assert(picture,'royal product visual helper is exported');
+for(const piece of bags){
+ const target=piece.id.slice('bag_royalboutique_'.length).replaceAll('_','-');
+ assert.equal(picture.shot(piece).src,'/art/royal/handbags/'+target+'.webp','matching high-res catalogue photo '+target);
+ const auctionCard={category:'bag',id:'random-auction-lot-id',itemId:piece.id,name:piece.name};
+ assert.equal(picture.shot(auctionCard).src,'/art/royal/handbags/'+target+'.webp','matching auction photo '+target);
+ assert.match(picture.render(auctionCard,piece.name),/data-art-item=/);
+ assert(picture.render(auctionCard,piece.name).includes('.webp'),'auction card must use photographic image');
+}
+
+for(const name of imageNames){
+ const asset=path.join(__dirname,'..','public','art','royal','handbags',name+'.webp');
+ assert(fs.existsSync(asset),'matching handbag image exists: '+name);
+ const bytes=fs.readFileSync(asset);
+ assert(bytes.length>30000&&bytes.length<220000,'image should be detailed but mobile optimized: '+name);
+ assert.equal(bytes.toString('ascii',0,4),'RIFF','WebP container for '+name);
+ assert.equal(bytes.toString('ascii',8,12),'WEBP','WebP codec for '+name);
+}
+const boutiqueSource=fs.readFileSync(path.join(__dirname,'..','public','royal-economy-ui.js'),'utf8');
+const gallerySource=fs.readFileSync(path.join(__dirname,'..','public','royal-gallery.js'),'utf8');
+assert(boutiqueSource.includes("id:'bag',label:'👜 명품 가방'")&&boutiqueSource.includes('THE SEVEN ROYAL HALLS'),'handbag shop wing mounted');
+assert(gallerySource.includes("bag:'couture'"),'new collection is visible in owner museum');
+
+for(const piece of bags){
+ assert(['hermes','chanel'].includes(piece.brand));
+ assert(BigInt(piece.price)>=G);
+ assert(piece.stock>=1&&piece.stock<=2);
+ assert.equal(piece.displayOnly,true,'bag collectible cannot grant casino perks');
+}
+const birkin=bags.find(x=>x.model==='Birkin 30');
+const firstBagCash=exactWallet.read(db.prepare('SELECT balance,balance_exact,balance_base FROM users WHERE id=?').get(4));
+economy.buy(4,birkin.id);
+const acquiredBag=economy.catalog(4).items.find(x=>x.id===birkin.id);
+assert.equal(acquiredBag.owned,true);
+assert.equal(acquiredBag.remaining,0,'unique limited edition immediately sells out');
+assert.equal(acquiredBag.soldOut,false,'existing owner can inspect a sold-out collectible');
+assert.match(acquiredBag.certificate.serial,/^JLC-[0-9A-F]{16}$/);
+assert.equal(economy.gallery(4).items.find(x=>x.id===birkin.id).category,'bag');
+assert.equal(economy.collector(4).rooms.find(x=>x.id==='couture').owned,1);
+assert.throws(()=>economy.buy(2,birkin.id),/재고/,'other collector cannot buy sold-out bag');
+assert.equal(exactWallet.read(db.prepare('SELECT balance,balance_exact,balance_base FROM users WHERE id=?').get(4)),firstBagCash-BigInt(birkin.price));
+const bagSell=market.bankSell(4,birkin.id);
+assert.equal(bagSell.received,String(BigInt(birkin.price)*75n/100n));
+assert.equal(economy.catalog(4).items.find(x=>x.id===birkin.id).remaining,1);
+
+
+const cash=id=>exactWallet.read(db.prepare('SELECT balance,balance_exact,balance_base FROM users WHERE id=?').get(id));
+const owned=(id,item)=>db.prepare('SELECT COUNT(*) AS n FROM user_inventory WHERE user_id=? AND item_id=?').get(id,item).n;
+const jewel=ROYAL_ITEMS.find(x=>x.id==='jewel_royalboutique_pear_solitaire');
+assert(jewel);
+economy.buy(1,jewel.id);
+const first=economy.catalog(1).items.find(x=>x.id===jewel.id);
+assert.equal(first.owned,true);
+assert.match(first.certificate.serial,/^JLC-[0-9A-F]{16}$/);
+assert.equal(first.certificate.currentOwner,'member1');
+assert.equal(market.bankOffer(jewel.id),String(BigInt(jewel.price)*75n/100n));
+const sellerBefore=cash(1),bidder2Before=cash(2),bidder3Before=cash(3);
+const lot=market.list(1,jewel.id,10n*G);
+assert.equal(lot.status,'OPEN');
+assert.equal(lot.serial,first.certificate.serial);
+assert.throws(()=>market.list(1,jewel.id,10n*G),/이미 경매/);
+assert.throws(()=>market.list(2,jewel.id,10n*G),/소장/);
+assert.throws(()=>market.bankSell(1,jewel.id),/경매 진행/);
+assert.throws(()=>market.bid(1,lot.id,10n*G),/본인/);
+assert.throws(()=>market.bid(2,lot.id,9n*G),/입찰 금액/);
+market.bid(2,lot.id,10n*G);
+assert.equal(cash(2),bidder2Before-10n*G,'first escrow debited immediately');
+assert.throws(()=>market.cancel(1,lot.id),/입찰/);
+assert.throws(()=>market.bid(2,lot.id,11n*G),/최고 입찰자/);
+market.bid(3,lot.id,11n*G);
+assert.equal(cash(2),bidder2Before,'outbid instantly refunds prior escrow');
+assert.equal(cash(3),bidder3Before-11n*G,'new highest bid remains in escrow');
+assert.equal(market.market(1).active[0].bidderName,'member3');
+assert.equal(market.market(1).owned[0].listed,true);
+clock+=24*60*60*1000+1;
+assert.equal(market.settleExpired(),1,'expired auction settles exactly once');
+assert.equal(market.settleExpired(),0,'repeated settlement cannot duplicate money');
+assert.equal(cash(1),sellerBefore+(11n*G*92n/100n),'seller gets 92% and fee is burned');
+assert.equal(cash(3),bidder3Before-11n*G,'winner pays only held bid, no second charge');
+assert.equal(owned(1,jewel.id),0);
+assert.equal(owned(3,jewel.id),1);
+assert.equal(market.market(1).history[0].status,'SOLD');
+assert.equal(economy.gallery(1).items.length,0);
+const transferred=economy.gallery(3).items.find(x=>x.id===jewel.id);
+assert(transferred);
+assert.equal(transferred.certificate.serial,first.certificate.serial,'unique certificate persists across owners');
+assert.equal(transferred.certificate.originalOwner,'member1');
+assert.equal(transferred.certificate.currentOwner,'member3');
+assert.equal(transferred.certificate.transfers,1);
+assert.equal(transferred.certificate.history[1].type,'AUCTION_TRANSFER');
+assert.throws(()=>market.bid(2,lot.id,12n*G),/진행 중인 경매/);
+assert.throws(()=>market.bankSell(1,jewel.id),/소장/);
+const bankBefore=cash(3),bank=market.bankSell(3,jewel.id);
+assert.equal(bank.received,String(BigInt(jewel.price)*75n/100n));
+assert.equal(cash(3),bankBefore+BigInt(bank.received));
+assert.equal(owned(3,jewel.id),0);
+assert.equal(economy.gallery(3).items.length,0);
+assert.equal(JSON.parse(db.prepare('SELECT value FROM game_state WHERE key=?').get('royal:certificate:serial:'+first.certificate.serial).value).status,'BANK_REDEEMED');
+assert.throws(()=>market.bankSell(3,jewel.id),/소장/,'bank buyback once only');
+const originalSerial=first.certificate.serial;
+// A collector can rebuy a bank-redeemed edition even when the test clock
+// has not advanced. It must never resurrect the old redeemed certificate.
+economy.buy(3,jewel.id);
+const repurchased=economy.catalog(3).items.find(x=>x.id===jewel.id);
+assert.equal(repurchased.owned,true);
+assert(repurchased.certificate);
+assert.notEqual(repurchased.certificate.serial,originalSerial,'reacquisition must mint a fresh serial');
+assert.equal(repurchased.certificate.currentOwner,'member3');
+assert.equal(repurchased.certificate.history.length,1,'fresh purchase starts new provenance');
+assert.equal(JSON.parse(db.prepare('SELECT value FROM game_state WHERE key=?').get('royal:certificate:serial:'+originalSerial).value).status,'BANK_REDEEMED');
+const nextBank=market.bankSell(3,jewel.id);
+assert.equal(nextBank.serial,repurchased.certificate.serial,'second redemption uses new certificate');
+
+const other=ROYAL_ITEMS.find(x=>x.id==='jewel_royalboutique_emerald_drops');
+economy.buy(1,other.id);
+const free=market.list(1,other.id,1n*G);
+assert.equal(market.cancel(1,free.id).lot.status,'CANCELLED');
+assert.equal(owned(1,other.id),1,'cancellation retains ownership');
+market.list(1,other.id,1n*G);
+clock+=24*60*60*1000+1;
+assert.equal(market.settleExpired(),1);
+assert.equal(market.market(1).history[0].status,'EXPIRED');
+assert.equal(owned(1,other.id),1,'no-bid expiration retains ownership');
+assert.equal(market.market(1).active.length,0);
+assert.equal(market.market(1).owned[0].certificate.status,'ACTIVE');
+assert.equal(market.market(1).owned[0].certificate.currentOwner,'member1');
+const publicCertificate=JSON.stringify(economy.gallery(1).items[0].certificate);
+assert(!publicCertificate.includes('currentOwnerId')&&!publicCertificate.includes('originalOwnerId'));
+// Operator reconciliation remains read-only and flags impossible stock/cert states.
+const audit=economy.inventoryAudit();
+assert.equal(audit.readOnly,true);
+assert.equal(audit.healthy,true);
+assert(audit.items.some(x=>x.id===other.id&&x.sold===1));
+const corruptedKey='royal:certificate:holder:1:'+other.id;
+db.prepare('UPDATE game_state SET value=? WHERE key=?').run(JSON.stringify('JLC-DEADBEEFDEADBEEF'),corruptedKey);
+const broken=economy.inventoryAudit();
+assert.equal(broken.healthy,false);
+assert(broken.issues.some(x=>x.type==='CERTIFICATE_MISMATCH'&&x.itemId===other.id));
+assert.equal(owned(1,other.id),1,'audit must not repair or mutate inventory');
+console.log('ROYAL_MARKET_OK: exact escrow, outbid refunds, sole settlement, bank redemption, stable certificates, provenance and expiry');

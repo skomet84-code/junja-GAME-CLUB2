@@ -11,7 +11,7 @@
 /* v324 mobile status button reliability */
 #rankBtn{position:relative!important;z-index:80!important;pointer-events:auto!important;touch-action:manipulation!important;cursor:pointer!important}
 #rankBtn *{pointer-events:none!important}
-@media(max-width:600px){#rankBtn{min-width:58px!important;min-height:58px!important;border-radius:0 0 18px 18px!important;padding:7px 10px!important;background:linear-gradient(180deg,#8b651d,#3a2508)!important;border-color:#d9a83e!important;color:#ffe9a5!important;box-shadow:0 5px 16px #0008,inset 0 1px #fff4!important}}
+/* The legacy 58px mobile tab was removed. The shared mobile-header.css sets uniform navigation size. */
 
 
 /* v2.8.23 GOD JUNJA · absolute top rank */

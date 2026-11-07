@@ -1,0 +1,32 @@
+name: IPO Opening Quote and Sovereign Detail Regression
+on:
+  pull_request:
+    paths:
+      - 'j-stock-core.js'
+      - 'public/j-stock.js'
+      - 'public/j-stock.css'
+      - 'public/index.html'
+      - 'public/premium-sovereign-mesh.js'
+      - 'public/premium-sovereign*'
+      - 'tests/j-stock*.cjs'
+      - 'tests/premium-sovereign-3d.cjs'
+      - '.github/workflows/ipo-opening-premium-detail.yml'
+  workflow_dispatch:
+jobs:
+  quote-and-geometry:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Source and quote validation
+        run: |
+          node --check j-stock-core.js
+          node --check public/j-stock.js
+          node --check public/premium-sovereign-mesh.js
+          node tests/j-stock.cjs
+          node tests/j-stock-ipo-opening.cjs
+          node tests/premium-sovereign-3d.cjs

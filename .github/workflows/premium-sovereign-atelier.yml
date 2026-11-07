@@ -1,0 +1,46 @@
+name: Sovereign Licensed GLB Atelier
+on:
+  pull_request:
+    paths:
+      - 'public/premium-sovereign-atelier*'
+      - 'public/premium-sovereign-lab.html'
+      - 'scripts/prepare-sovereign-atelier.cjs'
+      - 'tests/premium-sovereign-atelier*'
+      - 'docs/SOVEREIGN_ATELIER_CC0_ASSET.md'
+      - 'package.json'
+      - 'Dockerfile'
+      - '.github/workflows/premium-sovereign-atelier.yml'
+  workflow_dispatch:
+jobs:
+  asset-provenance-and-browsers:
+    runs-on: ubuntu-latest
+    # Official image includes pinned Chromium/WebKit and native dependencies;
+    # avoid variable Ubuntu apt installs that can stall real-GLB validation.
+    container:
+      image: mcr.microsoft.com/playwright:v1.64.1-noble
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install pinned Three.js and browser QA
+        run: |
+          npm install --no-audit --no-fund --ignore-scripts
+          npm install --no-save --no-package-lock --ignore-scripts --no-audit --no-fund playwright@1.64.1
+      - name: Copy local runtime and fetch exact CC0 licensed model
+        run: npm run build:premium-atelier
+      - name: Inspect GLB, provenance, license, and absence of checkout
+        run: |
+          node --input-type=module --check < public/premium-sovereign-atelier.js
+          npm run test:premium-atelier
+      - name: Test genuine GLTFLoader on Chromium and WebKit, mobile and desktop
+        run: node tests/premium-sovereign-atelier-browser.mjs
+      - name: Retain actual 3D phone screenshots for visual QA
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: licensed-glb-mobile-screens
+          path: /tmp/junja-atelier-*.png
+          if-no-files-found: ignore

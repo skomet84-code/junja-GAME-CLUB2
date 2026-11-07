@@ -1,0 +1,556 @@
+/* JUNJA ROYAL BOUTIQUE + administrator economy dashboard */
+#royalBoutiqueRoot{margin:14px 0 24px;color:#f8f2df}
+.jre-hero{display:flex;justify-content:space-between;align-items:center;gap:20px;min-height:190px;padding:26px 24px;border:1px solid #b99c4a;border-radius:20px;background:radial-gradient(circle at 85% 18%,#874ab377,transparent 48%),linear-gradient(118deg,#161023,#302238 58%,#1b1724);box-shadow:0 14px 35px #130b1b66}
+.jre-hero small,.jre-economy-head small{font-size:10px;letter-spacing:.19em;color:#dfba60}
+.jre-hero h2,.jre-economy-head h2{font-size:clamp(23px,4vw,34px);line-height:1.18;margin:8px 0 10px;color:#f7d47d}
+.jre-hero p{font-size:14px;max-width:620px;line-height:1.6;margin:0 0 10px;color:#f4ebf9}
+.jre-hero em{display:inline-block;font-size:11px;font-style:normal;color:#d8c9ed}
+.jre-emblem{font-size:100px;color:#d7bc70;filter:drop-shadow(0 0 22px #bd7cff);line-height:1}
+.jre-topline{margin:22px 0 12px;display:flex;justify-content:space-between;gap:12px;align-items:center}
+.jre-topline strong{font-size:15px;letter-spacing:.1em;color:#dbba66}
+.jre-topline span{font-size:12px;color:#b6a9c0}
+.jre-products{display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:12px}
+.jre-product{min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:9px;padding:18px 16px;background:linear-gradient(150deg,#231b30,#15151f);border:1px solid #85704990;border-radius:17px;box-shadow:0 5px 18px #05040b77}
+.jre-product.jre-limited{background:radial-gradient(circle at 15% 15%,#67366c80,transparent 65%),linear-gradient(140deg,#302235,#171421);border-color:#eac16b}
+.jre-product.jre-owned{border-color:#78a598}
+.jre-item-icon{display:grid;place-items:center;width:65px;height:65px;border-radius:16px;background:radial-gradient(circle at 40% 20%,#cba4fa66,transparent 90%),#352642;border:1px solid #ba9356;font-size:34px}
+.jre-product-copy{flex:1}
+.jre-rarity{font-size:10px;font-weight:700;letter-spacing:.13em;color:#c9a665}
+.jre-product h3{font-size:17px;margin:5px 0;color:#fff4d8}
+.jre-product p{font-size:12px;line-height:1.5;color:#d2c5da;margin:0}
+.jre-product .jre-price{font-size:20px;word-break:break-word;color:#f8d688}
+.jre-product .jre-inscription,.jre-stock{font-size:11px;color:#d6bafa}
+.jre-product button{cursor:pointer;border:1px solid #f6d286;color:#251b28;background:linear-gradient(135deg,#fff0b5,#ce9949);border-radius:10px;min-height:42px;width:100%;font-weight:850}
+.jre-product button:disabled{cursor:default;color:#c7bfcf;background:#353042;border-color:#62536a}
+.jre-leaderboard{margin-top:20px;padding:22px;border:1px solid #9b7b4b90;border-radius:16px;background:linear-gradient(145deg,#251d35,#1a1624)}
+.jre-leaderboard small{color:#eac876;letter-spacing:.1em}
+.jre-leaderboard h3{color:#ffefc2;margin:4px 0}
+.jre-leaderboard p{font-size:12px;color:#b2a4be}
+.jre-ranks{display:grid;gap:8px;margin-top:12px}
+.jre-ranks>div{display:grid;grid-template-columns:45px 1fr auto;align-items:center;gap:10px;padding:9px 12px;border-radius:8px;background:#ffffff0e}
+.jre-ranks b{color:#ffde88}.jre-ranks strong{color:#f1d5a2}
+#economyCenterRoot{color:#f4ebfa;margin:20px 0}
+.jre-economy-head{padding:20px;border-radius:15px;border:1px solid #997cb9;background:linear-gradient(120deg,#231830,#36203c);display:flex;justify-content:space-between;gap:12px;align-items:center}
+.jre-economy-head p{margin:0;font-size:12px;color:#c9b2d5}
+.jre-economy-head button{border:1px solid #c69d63;background:#49385b;color:#ffe3a0;padding:11px 12px;border-radius:9px;cursor:pointer}
+.jre-economy-sub{font-size:16px;color:#e6c984;margin:18px 0 10px}
+.jre-economy-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px}
+.jre-econ-stat{border:1px solid #ffffff27;border-radius:12px;background:linear-gradient(145deg,#272331,#1e1d29);padding:13px;min-width:0}
+.jre-econ-stat small{display:block;color:#bdacca;font-size:12px;margin-bottom:7px}
+.jre-econ-stat b{display:block;font-size:clamp(13px,2.3vw,17px);color:#f9e7b2;word-break:break-all}
+.jre-econ-note{font-size:12px;line-height:1.6;color:#d1b9da;margin:15px 0;padding:10px;border-left:3px solid #b98d5b;background:#4a345433}
+.jre-econ-rank{display:grid;gap:6px}
+.jre-econ-rank>div{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:9px 12px;background:#30263b;border-radius:8px}
+.jre-econ-rank span{color:#f7e1b7;font-size:13px}
+.jre-econ-rank b{color:#fff;font-size:13px;word-break:break-all}
+.jre-error{border:1px solid #a97b7b;border-radius:12px;padding:20px;color:#fbcaca}
+.styled-avatar.frame-royalboutique_royal{box-shadow:0 0 0 3px #f0bf61,0 0 13px #c9a0fe!important;border-radius:50%}
+.styled-avatar.frame-royalboutique_aura{box-shadow:0 0 0 3px #e4bc76,0 0 22px 9px #e1a04275!important;border-radius:50%}
+.styled-avatar.frame-royalboutique_regalia{box-shadow:0 0 0 4px #a681d4,0 0 18px #f4d183!important;border-radius:50%}
+@media(max-width:600px){.jre-hero{padding:18px 15px;min-height:155px}.jre-emblem{font-size:57px}.jre-products{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.jre-product{padding:13px 10px}.jre-item-icon{width:50px;height:50px;font-size:26px}.jre-product h3{font-size:14px}.jre-product .jre-price{font-size:16px}.jre-product-copy p{font-size:11px}.jre-economy-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.jre-economy-head{padding:13px}.jre-economy-head h2{font-size:21px}}
+
+
+/* MAISON JUNJA · ROYAL PALACE — premium showroom replacement */
+#view-shop{--jrp-gold:#f0d491;--jrp-soft:#e5d7bb;--jrp-purple:#b69ada;--jrp-dark:#130f1e}
+#view-shop.palace-mode #shopContent{display:none}
+#view-shop.store-mode #royalBoutiqueRoot{display:none}
+.jrp-wing-nav{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:10px;margin:0 0 17px;background:#17121e;border:1px solid #8a6c4780;border-radius:16px}
+.jrp-wing-nav button{min-height:59px;background:transparent;border:1px solid transparent;border-radius:12px;color:#b5a3bd;font-size:14px;letter-spacing:.05em;font-weight:750;cursor:pointer}
+.jrp-wing-nav button small{display:block;margin-bottom:5px;font-size:9px;letter-spacing:.21em;font-weight:500;color:#b89a77}
+.jrp-wing-nav button.active{color:#2a2025;background:linear-gradient(115deg,#f9ebbd,#c79448 57%,#fce8b0);box-shadow:0 4px 22px #dba45533}
+.jrp-wing-nav button.active small{color:#60492e}
+#royalBoutiqueRoot{color:#fbf3e8;margin-top:0;background:radial-gradient(circle at 66% 23%,#4e2f5940,transparent 55%)}
+.jrp-opening{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:15px 17px;background:#18111f;border:1px solid #98713f7a;border-bottom:0;border-radius:18px 18px 0 0;font:600 11px Georgia,serif;letter-spacing:.25em;color:#eacb82}
+.jrp-opening span:last-child{font:500 10px sans-serif;letter-spacing:.12em;color:#bba5cf;text-align:right}
+.jrp-featured{position:relative;display:grid;grid-template-columns:1.05fr .95fr;min-height:460px;overflow:hidden;background:radial-gradient(circle at 78% 44%,#73539444 0,#2c1b3755 36%,transparent 66%),linear-gradient(130deg,#16101c 0%,#251a2d 55%,#151019 100%);border:1px solid #a77a48;border-radius:0 0 20px 20px;box-shadow:inset 0 0 0 5px #ffffff07,0 20px 45px #08020d75}
+.jrp-featured:before{content:'';position:absolute;inset:14px;border:1px solid #cda56a45;pointer-events:none;border-radius:12px;z-index:3}
+.jrp-featured:after{content:'';position:absolute;top:0;bottom:0;left:50%;width:1px;background:linear-gradient(transparent,#e8c58860,transparent);pointer-events:none}
+.jrp-featured-copy{position:relative;z-index:4;display:flex;align-items:flex-start;flex-direction:column;padding:45px 24px 42px clamp(25px,4vw,60px)}
+.jrp-label{display:flex;align-items:center;gap:9px;color:#f7df9e;font-size:10px;font-weight:700;letter-spacing:.2em}
+.jrp-label i{width:29px;height:1px;background:#e7b769}
+.jrp-serif{font:italic 17px Georgia,serif;color:#bba5ca;letter-spacing:.09em;margin:23px 0 8px}
+.jrp-featured-copy h2{margin:0;font-size:clamp(30px,4vw,52px);letter-spacing:-.065em;font-weight:800;line-height:1.12;color:#fff8e8;text-shadow:0 2px 15px #05020d}
+.jrp-featured-copy h2 em{font-style:normal;background:linear-gradient(110deg,#fff8dc,#e4b96a,#fbdea0);color:transparent;background-clip:text;-webkit-background-clip:text}
+.jrp-intro{max-width:470px;margin:18px 0 0;font-size:13px;line-height:1.8;color:#dacdde}
+.jrp-featured-divider{width:100%;max-width:420px;height:1px;margin:25px 0 17px;background:linear-gradient(90deg,#ce9d5e8c,transparent)}
+.jrp-featured-index{font:600 10px Georgia,serif;color:#c7ad8a;letter-spacing:.18em}
+.jrp-featured-copy h3{font-size:clamp(19px,2.5vw,25px);margin:9px 0 7px;color:#f7e6be}
+.jrp-featured-desc{margin:0;color:#c6b7d2;font-size:12px;line-height:1.6}
+.jrp-featured-pills{display:flex;gap:7px;flex-wrap:wrap;margin:13px 0 17px}
+.jrp-rare-pill,.jrp-outline-pill{display:inline-block;border:1px solid #e8c98d75;border-radius:999px;padding:6px 10px;font-size:10px;letter-spacing:.03em;color:#ebd59c;background:#a9863425}
+.jrp-outline-pill{border-color:#b598bb60;color:#cfc0d8;background:#83668b13}
+.jrp-featured-foot{display:flex;align-items:flex-end;justify-content:space-between;width:100%;gap:14px;margin-top:auto}
+.jrp-featured-foot small{display:block;color:#a99ab6;font:500 10px Georgia,serif;letter-spacing:.16em;margin-bottom:8px}
+.jrp-featured-foot strong{display:block;color:#f5d68f;font-size:clamp(17px,2.4vw,26px);white-space:nowrap}
+.jrp-featured-foot button{border:1px solid #ffe3a5;min-height:48px;padding:9px 16px;border-radius:10px;background:linear-gradient(135deg,#fff4cc,#c99b58 55%,#f8db9b);color:#281e26;font-weight:850;white-space:nowrap;cursor:pointer}
+.jrp-featured-foot button:disabled{background:#635763;color:#e4dbdf;border-color:#a695a0;cursor:default}
+.jrp-featured-art{position:relative;min-width:0;overflow:hidden;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:30px 18px}
+.jrp-art-arch{position:relative;width:min(100%,480px);height:380px;display:grid;place-items:center;border-radius:50% 50% 8px 8px;background:radial-gradient(circle at 50% 48%,#e1af5033,transparent 42%),repeating-linear-gradient(90deg,#a89cab05 0 2px,transparent 2px 27px);border:1px solid #eac77b55;box-shadow:inset 0 0 0 10px #cfaa6b11,inset 0 0 0 12px #fbd8a534,0 0 60px #7048982c}
+.jrp-art-aura{position:absolute;inset:8%;border-radius:100%;background:radial-gradient(circle,#cf9c5e26 0%,#aa69c918 41%,transparent 70%);filter:blur(6px)}
+.jrp-art-arch img{position:relative;z-index:2;width:88%;height:92%;object-fit:contain;filter:drop-shadow(0 24px 17px #0e091ab3);animation:jrp-hover 5s ease-in-out infinite}
+.jrp-stage-plinth{position:absolute;z-index:1;bottom:11px;height:27px;width:63%;border-radius:50%;border:2px solid #eac67991;box-shadow:0 0 25px #d2a45f80}
+.jrp-art-caption{position:relative;display:flex;align-items:center;gap:12px;font:600 10px Georgia,serif;letter-spacing:.18em;color:#ccb783;margin-top:12px}
+.jrp-art-caption b{color:#f9e4b5}.jrp-art-caption small{color:#91829b}
+.jrp-promises{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;margin-top:11px;background:#92734f7a;padding:1px;border:1px solid #8b683c66;border-radius:11px;overflow:hidden}
+.jrp-promises span{text-align:center;background:#211926;padding:14px 7px;color:#e6d3b5;font-size:12px}.jrp-promises b{color:#ffdb91;letter-spacing:.08em}
+.jrp-gallery-head{margin:45px 0 20px;display:flex;gap:15px;align-items:flex-end;justify-content:space-between}
+.jrp-gallery-head small,.jrp-social-heading small{font:700 11px Georgia,serif;color:#e0bd7f;letter-spacing:.18em}
+.jrp-gallery-head h2,.jrp-social-heading h2{font-size:clamp(23px,3vw,29px);color:#f4e1b6;margin:10px 0 7px}
+.jrp-gallery-head p,.jrp-social-heading p{color:#c6b7ce;font-size:12px;margin:0}
+.jrp-owned-toggle{white-space:nowrap;padding:11px 14px;background:#251b2e;color:#f0d3a2;border:1px solid #ab8d60;border-radius:8px;cursor:pointer}
+.jrp-owned-toggle.selected{background:#cda05b;color:#1b1422}
+.jrp-filters{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 17px}
+.jrp-filters button{font-size:12px;padding:10px 15px;border:1px solid #765b79;border-radius:999px;background:#291e31;color:#cfbed7;cursor:pointer}
+.jrp-filters button.selected{border-color:#dcb370;color:#2a212b;background:linear-gradient(115deg,#fff0be,#d0a45f);font-weight:800}
+.jrp-gallery{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:15px}
+.jrp-tile{position:relative;overflow:hidden;min-width:0;border-radius:17px;border:1px solid #9973478c;background:linear-gradient(150deg,#2a202c,#17121e);box-shadow:0 10px 25px #09051260;transition:transform .25s,border-color .25s,box-shadow .25s}
+.jrp-tile:hover,.jrp-tile.selected{transform:translateY(-3px);border-color:#e6c27c;box-shadow:0 10px 30px #bf9b4529}
+.jrp-tile.limited{border-color:#d9b678}
+.jrp-tile.limited:before{content:'✦ LIMITED';position:absolute;z-index:3;right:0;top:0;background:linear-gradient(90deg,#e9bf7f,#f6e7b7);color:#322532;font:800 9px sans-serif;padding:7px 9px;letter-spacing:.06em;border-radius:0 0 0 8px}
+.jrp-tile-preview{cursor:pointer;width:100%;display:block;position:relative;border:0;background:radial-gradient(circle at 50% 35%,#ad7cb147,transparent 55%),linear-gradient(#31273c,#1a1522);padding:9px;color:#bca8c8}
+.jrp-tile-art{height:210px;display:grid;place-items:center;border-radius:9px;border:1px solid #cfa56333;overflow:hidden}
+.jrp-tile-art img{width:95%;height:95%;object-fit:contain;transition:transform .25s;filter:drop-shadow(0 9px 14px #06050e70)}
+.jrp-tile:hover img{transform:scale(1.06)}
+.jrp-tile-index{display:block;text-align:left;font:600 9px Georgia,serif;letter-spacing:.17em;color:#dcbf83;padding:10px 4px 3px}
+.jrp-tile-meta{padding:8px 14px 12px;min-height:101px;display:flex;gap:10px;flex-direction:column;justify-content:space-between}
+.jrp-tile-meta small{color:#b79e75;letter-spacing:.1em;font-size:9px}
+.jrp-tile-meta h3{margin:6px 0 0;font-size:16px;color:#fff0cd}
+.jrp-tile-meta b{font-size:17px;color:#e9c682}
+.jrp-tile-actions{display:grid;grid-template-columns:1fr 1.4fr;gap:6px;padding:0 12px 14px}
+.jrp-tile-actions button{min-height:40px;border:1px solid #967f8e;border-radius:7px;background:#382f3e;color:#f0d8de;font-size:11px;font-weight:700;cursor:pointer}
+.jrp-tile-actions button:last-child{color:#2b2229;background:linear-gradient(140deg,#f7e6ae,#c69652);border-color:#e2c17f}
+.jrp-tile-actions button:disabled{background:#4b434e;color:#cec6ce;border-color:#6f646f;cursor:default}
+.jrp-gallery-empty{padding:24px;border-radius:12px;border:1px solid #785e84;color:#d6bedf}
+.jrp-social{margin-top:49px;padding:28px 25px;border-radius:19px;border:1px solid #9b7851;background:radial-gradient(circle at 15% 0%,#72507a35,transparent 60%),linear-gradient(160deg,#221a2b,#17121d)}
+.jrp-social-columns{display:grid;grid-template-columns:1fr 1fr;gap:22px;margin-top:21px}
+.jrp-rank,.jrp-news{padding:16px;background:#120e1b7c;border:1px solid #a882535e;border-radius:12px;min-width:0}
+.jrp-rank h3,.jrp-news h3{margin:0 0 14px;color:#e9c584;font:700 12px Georgia,serif;letter-spacing:.09em}
+.jrp-rank-row{display:flex;justify-content:space-between;gap:8px;align-items:center;padding:8px 0;border-bottom:1px solid #e9cfa623;font-size:12px}
+.jrp-rank-row em{color:#c4a46c;font:italic 13px Georgia,serif}
+.jrp-rank-row span{flex:1;color:#f1e5ea}
+.jrp-rank-row b{color:#d7b77f;font-size:12px;word-break:break-all;text-align:right}
+.jrp-news-row{display:flex;gap:6px;flex-wrap:wrap;align-items:center;border-bottom:1px solid #e9cfa623;padding:8px 0;color:#d4bedc;font-size:12px}
+.jrp-news-row b{color:#fff0c9}.jrp-news-row small{margin-left:auto;font-size:10px;color:#a78da0}
+.jrp-rank>p,.jrp-news>p{font-size:13px;color:#ceb9c8}
+.jrp-disclaimer{font-size:11px;line-height:1.7;color:#9c8da4;margin:18px 2px 4px}
+.jrp-error{padding:20px;border:1px solid #9d6a6a;color:#ffcccc;border-radius:12px}
+.jrp-victory{position:fixed;inset:0;z-index:99999;display:grid;place-items:center;overflow:auto;padding:14px;background:radial-gradient(circle,#2f123d90,#050307eb 70%);backdrop-filter:blur(10px)}
+.jrp-victory-card{position:relative;isolation:isolate;width:min(100%,450px);padding:25px 25px 30px;border-radius:22px;border:2px solid #e9bc6f;background:radial-gradient(circle at 50% 24%,#6b416f9e,transparent 55%),linear-gradient(145deg,#281a2f,#17111d);text-align:center;box-shadow:0 0 70px #d4a75c70,inset 0 0 0 5px #f6dab21c;animation:jrp-reveal .5s ease both}
+.jrp-victory-glow{position:absolute;z-index:-1;inset:-30px;background:radial-gradient(circle,#e4b56d42 0,transparent 65%);pointer-events:none}
+.jrp-victory-card small{font:700 9px Georgia,serif;letter-spacing:.18em;color:#ead29c}
+.jrp-victory-art{height:210px;display:grid;place-items:center}.jrp-victory-art img{height:100%;max-width:100%;filter:drop-shadow(0 0 25px #d6af67)}
+.jrp-victory-card h2{font:700 clamp(28px,5vw,38px) Georgia,serif;letter-spacing:.1em;color:#ffdf90;margin:0}
+.jrp-victory-card h3{font-size:21px;color:#fff4dd;margin:9px 0}
+.jrp-victory-card p{font-size:13px;color:#d6c7d8}
+.jrp-victory-sign{border:1px solid #e6c18470;padding:12px;margin:20px 0;border-radius:9px;font-size:12px;color:#ffebb8;line-height:1.8}
+.jrp-victory-done{width:100%;min-height:45px;border-radius:9px;background:linear-gradient(120deg,#fbebc0,#c4914e);color:#281f2b;border:0;font-weight:850;cursor:pointer}
+@keyframes jrp-hover{0%,100%{transform:translateY(0)}50%{transform:translateY(-11px)}}
+@keyframes jrp-reveal{from{opacity:0;transform:scale(.89) translateY(20px)}to{opacity:1;transform:scale(1) translateY(0)}}
+@media(max-width:760px){
+ .jrp-featured{grid-template-columns:1fr;min-height:0}.jrp-featured:after{display:none}.jrp-featured-copy{padding:27px 23px 24px}
+ .jrp-featured-art{padding:2px 18px 25px}.jrp-art-arch{height:270px;max-width:340px}.jrp-serif{margin-top:13px}
+ .jrp-featured-copy h2{font-size:36px}.jrp-featured-foot{margin-top:12px}
+ .jrp-gallery{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+ .jrp-tile-art{height:160px}.jrp-tile-meta{min-height:100px}.jrp-tile-actions{padding:0 8px 10px}
+ .jrp-social-columns{grid-template-columns:1fr}.jrp-gallery-head{align-items:flex-start;flex-direction:column}
+}
+@media(max-width:390px){
+ .jrp-opening{padding:12px 10px;font-size:10px;letter-spacing:.12em}
+ .jrp-opening span:last-child{font-size:8px}.jrp-promises span{font-size:10px;padding:11px 4px}
+ .jrp-tile-art{height:132px}.jrp-tile-meta h3{font-size:13px}
+ .jrp-tile-meta b{font-size:14px}.jrp-tile-actions{grid-template-columns:1fr}.jrp-featured-foot{align-items:stretch;flex-direction:column}
+ .jrp-featured-foot button{width:100%}.jrp-filters button{font-size:11px;padding:8px 11px}
+}
+@media(prefers-reduced-motion:reduce){.jrp-art-arch img,.jrp-victory-card{animation:none}.jrp-tile,.jrp-tile img{transition:none}}
+
+
+/* MAISON JUNJA V3 — gold-on-amethyst collector palace, responsive and accessible */
+#view-shop.palace-mode{background:radial-gradient(ellipse at 50% 8%,#352046 0%,#0f0c17 68%)}
+#view-shop.palace-mode .boutique-head{border:1px solid #c79b5980;background:linear-gradient(95deg,#1b1226,#30213d 55%,#180f23);border-radius:14px;padding:15px;margin-bottom:13px}
+#view-shop.palace-mode .boutique-head h2{color:#f3d391;font-family:Georgia,'Noto Serif KR',serif;letter-spacing:.03em}
+#view-shop.palace-mode .boutique-head small{color:#ceb889}
+#royalBoutiqueRoot{--jrp-lux-gold:#f1cc82;--jrp-lux-lilac:#d5b3ff;--jrp-ink:#160f21}
+.jrp-palace-intro{display:grid;grid-template-columns:1.4fr .6fr;position:relative;overflow:hidden;min-height:184px;align-items:center;padding:27px 32px;background:radial-gradient(circle at 86% 38%,#b37ce376,transparent 32%),linear-gradient(105deg,#23142e 0%,#422550 62%,#1d142c 100%);border:1px solid #c49460;box-shadow:inset 0 0 0 4px #edd0a00b,0 12px 34px #08050bb0}
+.jrp-palace-intro:before{content:'';position:absolute;inset:8px;border:1px solid #e4bd7140;pointer-events:none}
+.jrp-palace-word{position:relative;z-index:2}
+.jrp-palace-word small{font-size:10px;letter-spacing:.23em;color:#e5c08a}
+.jrp-palace-word h1{font-family:Georgia,'Noto Serif KR',serif;line-height:1.03;margin:9px 0;color:#ffe6a3;font-size:clamp(39px,6.3vw,66px);letter-spacing:.035em;text-shadow:0 0 17px #f8c15b80,0 3px 3px #140b16}
+.jrp-palace-word p{font-size:14px;color:#ead4f4;margin:10px 0 0}
+.jrp-palace-scene{position:relative;z-index:2;display:flex;justify-content:center;align-items:center;gap:8px;color:#eac783;text-shadow:0 0 23px #e9b36b}
+.jrp-palace-scene b{font-size:94px;line-height:1;filter:drop-shadow(0 0 13px #deb26d);animation:jrp-hover 5s ease-in-out infinite}
+.jrp-palace-scene span{font-size:25px;color:#c49afa}
+.jrp-collector{position:relative;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:16px;align-items:center;background:linear-gradient(110deg,#22152c,#15101e);border:1px solid #ac7f4e;border-radius:0 0 17px 17px;padding:20px 21px;margin-bottom:15px;box-shadow:0 18px 36px #09060b80}
+.jrp-collector-identity{min-width:0}
+.jrp-collector-identity>small,.jrp-collection-topline{font-size:10px;color:#cfa766;letter-spacing:.17em;font-weight:800}
+.jrp-collector-name{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:9px}
+.jrp-collector-name strong{font-family:Georgia,serif;color:#ffe3a0;font-size:19px;text-shadow:0 0 9px #d69f60a0}
+.jrp-collector-name span{font-size:13px;color:#e9d9ed}
+.jrp-collector-identity p{font-size:12px;line-height:1.6;color:#bcb1cc;margin:9px 0 12px}
+.jrp-collector-links{display:flex;gap:6px;flex-wrap:wrap}
+.jrp-collector-links button{background:#392746;border:1px solid #ad865d;color:#f4d9ad;font-size:11px;padding:10px 11px;border-radius:8px;cursor:pointer}
+.jrp-collector-links button:first-child{background:linear-gradient(125deg,#f0d49b,#ba8749);color:#281e2d;font-weight:800}
+.jrp-collector-showcase{min-width:0;background:#140e1dcc;border:1px solid #bc95645c;border-radius:12px;padding:12px}
+.jrp-collection-topline{display:flex;justify-content:space-between;gap:8px;font-size:11px}
+.jrp-collection-topline small{letter-spacing:normal;font-size:10px;color:#b3a1bd;font-weight:500}
+.jrp-collector-slots{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:11px}
+.jrp-collector-slot{min-width:0;position:relative;display:flex;flex-direction:column;gap:4px;align-items:center;justify-content:center;text-align:center;min-height:112px;border:1px solid #af865f66;border-radius:10px;background:radial-gradient(circle at 50% 37%,#805eab55,transparent 70%),#1d1625}
+.jrp-collector-slot img{height:65px;max-width:92%;object-fit:contain;filter:drop-shadow(0 1px 9px #c69b5d90)}
+.jrp-collector-slot b{font-size:10px;color:#f1d4a4;line-height:1.3;margin:0 5px;overflow-wrap:anywhere}
+.jrp-collector-slot.empty>span{font-size:30px;color:#b896a4}
+.jrp-collector-slot.empty>small{font-size:10px;color:#ab94ab}
+.jrp-collector-slot button{position:absolute;right:3px;top:3px;border:1px solid #c39976;border-radius:50%;width:23px;height:23px;cursor:pointer;color:#f6dab8;background:#36223d}
+.jrp-featured{border-color:#e4bd76;box-shadow:inset 0 0 0 5px #d5a86610,0 14px 45px #0b0714be}
+.jrp-featured-copy h2{font-family:'Noto Serif KR',Georgia,serif;color:#fff6eb}
+.jrp-featured-art{background:radial-gradient(ellipse at 50% 48%,#ac83cc41,transparent 64%)}
+.jrp-featured-pin{width:100%;margin-top:10px}
+.jrp-featured-pin .jrp-pin-action{min-height:37px;width:100%;border-radius:8px;background:#301e3f;border:1px solid #d7b183;color:#f8dfac;font-weight:800;cursor:pointer}
+.jrp-featured-pin .jrp-pin-action.selected{border-color:#cfaefa;color:#ebd3ff;background:#443059}
+.jrp-gallery .jrp-tile{background:radial-gradient(circle at 70% 10%,#5133665b,transparent 70%),linear-gradient(#211827,#15101d)}
+.jrp-tile.owned:after{content:'✓ OWNED';position:absolute;pointer-events:none;z-index:2;left:8px;top:8px;color:#1b1922;background:linear-gradient(135deg,#f9e6b0,#bc9256);border-radius:7px;padding:5px 7px;font-size:9px;font-weight:900}
+.jrp-tile-actions .jrp-pin-action{grid-column:1 / -1;min-height:32px;background:#372246!important;color:#f1d4ff!important;border-color:#9572ba!important}
+.jrp-tile-actions .jrp-pin-action.selected{background:#534164!important;color:#fae4ba!important}
+.jrp-collection-tiers{margin-top:39px;border:1px solid #a77d4d;border-radius:17px;padding:21px;background:radial-gradient(circle at 89% 0%,#77428e65,transparent 58%),linear-gradient(135deg,#24152e,#140f20)}
+.jrp-tier-head small{font-size:10px;letter-spacing:.16em;color:#e1b97c}
+.jrp-tier-head h2{font-size:24px;color:#f8dfb7;margin:6px 0}
+.jrp-tier-head p{margin:0;font-size:12px;color:#baacc6}
+.jrp-tier-track{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:7px;margin-top:19px}
+.jrp-tier-step{border:1px solid #795d70;border-radius:10px;background:linear-gradient(#3d2843,#201626);padding:13px 4px;text-align:center;min-width:0}
+.jrp-tier-step span{font-size:30px;display:block;line-height:1.1;filter:drop-shadow(0 0 8px #c39a78)}
+.jrp-tier-step b{font:700 10px Georgia,serif;color:#f6ddb2;display:block;overflow-wrap:anywhere;margin:7px 0}
+.jrp-tier-step small{font-size:10px;color:#e0b46f}
+.jrp-tier-step.current{border:2px solid #f2d182;box-shadow:0 0 16px #e7b76c7d;background:linear-gradient(#61436a,#2d1c32)}
+.jrp-next-tier{font-size:11px;color:#d6bfd7;margin:13px 0 0}
+.jrp-palace-intro,.jrp-collector,.jrp-collection-tiers{isolation:isolate}
+@media(max-width:760px){
+ .jrp-palace-intro{min-height:156px;padding:22px 19px;grid-template-columns:1fr 92px}
+ .jrp-palace-word small{font-size:8px;letter-spacing:.11em}
+ .jrp-palace-word h1{font-size:42px}
+ .jrp-palace-word p{font-size:12px}
+ .jrp-palace-scene b{font-size:58px}
+ .jrp-collector{grid-template-columns:1fr;padding:14px;gap:10px}
+ .jrp-collector-slot{min-height:100px}
+ .jrp-collector-slot img{height:54px}
+ .jrp-tier-step{padding:9px 2px}
+ .jrp-tier-step span{font-size:23px}
+ .jrp-tier-step b{font-size:9px}
+ .jrp-tier-head h2{font-size:19px}
+}
+@media(max-width:390px){
+ .jrp-palace-intro{grid-template-columns:1fr 50px;padding:19px 12px}
+ .jrp-palace-scene b{font-size:42px}
+ .jrp-palace-word h1{font-size:35px}
+ .jrp-collector-name strong{font-size:16px}
+ .jrp-collector-slot{min-height:93px}
+ .jrp-collector-slot img{height:47px}
+ .jrp-collection-tiers{padding:13px 8px}
+ .jrp-tier-track{gap:3px}
+ .jrp-tier-step b{font-size:8px}
+ .jrp-tier-step small{font-size:8px}
+}
+@media(prefers-reduced-motion:reduce){.jrp-palace-scene b{animation:none}}
+
+/* Social prestige: the same real owned-and-equipped royal cosmetics appear across views. */
+.styled-avatar{position:relative}
+.royal-avatar-seal{position:absolute;right:-8px;top:-7px;z-index:4;display:grid;place-items:center;width:25px;height:25px;background:linear-gradient(135deg,#fff3cc,#e1af59 50%,#885a2b);border:1px solid #ffefc1;border-radius:50%;color:#3c243c;font-size:16px;font-style:normal;text-shadow:0 0 7px #fff4c8;box-shadow:0 0 12px #e9b66f}
+#nickName.royal-nickname{background:linear-gradient(100deg,#fff4c9,#e3b66f,#fff0bd);color:transparent!important;background-clip:text;-webkit-background-clip:text;text-shadow:0 0 14px #db9e6035;font-weight:900}
+.royal-public-display{color:#f5dfba;margin:14px 0 18px;padding:15px;border-radius:14px;border:1px solid #d8ac67;background:radial-gradient(circle at 86% 5%,#9d57ae60,transparent 50%),linear-gradient(135deg,#2b1a39,#160f24);box-shadow:inset 0 0 0 3px #f7e4bd12,0 11px 28px #100c1c80}
+.royal-public-title{text-align:center}
+.royal-public-title small{color:#d9b276;font-size:10px;letter-spacing:.13em}
+.royal-public-title h3{font-family:Georgia,serif;font-weight:800;color:#ffe2a6;font-size:19px;margin:7px 0 5px;text-shadow:0 0 15px #dfa76899}
+.royal-public-title p{font-size:12px;color:#d7c5d9;margin:0 0 12px}
+.royal-public-items{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}
+.royal-public-items>p{grid-column:1/-1;text-align:center;font-size:12px;color:#ae9bba}
+.royal-public-item{min-width:0;display:flex;flex-direction:column;align-items:center;gap:4px;text-align:center;padding:9px 4px;background:radial-gradient(circle at 50% 26%,#77508b8a,transparent 70%),#201529;border-radius:9px;border:1px solid #a989606b}
+.royal-public-item img{max-width:100%;height:63px;object-fit:contain;filter:drop-shadow(0 4px 8px #dca96770)}
+.royal-public-item b{font-size:11px;color:#f2dab4;overflow-wrap:anywhere;line-height:1.25}
+.royal-public-item small{font-size:10px;color:#d5b2f0}
+@media(max-width:390px){.royal-public-display{padding:10px}.royal-public-item img{height:49px}.royal-public-item b{font-size:10px}}
+
+.jrp-collector-slot .jrp-set-primary{position:static;width:auto;height:auto;padding:5px 7px;background:linear-gradient(130deg,#f4dfa3,#c69756);border:1px solid #f5d99e;border-radius:6px;font-size:9px;font-weight:800;color:#2a1b32;cursor:pointer}
+.jrp-collector-slot>small{font-size:9px;color:#e6c987}
+
+
+/* MAISON JUNJA V5 — high-jewellery editorial storefront, visual-first.
+ * Original illustrated supercars, aircraft, yachts and watches are foreground assets.
+ * Keep existing view/shop styles; scope all overrides to boutique root.
+ */
+#royalBoutiqueRoot{--maison-champagne:#ffe0a5;--maison-cream:#f5e5c4;--maison-ink:#150c20;--maison-velvet:#43264d}
+#royalBoutiqueRoot .jrp-opening{background:linear-gradient(105deg,#25152f,#3d2744,#1a1124);color:#f4dba7;border-color:#dfb576;letter-spacing:.16em;border-bottom:1px solid #bb905f88;padding:13px 20px}
+#royalBoutiqueRoot .jrp-maison-hero{position:relative;isolation:isolate;min-height:490px;display:grid;grid-template-columns:.94fr 1.06fr;overflow:hidden;border:1px solid #dfb673;border-top:none;border-radius:0 0 23px 23px;background:radial-gradient(ellipse at 77% 43%,#9963ad6f,transparent 46%),radial-gradient(circle at 18% 0%,#9d608260,transparent 42%),linear-gradient(125deg,#1a1128 0,#392145 45%,#170d26 100%);box-shadow:inset 0 0 0 5px #ffdda50c,0 16px 44px #05030aae}
+#royalBoutiqueRoot .jrp-maison-hero:before{content:"";position:absolute;inset:10px;border:1px solid #f1d19958;border-radius:12px;pointer-events:none;z-index:4}
+#royalBoutiqueRoot .jrp-maison-hero:after{content:"";position:absolute;right:-11%;width:75%;height:120%;top:-40%;border:30px double #c6a06a24;border-radius:50%;transform:rotate(-15deg);pointer-events:none;z-index:0}
+#royalBoutiqueRoot .jrp-maison-copy{padding:55px 0 45px clamp(23px,4vw,60px);z-index:3;min-width:0;align-self:center;position:relative}
+#royalBoutiqueRoot .jrp-maison-kicker{display:flex;align-items:center;gap:10px;font:700 11px Georgia,serif;letter-spacing:.2em;color:#f8d693}
+#royalBoutiqueRoot .jrp-maison-kicker:before{content:"";width:27px;height:1px;background:#f9d38e}
+#royalBoutiqueRoot .jrp-maison-hairline{color:#d0a8de;font:700 9px Georgia,serif;letter-spacing:.17em;margin-top:40px}
+#royalBoutiqueRoot .jrp-maison-copy h1{font:700 clamp(48px,6vw,92px)/.98 Georgia,'Times New Roman',serif;letter-spacing:-.055em;white-space:nowrap;color:#fff4d7;margin:14px 0 14px;text-shadow:0 3px 3px #0a0613,0 0 22px #e2bc7d55}
+#royalBoutiqueRoot .jrp-maison-copy h1 em{color:#ecc27e;font-style:italic;text-shadow:0 0 23px #e9bd76a1}
+#royalBoutiqueRoot .jrp-maison-copy h2{font:800 clamp(20px,2.75vw,34px)/1.32 'Noto Serif KR',Georgia,serif;letter-spacing:-.03em;color:#fff0d0;margin:0 0 15px}
+#royalBoutiqueRoot .jrp-maison-copy p{font-size:13px;line-height:1.9;color:#e8d8ed;margin:0 0 25px}
+#royalBoutiqueRoot .jrp-maison-copy p strong{color:#fbe1a2}
+#royalBoutiqueRoot .jrp-maison-actions{display:flex;flex-wrap:wrap;gap:9px}
+#royalBoutiqueRoot .jrp-maison-actions button{border-radius:9px;min-height:46px;padding:12px 17px;background:linear-gradient(125deg,#fff1c9,#c8924d 70%,#f6d79f);color:#291923;border:1px solid #ffe9b5;font-size:12px;font-weight:900;box-shadow:0 9px 24px #d2a36438}
+#royalBoutiqueRoot .jrp-maison-actions button:last-child{color:#f4d7b3;background:#40274d;border-color:#b9926b}
+#royalBoutiqueRoot .jrp-maison-visual{position:relative;z-index:1;min-height:470px;overflow:hidden}
+#royalBoutiqueRoot .jrp-maison-visual:before{content:"";position:absolute;left:8%;right:5%;height:60%;top:8%;border:8px double #dfb87865;border-radius:50% 50% 0 0;box-shadow:inset 0 0 26px #e7b66a33,0 0 44px #a06dbc33}
+#royalBoutiqueRoot .jrp-maison-visual:after{content:"";position:absolute;bottom:9%;left:4%;right:3%;height:45%;border-radius:50%;background:radial-gradient(ellipse,#ecb46e37,#854fba1b 50%,transparent 72%);pointer-events:none}
+#royalBoutiqueRoot .jrp-maison-shine{position:absolute;top:3%;left:8%;width:98%;height:92%;background:radial-gradient(ellipse at 53% 43%,#e2b7cb2b,transparent 66%);filter:blur(12px)}
+#royalBoutiqueRoot .jrp-maison-visual img{display:block;position:absolute;object-fit:contain;filter:drop-shadow(0 18px 13px #05040cc9) drop-shadow(0 0 16px #c7a0ed55)}
+#royalBoutiqueRoot .jrp-maison-maincar{z-index:3;bottom:4%;left:-8%;width:110%;height:62%;transform:rotate(-2deg);animation:jrp-maison-reveal 4s ease-in-out infinite}
+#royalBoutiqueRoot .jrp-maison-jet{z-index:1;top:1%;right:-11%;width:78%;height:45%;transform:rotate(-9deg);opacity:.88}
+#royalBoutiqueRoot .jrp-maison-timepiece{z-index:2;right:-3%;top:25%;width:40%;height:37%;transform:rotate(15deg)}
+#royalBoutiqueRoot .jrp-maison-visual-mark{position:absolute;z-index:4;bottom:12%;right:8%;display:flex;flex-direction:column;text-align:center;gap:3px;color:#eac68a;font:700 11px Georgia,serif;letter-spacing:.12em;text-shadow:0 2px 6px #100818}
+#royalBoutiqueRoot .jrp-maison-visual-mark strong{font-size:16px;color:#fbe7ba}
+#royalBoutiqueRoot .jrp-maison-visual-mark small{font-size:9px;letter-spacing:.19em}
+#royalBoutiqueRoot .jrp-collector{margin-top:11px;border-radius:15px;border-color:#ac8558;background:radial-gradient(circle at 82% 0,#815a9768,transparent 62%),linear-gradient(130deg,#291a34,#120d1d)}
+#royalBoutiqueRoot .jrp-collector-showcase{background:linear-gradient(#241728,#160e21);border-color:#d5b178}
+#royalBoutiqueRoot .jrp-collector-slot.filled{background:radial-gradient(circle at 50% 39%,#b581ad66,transparent 64%),#26182f;border-color:#e6c283b8}
+#royalBoutiqueRoot .jrp-featured{margin-top:32px;border-radius:20px;background:radial-gradient(circle at 71% 38%,#835ca95c,transparent 54%),linear-gradient(135deg,#1d1529,#392443,#1a1128)}
+#royalBoutiqueRoot .jrp-featured-art{background:radial-gradient(ellipse at 50% 50%,#d0a4d039,transparent 57%),url('/art/royal/gallery-hall.svg') no-repeat center center;background-size:auto,cover;border-left:1px solid #eacb8b30}
+#royalBoutiqueRoot .jrp-art-arch{width:min(100%,520px);height:340px;background:radial-gradient(ellipse at 50% 50%,#e0c08235,transparent 62%);border:0;box-shadow:none}
+#royalBoutiqueRoot .jrp-art-arch img{width:105%;height:97%;filter:drop-shadow(0 23px 14px #0a0614d6) drop-shadow(0 0 15px #d6a47c64)}
+#royalBoutiqueRoot .jrp-featured-copy{padding:37px clamp(21px,3vw,42px)}
+#royalBoutiqueRoot .jrp-featured-copy h2{font-size:clamp(29px,3.3vw,42px)}
+#royalBoutiqueRoot .jrp-featured-copy h3{font-size:25px}
+#royalBoutiqueRoot .jrp-featured-foot button{min-width:122px;font-size:12px}
+#royalBoutiqueRoot .jrp-gallery-head{margin-top:40px}
+#royalBoutiqueRoot .jrp-editorial{border:1px solid #b99161;border-radius:18px;background:radial-gradient(circle at 89% 12%,#684b7d83,transparent 50%),linear-gradient(135deg,#271830,#120c1c);padding:24px 22px;margin:34px 0 0;box-shadow:0 13px 29px #08060fc7}
+#royalBoutiqueRoot .jrp-editorial-title{text-align:center;max-width:780px;margin:0 auto 20px}
+#royalBoutiqueRoot .jrp-editorial-title>span{font:700 10px Georgia,serif;letter-spacing:.2em;color:#d7ad70}
+#royalBoutiqueRoot .jrp-editorial-title h2{font:800 clamp(23px,3vw,35px) Georgia,'Noto Serif KR',serif;color:#fff0ca;margin:10px 0 7px}
+#royalBoutiqueRoot .jrp-editorial-title p{font-size:12px;color:#bdaacd}
+#royalBoutiqueRoot .jrp-editorial-items{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+#royalBoutiqueRoot .jrp-editorial-items button{display:flex;flex-direction:column;min-width:0;align-items:center;gap:6px;border:1px solid #a48162;min-height:225px;border-radius:13px;padding:8px 10px 14px;background:radial-gradient(circle at 50% 24%,#a075bd43,transparent 70%),linear-gradient(#3a2947,#1b1225);cursor:pointer;color:#ffe6bf;box-shadow:inset 0 0 0 3px #f7e8b00b}
+#royalBoutiqueRoot .jrp-editorial-items button:hover{border-color:#e8c588;transform:translateY(-2px)}
+#royalBoutiqueRoot .jrp-editorial-items button img{height:129px;width:100%;object-fit:contain;filter:drop-shadow(0 8px 7px #080410c9)}
+#royalBoutiqueRoot .jrp-editorial-items button>span{color:#c1a8d1;font:600 9px Georgia,serif;letter-spacing:.12em;line-height:1.25}
+#royalBoutiqueRoot .jrp-editorial-items button>b{font-size:13px;line-height:1.35;text-align:center;overflow-wrap:anywhere}
+#royalBoutiqueRoot .jrp-editorial-items button>small{font-size:12px;font-weight:850;color:#eaca8b}
+#royalBoutiqueRoot .jrp-filters{display:flex;gap:7px;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:thin;overscroll-behavior-inline:contain;padding:4px 0 11px;margin-top:12px}
+#royalBoutiqueRoot .jrp-filters button{flex:0 0 auto;white-space:nowrap}
+#royalBoutiqueRoot .jrp-gallery{grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+#royalBoutiqueRoot .jrp-tile{border-radius:15px;border-color:#a887638c;background:radial-gradient(circle at 75% 10%,#674b7e55,transparent 60%),linear-gradient(#2a1b32,#130d1a)}
+#royalBoutiqueRoot .jrp-tile-preview{background:radial-gradient(ellipse at 50% 36%,#8c699e43,transparent 60%),linear-gradient(#43314f,#201427);padding:7px}
+#royalBoutiqueRoot .jrp-tile-art{height:205px;border:1px solid #c7a3715f;background:radial-gradient(circle at 50% 44%,#a477b74f,transparent 63%)}
+#royalBoutiqueRoot .jrp-tile-art img{width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 10px 7px #08040f9e)}
+#royalBoutiqueRoot .jrp-tile-index{color:#f4d8a0}
+#royalBoutiqueRoot .jrp-tile-meta{padding:10px 13px 9px}
+#royalBoutiqueRoot .jrp-tile-meta h3{color:#fff1ce;font-size:16px}
+#royalBoutiqueRoot .jrp-tile-meta b{font-size:18px}
+#royalBoutiqueRoot .jrp-tile-actions{grid-template-columns:1fr 1.4fr}
+#royalBoutiqueRoot .jrp-tile-actions button{font-size:11px}
+#royalBoutiqueRoot .jrp-tile-actions button:disabled{background:#342b39;color:#d4beaa}
+#royalBoutiqueRoot .jrp-tier-track{margin-top:19px}
+@keyframes jrp-maison-reveal{0%,100%{transform:translateY(0) rotate(-2deg)}50%{transform:translateY(-9px) rotate(-2deg)}}
+@media(max-width:900px){
+ #royalBoutiqueRoot .jrp-maison-copy{padding:34px 0 32px 22px}
+ #royalBoutiqueRoot .jrp-maison-copy h1{font-size:clamp(44px,6.8vw,66px)}
+ #royalBoutiqueRoot .jrp-maison-visual{min-height:410px}
+ #royalBoutiqueRoot .jrp-editorial-items{gap:8px}
+ #royalBoutiqueRoot .jrp-editorial-items button{min-height:190px}
+ #royalBoutiqueRoot .jrp-editorial-items button img{height:110px}
+}
+@media(max-width:760px){
+ #royalBoutiqueRoot .jrp-maison-hero{grid-template-columns:1fr;min-height:0}
+ #royalBoutiqueRoot .jrp-maison-copy{padding:27px 23px 0}
+ #royalBoutiqueRoot .jrp-maison-kicker{font-size:8px;letter-spacing:.12em}
+ #royalBoutiqueRoot .jrp-maison-hairline{margin-top:16px;font-size:9px}
+ #royalBoutiqueRoot .jrp-maison-copy h1{font-size:clamp(43px,9vw,60px);margin:7px 0}
+ #royalBoutiqueRoot .jrp-maison-copy h2{font-size:clamp(19px,4.6vw,25px);margin-bottom:10px}
+ #royalBoutiqueRoot .jrp-maison-copy p{font-size:12px;line-height:1.6;margin:0 0 15px}
+ #royalBoutiqueRoot .jrp-maison-actions{gap:8px}
+ #royalBoutiqueRoot .jrp-maison-actions button{min-height:40px;padding:9px 12px;font-size:11px}
+ #royalBoutiqueRoot .jrp-maison-visual{min-height:230px}
+ #royalBoutiqueRoot .jrp-maison-visual:before{height:96%;top:4%;width:83%}
+ #royalBoutiqueRoot .jrp-maison-maincar{bottom:-3%;left:0;width:93%;height:78%}
+ #royalBoutiqueRoot .jrp-maison-jet{top:-6%;right:3%;width:63%;height:55%}
+ #royalBoutiqueRoot .jrp-maison-timepiece{top:22%;right:-4%;width:38%;height:52%}
+ #royalBoutiqueRoot .jrp-maison-visual-mark{font-size:8px;right:10px;bottom:10px}
+ #royalBoutiqueRoot .jrp-maison-visual-mark strong{font-size:12px}
+ #royalBoutiqueRoot .jrp-collector{margin-top:10px}
+ #royalBoutiqueRoot .jrp-featured-art{border-left:0;min-height:275px}
+ #royalBoutiqueRoot .jrp-art-arch{height:255px}
+ #royalBoutiqueRoot .jrp-featured-copy{padding:23px 21px}
+ #royalBoutiqueRoot .jrp-featured-copy h2{font-size:29px}
+ #royalBoutiqueRoot .jrp-editorial{padding:19px 10px;margin-top:25px}
+ #royalBoutiqueRoot .jrp-editorial-items{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+ #royalBoutiqueRoot .jrp-editorial-items button{min-height:188px;padding:6px 5px 10px}
+ #royalBoutiqueRoot .jrp-editorial-items button img{height:113px}
+ #royalBoutiqueRoot .jrp-editorial-items button>b{font-size:12px}
+ #royalBoutiqueRoot .jrp-gallery{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+ #royalBoutiqueRoot .jrp-tile-art{height:165px}
+ #royalBoutiqueRoot .jrp-tile-preview{padding:4px}
+ #royalBoutiqueRoot .jrp-tile-meta{min-height:98px;padding:9px 9px}
+ #royalBoutiqueRoot .jrp-tile-meta h3{font-size:13px}
+ #royalBoutiqueRoot .jrp-tile-meta b{font-size:15px}
+ #royalBoutiqueRoot .jrp-tile-actions{grid-template-columns:1fr;padding:0 8px 9px}
+ #royalBoutiqueRoot .jrp-tile-actions button{min-height:34px}
+}
+@media(max-width:390px){
+ #royalBoutiqueRoot .jrp-maison-copy{padding:23px 14px 0}
+ #royalBoutiqueRoot .jrp-maison-copy h1{font-size:40px}
+ #royalBoutiqueRoot .jrp-maison-visual{min-height:218px}
+ #royalBoutiqueRoot .jrp-tile-art{height:137px}
+ #royalBoutiqueRoot .jrp-opening{font-size:9px;letter-spacing:.07em}
+ #royalBoutiqueRoot .jrp-editorial-title h2{font-size:22px}
+ #royalBoutiqueRoot .jrp-editorial-items button img{height:96px}
+}
+@media(prefers-reduced-motion:reduce){#royalBoutiqueRoot .jrp-maison-maincar{animation:none}}
+
+
+/* MAISON JUNJA V6 — photography-led grand automobile hall
+   User-requested Rolls-Royce / Bentley / Aston Martin real-photo experience.
+   Scoped exclusively to boutique; legacy cosmetics/game CSS left intact. */
+#royalBoutiqueRoot{--jrp-gold:#f7d99b;--jrp-glow:#e5b86b}
+#royalBoutiqueRoot .jrp-opening{letter-spacing:.12em;border-color:#d6a86f;background:linear-gradient(100deg,#24122d,#462849,#1b1021)}
+#royalBoutiqueRoot .jrp-motors-hero{isolation:isolate;position:relative;overflow:hidden;border:1px solid #d4a267;border-top:0;border-radius:0 0 23px 23px;background:radial-gradient(ellipse at 50% 10%,#6e497c71,transparent 52%),linear-gradient(125deg,#160b21,#3a1e41 48%,#110916);box-shadow:0 19px 48px #05020bac,inset 0 0 0 4px #dbb97312}
+#royalBoutiqueRoot .jrp-motors-hero:before{content:"";position:absolute;inset:8px;border:1px solid #e4ba7949;border-radius:16px;z-index:5;pointer-events:none}
+#royalBoutiqueRoot .jrp-motors-hero:after{content:"";position:absolute;z-index:0;left:-10%;right:-10%;top:-4%;height:68%;background:repeating-linear-gradient(90deg,#e2bd7212 0 1px,transparent 1px 17%),radial-gradient(ellipse at 50% 24%,#e4b56b38,transparent 65%);pointer-events:none}
+#royalBoutiqueRoot .jrp-motors-title{position:relative;z-index:2;text-align:center;padding:29px 12px 19px}
+#royalBoutiqueRoot .jrp-motors-title>small{display:block;color:#edce94;font:700 10px Georgia,serif;letter-spacing:.24em}
+#royalBoutiqueRoot .jrp-motors-title h1{font:800 clamp(46px,6.6vw,93px)/1 Georgia,serif;letter-spacing:-.045em;color:#fff5d2;margin:12px 0 10px;text-shadow:0 0 20px #dda95f75,0 4px 3px #170c18}
+#royalBoutiqueRoot .jrp-motors-title h1 em{font-style:italic;color:#ecc177}
+#royalBoutiqueRoot .jrp-motors-title>p{font:750 clamp(14px,2.1vw,21px)/1.35 'Noto Serif KR',serif;color:#f7e1b7;margin:0 0 10px}
+#royalBoutiqueRoot .jrp-motors-title>span{font:700 10px Georgia,serif;letter-spacing:.16em;color:#cba9d6}
+#royalBoutiqueRoot .jrp-motors-photo-row{display:grid;grid-template-columns:1fr 1.22fr 1fr;gap:8px;align-items:end;position:relative;z-index:2;padding:6px 20px 20px}
+#royalBoutiqueRoot .jrp-motors-photo{position:relative;isolation:isolate;display:block;width:100%;height:277px;overflow:hidden;min-width:0;text-align:left;background:linear-gradient(120deg,#3d2b4d,#140e20);border:1px solid #b38d63;border-radius:13px;box-shadow:0 10px 26px #040208b8,0 0 0 3px #d4a86916;padding:0;cursor:pointer;transition:transform .25s,border-color .25s,filter .25s}
+#royalBoutiqueRoot .jrp-motors-photo.is-center{height:330px;border:2px solid #f5d28f;box-shadow:0 14px 33px #050209cc,0 0 27px #e4b66b5a}
+#royalBoutiqueRoot .jrp-motors-photo:hover{transform:translateY(-5px);border-color:#fff0be;filter:brightness(1.07)}
+#royalBoutiqueRoot .jrp-motors-photo:focus-visible{outline:3px solid #fce4a1;outline-offset:3px}
+#royalBoutiqueRoot .jrp-motors-photo:before{content:"";z-index:2;position:absolute;inset:0;background:linear-gradient(0deg,#100818eb 0%,#12081a9e 16%,transparent 50%),linear-gradient(90deg,#1a082826,transparent 30%,transparent 70%,#1a082826);pointer-events:none}
+#royalBoutiqueRoot .jrp-motors-photo>img{display:block;width:100%;height:100%;object-fit:cover;object-position:center 56%;transition:transform .35s ease}
+#royalBoutiqueRoot .jrp-motors-photo:hover>img{transform:scale(1.045)}
+#royalBoutiqueRoot .jrp-motors-photo-caption{position:absolute;z-index:3;left:12px;right:12px;bottom:13px;display:flex;flex-direction:column;align-items:flex-start;gap:4px}
+#royalBoutiqueRoot .jrp-motors-photo-caption>small{font:700 11px Georgia,serif;letter-spacing:.13em;color:#ecd099}
+#royalBoutiqueRoot .jrp-motors-photo-caption>b{font:750 15px 'Noto Serif KR',Georgia,serif;color:#fff4dd;line-height:1.3;text-shadow:0 2px 8px #07030e}
+#royalBoutiqueRoot .jrp-motors-photo-caption>em{font-size:13px;color:#f8d18a;font-style:normal;font-weight:900}
+#royalBoutiqueRoot .jrp-motors-bottom{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:14px 26px 20px;background:linear-gradient(100deg,#261730,#3a2442,#24152e);border-top:1px solid #d1a47180}
+#royalBoutiqueRoot .jrp-motors-bottom span{font:700 10px Georgia,serif;letter-spacing:.14em;color:#d5bd95}
+#royalBoutiqueRoot .jrp-motors-bottom button{padding:12px 18px;border:1px solid #ffe3a9;border-radius:9px;background:linear-gradient(125deg,#fff1c9,#c6904e);color:#2a1a2c;font-size:12px;font-weight:850}
+#royalBoutiqueRoot .jrp-brand-nav{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;padding:11px 0 7px}
+#royalBoutiqueRoot .jrp-brand-nav button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;min-height:74px;min-width:0;padding:9px 5px;border-radius:11px;border:1px solid #a18261;background:radial-gradient(ellipse at 50% 0%,#7d527d65,transparent 72%),linear-gradient(130deg,#35213e,#170e24);color:#f2d7ae;cursor:pointer}
+#royalBoutiqueRoot .jrp-brand-nav button.active{border:2px solid #f5d290;background:linear-gradient(150deg,#5b365f,#2c1a37);box-shadow:0 0 18px #e8b66b4d}
+#royalBoutiqueRoot .jrp-brand-nav button>b{font:700 clamp(10px,1.25vw,15px)/1.2 Georgia,serif;letter-spacing:.06em;overflow-wrap:anywhere}
+#royalBoutiqueRoot .jrp-brand-nav button>small{font-size:9px;color:#bfa8d0}
+#royalBoutiqueRoot .jrp-featured-art.jrp-photo-real .jrp-art-arch{height:360px;width:min(100%,540px);border-radius:14px;background:#241528;border:2px solid #cba56e;box-shadow:0 0 0 6px #f3d99a0b,0 15px 32px #090515b3;overflow:hidden}
+#royalBoutiqueRoot .jrp-featured-art.jrp-photo-real .jrp-art-arch>img{width:100%;height:100%;object-fit:cover;animation:none;filter:none}
+#royalBoutiqueRoot .jrp-featured-art.jrp-photo-real .jrp-art-arch .jrp-art-aura,
+#royalBoutiqueRoot .jrp-featured-art.jrp-photo-real .jrp-art-arch .jrp-stage-plinth{display:none}
+#royalBoutiqueRoot .jrp-featured-art.jrp-photo-real .jrp-art-arch:after{content:"JUNJA · REAL MODEL REFERENCE";position:absolute;left:0;right:0;bottom:0;z-index:4;text-align:center;padding:12px 6px;background:linear-gradient(transparent,#100c1cf2);color:#f5dca5;font:700 10px Georgia,serif;letter-spacing:.12em}
+#royalBoutiqueRoot .jrp-media-credit{display:block;font-size:10px;line-height:1.5;color:#b8a5c6;margin:8px auto 0;text-align:center}
+#royalBoutiqueRoot .jrp-media-credit a{color:#ecd099;text-decoration:underline;text-decoration-color:#a98b56}
+#royalBoutiqueRoot .jrp-tile-preview.jrp-photo-real .jrp-tile-art{overflow:hidden;background:linear-gradient(125deg,#2b2039,#100b1b);border:1px solid #c49b69}
+#royalBoutiqueRoot .jrp-tile-preview.jrp-photo-real .jrp-tile-art>img{width:100%;height:100%;object-fit:cover;filter:none;transition:transform .3s}
+#royalBoutiqueRoot .jrp-tile-preview.jrp-photo-real:hover .jrp-tile-art>img{transform:scale(1.04)}
+#royalBoutiqueRoot .jrp-tile-preview.jrp-photo-real .jrp-tile-art:after{content:"REAL MODEL PHOTO";position:absolute;left:7px;bottom:7px;background:#140b20d9;border:1px solid #cea56d;padding:5px;color:#f8d9a1;font:700 8px Georgia,serif}
+#royalBoutiqueRoot .jrp-editorial-items button>img{border-radius:8px;object-fit:cover}
+#royalBoutiqueRoot .jrp-collector-slot.filled>img{border-radius:6px;object-fit:cover}
+#royalBoutiqueRoot .jrp-real-photo .jrp-media-fallback{object-fit:contain!important;filter:drop-shadow(0 9px 10px #0d0614b4)!important}
+#royalBoutiqueRoot .jrp-motors-photo .jrp-media-fallback{object-fit:contain;background:radial-gradient(ellipse at 50% 40%,#6e518a,#1c1227)}
+#royalBoutiqueRoot .jrp-featured-copy .jrp-intro{max-width:470px}
+#royalBoutiqueRoot .jrp-disclaimer{line-height:1.8}
+@media(max-width:960px){
+ #royalBoutiqueRoot .jrp-motors-photo-row{padding:5px 9px 15px;gap:5px}
+ #royalBoutiqueRoot .jrp-motors-photo{height:214px}
+ #royalBoutiqueRoot .jrp-motors-photo.is-center{height:255px}
+ #royalBoutiqueRoot .jrp-motors-title h1{font-size:clamp(44px,7.4vw,65px)}
+ #royalBoutiqueRoot .jrp-motors-title>small{font-size:8px;letter-spacing:.1em}
+ #royalBoutiqueRoot .jrp-motors-title>span{font-size:9px}
+ #royalBoutiqueRoot .jrp-motors-photo-caption{left:8px;right:6px;bottom:8px}
+ #royalBoutiqueRoot .jrp-motors-photo-caption>b{font-size:12px}
+ #royalBoutiqueRoot .jrp-brand-nav button{min-height:65px}
+}
+@media(max-width:700px){
+ #royalBoutiqueRoot .jrp-motors-title{padding:23px 9px 12px}
+ #royalBoutiqueRoot .jrp-motors-title h1{font-size:clamp(37px,9vw,56px);margin:9px 0}
+ #royalBoutiqueRoot .jrp-motors-title>p{font-size:13px}
+ #royalBoutiqueRoot .jrp-motors-title>span{font-size:8px;letter-spacing:.08em}
+ #royalBoutiqueRoot .jrp-motors-photo-row{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:thin;scroll-padding-inline:11px;align-items:stretch;gap:9px;padding:7px 12px 16px}
+ #royalBoutiqueRoot .jrp-motors-photo,
+ #royalBoutiqueRoot .jrp-motors-photo.is-center{flex:0 0 76%;height:242px;min-width:0;scroll-snap-align:center;border:1px solid #e4c185}
+ #royalBoutiqueRoot .jrp-motors-photo.is-center{order:-1}
+ #royalBoutiqueRoot .jrp-motors-photo-caption>b{font-size:15px}
+ #royalBoutiqueRoot .jrp-motors-bottom{padding:11px 13px 15px}
+ #royalBoutiqueRoot .jrp-motors-bottom span{font-size:8px;letter-spacing:0}
+ #royalBoutiqueRoot .jrp-motors-bottom button{padding:10px 9px;font-size:11px;min-width:121px}
+ #royalBoutiqueRoot .jrp-brand-nav{display:flex;overflow-x:auto;gap:7px;scrollbar-width:thin;padding:11px 0}
+ #royalBoutiqueRoot .jrp-brand-nav button{flex:0 0 40%;min-height:63px;padding:7px 3px}
+ #royalBoutiqueRoot .jrp-brand-nav button>b{font-size:11px}
+ #royalBoutiqueRoot .jrp-featured-art.jrp-photo-real{min-height:255px}
+ #royalBoutiqueRoot .jrp-featured-art.jrp-photo-real .jrp-art-arch{height:235px;width:100%}
+ #royalBoutiqueRoot .jrp-tile-preview.jrp-photo-real .jrp-tile-art{height:155px}
+ #royalBoutiqueRoot .jrp-editorial-items button>img{height:117px}
+}
+@media(max-width:390px){
+ #royalBoutiqueRoot .jrp-motors-photo,#royalBoutiqueRoot .jrp-motors-photo.is-center{height:218px}
+ #royalBoutiqueRoot .jrp-motors-title h1{font-size:37px}
+ #royalBoutiqueRoot .jrp-tile-preview.jrp-photo-real .jrp-tile-art{height:135px}
+ #royalBoutiqueRoot .jrp-brand-nav button{flex-basis:45%}
+}
+@media(prefers-reduced-motion:reduce){#royalBoutiqueRoot .jrp-motors-photo,#royalBoutiqueRoot .jrp-motors-photo img{transition:none}}
+
+/* Proper attribution for all Creative Commons real-model photos. */
+#royalBoutiqueRoot .jrp-all-photo-credits{margin:24px 0 11px;padding:12px 16px;border:1px solid #7d675d;border-radius:11px;background:#1d1526;color:#bfa9c5}
+#royalBoutiqueRoot .jrp-all-photo-credits summary{cursor:pointer;color:#dcc49f;font-size:12px;font-weight:700}
+#royalBoutiqueRoot .jrp-all-photo-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px 17px;margin:13px 0 0}
+#royalBoutiqueRoot .jrp-all-photo-list p{font-size:10px;line-height:1.6;min-width:0;padding:8px;margin:0;border-bottom:1px solid #876b5440}
+#royalBoutiqueRoot .jrp-all-photo-list p b{font-weight:750;color:#eed0a5}
+#royalBoutiqueRoot .jrp-all-photo-list .jrp-media-credit{display:inline;font-size:10px}
+#royalBoutiqueRoot .jrp-all-photo-list a{color:#f5d39b;text-decoration:underline;text-decoration-color:#be915c}
+@media(max-width:700px){#royalBoutiqueRoot .jrp-all-photo-list{grid-template-columns:1fr}}
+
+
+/* V7 visual review: mobile flagship is a large Rolls-Royce photograph.
+   Preserve the three-column editorial layout on tablets and desktop. */
+@media(max-width:700px){
+ #royalBoutiqueRoot .jrp-motors-photo-row{
+  display:grid!important;
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  gap:9px!important;
+  overflow:visible!important;
+  scroll-snap-type:none!important;
+  padding:10px 12px 16px!important;
+  align-items:stretch!important;
+ }
+ #royalBoutiqueRoot .jrp-motors-photo-row .jrp-motors-photo{
+  width:100%!important;
+  min-width:0!important;
+  height:150px!important;
+  flex:none!important;
+  order:0!important;
+  scroll-snap-align:none!important;
+ }
+ #royalBoutiqueRoot .jrp-motors-photo-row .jrp-motors-photo.is-center{
+  grid-column:1/-1!important;
+  grid-row:1!important;
+  height:284px!important;
+  order:-1!important;
+  border:2px solid #f7dba3;
+  box-shadow:0 14px 31px #08040d,0 0 32px #d4a25769;
+ }
+ #royalBoutiqueRoot .jrp-motors-photo-row .jrp-motors-photo.is-center img{
+  object-position:center 55%;
+ }
+ #royalBoutiqueRoot .jrp-motors-photo-row .jrp-motors-photo:not(.is-center) .jrp-motors-photo-caption>b{
+  font-size:11px;
+ }
+ #royalBoutiqueRoot .jrp-motors-photo-row .jrp-motors-photo:not(.is-center) .jrp-motors-photo-caption>small{
+  font-size:9px;
+ }
+ #royalBoutiqueRoot .jrp-motors-photo-row .jrp-motors-photo:not(.is-center) .jrp-motors-photo-caption>em{
+  font-size:11px;
+ }
+}
+@media(max-width:390px){
+ #royalBoutiqueRoot .jrp-motors-photo-row .jrp-motors-photo.is-center{height:264px!important}
+ #royalBoutiqueRoot .jrp-motors-photo-row .jrp-motors-photo:not(.is-center){height:138px!important}
+}
+
+/* V13 · certified finite collector inventory */
+#royalBoutiqueRoot .jrp-item-owners{display:flex;flex-wrap:wrap;gap:5px 8px;align-items:center;margin:9px 0;padding:7px 9px;border:1px solid rgba(197,156,99,.33);background:rgba(17,10,23,.68);border-radius:7px;font-size:11px;line-height:1.5}
+#royalBoutiqueRoot .jrp-item-owners span{color:#c9b098;font-size:10px;white-space:nowrap}
+#royalBoutiqueRoot .jrp-item-owners strong{color:#ffe5b5;font-size:11px;overflow-wrap:anywhere}
+#royalBoutiqueRoot .jrp-hall-product .jrp-rare-pill{display:inline-block;font-size:11px;margin:7px 0}
+#royalBoutiqueRoot .jrp-tile .jrp-item-owners{margin:8px 0 0}
+#royalBoutiqueRoot .jrp-featured .jrp-item-owners{max-width:460px;margin-bottom:13px}
+@media(max-width:600px){#royalBoutiqueRoot .jrp-item-owners{font-size:10px;padding:6px 7px}}

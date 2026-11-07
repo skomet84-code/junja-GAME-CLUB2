@@ -1,0 +1,65 @@
+name: Owner Fictional Market Controls
+on:
+  pull_request:
+    paths:
+      - 'market-operator.js'
+      - 'j-stock-core.js'
+      - 'j-coin-core.js'
+      - 'server.js'
+      - 'public/index.html'
+      - 'public/owner-market-ui.js'
+      - 'public/owner-market.css'
+      - 'tests/market-operator*.cjs'
+      - 'tests/market-timed-events.cjs'
+      - 'tests/market-operator*.mjs'
+      - '.github/workflows/owner-market-control.yml'
+  workflow_dispatch:
+jobs:
+  owner-market:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install game backend dependencies
+        run: npm install --omit=dev --ignore-scripts --no-audit --no-fund
+      - name: Verify market authorization and syntax
+        run: |
+          node --check market-operator.js
+          node --check public/owner-market-ui.js
+          node --check server.js
+          node tests/market-operator-static.cjs
+      - name: Verify market settlement and volatility invariants
+        run: |
+          node tests/market-operator.cjs
+          node tests/market-timed-events.cjs
+          node tests/j-stock.cjs
+          node tests/j-coin.cjs
+      - name: Validate live HTTP login, quote control and restart persistence
+        run: node tests/market-operator-http.cjs
+
+  owner-market-browser:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Prepare headless browsers
+        run: |
+          npm install --no-save --no-package-lock --ignore-scripts --no-audit --no-fund playwright
+          npx playwright install --with-deps chromium webkit
+      - name: Verify operator stock/coin controls at 8 viewport configurations
+        run: node tests/market-operator-mobile.mjs
+      - name: Collect mobile evidence if the UI fails
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: owner-market-mobile-evidence
+          path: /tmp/junja-owner-market-*.png
+          if-no-files-found: ignore
