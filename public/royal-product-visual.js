@@ -45,7 +45,7 @@
  }
  function shot(item){
   if(item?.category==='bag'){
-   const slug=String(item?.id||'').replace(/^bag_royalboutique_/,'').replaceAll('_','-');
+   const slug=String(item?.itemId||item?.id||'').replace(/^bag_royalboutique_/,'').replaceAll('_','-');
    // Individual, approved-style gallery illustration is served as its own
    // file, not an unrelated jewelry/cars sprite-sheet crop.
    if(!/^(hermes-(birkin|kelly|constance)|chanel-(classic|255|boy))$/.test(slug))
