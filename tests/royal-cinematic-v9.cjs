@@ -25,6 +25,13 @@ assert.match(gallery,/jrg-cinematic-card-backdrop/);
 assert.match(gallery,/jrg-cinematic-selected/);
 assert.match(gallery,/jrg-cinematic-certificate/);
 assert.match(css,/@media\(max-width:700px\)/);
-assert.match(html,/royal-cinematic\.css\?v=20261106-bag-v14/);
+assert.match(html,/royal-cinematic\.css\?v=20261107-couture-v16/);
 assert.match(html,/royal-gallery\.js\?v=20261107-photoreal-v15/);
+
+const coutureCover=fs.readFileSync(path.join(root,'public/art/royal/couture-salon-entry-v16.webp'));
+assert(coutureCover.length>20000&&coutureCover.length<100000,'Couture Salon-only image is optimized');
+assert.equal(coutureCover.toString('ascii',0,4),'RIFF');
+assert.equal(coutureCover.toString('ascii',8,12),'WEBP');
+assert(store.includes("room.id==='bag'?'/art/royal/couture-salon-entry-v16.webp'"),'only the entrance tile selects the Couture Salon image');
+assert(html.includes('/royal-economy-ui.js?v=20261107-couture-v16'),'Safari loads new entry tile code');
 console.log('ROYAL_CINEMATIC_V9_OK: six optimized showroom scenes, existing purchases and owned-collection views preserved');
