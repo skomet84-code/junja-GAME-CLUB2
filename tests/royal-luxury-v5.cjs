@@ -5,7 +5,7 @@ const base=path.join(__dirname,'..');
 const read=p=>fs.readFileSync(path.join(base,p),'utf8');
 const {ROYAL_ITEMS}=require('../royal-economy');
 const minimum=10n**16n;
-assert.equal(ROYAL_ITEMS.length,49,'40 original owned items retained plus 9 V11 ultra-luxury additions');
+assert.equal(ROYAL_ITEMS.length,55,'existing catalogue plus six handbag editions');
 assert(ROYAL_ITEMS.every(i=>BigInt(i.price)>=minimum),'no 조-price items in the royal boutique');
 assert(ROYAL_ITEMS.every(i=>typeof i.art==='string'),'art for every real collector item');
 assert(ROYAL_ITEMS.some(i=>i.category==='car'),'supercars');
@@ -16,10 +16,10 @@ assert(ROYAL_ITEMS.some(i=>i.category==='art'),'sculpture and objects');
 assert(ROYAL_ITEMS.some(i=>i.category==='estate'),'penthouse');
 assert(ROYAL_ITEMS.some(i=>i.category==='vault'),'imperial vault');
 for(const i of ROYAL_ITEMS){
- const p='public/art/royal/'+i.art+'.svg';
+ const p=i.category==='bag'?'public/art/royal/handbags/'+i.id.slice('bag_royalboutique_'.length).replaceAll('_','-')+'.svg':'public/art/royal/'+i.art+'.svg';
  assert(fs.existsSync(path.join(base,p)),'missing real illustrated collectible: '+p);
  const svg=read(p);
- assert.match(svg,/^<svg/,'asset must be SVG: '+p);
+ assert.match(svg,/<svg/,'asset must be SVG: '+p);
  assert.match(svg,/<linearGradient|<radialGradient/,'art must have rich lighting: '+p);
 }
 const ui=read('public/royal-economy-ui.js');
@@ -41,6 +41,6 @@ assert.match(gallery,/selected\.displayOnly/,'cannot equip display item');
 assert.match(galleryCss,/garage-hall\.svg/,'actual illustrated garage for car owners');
 assert.match(app,/x\?\.art/,'show real art on user profiles');
 assert.match(server,/if\(!item\.displayOnly\)db\.prepare\('UPDATE user_loadout/,'never attach supercars to avatar loadout');
-for(const [file,version] of [['royal-economy.css','20261103-photos-v7'],['royal-economy-ui.js','20261103-v10'],['royal-gallery.js','20261103-v10'],['royal-gallery.css','20261103-vault-v8']])assert(index.includes(file+'?v='+version),'cache-bust '+file);
+for(const [file,version] of [['royal-economy.css','20261106-bag-v14'],['royal-economy-ui.js','20261106-bag-v14'],['royal-gallery.js','20261106-bag-v14'],['royal-gallery.css','20261103-vault-v8']])assert(index.includes(file+'?v='+version),'cache-bust '+file);
 for(const id of ['watch_royalboutique_patek_grand','watch_royalboutique_richard_mille','watch_royalboutique_audemars','watch_royalboutique_vacheron','watch_royalboutique_jacob','car_royalboutique_ferrari_sf90','car_royalboutique_lamborghini_svj','car_royalboutique_mclaren_765lt','car_royalboutique_bugatti_chiron']){const it=ROYAL_ITEMS.find(i=>i.id===id);assert(it&&it.displayOnly&&BigInt(it.price)>=10n**16n,'new 1경+ display-only collectible '+id)}
-console.log('ROYAL_LUXURY_V5_OK: 49 unique pieces, 1경 floor, photo-first shop and gallery, safe purchases');
+console.log('ROYAL_LUXURY_V5_OK: 55 unique pieces, 1경 floor, photo-first shop and gallery, safe purchases');

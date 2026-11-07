@@ -40,8 +40,8 @@ for(const [engineName,engine] of runs){
  await page.screenshot({path:'/tmp/junja-royal-motors-'+engineName+'.png',fullPage:false});
  if(result.errors.length)throw Error(engineName+' boutique error '+JSON.stringify(result.errors));
  if(result.overflow>8)throw Error(engineName+' horizontal overflow '+result.overflow);
- if(result.photos.length!==6||result.photos.some(x=>!x.loaded)||result.photos.some(x=>!x.src.includes('/art/royal/cinematic/')))throw Error(engineName+' broken six-room cinematic images '+JSON.stringify(result.photos));
- // The store now uses original 3D art scenes for all six halls; individual photos remain credited in item detail.
+ if(result.photos.length!==7||result.photos.some(x=>!x.loaded)||result.photos.some(x=>!x.src.includes('/art/royal/cinematic/')&&!x.src.includes('/art/royal/handbags/')))throw Error(engineName+' broken seven-room cinematic images '+JSON.stringify(result.photos));
+ // The store now uses original 3D art scenes for all seven halls; individual photos remain credited in item detail.
  await page.evaluate(()=>go('gallery'));
  await page.waitForSelector('#view-gallery.active .jrg-object .jrp-product-art',{timeout:12000});
  await page.waitForTimeout(1400);

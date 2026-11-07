@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1000" role="img" aria-label="JUNJA LAND Royal Handbag Collection BOY BAG · NOIR">
+<defs>
+  <linearGradient id="wall" x2="1" y2="1"><stop stop-color="#100e10"/><stop offset=".52" stop-color="#27201d"/><stop offset="1" stop-color="#09080a"/></linearGradient>
+  <radialGradient id="spot" cx=".5" cy=".14" r=".88"><stop stop-color="#c68e4180"/><stop offset=".42" stop-color="#2c1c13"/><stop offset="1" stop-color="#0a080b"/></radialGradient>
+  <linearGradient id="metal" x1=".1" x2=".9" y1=".15" y2=".9"><stop stop-color="#7f501e"/><stop offset=".18" stop-color="#ffe7a1"/><stop offset=".42" stop-color="#b2762a"/><stop offset=".65" stop-color="#ffdc91"/><stop offset="1" stop-color="#6e3b19"/></linearGradient>
+  <linearGradient id="bag" x1=".12" x2=".89" y1=".04" y2="1"><stop stop-color="#747375"/><stop offset=".34" stop-color="#17191d"/><stop offset="1" stop-color="#06080a"/></linearGradient>
+  <linearGradient id="marble" x1="0" x2="1" y2="1"><stop stop-color="#262528"/><stop offset=".35" stop-color="#060609"/><stop offset=".65" stop-color="#40302a"/><stop offset="1" stop-color="#09080b"/></linearGradient>
+  <pattern id="quilt" width="61" height="61" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><path d="M0 0V61M0 0H61" stroke="#eee0c7" stroke-opacity=".22" stroke-width="2"/><path d="M2 0V61M0 2H61" stroke="#000" stroke-opacity=".35" stroke-width="2"/></pattern>
+  <filter id="shadow" x="-25%" y="-35%" width="160%" height="180%"><feGaussianBlur stdDeviation="20"/></filter>
+  <filter id="glow"><feGaussianBlur stdDeviation="4"/></filter>
+  <filter id="grain"><feTurbulence type="fractalNoise" baseFrequency=".5" numOctaves="2" result="n" seed="11"/><feColorMatrix in="n" type="saturate" values="0"/><feComponentTransfer><feFuncA type="linear" slope=".08"/></feComponentTransfer></filter>
+</defs>
+<rect width="800" height="1000" fill="url(#wall)"/><rect width="800" height="1000" fill="url(#spot)"/>
+<path d="M94 862V122Q96 75 154 54H642Q709 80 709 132V858" fill="none" stroke="#5d4126" stroke-width="31"/>
+<path d="M105 861V125Q105 86 160 70H637Q698 89 698 130V857" fill="none" stroke="url(#metal)" stroke-width="6"/>
+<path d="M150 105L202 935M659 95L606 935M130 699L661 434" stroke="#e2bc7d" stroke-width="1" opacity=".12"/>
+<path d="M356 88L375 105L388 80L402 106L424 80L440 104L458 86L450 132H354Z" fill="url(#metal)" stroke="#fff3c3" stroke-width="2"/>
+<text x="400" y="198" text-anchor="middle" fill="#f1ca85" font-family="Georgia,serif" font-size="47" letter-spacing="8">JUNJA LAND</text><path d="M290 224H510" stroke="#c49b5b" stroke-width="2"/><path d="M400 219L408 225L400 232L392 225Z" fill="#f6dfaa"/>
+<text x="400" y="268" text-anchor="middle" fill="#c6a46b" font-family="Georgia,serif" font-size="18" letter-spacing="7">ROYAL LUXURY HALL</text>
+<path d="M300 287L397 410L500 288Z" fill="#d79c5060" filter="url(#shadow)"/>
+<ellipse cx="400" cy="760" rx="305" ry="72" fill="#000" opacity=".8" filter="url(#shadow)"/>
+<ellipse cx="400" cy="811" rx="363" ry="84" fill="url(#marble)" stroke="url(#metal)" stroke-width="18"/>
+<path d="M49 810Q398 905 750 808" stroke="url(#metal)" stroke-width="11" fill="none"/>
+<path d="M99 781L212 808 298 793 393 827 518 803 642 834 730 798" stroke="#dfc7a1" opacity=".23" fill="none" stroke-width="3"/>
+<ellipse cx="400" cy="748" rx="363" ry="79" fill="url(#marble)" stroke="url(#metal)" stroke-width="9"/>
+<ellipse cx="400" cy="750" rx="318" ry="50" fill="none" stroke="#f0c87c" stroke-width="1.5" opacity=".45"/>
+<ellipse cx="400" cy="696" rx="258" ry="34" fill="#000" opacity=".57" filter="url(#shadow)"/>
+<path d="M216 494Q320 555 406 521T594 493" fill="none" stroke="#35230b" stroke-width="19"/><path d="M216 494Q320 555 406 521T594 493" fill="none" stroke="url(#metal)" stroke-width="13" stroke-dasharray="7 4"/><rect x="175" y="488" width="450" height="246" rx="18" fill="url(#bag)" stroke="#e8ca8e" stroke-width="3"/><rect x="192" y="503" width="415" height="214" rx="15" fill="none" stroke="#c09d71" stroke-width="13"/><rect x="206" y="519" width="388" height="185" rx="8" fill="url(#quilt)"/><rect x="336" y="607" width="127" height="58" rx="4" fill="url(#metal)" stroke="#7c511f" stroke-width="2"/><text x="399" y="648" text-anchor="middle" font-family="Georgia" font-size="49" font-weight="bold" fill="#342313">CC</text>
+<rect x="144" y="459" width="512" height="287" rx="32" fill="#ffffff" opacity=".03" filter="url(#grain)" style="pointer-events:none"/>
+<path d="M382 805l18-20 18 20-18 20Z" fill="url(#metal)"/>
+<text x="400" y="896" text-anchor="middle" font-family="Georgia,serif" font-size="21" letter-spacing="3" fill="#ecd19e">BOY BAG · NOIR</text>
+<text x="400" y="927" text-anchor="middle" font-family="Georgia,serif" font-size="11" letter-spacing="3" fill="#a88f68">VIRTUAL COLLECTOR EDITION</text>
+</svg>

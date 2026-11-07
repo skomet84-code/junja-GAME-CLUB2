@@ -5,7 +5,7 @@
    photo URLs, no change to database IDs, purchase checks or balances. */
 (()=>{
  const scenes=Object.freeze({
-  car:'car',watch:'watch',yacht:'yacht',jet:'jet',estate:'estate',
+  car:'car',watch:'watch',yacht:'yacht',jet:'jet',estate:'estate',bag:'bag',
   title:'jewelry',costume:'jewelry',pet:'jewelry',frame:'jewelry',jewel:'jewelry',vault:'jewelry',art:'jewelry'
  });
  // Museum hall artwork focal points (0..1 source image coordinates).
@@ -44,6 +44,14 @@
   return hash(item?.id)%focus[r].length;
  }
  function shot(item){
+  if(item?.category==='bag'){
+   const slug=String(item?.itemId||item?.id||'').replace(/^bag_royalboutique_/,'').replaceAll('_','-');
+   // Individual, approved-style gallery illustration is served as its own
+   // file, not an unrelated jewelry/cars sprite-sheet crop.
+   if(!/^(hermes-(birkin|kelly|constance)|chanel-(classic|255|boy))$/.test(slug))
+    return {src:'/art/royal/handbags/hermes-birkin.svg',x:50,y:55,zoom:140,room:'bag'};
+   return {src:'/art/royal/handbags/'+slug+'.svg',x:50,y:55,zoom:145,room:'bag'};
+  }
   const r=room(item),pt=focus[r][index(item,r)],zoom={car:3.35,watch:4.85,yacht:3.00,jet:3.05,estate:2.55,jewelry:3.95}[r];
   const pct=(p)=>Math.max(0,Math.min(100,Math.round(((zoom*p-.5)/(zoom-1))*100)));
   return {src:'/art/royal/cinematic/'+r+'-showroom.webp',x:pct(pt[0]),y:pct(pt[1]),zoom:Math.round(zoom*100),room:r};

@@ -69,3 +69,8 @@
 }
 @media(max-width:390px){#royalBoutiqueRoot .jrp-hall-product .jrp-product-art{height:112px}}
 @media(prefers-reduced-motion:reduce){#royalBoutiqueRoot .jrp-product-art,#view-gallery .jrp-product-art{transition:none}}
+
+/* Each handbag owns its own individually illustrated royal-display artwork. */
+#royalBoutiqueRoot .jrp-product-bag,#view-gallery .jrp-product-bag{background-color:#0d0a0b;border-color:#d3ab69;background-size:100% 100%,var(--jrp-art-zoom) auto}
+#royalBoutiqueRoot .jrp-tile .jrp-product-bag{box-shadow:0 13px 33px #000c,inset 0 0 16px #f0c47a2b}
+#view-gallery .jrg-object .jrp-product-bag{border-color:#edcb85}

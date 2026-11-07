@@ -1,5 +1,7 @@
 'use strict';
 const assert=require('node:assert/strict');
+const fs=require('node:fs'),path=require('node:path');
+const vm=require('node:vm');
 const {DatabaseSync}=require('node:sqlite');
 const exactWallet=require('../exact-wallet');
 const {ROYAL_ITEMS,createRoyalEconomy}=require('../royal-economy');
@@ -16,12 +18,63 @@ const db={
 };
 db.exec('CREATE TABLE users(id INTEGER PRIMARY KEY,nickname TEXT NOT NULL,balance INTEGER,balance_exact TEXT,balance_base TEXT,is_disabled INTEGER DEFAULT 0);CREATE TABLE user_inventory(user_id INTEGER NOT NULL,item_id TEXT NOT NULL,purchase_price INTEGER,purchased_at INTEGER,PRIMARY KEY(user_id,item_id));CREATE TABLE user_loadout(user_id INTEGER PRIMARY KEY,character TEXT,costume TEXT,frame TEXT,title TEXT,pet TEXT);CREATE TABLE game_state(key TEXT PRIMARY KEY,value TEXT,updated_at INTEGER);CREATE TABLE ledger(id INTEGER PRIMARY KEY,user_id INTEGER,amount INTEGER,balance_after INTEGER,amount_exact TEXT,balance_after_exact TEXT,type TEXT,memo TEXT,created_at INTEGER);');
 const G=10n**16n,initial=10000n*G;
+
 let clock=Date.parse('2026-11-03T22:00:00+09:00');const now=()=>clock;
 for(let id=1;id<=4;id++)db.prepare('INSERT INTO users(id,nickname,balance,balance_exact,balance_base) VALUES(?,?,?,?,?)')
  .run(id,'member'+id,9000000000000000000n,String(initial),'9000000000000000000');
 const economy=createRoyalEconomy({db,exactWallet,now,getAssets:()=>({})});
 const market=createRoyalMarket({db,exactWallet,now,items:ROYAL_ITEMS});
 economy.setMarket(market);
+const bags=ROYAL_ITEMS.filter(item=>item.category==='bag');
+assert.equal(bags.length,6,'royal boutique lists six handbags');
+assert.equal(new Set(bags.map(x=>x.id)).size,6,'each bag has a stable unique item ID');
+
+const imageNames=['hermes-birkin','hermes-kelly','hermes-constance','chanel-classic','chanel-255','chanel-boy'];
+const frame={window:{}};
+vm.runInNewContext(fs.readFileSync(path.join(__dirname,'..','public','royal-product-visual.js'),'utf8'),frame);
+const picture=frame.window.JunjaRoyalObjects;
+assert(picture,'royal product visual helper is exported');
+for(const piece of bags){
+ const target=piece.id.slice('bag_royalboutique_'.length).replaceAll('_','-');
+ assert.equal(picture.shot(piece).src,'/art/royal/handbags/'+target+'.svg','matching catalogue image '+target);
+ const auctionCard={category:'bag',id:'random-auction-lot-id',itemId:piece.id,name:piece.name};
+ assert.equal(picture.shot(auctionCard).src,'/art/royal/handbags/'+target+'.svg','matching auction image '+target);
+ assert.match(picture.render(auctionCard,piece.name),/data-art-item=/);
+}
+
+for(const name of imageNames){
+ const asset=path.join(__dirname,'..','public','art','royal','handbags',name+'.svg');
+ assert(fs.existsSync(asset),'matching handbag image exists: '+name);
+ assert(fs.readFileSync(asset,'utf8').includes('ROYAL LUXURY HALL'),'theming is preserved for '+name);
+}
+const boutiqueSource=fs.readFileSync(path.join(__dirname,'..','public','royal-economy-ui.js'),'utf8');
+const gallerySource=fs.readFileSync(path.join(__dirname,'..','public','royal-gallery.js'),'utf8');
+assert(boutiqueSource.includes("id:'bag',label:'👜 명품 가방'")&&boutiqueSource.includes('THE SEVEN ROYAL HALLS'),'handbag shop wing mounted');
+assert(gallerySource.includes("bag:'couture'"),'new collection is visible in owner museum');
+
+for(const piece of bags){
+ assert(['hermes','chanel'].includes(piece.brand));
+ assert(BigInt(piece.price)>=G);
+ assert(piece.stock>=1&&piece.stock<=2);
+ assert.equal(piece.displayOnly,true,'bag collectible cannot grant casino perks');
+}
+const birkin=bags.find(x=>x.model==='Birkin 30');
+const firstBagCash=exactWallet.read(db.prepare('SELECT balance,balance_exact,balance_base FROM users WHERE id=?').get(4));
+economy.buy(4,birkin.id);
+const acquiredBag=economy.catalog(4).items.find(x=>x.id===birkin.id);
+assert.equal(acquiredBag.owned,true);
+assert.equal(acquiredBag.remaining,0,'unique limited edition immediately sells out');
+assert.equal(acquiredBag.soldOut,false,'existing owner can inspect a sold-out collectible');
+assert.match(acquiredBag.certificate.serial,/^JLC-[0-9A-F]{16}$/);
+assert.equal(economy.gallery(4).items.find(x=>x.id===birkin.id).category,'bag');
+assert.equal(economy.collector(4).rooms.find(x=>x.id==='couture').owned,1);
+assert.throws(()=>economy.buy(2,birkin.id),/재고/,'other collector cannot buy sold-out bag');
+assert.equal(exactWallet.read(db.prepare('SELECT balance,balance_exact,balance_base FROM users WHERE id=?').get(4)),firstBagCash-BigInt(birkin.price));
+const bagSell=market.bankSell(4,birkin.id);
+assert.equal(bagSell.received,String(BigInt(birkin.price)*75n/100n));
+assert.equal(economy.catalog(4).items.find(x=>x.id===birkin.id).remaining,1);
+
+
 const cash=id=>exactWallet.read(db.prepare('SELECT balance,balance_exact,balance_base FROM users WHERE id=?').get(id));
 const owned=(id,item)=>db.prepare('SELECT COUNT(*) AS n FROM user_inventory WHERE user_id=? AND item_id=?').get(id,item).n;
 const jewel=ROYAL_ITEMS.find(x=>x.id==='jewel_royalboutique_pear_solitaire');
