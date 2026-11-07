@@ -58,5 +58,5 @@ assert.match(app,/data-junja-photo/,'friend profile image fallbacks supported');
 assert.match(css,/@media\(max-width:700px\)/,'mobile photography gallery');
 assert.match(gc,/jrg-real-photo/,'framed private garage photographs');
 assert(html.indexOf('/royal-photo.js')>=0&&html.indexOf('/royal-photo.js')<html.indexOf('/app.js'),'shared media helper must load before profile renderer');
-for(const [p,v] of Object.entries({'app.js':'20261103-photos-v7','royal-economy.css':'20261106-bag-v14','royal-economy-ui.js':'20261107-photoreal-v15','royal-gallery.js':'20261107-photoreal-v15','royal-gallery.css':'20261103-vault-v8'}))assert(html.includes('/'+p+'?v='+v),'asset version bump '+p);
+for(const [p,v] of Object.entries({'app.js':'20261103-photos-v7','royal-economy.css':'20261106-bag-v14','royal-economy-ui.js':'20261107-couture-v16','royal-gallery.js':'20261107-photoreal-v15','royal-gallery.css':'20261103-vault-v8'}))assert(html.includes('/'+p+'?v='+v),'asset version bump '+p);
 console.log('JUNJA_ROYAL_MOTORS_V6_OK: 12 real-photo brand collectibles, 1경+ prices, attribution and responsive museum/gallery integration');
