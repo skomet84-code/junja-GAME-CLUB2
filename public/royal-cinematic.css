@@ -62,3 +62,7 @@
 #royalBoutiqueRoot .jrp-cinematic-room[data-jre-filter="bag"]{border-color:#e8be7b;box-shadow:inset 0 0 0 1px #f2dbaa36,0 9px 23px #0007}
 #royalBoutiqueRoot .jrp-cinematic-room[data-jre-filter="bag"] .jrp-cinematic-room-caption{background:linear-gradient(90deg,#0b080be0,#16101460);border-left:2px solid #e2be7b;padding:8px}
 @media(max-width:700px){#royalBoutiqueRoot .jrp-motors-photo-row.jrp-cinematic-room-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
+
+/* Couture Salon V16: the approved entrance image includes its own engraved caption. */
+#royalBoutiqueRoot .jrp-cinematic-room[data-jre-filter="bag"] .jrp-cinematic-room-caption{display:none!important}
+#royalBoutiqueRoot .jrp-cinematic-room[data-jre-filter="bag"] img{object-fit:cover;object-position:center center}
