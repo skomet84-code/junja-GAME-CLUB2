@@ -20,7 +20,7 @@
  const media=window.JunjaRoyalMedia;
  const iconFor=item=>media?.picture(item)||('/art/royal/'+String(item?.art||'crown')+'.svg');
  const realPhoto=item=>!!media?.isPhoto(item)&&!window.JunjaRoyalObjects;
- const cinematicScene=item=>item?.category==='bag'?(window.JunjaRoyalObjects?.shot(item)?.src||'/art/royal/handbags/hermes-birkin.svg'):media?.scene(item)||'/art/royal/cinematic/jewelry-showroom.webp';
+ const cinematicScene=item=>item?.category==='bag'?(window.JunjaRoyalObjects?.shot(item)?.src||'/art/royal/handbags/hermes-birkin.webp'):media?.scene(item)||'/art/royal/cinematic/jewelry-showroom.webp';
  const imageTag=(item,alt='',eager=false)=>window.JunjaRoyalObjects?.render(item,alt)||'<img src="'+esc(iconFor(item))+'" alt="'+esc(alt)+'" loading="'+(eager?'eager':'lazy')+'">';
  const credit=item=>!realPhoto(item)?'':
   '<div class="jrg-photo-credit">실차 참고 사진 · <a href="'+esc(media.sourceUrl(item))+'" target="_blank" rel="noopener noreferrer">'+esc(item.photoBy||'Wikimedia Commons')+'</a> · <a href="'+esc(media.licenseUrl(item))+'" target="_blank" rel="noopener noreferrer">'+esc(item.photoLicense||'라이선스')+'</a><p>게임 내 한정판은 가상 모델이며 사진 속 실제 차량과 사양이 다를 수 있습니다.</p></div>';

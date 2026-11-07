@@ -74,3 +74,15 @@
 #royalBoutiqueRoot .jrp-product-bag,#view-gallery .jrp-product-bag{background-color:#0d0a0b;border-color:#d3ab69;background-size:100% 100%,var(--jrp-art-zoom) auto}
 #royalBoutiqueRoot .jrp-tile .jrp-product-bag{box-shadow:0 13px 33px #000c,inset 0 0 16px #f0c47a2b}
 #view-gallery .jrg-object .jrp-product-bag{border-color:#edcb85}
+
+/* V15: full-resolution square handbag photographs keep handles, buckles and
+   the marble collection plaque visible on mobile, in the auction and museum. */
+#royalBoutiqueRoot .jrp-product-bag,#view-gallery .jrp-product-bag{
+ background-color:#0a0708;
+ background-size:100% 100%,contain;
+ background-position:center center;
+ background-repeat:no-repeat;
+ border-color:#d8b16e;
+}
+#royalBoutiqueRoot .jrp-product-bag::before,#view-gallery .jrp-product-bag::before{background:none}
+#royalBoutiqueRoot .jrp-product-bag::after,#view-gallery .jrp-product-bag::after{content:none}

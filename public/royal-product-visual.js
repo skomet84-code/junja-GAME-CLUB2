@@ -46,11 +46,11 @@
  function shot(item){
   if(item?.category==='bag'){
    const slug=String(item?.itemId||item?.id||'').replace(/^bag_royalboutique_/,'').replaceAll('_','-');
-   // Individual, approved-style gallery illustration is served as its own
-   // file, not an unrelated jewelry/cars sprite-sheet crop.
+   // Individually curated photoreal WebP display is served as its own
+   // file, not a generic SVG or jewelry/cars sprite-sheet crop.
    if(!/^(hermes-(birkin|kelly|constance)|chanel-(classic|255|boy))$/.test(slug))
     return {src:'/art/royal/handbags/hermes-birkin.svg',x:50,y:55,zoom:140,room:'bag'};
-   return {src:'/art/royal/handbags/'+slug+'.svg',x:50,y:55,zoom:145,room:'bag'};
+   return {src:'/art/royal/handbags/'+slug+'.webp',x:50,y:50,zoom:100,room:'bag'};
   }
   const r=room(item),pt=focus[r][index(item,r)],zoom={car:3.35,watch:4.85,yacht:3.00,jet:3.05,estate:2.55,jewelry:3.95}[r];
   const pct=(p)=>Math.max(0,Math.min(100,Math.round(((zoom*p-.5)/(zoom-1))*100)));

@@ -41,6 +41,6 @@ assert.match(gallery,/selected\.displayOnly/,'cannot equip display item');
 assert.match(galleryCss,/garage-hall\.svg/,'actual illustrated garage for car owners');
 assert.match(app,/x\?\.art/,'show real art on user profiles');
 assert.match(server,/if\(!item\.displayOnly\)db\.prepare\('UPDATE user_loadout/,'never attach supercars to avatar loadout');
-for(const [file,version] of [['royal-economy.css','20261106-bag-v14'],['royal-economy-ui.js','20261106-bag-v14'],['royal-gallery.js','20261106-bag-v14'],['royal-gallery.css','20261103-vault-v8']])assert(index.includes(file+'?v='+version),'cache-bust '+file);
+for(const [file,version] of [['royal-economy.css','20261106-bag-v14'],['royal-economy-ui.js','20261107-photoreal-v15'],['royal-gallery.js','20261107-photoreal-v15'],['royal-gallery.css','20261103-vault-v8']])assert(index.includes(file+'?v='+version),'cache-bust '+file);
 for(const id of ['watch_royalboutique_patek_grand','watch_royalboutique_richard_mille','watch_royalboutique_audemars','watch_royalboutique_vacheron','watch_royalboutique_jacob','car_royalboutique_ferrari_sf90','car_royalboutique_lamborghini_svj','car_royalboutique_mclaren_765lt','car_royalboutique_bugatti_chiron']){const it=ROYAL_ITEMS.find(i=>i.id===id);assert(it&&it.displayOnly&&BigInt(it.price)>=10n**16n,'new 1경+ display-only collectible '+id)}
 console.log('ROYAL_LUXURY_V5_OK: 55 unique pieces, 1경 floor, photo-first shop and gallery, safe purchases');

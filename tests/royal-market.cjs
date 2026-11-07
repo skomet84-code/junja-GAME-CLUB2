@@ -36,16 +36,20 @@ const picture=frame.window.JunjaRoyalObjects;
 assert(picture,'royal product visual helper is exported');
 for(const piece of bags){
  const target=piece.id.slice('bag_royalboutique_'.length).replaceAll('_','-');
- assert.equal(picture.shot(piece).src,'/art/royal/handbags/'+target+'.svg','matching catalogue image '+target);
+ assert.equal(picture.shot(piece).src,'/art/royal/handbags/'+target+'.webp','matching high-res catalogue photo '+target);
  const auctionCard={category:'bag',id:'random-auction-lot-id',itemId:piece.id,name:piece.name};
- assert.equal(picture.shot(auctionCard).src,'/art/royal/handbags/'+target+'.svg','matching auction image '+target);
+ assert.equal(picture.shot(auctionCard).src,'/art/royal/handbags/'+target+'.webp','matching auction photo '+target);
  assert.match(picture.render(auctionCard,piece.name),/data-art-item=/);
+ assert(picture.render(auctionCard,piece.name).includes('.webp'),'auction card must use photographic image');
 }
 
 for(const name of imageNames){
- const asset=path.join(__dirname,'..','public','art','royal','handbags',name+'.svg');
+ const asset=path.join(__dirname,'..','public','art','royal','handbags',name+'.webp');
  assert(fs.existsSync(asset),'matching handbag image exists: '+name);
- assert(fs.readFileSync(asset,'utf8').includes('ROYAL LUXURY HALL'),'theming is preserved for '+name);
+ const bytes=fs.readFileSync(asset);
+ assert(bytes.length>30000&&bytes.length<220000,'image should be detailed but mobile optimized: '+name);
+ assert.equal(bytes.toString('ascii',0,4),'RIFF','WebP container for '+name);
+ assert.equal(bytes.toString('ascii',8,12),'WEBP','WebP codec for '+name);
 }
 const boutiqueSource=fs.readFileSync(path.join(__dirname,'..','public','royal-economy-ui.js'),'utf8');
 const gallerySource=fs.readFileSync(path.join(__dirname,'..','public','royal-gallery.js'),'utf8');
