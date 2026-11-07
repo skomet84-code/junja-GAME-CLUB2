@@ -94,3 +94,12 @@
   font-size:8px;letter-spacing:1.4px;top:5px;
  }
 }
+
+/* V17: exact approved Couture Salon cover; no triptych or duplicate caption. */
+#royalBoutiqueRoot .jrp-cinematic-room[data-jre-filter="bag"] .jrp-couture-entry-art img{
+ width:100%!important;flex:0 0 100%!important;height:100%!important;
+ object-fit:cover!important;object-position:center center!important;filter:none!important
+}
+#royalBoutiqueRoot .jrp-cinematic-room[data-jre-filter="bag"] .jrp-couture-entry-art::after{content:none!important}
+#royalBoutiqueRoot .jrp-cinematic-room[data-jre-filter="bag"] .jrp-couture-entry-art::before{background:transparent!important}
+#royalBoutiqueRoot .jrp-cinematic-room[data-jre-filter="bag"] .jrp-cinematic-room-caption{display:none!important}

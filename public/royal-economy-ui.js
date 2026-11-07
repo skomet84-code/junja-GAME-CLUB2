@@ -28,10 +28,7 @@
  // passing an ID-less bag into sceneArt(), which always fell back to Birkin.
  // Other hall artwork, product artwork and ownership views remain untouched.
  const roomCover=room=>room.id==='bag'
-   ?'<span class="jrp-couture-entry-art" aria-hidden="true">'+
-     ['hermes-birkin','hermes-kelly','chanel-classic'].map(slug=>
-       '<img src="/art/royal/handbags/'+slug+'.webp" alt="" loading="lazy" decoding="async">').join('')+
-    '</span>'
+   ?'<span class="jrp-couture-entry-art" aria-hidden="true"><img src="/art/royal/couture-salon-entry-v16.webp" alt="" loading="lazy" decoding="async"></span>'
    :'<img src="'+safe(sceneArt({category:room.id}))+'" alt="" loading="lazy" decoding="async">';
  const cinematicRooms=[
  {id:'bag',english:'00 / COUTURE SALON',name:'에르메스 · 샤넬 명품백'},
