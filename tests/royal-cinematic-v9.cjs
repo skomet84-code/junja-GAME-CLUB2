@@ -25,15 +25,19 @@ assert.match(gallery,/jrg-cinematic-card-backdrop/);
 assert.match(gallery,/jrg-cinematic-selected/);
 assert.match(gallery,/jrg-cinematic-certificate/);
 assert.match(css,/@media\(max-width:700px\)/);
-assert.match(html,/royal-cinematic\.css\?v=20261106-bag-v14/);
+assert.match(html,/royal-cinematic\.css\?v=20261107-approved-couture-v17/);
 assert.match(html,/royal-gallery\.js\?v=20261107-photoreal-v15/);
 // The room entry is a distinct view from per-product / museum artwork.
 assert.match(store,/const roomCover=room=>room\.id==='bag'/,'bag tile no longer shows the ID-less Birkin fallback');
-for(const slug of ['hermes-birkin','hermes-kelly','chanel-classic'])
- assert(store.includes(slug),'Couture Salon uses a real 3-handbag WebP composite: '+slug);
+const coutureCover=fs.readFileSync(path.join(root,'public/art/royal/couture-salon-entry-v16.webp'));
+assert(coutureCover.length>20000&&coutureCover.length<100000,'approved cover is a compact real image file');
+assert.equal(coutureCover.toString('ascii',0,4),'RIFF');
+assert.equal(coutureCover.toString('ascii',8,12),'WEBP');
+assert(store.includes('/art/royal/couture-salon-entry-v16.webp'),'Couture Salon uses approved one-piece showroom artwork');
+assert(!store.includes("['hermes-birkin','hermes-kelly','chanel-classic'].map(slug=>"),'old three-photo split removed');
 assert.match(store,/roomCover\(room\)/,'seven showroom tiles use the scoped room cover renderer');
 assert.match(store,/return|sceneArt\(\{category:room\.id\}\)/,'other six showrooms preserve original artwork');
-assert.match(css,/jrp-couture-entry-art/,'entry has styled multi-image cover');
-assert.match(html,/royal-cinematic\.css\?v=20261106-bag-v14-couture-v16/);
-assert.match(html,/royal-economy-ui\.js\?v=20261107-photoreal-v15-couture-v16/);
+assert.match(css,/jrp-couture-entry-art/,'entry has individually styled approved cover');
+assert.match(html,/royal-cinematic\.css\?v=20261107-approved-couture-v17/);
+assert.match(html,/royal-economy-ui\.js\?v=20261107-approved-couture-v17/);
 console.log('ROYAL_CINEMATIC_V9_OK: six optimized showroom scenes, existing purchases and owned-collection views preserved');
