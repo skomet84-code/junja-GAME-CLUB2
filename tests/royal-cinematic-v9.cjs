@@ -27,4 +27,13 @@ assert.match(gallery,/jrg-cinematic-certificate/);
 assert.match(css,/@media\(max-width:700px\)/);
 assert.match(html,/royal-cinematic\.css\?v=20261106-bag-v14/);
 assert.match(html,/royal-gallery\.js\?v=20261107-photoreal-v15/);
+// The room entry is a distinct view from per-product / museum artwork.
+assert.match(store,/const roomCover=room=>room\.id==='bag'/,'bag tile no longer shows the ID-less Birkin fallback');
+for(const slug of ['hermes-birkin','hermes-kelly','chanel-classic'])
+ assert(store.includes(slug),'Couture Salon uses a real 3-handbag WebP composite: '+slug);
+assert.match(store,/roomCover\(room\)/,'seven showroom tiles use the scoped room cover renderer');
+assert.match(store,/return|sceneArt\(\{category:room\.id\}\)/,'other six showrooms preserve original artwork');
+assert.match(css,/jrp-couture-entry-art/,'entry has styled multi-image cover');
+assert.match(html,/royal-cinematic\.css\?v=20261106-bag-v14-couture-v16/);
+assert.match(html,/royal-economy-ui\.js\?v=20261107-photoreal-v15-couture-v16/);
 console.log('ROYAL_CINEMATIC_V9_OK: six optimized showroom scenes, existing purchases and owned-collection views preserved');
