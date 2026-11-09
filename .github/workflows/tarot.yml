@@ -1,0 +1,41 @@
+name: JUNJA Tarot One-Time Reading Tests
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'tarot-server.js'
+      - 'public/tarot/**'
+      - 'tests/tarot.cjs'
+      - 'server.js'
+      - 'public/index.html'
+      - '.github/workflows/tarot.yml'
+  pull_request:
+    paths:
+      - 'tarot-server.js'
+      - 'public/tarot/**'
+      - 'tests/tarot.cjs'
+      - 'server.js'
+      - 'public/index.html'
+      - '.github/workflows/tarot.yml'
+permissions:
+  contents: read
+jobs:
+  tarot-safety:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax and once-per-category backend rules
+        run: |
+          node --check tarot-server.js
+          node --check public/tarot/game.js
+          node --check server.js
+          node tests/tarot.cjs
+      - name: Verify lobby and route wiring
+        run: |
+          grep -q 'tarot-server' server.js
+          grep -q '/api/tarot' server.js
+          grep -q 'tarot-lobby-link' public/index.html
+          grep -q '/tarot/' public/index.html
