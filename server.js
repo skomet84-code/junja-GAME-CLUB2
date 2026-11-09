@@ -273,6 +273,8 @@ function recordSlot777Jackpot(user,{jackpotAward,regularPayout,bet}){
 }
 
 
+const tarot=require('./tarot-server')({db,crypto,readBody,requireAuth,json,rateLimit,flush:()=>db.flush()});
+
 const goldenbell=require('./goldenbell-server')({db,crypto,readBody,requireAuth,json,rateLimit,
   isUserBusy:id=>!!findUserRoom(id)||!!baccaratFindUser(id)||treasureRaid.hasUser(id)||sichuanBattle.hasUser(id)||omok.hasUser(id)||liar.hasUser(id)||janggi.hasUser(id)||royalCards.hasUser(id),
   notify:(ids,roomId)=>{for(const [,client] of sseClients)if(ids.includes(Number(client.userId))){try{client.res.write(`event: refresh\ndata: ${JSON.stringify({goldenbell:true,roomId})}\n\n`);}catch{}}}
@@ -2356,6 +2358,7 @@ const server=http.createServer(async(req,res)=>{
     if(url.pathname.startsWith('/api/liar')){if(await liar.handle(req,res,url))return;}
     if(url.pathname.startsWith('/api/omok')){if(await omok.handle(req,res,url))return;}
     if(url.pathname.startsWith('/api/goldenbell')){if(await goldenbell.handle(req,res,url))return;}
+    if(url.pathname.startsWith('/api/tarot')){if(await tarot.handle(req,res,url))return;}
     if(url.pathname.startsWith('/api/treasure-raid')){if(await treasureRaid.handle(req,res,url))return;}
     if(url.pathname.startsWith('/api/sichuan/battle')){if(await sichuanBattle.handle(req,res,url))return;}
     // JPL PRIVATE PREVIEW: only the verified primary owner may use or load the league.
