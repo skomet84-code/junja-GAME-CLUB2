@@ -55,6 +55,14 @@
 <link rel="stylesheet" href="/owner-market.css?v=20261105-v8-schedule1">
 <link rel="stylesheet" href="/support-center.css?v=20261105-v9">
 <link rel="stylesheet" href="/commerce-readiness.css?v=20261105-v10">
+<style>
+.tarot-lobby-link{margin:18px 0 22px;display:flex;align-items:center;gap:19px;padding:24px;border-radius:20px;text-decoration:none;color:#fff5db!important;background:linear-gradient(115deg,#27173d,#4b2861 52%,#25183b);border:1px solid #d8b06f88;box-shadow:0 10px 30px #1b11397a}
+.tarot-lobby-icon{font-size:34px;color:#f5cc90;min-width:135px;text-align:center;text-shadow:0 0 24px #d8b278}
+.tarot-lobby-link>span:nth-child(2){display:flex;flex-direction:column;gap:6px;flex:1}.tarot-lobby-link small{color:#d6b7df;font-size:10px;letter-spacing:.18em}
+.tarot-lobby-link strong{font-size:clamp(18px,3vw,26px);font-weight:750}.tarot-lobby-link em{font-size:12px;font-style:normal;line-height:1.7;color:#d8c9e6}
+.tarot-lobby-link>b{background:linear-gradient(120deg,#e9bd7c,#fbdda0);border-radius:30px;color:#2d1a3b;font-size:12px;padding:11px 17px;white-space:nowrap}
+@media(max-width:650px){.tarot-lobby-link{gap:10px;padding:16px 13px;flex-wrap:wrap}.tarot-lobby-icon{font-size:19px;min-width:54px}.tarot-lobby-link strong{font-size:18px}.tarot-lobby-link>b{margin-left:64px;font-size:11px}.tarot-lobby-link em{font-size:11px}}
+</style>
 </head>
 <body>
 <div id="app">
@@ -152,6 +160,11 @@
           <button class="game-card treasure" data-go="treasure" type="button" aria-label="JUNJA 보물 레이드"><img loading="lazy" decoding="async" class="game-art" src="/art/v26/games/treasure.webp?v=5" alt="JUNJA 보물 레이드"></button>
         </div>
 
+        <a class="tarot-lobby-link" href="/tarot/" aria-label="운명의 타로 상담소, 카테고리별 평생 한 번 나만의 타로 리딩">
+          <span class="tarot-lobby-icon" aria-hidden="true">☾ ✧ ☀</span>
+          <span><small>JUNJA ORACLE · PRIVATE TAROT</small><strong>운명의 타로 상담소</strong><em>연애 · 재물 · 직장 · 건강 · 인간관계 · 종합운<br>78장 덱에서 고르는 단 한 번의 운명</em></span>
+          <b>카드 펼치기 ↗</b>
+        </a>
         <div class="dashboard-grid"><div class="panel section-card"><div class="section-head"><div><small>CLUB RANKING</small><h3>게임머니 랭킹</h3></div><button class="ghost" id="refreshRank" type="button">새로고침</button></div><div id="leaderboard" class="rank-list"></div></div><div class="panel section-card accent-card"><div class="section-head"><div><small>MY RECORD</small><h3>내 기록</h3></div></div><div id="myStats" class="stat-grid"></div><button class="secondary full" data-go="ledger" type="button">게임머니 내역 보기</button></div></div>
       </section>
 
