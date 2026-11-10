@@ -88,7 +88,7 @@ function compose(theme,cards){
   advice:t.focus+' '+t.question,
   disclaimer:'이 리딩은 전통 타로의 상징을 활용한 오락·자기성찰 콘텐츠입니다. 실제 미래를 예언하지 않으며 건강·재정 등 중요한 결정의 근거가 될 수 없습니다.'};
 }
-module.exports=function createTarot({db,crypto,readBody,requireAuth,json,rateLimit,flush=async()=>{},now=Date.now}){
+module.exports=function createTarot({db,crypto,readBody,requireAuth,requireAdmin,json,rateLimit,flush=async()=>{},now=Date.now}){
  const key=(id,category)=>'tarot:permanent:v1:'+String(id)+':'+category;
  const get=(id,category)=>{
   const row=db.prepare('SELECT value FROM game_state WHERE key=?').get(key(id,category));
@@ -96,6 +96,29 @@ module.exports=function createTarot({db,crypto,readBody,requireAuth,json,rateLim
   try{return JSON.parse(row.value);}catch{return null;}
  };
  async function handle(req,res,url){
+  if(url.pathname==='/api/admin/tarot'){
+   if(!requireAdmin(req,res))return true;
+   res.setHeader?.('Cache-Control','no-store');
+   if(req.method!=='GET'){json(res,405,{error:'조회만 가능합니다.'});return true;}
+   const category=url.searchParams.get('category')||'';
+   if(category&&!Object.hasOwn(THEMES,category)){json(res,400,{error:'운세 종류를 확인해 주세요.'});return true;}
+   const query=(url.searchParams.get('q')||'').trim().toLocaleLowerCase().slice(0,100);
+   const users=new Map(db.prepare('SELECT id,username,nickname FROM users').all().map(u=>[String(u.id),u]));
+   const rows=[];
+   for(const row of db.prepare("SELECT key,value FROM game_state WHERE key LIKE 'tarot:permanent:v1:%'").all()){
+    const match=/^tarot:permanent:v1:(\d+):([^:]+)$/.exec(row.key);
+    if(!match||!Object.hasOwn(THEMES,match[2])||(category&&match[2]!==category))continue;
+    const user=users.get(match[1])||{id:Number(match[1]),username:'',nickname:'삭제된 회원'};
+    if(query&&!`${user.username} ${user.nickname} ${user.id}`.toLocaleLowerCase().includes(query))continue;
+    try{const reading=JSON.parse(row.value);if(!reading||!Array.isArray(reading.cards))continue;
+     rows.push({user,reading});
+    }catch{}
+   }
+   rows.sort((a,b)=>(Number(b.reading.createdAt)||0)-(Number(a.reading.createdAt)||0)||Number(a.user.id)-Number(b.user.id));
+   const total=rows.length,pages=Math.max(1,Math.ceil(total/20));
+   const page=Math.min(pages,Math.max(1,Math.floor(Number(url.searchParams.get('page'))||1)));
+   json(res,200,{rows:rows.slice((page-1)*20,page*20),pagination:{page,pages,total},categories:Object.entries(THEMES).map(([category,t])=>({category,title:t.title}))});return true;
+  }
   if(!url.pathname.startsWith('/api/tarot'))return false;
   const user=requireAuth(req,res);if(!user)return true;
   if(req.method==='GET'&&url.pathname==='/api/tarot/status'){
