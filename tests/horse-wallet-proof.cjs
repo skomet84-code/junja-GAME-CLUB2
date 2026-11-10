@@ -1,0 +1,21 @@
+'use strict';
+const fs=require('node:fs'),assert=require('node:assert/strict'),vm=require('node:vm');
+const server=fs.readFileSync('server.js','utf8'),app=fs.readFileSync('public/app.js','utf8');
+const exact=require('../exact-wallet');
+assert.equal(exact.read({balance:9000000000000000000n,balance_exact:'1000000000000000000000000',balance_base:'9000000000000000000'}),1000000000000000000000000n);
+assert.equal(exact.read({balance:8999999999999990000n,balance_exact:'1000000000000000000000000',balance_base:'9000000000000000000'}),999999999999999999990000n);
+// Ensure the deployment bootstrap replaces the old floating-point wallet with exactWallet.change.
+const bootstrap=fs.readFileSync('admin-unlimited-start.js','utf8');
+assert.match(bootstrap,/source = replaceOne\(source, oldWalletChange, newWalletChange/);
+assert.match(bootstrap,/return exactWallet\.change\(db,userId,amount,type,memo,now,/);
+assert.match(server,/const prior=exactWallet\.read\(db\.prepare\('SELECT balance,balance_exact,balance_base FROM users WHERE id=\?'\)/);
+assert.match(server,/balanceBefore:String\(prior\),balanceAfter:String\(next\)/);
+assert.ok(app.includes('판돈 손실'),'losing balance change must be visible');
+assert.ok(app.includes('판돈 -'),'bet debit must be visible in race banner');
+const receipt=server.slice(server.indexOf('function horsePlaceBet('),server.indexOf('function horseReady('));
+assert.ok(receipt.indexOf('walletChange(user.id,-bet')<receipt.indexOf('r.bets.set(user.id'),'wager must be deducted before registration');
+const settlement=server.slice(server.indexOf('function horseStartIfReady('),server.indexOf('function horseMeetPublic('));
+assert.ok(!server.slice(server.indexOf('function horseStartIfReady('),server.indexOf('function horseSettleFinished(')).includes('settleRace('),'never credit winners on race start');
+assert.ok(settlement.indexOf('horseSettleFinished(r);')>settlement.indexOf('t>=r.finishAt'),'settle on finish');
+assert.match(settlement,/if\(r\.results\.has\(uid\)\)continue/,'no repeat settlement during polling');
+console.log('HORSE_WALLET_PROOF_OK: wager before/after exact balances, losing UI, finish-line payout, nonduplicate settlement, shared wallet bootstrap');

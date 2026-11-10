@@ -6,7 +6,8 @@ async function checkBoardGeometry(page, label, baseline=null){
  const metrics=await page.locator('.omk-board').evaluate(board=>{
   const points=[...board.querySelectorAll('.omk-point')];
   if(points.length!==225)throw Error('15x15 board must have 225 points');
-  const center=(x,y)=>{const rect=points[y*15+x].getBoundingClientRect();return {x:rect.left+rect.width/2,y:rect.top+rect.height/2,w:rect.width,h:rect.height};};
+  // Use document coordinates: a mobile click may scroll the viewport without moving the board in the page.
+  const center=(x,y)=>{const rect=points[y*15+x].getBoundingClientRect();return {x:rect.left+window.scrollX+rect.width/2,y:rect.top+window.scrollY+rect.height/2,w:rect.width,h:rect.height};};
   const xs=Array.from({length:15},(_,x)=>center(x,7).x);
   const ys=Array.from({length:15},(_,y)=>center(7,y).y);
   const widths=Array.from({length:15},(_,y)=>center(7,y).w);
@@ -97,11 +98,18 @@ for(const [browserName,engine] of [['chromium',chromium],['webkit',webkit]]){
   });
   if(color!==2)throw Error('black/white rematch not swapped');
   await b.waitForSelector('.omk-board .omk-point[data-x="7"][data-y="7"]:not([disabled])',{timeout:15000});
-  await checkBoardGeometry(b,'rematch',originalB);
+  // A new round may legitimately reposition the board when its header changes.
+  // Capture a fresh baseline and ensure placing stones does not shift its grid.
+  const rematchBoard=await checkBoardGeometry(b,'rematch');
+  await b.click('.omk-point[data-x="7"][data-y="7"]');
+  await a.waitForSelector('.omk-point[data-x="7"][data-y="7"] .omk-stone.black',{timeout:15000});
+  await checkBoardGeometry(b,'after rematch first move',rematchBoard);
   console.log('OMOK_MOBILE_OK '+browserName+' head-to-head moves, UI events, resign and swapped-color rematch');
   a.once('dialog',dialog=>dialog.accept());
   await a.click('[data-action="leave"]');
   await a.waitForSelector('#omkCreateForm',{timeout:12000});
+  // New CI accounts have no game funds. Exercise the free AI match, not paid-stake confirmation.
+  await a.selectOption('#omkAiStake','0');
   await a.click('[data-action="create-ai"]');
   await a.waitForSelector('.omk-board .omk-point',{timeout:12000});
   const originalAi=await checkBoardGeometry(a,'AI challenge initial');

@@ -1,0 +1,51 @@
+name: Commercial Release Blocker v10
+on:
+  pull_request:
+    paths:
+      - 'commerce-readiness-v10.js'
+      - 'docs/COMMERCE_GO_LIVE_GATE.json'
+      - 'docs/COMMERCIAL_RELEASE_DECISION_V10.md'
+      - 'server.js'
+      - 'public/index.html'
+      - 'public/commerce-readiness-ui.js'
+      - 'public/commerce-readiness.css'
+      - 'tests/commerce-v10*.cjs'
+      - 'tests/commerce-v10-mobile.mjs'
+      - '.github/workflows/commerce-release-v10.yml'
+  workflow_dispatch:
+jobs:
+  immutable-payment-off:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check source syntax and install production runtime
+        run: |
+          node --check commerce-readiness-v10.js
+          node --check public/commerce-readiness-ui.js
+          node --check server.js
+          npm install --omit=dev --ignore-scripts --no-audit --no-fund
+      - name: Validate payment-off legal/PG launch gates
+        run: |
+          node tests/commerce-v10-gates.cjs
+          node tests/commerce-v10-static.cjs
+          node tests/commerce-v10-http.cjs
+  gate-browser:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install Chromium and WebKit for QA
+        run: |
+          npm install --no-save --no-package-lock --ignore-scripts --no-audit --no-fund playwright
+          npx playwright install --with-deps chromium webkit
+      - name: Check 12 gates render safely in 8 mobile/desktop layouts
+        run: node tests/commerce-v10-mobile.mjs

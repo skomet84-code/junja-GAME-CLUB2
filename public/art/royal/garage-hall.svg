@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1400 850" role="img" aria-label="준자 왕실 명품 슈퍼카 전용 진열장, 황금 아치, 보라색 조명, 광택 대리석 마루">
+<defs>
+ <linearGradient id="wall" x1="0" y1="0" x2=".85" y2="1"><stop stop-color="#2F1A3F"/><stop offset=".45" stop-color="#160D22"/><stop offset="1" stop-color="#332044"/></linearGradient>
+ <linearGradient id="gold" x1="0" y1="0" x2="1" y2=".9"><stop stop-color="#fff1b9"/><stop offset=".26" stop-color="#c49654"/><stop offset=".5" stop-color="#79502e"/><stop offset=".78" stop-color="#e3bb7c"/><stop offset="1" stop-color="#ffdba2"/></linearGradient>
+ <linearGradient id="glass" x1="0" y1="0" x2=".84" y2="1"><stop stop-color="#9875ad"/><stop offset=".4" stop-color="#342443"/><stop offset=".82" stop-color="#100e21"/><stop offset="1" stop-color="#3b2a4d"/></linearGradient>
+ <linearGradient id="floor" x1="0" y1="0" x2=".3" y2="1"><stop stop-color="#6b517e"/><stop offset=".45" stop-color="#272035"/><stop offset="1" stop-color="#090a13"/></linearGradient>
+ <radialGradient id="halo"><stop stop-color="#e5caa1" stop-opacity=".45"/><stop offset=".25" stop-color="#9364c0" stop-opacity=".18"/><stop offset="1" stop-color="#12091c" stop-opacity="0"/></radialGradient>
+ <pattern id="marble" width="105" height="90" patternUnits="userSpaceOnUse"><path d="M0 10 59 31 105 20M15 78 69 54 105 70" fill="none" stroke="#D1BCE0" stroke-opacity=".07" stroke-width="2"/></pattern>
+ <filter id="blur"><feGaussianBlur stdDeviation="22"/></filter>
+</defs>
+<rect width="1400" height="850" fill="#070511"/>
+<rect width="1400" height="620" fill="url(#wall)"/>
+<path d="M0 0H1400V103H0Z" fill="#130c22" stroke="#d9b77a" stroke-width="6"/>
+<path d="M0 24H1400M0 68H1400M0 96H1400" stroke="url(#gold)" stroke-width="4" opacity=".6"/>
+<g>
+ <path d="M50 625V295Q50 122 227 116Q404 123 404 295V625Z" fill="url(#glass)" stroke="#8f663f" stroke-width="25"/>
+ <path d="M50 625V295Q50 122 227 116Q404 123 404 295V625Z" fill="none" stroke="url(#gold)" stroke-width="11"/>
+ <path d="M991 625V295Q991 122 1169 116Q1347 123 1347 295V625Z" fill="url(#glass)" stroke="#8f663f" stroke-width="25"/>
+ <path d="M991 625V295Q991 122 1169 116Q1347 123 1347 295V625Z" fill="none" stroke="url(#gold)" stroke-width="11"/>
+ <path d="M374 632V220Q374 72 700 65Q1026 72 1026 220V632Z" fill="url(#glass)" stroke="#b78951" stroke-width="36"/>
+ <path d="M390 627V228Q390 98 700 94Q1010 98 1010 228V627Z" fill="none" stroke="#f8dba2" stroke-width="7"/>
+ <path d="M411 621V228Q411 117 700 116Q989 117 989 228V621Z" fill="#120f22" opacity=".45"/>
+</g>
+<g stroke="#e3ba77" stroke-opacity=".8">
+ <path d="M112 377H342M1055 377H1293" stroke-width="7"/>
+ <path d="M700 110V207M638 168H762" stroke-width="5"/>
+</g>
+<g fill="url(#gold)" stroke="#fbe6bb" stroke-width="2">
+ <path d="M0 202h49v379H0Z M1351 202h49v379h-49Z"/>
+ <path d="M371 244h34v338h-34Z M994 244h34v338h-34Z"/>
+ <path d="M0 555H77v37H0Z M1323 555H1400v37h-77Z"/>
+</g>
+<g fill="url(#gold)" opacity=".8">
+ <path d="M696 155l-8 24 8 25 8-25Z"/>
+ <path d="m215 223-11 22 11 22 11-22Zm960 0-11 22 11 22 11-22Z"/>
+</g>
+<g fill="url(#halo)"><ellipse cx="700" cy="397" rx="470" ry="375"/><ellipse cx="235" cy="370" rx="190" ry="270"/><ellipse cx="1165" cy="370" rx="190" ry="270"/></g>
+<!-- overhead museum spotlights -->
+<g fill="url(#gold)" stroke="#fff0c5" stroke-width="5"><ellipse cx="360" cy="131" rx="35" ry="12"/><ellipse cx="700" cy="90" rx="37" ry="12"/><ellipse cx="1040" cy="131" rx="35" ry="12"/></g>
+<g stroke="#edd19b" stroke-opacity=".35" stroke-width="2"><path d="M360 134 265 555 490 555Z M700 95 464 586 937 586Z M1040 134 914 555 1130 555Z" fill="#e3c38c" fill-opacity=".035"/></g>
+<!-- marble platform floor -->
+<path d="M0 612H1400V850H0Z" fill="url(#floor)"/>
+<path d="M0 612H1400V850H0Z" fill="url(#marble)"/>
+<path d="M0 616H1400" stroke="#f1d3a1" stroke-width="8"/>
+<path d="M0 639H1400" stroke="#c39c71" stroke-width="3"/>
+<path d="M700 631 630 850M700 631 375 850M700 631 80 850M700 631 1025 850M700 631 1320 850M0 740H1400M0 810H1400" stroke="#d1b090" stroke-width="3" stroke-opacity=".35"/>
+<!-- central revolving exhibition platform -->
+<ellipse cx="700" cy="715" rx="355" ry="62" fill="#d2ad80" opacity=".34" filter="url(#blur)"/>
+<path d="M342 690Q700 625 1058 690L1038 745Q700 810 362 745Z" fill="#1b162a" stroke="url(#gold)" stroke-width="13"/>
+<ellipse cx="700" cy="685" rx="356" ry="45" fill="url(#glass)" stroke="url(#gold)" stroke-width="10"/>
+<ellipse cx="700" cy="685" rx="294" ry="30" fill="none" stroke="#f6d99d" stroke-width="3" opacity=".8"/>
+<path d="M362 754Q700 820 1038 754" fill="none" stroke="#f0c98e" stroke-width="7"/>
+<!-- side exhibition platforms -->
+<ellipse cx="242" cy="683" rx="145" ry="27" fill="#24192e" stroke="url(#gold)" stroke-width="9"/>
+<ellipse cx="1158" cy="683" rx="145" ry="27" fill="#24192e" stroke="url(#gold)" stroke-width="9"/>
+<ellipse cx="242" cy="692" rx="137" ry="9" fill="#e2b789" opacity=".17" filter="url(#blur)"/>
+<ellipse cx="1158" cy="692" rx="137" ry="9" fill="#e2b789" opacity=".17" filter="url(#blur)"/>
+<path d="M70 740H1330" stroke="#dcc2a0" stroke-opacity=".3" stroke-width="2"/>
+<!-- engraved ornament -->
+<path d="M6 7H1394V843H6Z" fill="none" stroke="#edc889" stroke-opacity=".55" stroke-width="5"/>
+</svg>

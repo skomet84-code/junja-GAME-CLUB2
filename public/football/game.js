@@ -1,0 +1,535 @@
+(()=>{'use strict';
+const $=s=>document.querySelector(s);
+const $$=s=>[...document.querySelectorAll(s)];
+const HOUR=3600000,KST=9*HOUR,MATCH_MS=60000,MAX_STAKE=1000000000000000n,MAX_RETURN=1000000000000000000n,TAX_LIMIT=10000000000000000n,ANALYSIS_PRICE=1000000000000n;
+const names={H:'홈 승',D:'무승부',A:'원정 승'},numbers={H:'1',D:'X',A:'2'};
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let status=null,clubs=new Map(),selection=new Map(),fixtureTab='today',watchId=null,allSchedule=null,serverOffset=0,loading=false,betting=false,demo=null;
+let canvas=$('#pitch'),ctx=canvas?.getContext('2d'),lastDraw=0,toastTimer=null,scheduleBusy=false,analysisBusy=false;
+const now=()=>Date.now()+serverOffset;
+const dateKey=ms=>new Date(Number(ms)+KST).toISOString().slice(0,10);
+const time=ms=>new Date(Number(ms)).toLocaleTimeString('ko-KR',{timeZone:'Asia/Seoul',hour:'2-digit',minute:'2-digit',hour12:false});
+const shortDate=ms=>new Date(Number(ms)).toLocaleDateString('ko-KR',{timeZone:'Asia/Seoul',month:'short',day:'numeric',weekday:'short'});
+function fmtMoney(v){
+ try{
+  let n=BigInt(v||'0'),sign=n<0n?'-':'';if(n<0n)n=-n;
+  let out=[],remaining=n;
+  for(const [name,size] of [['경',10000000000000000n],['조',1000000000000n],['억',100000000n],['만',10000n]]){
+   const unit=remaining/size;if(unit>0n){out.push(unit.toLocaleString('ko-KR')+name);remaining%=size}
+  }
+  if(remaining>0n&&out.length<2)out.push(remaining.toLocaleString('ko-KR'));
+  return sign+(out.length?out.slice(0,2).join(' '):'0')+' G';
+ }catch{return '—'}
+}
+function toast(text,error=false){
+ const n=$('#message');if(!n)return;
+ n.textContent=String(text);n.hidden=false;n.classList.toggle('error',error);
+ clearTimeout(toastTimer);toastTimer=setTimeout(()=>{n.hidden=true},4500);
+}
+function badge(c,cls='',id=''){
+ return window.JPLCrests?.badge(c,cls,id)||'<span class="crest placeholder">'+esc(c?.emblem||'?')+'</span>';
+}
+function team(id){return clubs.get(id)||{name:id,short:id,emblem:'?',code:'---',primary:'#789',secondary:'#abc'}}
+function labelStatus(f){return f.status==='LIVE'?'진행 중':f.status==='FINAL'?'경기 종료':'예정'}
+function findFixture(id){
+ return [...(status?.live||[]),...(status?.today||[]),...(status?.upcoming||[]),...(status?.recent||[]),...(allSchedule||[])].find(f=>f.id===id)||null;
+}
+function chooseBroadcast(){
+ if(demo)return null;
+ if(watchId){const f=findFixture(watchId);if(f)return f}
+ return status?.live?.[0]||status?.today?.find(f=>f.status==='LIVE')||status?.upcoming?.[0]||status?.today?.[0]||status?.recent?.[0]||null;
+}
+function renderLeagueOperations(){
+ const p=status?.progress;if(!p)return;
+ const ratio=p.scheduled?Math.max(0,Math.min(100,(p.completed/p.scheduled)*100)):0;
+ $('#jplTodayCount').textContent=p.todayFinal+' / '+p.todayScheduled;
+ $('#jplSeasonPercent').textContent=ratio.toFixed(1)+'%';
+ $('#jplSeasonProgressFill').style.width=ratio.toFixed(2)+'%';
+ const latest=p.lastFinished;
+ $('#jplLastFinal').textContent=latest?team(latest.home).short+' '+latest.score.home+' : '+latest.score.away+' '+team(latest.away).short:'확정된 경기가 없습니다';
+ $('#jplLastFinalTime').textContent=latest?shortDate(latest.finishedAt)+' · '+time(latest.finishedAt)+' KST 확정':'경기 종료 후 자동 기록';
+ $('#jplLastSync').textContent=time(status.serverNow)+' KST';
+ const indicator=$('#jplSyncState');
+ if(!p.integrity?.ok){indicator.className='jpl-sync-state warning';indicator.textContent=p.integrity.discrepancyCount?'⚠ 골 기록 불일치 '+p.integrity.discrepancyCount+'건':p.integrity.overdueCount?'⚠ 경기 확정 지연 '+p.integrity.overdueCount+'건':'⚠ 순위 집계 점검 필요';}
+ else{indicator.className='jpl-sync-state ok';indicator.textContent='✓ 경기·순위 집계 일치';}
+}
+function renderTop(){
+ if(!status)return;
+ $('#wallet').textContent=fmtMoney(status.wallet);
+ $('#seasonBadge').textContent='SEASON '+String(status.season.number).padStart(2,'0');
+ $('#statSeason').textContent=String(status.season.number).padStart(2,'0');
+ $('#statPlayed').innerHTML=status.season.finished+' <span>/ '+status.season.totalGames+'</span>';
+ const next=status.upcoming[0];
+ $('#statNext').textContent=next?shortDate(next.kickoff)+' '+time(next.kickoff):'시즌 종료';
+ $('#statLeader').textContent=status.table?.[0]?.short||'—';
+ $('#todayLabel').textContent=status.day+' KST';
+ $('#scheduleDate').min=dateKey(status.season.startAt);
+ $('#scheduleDate').max=dateKey(status.season.endAt);
+ if(!$('#scheduleDate').value)$('#scheduleDate').value=status.day<dateKey(status.season.startAt)?dateKey(status.season.startAt):status.day;
+}
+function fixtureHTML(f){
+ const h=team(f.home),a=team(f.away),bettable=f.status==='SCHEDULED'&&now()<f.kickoff;
+ const isLive=f.status==='LIVE',selected=watchId===f.id;
+ const oddButtons=(market,table)=>['H','D','A'].map(x=>
+  '<button type="button" data-pick="'+esc(f.id)+':'+market+':'+x+'" class="'+(selection.get(f.id)?.pick===x&&selection.get(f.id)?.market===market?'active':'')+'" '+(!bettable?'disabled':'')+' title="'+(market==='HDP'?'핸디캡 ':'')+esc(names[x])+' 선택"><span>'+numbers[x]+'</span><b>'+(table[x]/100).toFixed(2)+'</b></button>').join('');
+ const handicap=f.handicap||{line:-1,odds:f.odds};
+ const score=f.score?String(f.score.home)+' : '+String(f.score.away):'VS';
+ return '<article class="fixture-item"><div class="fixture-main"><div class="fixture-time"><b>'+esc(time(f.kickoff))+'</b><small>'+esc(shortDate(f.kickoff))+'</small></div>'+
+  '<div class="fixture-match"><button type="button" class="fixture-team jpl-club-trigger" data-team-report="'+esc(f.home)+':'+esc(f.away)+'" aria-label="'+esc(h.name)+' 최근 경기와 상대전적 보기">'+badge(h)+'<span class="fixture-team-label"><b>'+esc(h.short)+'</b><small>'+esc(h.name)+'</small></span></button>'+
+  '<div class="fixture-vs '+(f.score?'fixture-outcome':'')+'">'+esc(score)+'</div>'+
+  '<button type="button" class="fixture-team away jpl-club-trigger" data-team-report="'+esc(f.away)+':'+esc(f.home)+'" aria-label="'+esc(a.name)+' 최근 경기와 상대전적 보기">'+badge(a)+'<span class="fixture-team-label"><b>'+esc(a.short)+'</b><small>'+esc(a.name)+'</small></span></button></div>'+
+  '<div class="fixture-right"><button class="watch-btn '+(isLive?'live':'')+'" type="button" data-watch="'+esc(f.id)+'">'+
+  (isLive?'● LIVE':f.status==='FINAL'?'다시보기':selected?'선택됨':'관전하기')+'</button></div></div>'+
+  (f.status==='SCHEDULED'?'<div class="market-rows"><div class="market-row"><span class="market-label">일반 승무패</span><div class="odds-row" aria-label="일반 승무패 배당">'+oddButtons('NORMAL',f.odds)+'</div></div>'+
+   '<div class="market-row"><span class="market-label hdp">핸디캡 '+(handicap.line>0?'+':'')+handicap.line+'</span><div class="odds-row" aria-label="핸디캡 승무패 배당">'+oddButtons('HDP',handicap.odds)+'</div></div></div>':
+   '<div class="odds-row fixture-finished"><small>'+labelStatus(f)+' · '+(f.status==='LIVE'?f.minute+'분':'90분')+' · 배당 마감</small></div>')+
+  '<div class="fixture-analysis-cta"><button type="button" data-analyze="'+esc(f.id)+'" '+(!status?.analysisUnlocked?.includes(f.id)&&(f.status!=='SCHEDULED'||now()>=f.kickoff)?'disabled':'')+'>'+
+  (status?.analysisUnlocked?.includes(f.id)?'🔓 양 팀 경기분석 다시보기':f.status==='SCHEDULED'&&now()<f.kickoff?'🔎 양 팀 경기분석 열람 · 1조 G':'🔒 경기분석 판매 마감')+'</button><small>체력 · 컨디션 · 결장자 · 동기부여</small></div>'+
+  '</article>';
+}
+function renderFixtures(){
+ if(!status)return;
+ $$('.fixture-tabs button').forEach(b=>b.classList.toggle('active',b.dataset.fixtureTab===fixtureTab));
+ const items=fixtureTab==='today'?status.today:fixtureTab==='recent'?status.recent:status.upcoming;
+ $('#fixturesList').innerHTML=items?.length?items.map(fixtureHTML).join(''):'<div class="fixture-message">이 날짜에 등록된 경기가 없어요. 다음 경기 탭을 확인해줘.</div>';
+}
+let teamReportBusy=false;
+async function openTeamReport(clubId,opponentId){
+ if(teamReportBusy)return;
+ const dialog=$('#jplTeamDialog'),body=$('#jplTeamContent');
+ body.innerHTML='<p class="jpl-team-empty">구단의 실제 종료 경기 기록을 불러오는 중...</p>';
+ if(!dialog.open)dialog.showModal();
+ teamReportBusy=true;
+ try{
+  const url='/api/jpl/team-report?team='+encodeURIComponent(clubId)+'&opponent='+encodeURIComponent(opponentId);
+  const response=await fetch(url,{credentials:'same-origin',cache:'no-store'});
+  const d=await response.json();
+  if(!response.ok)throw Error(d.error||'팀 기록을 불러올 수 없습니다.');
+  const c=d.team,o=d.opponent;
+  const scoreRow=f=>{
+   const home=team(f.home),away=team(f.away);
+   const when=f.finishedAt?shortDate(f.finishedAt):'시즌 '+f.season;
+   return '<div class="jpl-team-result"><span>'+esc(when)+'</span><span>'+esc(home.short)+' <b>'+f.score.home+' : '+f.score.away+'</b> '+esc(away.short)+'</span><em class="'+esc(f.result)+'">'+esc(f.result)+'</em></div>';
+  };
+  const summary=(stats)=>'<div class="jpl-team-wdl"><span><b>'+stats.wins+'</b> 승</span><span><b>'+stats.draws+'</b> 무</span><span><b>'+stats.losses+'</b> 패</span></div>';
+  body.innerHTML='<div class="jpl-team-hero">'+badge(c)+'<div><small>CLUB PERFORMANCE</small><h3>'+esc(c.name)+'</h3><p>비교 상대 · '+esc(o.name)+'</p></div></div>'+
+   '<div class="jpl-team-columns"><section><header><small>RECENT FORM</small><h4>최근 '+d.form.total+'경기</h4></header>'+
+    summary(d.form)+'<p class="jpl-team-sub">득점 '+d.form.gf+' · 실점 '+d.form.ga+'</p>'+
+    (d.recent.length?d.recent.map(scoreRow).join(''):'<p class="jpl-team-empty">아직 종료된 경기가 없습니다.</p>')+
+   '</section><section><header><small>HEAD TO HEAD</small><h4>상대전적 · '+d.h2h.total+'경기</h4></header>'+
+    summary(d.h2h)+'<p class="jpl-team-sub">'+esc(c.short)+' 기준 승·무·패</p>'+
+    (d.headToHead.length?d.headToHead.map(scoreRow).join(''):'<p class="jpl-team-empty">아직 두 팀의 맞대결 기록이 없습니다.</p>')+
+   '</section></div>';
+ }catch(e){body.textContent=e.message||'구단 기록을 가져올 수 없습니다.';}
+ finally{teamReportBusy=false}
+}
+function buildAnalysisCard(side,stats){
+ const club=team(stats.clubId),rows=[
+  ['체력',stats.fitness],['컨디션',stats.condition],['동기부여',stats.motivation]
+ ];
+ return '<section class="jpl-scout-team '+side+'"><div class="jpl-scout-team-head">'+badge(club)+'<div><small>'+(side==='home'?'HOME':'AWAY')+'</small><h3>'+esc(club.name)+'</h3></div></div>'+
+  '<div class="jpl-scout-metrics">'+rows.map(([label,value])=>'<div class="jpl-scout-metric"><div><span>'+esc(label)+'</span><strong>'+value+'<small>/100</small></strong></div><div class="jpl-scout-meter"><i style="width:'+Math.max(0,Math.min(100,value))+'%"></i></div></div>').join('')+'</div>'+
+  '<div class="jpl-scout-absences"><span>🚑 결장자 <b>'+stats.absent+'명</b></span><small>부상 '+stats.injured+'명 · 징계 '+stats.suspended+'명</small></div>'+
+  '<div class="jpl-scout-form">최근 흐름 <b>'+esc(stats.form)+'</b></div></section>';
+}
+function showAnalysis(report){
+ const h=team(report.home.clubId),a=team(report.away.clubId);
+ $('#jplAnalysisContent').innerHTML=
+  '<div class="jpl-scout-match"><span>'+esc(h.short)+'</span><b>VS</b><span>'+esc(a.short)+'</span></div>'+
+  '<div class="jpl-scout-grid">'+buildAnalysisCard('home',report.home)+buildAnalysisCard('away',report.away)+'</div>'+
+  '<p class="jpl-scout-note">이 지표는 경기의 득점 가능성에 일부 반영되지만, 최종 스코어와 승패는 경기 중 확률적으로 결정됩니다.</p>';
+ const dlg=$('#jplAnalysisDialog');if(!dlg.open)dlg.showModal();
+}
+async function openAnalysis(matchId){
+ if(analysisBusy)return;
+ analysisBusy=true;
+ try{
+  const query='/api/jpl/analysis?matchId='+encodeURIComponent(matchId);
+  const firstResponse=await fetch(query,{credentials:'same-origin',cache:'no-store'});
+  const first=await firstResponse.json();
+  if(!firstResponse.ok)throw Error(first.error||'경기분석을 불러오지 못했어.');
+  let data=first;
+  if(first.locked){
+   const fixture=findFixture(matchId);
+   if(!fixture||fixture.status!=='SCHEDULED'||now()>=fixture.kickoff)throw Error('경기 시작 전까지만 분석을 구매할 수 있어.');
+   if(BigInt(status?.wallet||'0')<ANALYSIS_PRICE)throw Error('1조 G가 부족해. 지갑 잔액을 확인해 줘.');
+   if(!confirm(team(fixture.home).short+' vs '+team(fixture.away).short+' 경기분석을 1조 G에 구매할까?\n구매한 경기의 양 팀 정보는 추가 결제 없이 다시 볼 수 있어.'))return;
+   const bought=await fetch('/api/jpl/analysis',{method:'POST',credentials:'same-origin',
+    headers:{'Content-Type':'application/json'},body:JSON.stringify({matchId})});
+   data=await bought.json();
+   if(!bought.ok)throw Error(data.error||'경기분석 구매에 실패했어.');
+   if(status&&data.wallet)status.wallet=data.wallet;
+   if(status&&!status.analysisUnlocked?.includes(matchId))status.analysisUnlocked=[...(status.analysisUnlocked||[]),matchId];
+   renderFixtures();renderTop();
+   toast(data.alreadyPurchased?'구매한 경기분석을 열었어.':'1조 G 결제 완료! 경기분석을 열었어.');
+  }
+  if(!data.report)throw Error('경기분석 데이터가 없어. 다시 시도해 줘.');
+  showAnalysis(data.report);
+ }catch(e){toast(e.message||'경기분석 오류',true)}
+ finally{analysisBusy=false}
+}
+function renderTable(){
+ if(!status)return;
+ $('#tableBody').innerHTML=status.table.map(t=>
+  '<tr class="'+(t.rank>=21?'relegation-zone':'')+'"><td>'+t.rank+'</td><td><div class="table-team">'+badge(t)+'<b>'+esc(t.name)+'</b></div></td>'+
+  '<td>'+t.played+'</td><td>'+t.won+'</td><td>'+t.drawn+'</td><td>'+t.lost+'</td><td>'+(t.gd>0?'+':'')+t.gd+'</td><td class="points">'+t.points+'</td><td>'+
+  (t.lastFive.length?t.lastFive.map(x=>'<span class="form-bubble '+x+'">'+x+'</span>').join(''):'<span style="color:#8293a9">—</span>')+'</td></tr>').join('');
+ const reserves=status.reserves||[];
+ $('#leagueTransition').innerHTML='<span>CHAMPIONSHIP · 2부 승격 예정</span><b>'+
+   (reserves.map(c=>badge(c)+' '+esc(c.name)).join('<span class="reserve-sep">＋</span>')||'승격 대기팀 없음')+
+   '</b><small>시즌 종료 시 1부 21·22위 강등 · 2부 대기 2팀 자동 승격</small>';
+}
+function renderTickets(){
+ if(!status)return;
+ $('#ticketList').innerHTML=status.tickets.length?status.tickets.map(t=>{
+  const stat=t.status==='OPEN'?'진행 대기':t.status==='WIN'?'적중':t.status==='FORFEITED'?'회생 소멸':'미적중';
+  const legs=t.legs.map(l=>'<div class="ticket-leg"><span>'+esc(team(l.home).short)+' – '+esc(team(l.away).short)+'</span><span class="pick">'+numbers[l.pick]+' '+esc(names[l.pick])+' · '+(l.market==='HDP'?'핸디캡 '+(l.line>0?'+':'')+l.line+' · ':'')+(l.odds100/100).toFixed(2)+'</span></div>').join('');
+  return '<article class="ticket-card"><div class="ticket-head"><div><strong>JPL '+esc(t.seasonId)+' · '+t.legs.length+'폴더</strong><small> &nbsp;'+esc(shortDate(t.placedAt))+' '+esc(time(t.placedAt))+'</small></div><span class="ticket-status '+t.status+'">'+stat+'</span></div>'+
+   '<div class="ticket-legs">'+legs+'</div><div class="ticket-footer"><span>베팅 <b>'+fmtMoney(t.stake)+'</b></span><span>확정 배당 <b>'+esc(t.totalOdds)+'x</b></span><span>'+(t.status==='WIN'?'실수령':'예상 실수령')+' <b>'+fmtMoney(t.status==='LOSE'||t.status==='FORFEITED'?'0':t.status==='WIN'?t.paid:t.expectedNet||t.potential)+'</b></span>'+((t.status==='WIN'||t.status==='OPEN')&&BigInt(t.tax||t.expectedTax||'0')>0n?'<span>'+(t.status==='WIN'?'잭팟 적립 ':'예상 잭팟 적립 ')+'<b>'+fmtMoney(t.tax||t.expectedTax)+'</b></span>':'')+'</div><button type="button" class="ticket-receipt-button" data-ticket-receipt="'+esc(t.seasonId)+'|'+esc(t.id)+'" aria-label="승부예측 구매표 열기">🧾 구매표 확인 · 이미지 저장/공유 ↗</button></article>';
+ }).join(''):'<div class="fixture-message">아직 승부예측 티켓이 없어. 첫 경기를 선택해 봐!</div>';
+}
+function renderSlip(){
+ const picks=[...selection.values()].sort((a,b)=>a.kickoff-b.kickoff);
+ $('#slipCount').textContent=picks.length;
+ $('#slipPicks').innerHTML=picks.length?picks.map(p=>
+  '<div class="pick-line"><div class="pick-head"><b>'+esc(team(p.home).short)+' vs '+esc(team(p.away).short)+'</b><button type="button" data-remove="'+esc(p.matchId)+'" aria-label="선택 취소">×</button></div>'+
+  '<div class="pick-sub"><span>'+esc(numbers[p.pick])+' · '+esc(names[p.pick])+' / '+(p.market==='HDP'?'핸디캡 '+(p.line>0?'+':'')+p.line+' · ':'')+esc(shortDate(p.kickoff))+'</span><strong>'+(p.odds100/100).toFixed(2)+'x</strong></div></div>'
+ ).join(''):'<div class="slip-empty"><span>⚽</span><b>아직 선택된 경기가 없어</b><small>일반 또는 핸디캡 1 / X / 2를 눌러봐.</small></div>';
+ let mult=1n,denom=1n;for(const p of picks){mult*=BigInt(p.odds100);denom*=100n}
+ const odds=picks.length?(Number(mult)/Number(denom)).toFixed(2):'0.00';
+ $('#totalOdds').innerHTML=odds+' <small>x</small>';
+ const raw=$('#stake').value.trim().replaceAll(',','');
+ let valid=/^[1-9][0-9]{0,30}$/.test(raw),stake=0n,payout=0n;
+ try{if(valid)stake=BigInt(raw);if(valid)payout=stake*mult/denom}catch{valid=false}
+ const taxed=!!picks.length&&(mult>=100n*denom||payout>TAX_LIMIT),tax=taxed?payout/5n:0n;
+ $('#taxPreview').textContent=taxed?'예상 총 적중금 '+fmtMoney(payout)+' · 슬롯 잭팟 적립 20% '+fmtMoney(tax):
+  '100배 이상 또는 적중금 1경 G 초과 시 20%가 슬롯 잭팟에 적립돼.';
+ const within=valid&&stake>=1000n&&stake<=MAX_STAKE&&payout<=MAX_RETURN;
+ $('#potential').textContent=picks.length&&valid?fmtMoney(payout-tax):'0 G';
+ const button=$('#placeBet');
+ button.disabled=betting||!picks.length||!within;
+ button.textContent=betting?'베팅 접수 중...':!picks.length?'경기를 선택해 주세요':!valid||stake<1000n?'최소 1,000 G부터':stake>MAX_STAKE?'베팅 한도 1,000조 G':payout>MAX_RETURN?'예상 당첨금 100경 G 초과':'승무패 '+picks.length+'폴더 · '+fmtMoney(stake)+' 베팅 확정';
+}
+function setPick(matchId,pick,market='NORMAL'){
+ if(!['H','D','A'].includes(pick)||!['NORMAL','HDP'].includes(market))return;
+ const f=findFixture(matchId);
+ if(!f||f.status!=='SCHEDULED'||now()>=f.kickoff){toast('킥오프한 경기는 베팅할 수 없어.',true);return}
+ if(selection.get(matchId)?.pick===pick&&selection.get(matchId)?.market===market){selection.delete(matchId)}
+ else{
+  if(selection.size>=5&&!selection.has(matchId)){toast('한 티켓은 최대 5경기까지 묶을 수 있어.',true);return}
+  selection.set(matchId,{matchId,pick,market,line:market==='HDP'?f.handicap.line:0,
+   odds100:market==='HDP'?f.handicap.odds[pick]:f.odds[pick],home:f.home,away:f.away,kickoff:f.kickoff});
+ }
+ renderFixtures();renderSlip();
+}
+function prunePicks(){
+ for(const [id] of selection){
+  const f=findFixture(id);
+  if(!f||f.status!=='SCHEDULED'||now()>=f.kickoff)selection.delete(id);
+ }
+}
+async function placeBet(){
+ if(betting||!selection.size||!status)return;
+ const legs=[...selection.values()].sort((a,b)=>a.kickoff-b.kickoff);
+ const amount=$('#stake').value.trim().replaceAll(',','');
+ if(!/^[1-9][0-9]{0,30}$/.test(amount)){toast('베팅 금액을 정수로 입력해 줘.',true);return}
+ const stake=BigInt(amount);let product=stake,scale=1n;
+ for(const leg of legs){product*=BigInt(leg.odds100);scale*=100n}
+ const potential=product/scale,untaxed=product>=stake*scale*100n||potential>TAX_LIMIT;
+ const tax=untaxed?potential/5n:0n;
+ if(stake<1000n||stake>MAX_STAKE||potential>MAX_RETURN){toast('베팅 상한 1,000조 또는 예상 적중금 100경 한도를 확인해 줘.',true);return}
+ if(stake>BigInt(status.wallet)){toast('게임머니가 부족해.',true);return}
+ if(!confirm(legs.length+'폴더에 '+fmtMoney(stake)+'를 베팅할까?\n모두 적중하면 '+fmtMoney(potential-tax)+' 실수령!'+(tax?'\n슬롯 잭팟 적립 20%: '+fmtMoney(tax):'')+'\n킥오프 전 확정되며 취소할 수 없어.'))return;
+ betting=true;renderSlip();
+ try{
+  const response=await fetch('/api/jpl/bet',{method:'POST',credentials:'same-origin',
+   headers:{'Content-Type':'application/json'},body:JSON.stringify({amount,legs:legs.map(l=>({matchId:l.matchId,pick:l.pick,market:l.market})),requestId:crypto.randomUUID()})});
+  const data=await response.json();
+  if(!response.ok)throw Error(data.error||'베팅 접수에 실패했어.');
+  selection.clear();toast('베팅 구매 완료! 내 승부예측에서 구매표를 확인할 수 있어.');
+  if(status)status.wallet=data.wallet||data.user?.balance||status.wallet;
+  await refresh(true);
+   if(data.ticket&&window.JPLReceipts)window.JPLReceipts.open(data.ticket,[...(status?.clubs||[]),...(status?.reserves||[])]);
+ }catch(e){toast(e.message||'베팅 중 문제가 발생했어.',true)}
+ finally{betting=false;renderSlip()}
+}
+function renderSchedule(){
+ if(!allSchedule)return;
+ const date=$('#scheduleDate').value;
+ const arr=allSchedule.filter(f=>!date||dateKey(f.kickoff)===date);
+ if(!arr.length){$('#scheduleResults').innerHTML='<p>선택한 날짜에는 경기가 없어.</p>';return}
+ const groups=new Map();
+ for(const f of arr){const k=dateKey(f.kickoff);if(!groups.has(k))groups.set(k,[]);groups.get(k).push(f)}
+ $('#scheduleResults').innerHTML=[...groups].map(([day,fs])=>
+  '<article class="schedule-day"><h3>'+esc(day)+' · '+fs.length+'경기</h3>'+
+  fs.map(f=>'<div class="schedule-line"><span class="time">'+esc(time(f.kickoff))+'</span><span class="name">'+esc(team(f.home).short)+' vs '+esc(team(f.away).short)+'</span><span class="time">'+(f.score?f.score.home+':'+f.score.away:'1 / X / 2')+'</span><button type="button" data-watch="'+esc(f.id)+'">관전</button></div>').join('')+
+  '</article>').join('');
+}
+async function loadSchedule(){
+ if(scheduleBusy)return;scheduleBusy=true;
+ $('#scheduleResults').innerHTML='<p>시즌 전체 462경기 일정을 불러오는 중...</p>';
+ try{
+  const r=await fetch('/api/jpl/schedule',{credentials:'same-origin',cache:'no-store'});
+  const d=await r.json();if(!r.ok)throw Error(d.error||'일정을 가져오지 못했어.');
+  allSchedule=d.fixtures;renderSchedule();
+ }catch(e){$('#scheduleResults').textContent=e.message||'일정을 불러올 수 없어요.'}
+ finally{scheduleBusy=false}
+}
+function selectWatch(id){
+ const f=findFixture(id);
+ if(!f){toast('경기 정보를 불러오는 중이야.',true);return}
+ watchId=id;demo=null;renderBroadcast();renderFixtures();
+ $('#broadcast').scrollIntoView({behavior:'smooth',block:'start'});
+}
+// Exhibition goals are generated locally and are never read from the authoritative league result.
+function createDemoEvents(h,a){
+ const events=[{minute:11,kind:'SHOT',side:'A',text:a.short+'의 강력한 슈팅!'},
+  {minute:44,kind:'CORNER',side:'H',text:h.short+'의 코너킥 찬스'},
+  {minute:72,kind:'SAVE',side:'A',text:a.short+' 골키퍼 슈퍼 세이브!'}];
+ const goals=Math.floor(Math.random()*5);
+ for(let i=0;i<goals;i++){
+  const minute=8+Math.floor(Math.random()*80),side=Math.random()<.5?'H':'A';
+  const scorer=side==='H'?h.short:a.short;
+  events.push({minute,kind:'GOAL',side,text:scorer+' 득점!'});
+ }
+ return events.sort((x,y)=>x.minute-y.minute);
+}
+function displayMatch(){
+ if(demo){
+  const elapsed=Math.min(MATCH_MS,now()-demo.startedAt);
+  const minute=Math.min(90,Math.max(0,Math.floor(elapsed/MATCH_MS*90)));
+  const events=demo.events.filter(e=>e.minute<=minute);
+  return {id:'DEMO-'+demo.source.id,home:demo.source.home,away:demo.source.away,round:demo.source.round,kickoff:demo.startedAt,venue:demo.source.venue,
+   status:elapsed>=MATCH_MS?'FINAL':'LIVE',minute,events,seed:demo.seed,score:{
+    home:events.filter(e=>e.kind==='GOAL'&&e.side==='H').length,
+    away:events.filter(e=>e.kind==='GOAL'&&e.side==='A').length},odds:demo.source.odds||{H:235,D:320,A:270},demo:true};
+ }
+ return chooseBroadcast();
+}
+function renderBroadcast(){
+ const f=displayMatch();if(!f)return;
+ const h=team(f.home),a=team(f.away),live=f.status==='LIVE',finished=f.status==='FINAL';
+ $('#crestHome').outerHTML=badge(h,'','crestHome');
+ $('#crestAway').outerHTML=badge(a,'','crestAway');
+ $('#teamHome').textContent=h.name;$('#teamAway').textContent=a.name;
+ $('#broadcastRound').textContent=f.demo?'EXHIBITION · '+h.short+' vs '+a.short+' · 연출 데모':'JPL ROUND '+f.round;
+ $('#broadcastVenue').textContent=f.venue||h.stadium;
+ $('#broadcastTime').textContent=shortDate(f.kickoff)+' · '+time(f.kickoff)+' KST';
+ const onair=$('#onair');onair.className='onair'+(live?' live':finished?' final':'');
+ onair.lastElementChild.textContent=f.demo?'DEMO · NO BET':live?'● LIVE':finished?'FULL TIME':'PRE-MATCH';
+ $('#matchScore').innerHTML=f.score?f.score.home+' <span>:</span> '+f.score.away:'– <span>:</span> –';
+ $('#matchClock').textContent=finished?'FULL TIME · 90′':live?(f.minute>45?'후반 ':'전반 ')+f.minute+'′':'KICK OFF '+time(f.kickoff);
+ $('#pitchHalf').textContent=f.demo?'DEMO':finished?'FULL TIME':live?(f.minute>=45?'2ND HALF':'1ST HALF'):'PRE MATCH';
+ $('#pitchMinute').textContent=finished?'FT':f.minute?f.minute+'′':'00′';
+ const latest=[...(f.events||[])].reverse().find(x=>x.minute<=f.minute);
+ $('#commentary').textContent=f.demo?'[연출 데모] '+(latest?latest.minute+'분 · '+(latest.kind==='GOAL'?'GOAL! ':'')+latest.text:'실제 베팅 결과와 관계없는 예시 경기입니다.'):
+  !live&&!finished?'경기는 '+shortDate(f.kickoff)+' '+time(f.kickoff)+'에 시작해. 킥오프부터 60초간 실시간 중계돼.':
+  latest?(latest.minute+'분 · '+team(latest.side==='H'?f.home:f.away).short+' · '+latest.text):
+  finished?'풀타임! 경기 결과와 예측 적중금을 확인해 봐.':'선수들이 피치 위에서 공격을 전개하고 있어!';
+ $('#progressFill').style.width=finished?'100%':live?f.minute/90*100+'%':'0%';
+ // Draw every announced goal at its exact 90-minute match-time position.
+ $('#goalMarkers').innerHTML=(f.events||[]).filter(e=>e.kind==='GOAL'&&Number.isFinite(Number(e.minute)))
+  .map(e=>{
+   const minute=Math.max(0,Math.min(90,Number(e.minute)));
+   const scorer=e.side==='H'?h.short:a.short;
+   return '<span class="goal-marker '+(e.side==='H'?'home':'away')+'" style="left:'+(minute/90*100).toFixed(2)+'%" title="'+esc(scorer+' · '+minute+'분 골')+'" aria-label="'+esc(scorer+' '+minute+'분 골')+'"><b>⚽</b><small>'+minute+'′</small></span>';
+  }).join('');
+ const finalBanner=$('#pitchFinalBanner');
+ finalBanner.hidden=!finished;
+ if(finished)$('#pitchFinalScore').textContent=h.short+' '+f.score.home+' : '+f.score.away+' '+a.short;
+ renderMatchMoments(f);
+ $('#demoButton').textContent=demo?'데모 종료 ×':'1분 중계 미리보기 ↗';
+}
+// The broadcast feed uses only fixture events already released by the server;
+// the demo has its own clearly labelled independent event stream.
+function renderMatchMoments(f){
+ const items=(f?.events||[]).filter(e=>['GOAL','SHOT','SAVE','CORNER','CARD'].includes(e.kind));
+ $('#jplMomentCount').textContent=items.length+' EVENTS';
+ $('#jplMoments').innerHTML=items.length?items.slice(-8).reverse().map(e=>{
+  const club=team(e.side==='H'?f.home:f.away);
+  const kind=e.kind==='GOAL'?'GOAL':e.kind==='SHOT'?'SHOT':e.kind==='SAVE'?'SAVE':e.kind==='CORNER'?'CORNER':'BOOKING';
+  const detail=e.kind==='GOAL'?('득점 · '+(e.player||club.short)):e.text||kind;
+  return '<div class="jpl-moment '+(e.kind==='GOAL'?'goal':'')+'"><span class="jpl-moment-time">'+esc(e.minute)+'′</span><span class="jpl-moment-type">'+kind+'</span><span class="jpl-moment-club">'+esc(club.short)+'</span><span class="jpl-moment-detail">'+esc(detail)+'</span></div>';
+ }).join(''):'<p class="jpl-moment-empty">'+(f?.status==='SCHEDULED'?'킥오프 이후 실제 경기 이벤트가 표시됩니다.':'아직 기록된 경기 이벤트가 없습니다.')+'</p>';
+}
+function canvasDraw(timestamp){
+ requestAnimationFrame(canvasDraw);
+ if(!ctx||document.hidden||timestamp-lastDraw<33)return;lastDraw=timestamp;
+ const w=canvas.width,h=canvas.height,match=displayMatch();
+ const tick=match?(match.status==='LIVE'?Math.min(MATCH_MS/1000,Math.max(0,(now()-match.kickoff)/1000)):match.status==='FINAL'?MATCH_MS/1000:0):0;
+ const finishedVisual=match?.status==='FINAL'||match?.status==='LIVE'&&now()>=match.kickoff+MATCH_MS;
+ const playing=match?.status==='LIVE'&&!finishedVisual;
+ const tm=playing?tick*1.9:finishedVisual?MATCH_MS/1000*1.9:timestamp/740;
+ const seed=Number(match?.seed||25),home=team(match?.home||'junja'),away=team(match?.away||'happy');
+ // Stadium ambience, floodlights, and pixelated crowd tiers.
+ ctx.fillStyle='#0b1824';ctx.fillRect(0,0,w,h);
+ const crowdGradient=ctx.createLinearGradient(0,0,0,h);
+ crowdGradient.addColorStop(0,'#26354e');crowdGradient.addColorStop(.45,'#101c2c');crowdGradient.addColorStop(1,'#0a1822');
+ ctx.fillStyle=crowdGradient;ctx.fillRect(0,0,w,h);
+ for(let row=0;row<12;row++){
+  for(let col=0;col<140;col++){
+   const noise=Math.sin((row*137+col*51+seed)*7.213);
+   ctx.fillStyle=noise>.62?'#e9c88e':noise<-.55?'#648ba8':'#52657b';
+   ctx.globalAlpha=.08+Math.abs(noise)*.30;
+   ctx.fillRect(5+col*7.9,14+row*4,4.1,2);
+   ctx.fillRect(5+col*7.9,h-15-row*4,4.1,2);
+  }
+ }
+ ctx.globalAlpha=1;
+ const X=63,Y=82,W=974,H=466;
+ ctx.shadowColor='#000e';ctx.shadowBlur=26;ctx.fillStyle='#09251e';ctx.fillRect(X-9,Y-9,W+18,H+18);ctx.shadowBlur=0;
+ const pitchGradient=ctx.createLinearGradient(X,Y,X,Y+H);
+ pitchGradient.addColorStop(0,'#1b614e');pitchGradient.addColorStop(.5,'#205f4e');pitchGradient.addColorStop(1,'#164a3d');
+ ctx.fillStyle=pitchGradient;ctx.fillRect(X,Y,W,H);
+ for(let i=0;i<14;i++){
+  ctx.fillStyle=i%2?'#ffffff09':'#0000000b';ctx.fillRect(X+i*W/14,Y,W/14,H);
+ }
+ const lx=X+20,ly=Y+18,lw=W-40,lh=H-36;
+ ctx.strokeStyle='#e2f0e3b7';ctx.lineWidth=2.5;ctx.strokeRect(lx,ly,lw,lh);
+ ctx.beginPath();ctx.moveTo(lx+lw/2,ly);ctx.lineTo(lx+lw/2,ly+lh);ctx.stroke();
+ ctx.beginPath();ctx.arc(lx+lw/2,ly+lh/2,69,0,Math.PI*2);ctx.stroke();
+ ctx.fillStyle='#e4eee2';ctx.beginPath();ctx.arc(lx+lw/2,ly+lh/2,4.3,0,Math.PI*2);ctx.fill();
+ ctx.strokeRect(lx,ly+lh*.22,lw*.155,lh*.56);
+ ctx.strokeRect(lx+lw-lw*.155,ly+lh*.22,lw*.155,lh*.56);
+ ctx.strokeRect(lx,ly+lh*.37,lw*.061,lh*.26);
+ ctx.strokeRect(lx+lw-lw*.061,ly+lh*.37,lw*.061,lh*.26);
+ ctx.strokeStyle='#d5f5eb70';ctx.lineWidth=3;ctx.strokeRect(lx-13,ly+lh*.37,13,lh*.26);ctx.strokeRect(lx+lw,ly+lh*.37,13,lh*.26);
+ ctx.fillStyle='#f2f3da';ctx.beginPath();ctx.arc(lx+lw*.112,ly+lh/2,3.8,0,7);ctx.arc(lx+lw*.888,ly+lh/2,3.8,0,7);ctx.fill();
+ ctx.strokeStyle='#d9eee19a';ctx.lineWidth=1;ctx.beginPath();ctx.arc(lx+lw*.112,ly+lh/2,64,-.92,.92);ctx.stroke();
+ ctx.beginPath();ctx.arc(lx+lw*.888,ly+lh/2,64,Math.PI-.92,Math.PI+.92);ctx.stroke();
+ // One authored broadcast sequence drives passes, 22 players and the ball.
+ // It cannot set or modify fixture scores, odds or the actual match timeline.
+ const frame=window.JPLBroadcastMotion.frame({seconds:playing?tick:finishedVisual?MATCH_MS/1000:0,
+  minute:match?.minute||0,seed,playing,finished:finishedVisual,events:match?.events||[]});
+ const ball=frame.ball;
+ const possession=frame.side;
+ const px=x=>lx+x*lw,py=y=>ly+y*lh;
+ function player(side,i){
+  const hside=side==='H',point=frame.players[side][i];
+  const xx=px(point.x),yy=py(point.y);
+  const c=hside?home:away,fill=c.primary||'#eee';
+  ctx.fillStyle='#0009';ctx.beginPath();ctx.ellipse(xx+3,yy+12,13,5,0,0,7);ctx.fill();
+  if(playing){
+   ctx.strokeStyle=hside?'#ecd5a32b':'#d5e2ff24';ctx.lineWidth=5;
+   ctx.beginPath();ctx.moveTo(xx,yy);ctx.lineTo(xx-8*Math.sin(tm*1.25+i),yy+6);ctx.stroke();
+  }
+  // Small broadcast-style players: leg cadence, jersey, cap and possession glow.
+  const stride=playing?Math.sin(tm*5+i*1.6)*3:0;
+  ctx.strokeStyle='#0a1a26';ctx.lineWidth=5;ctx.lineCap='round';
+  ctx.beginPath();ctx.moveTo(xx-4,yy+5);ctx.lineTo(xx-6-stride,yy+15);
+  ctx.moveTo(xx+4,yy+5);ctx.lineTo(xx+6+stride,yy+15);ctx.stroke();
+  ctx.strokeStyle=fill;ctx.lineWidth=5.5;
+  ctx.beginPath();ctx.moveTo(xx-8,yy-3);ctx.lineTo(xx-13,yy+4);
+  ctx.moveTo(xx+8,yy-3);ctx.lineTo(xx+13,yy+4);ctx.stroke();
+  ctx.shadowBlur=8;ctx.shadowColor=fill;ctx.fillStyle=fill;
+  ctx.beginPath();ctx.roundRect(xx-9,yy-10,18,19,6);ctx.fill();ctx.shadowBlur=0;
+  ctx.strokeStyle='#f6e9c6';ctx.lineWidth=1.6;ctx.stroke();
+  ctx.fillStyle='#e7baa0';ctx.beginPath();ctx.arc(xx,yy-13,5,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle=hside&&fill==='#e4c275'?'#132332':'#fffdf2';
+  ctx.font='bold 10px Arial';ctx.textAlign='center';ctx.fillText(String(i+1),xx,yy+4);
+  if(playing&&side===frame.side&&i===frame.carrier){
+   ctx.strokeStyle='#ffd783';ctx.lineWidth=2;ctx.setLineDash([3,4]);
+   ctx.beginPath();ctx.arc(xx,yy,20,0,7);ctx.stroke();ctx.setLineDash([]);
+  }
+ }
+ for(let i=0;i<11;i++)player('H',i);
+ for(let i=0;i<11;i++)player('A',i);
+ // A flight arc and a directional trail show the actual scripted pass.
+ const bx=px(ball.x),by=py(ball.y),bounce=ball.lift*lh+2.7*Math.abs(Math.sin(tm*8));
+ if(playing){
+  const from=frame.players[possession][frame.carrier],to=frame.players[possession][frame.receiver];
+  ctx.setLineDash([6,8]);ctx.lineWidth=1.5;ctx.strokeStyle='#ffdf9877';
+  ctx.beginPath();ctx.moveTo(px(from.x),py(from.y));ctx.lineTo(px(to.x),py(to.y));ctx.stroke();ctx.setLineDash([]);
+  for(let k=1;k<=3;k++){
+   const frac=k/9;
+   ctx.fillStyle='rgba(255,241,190,'+(.18-frac*.12)+')';
+   ctx.beginPath();ctx.arc(bx+(px(from.x)-bx)*frac,by+(py(from.y)-by)*frac-bounce*(1-frac),3.8-k*.7,0,7);ctx.fill();
+  }
+ }
+ ctx.fillStyle='#0008';ctx.beginPath();ctx.ellipse(bx+3,by+9,10,4.5,0,0,7);ctx.fill();
+ ctx.shadowColor='#fff2cd';ctx.shadowBlur=playing?13:4;
+ ctx.fillStyle='#fffdf5';ctx.beginPath();ctx.arc(bx,by-bounce,8.3,0,7);ctx.fill();
+ ctx.shadowBlur=0;ctx.fillStyle='#15253b';ctx.beginPath();ctx.arc(bx,by-bounce,3.3,0,7);ctx.fill();
+ // Premium broadcast graphics are visual only, driven by released match events.
+ if(frame.highlight){
+  const hEvent=frame.highlight;
+  const color=hEvent.kind==='GOAL'?'#f6d18e':'#e9f6ed';
+  ctx.fillStyle='#071318d9';ctx.fillRect(w/2-186,18,372,50);
+  ctx.strokeStyle=color;ctx.lineWidth=1.6;ctx.strokeRect(w/2-186,18,372,50);
+  ctx.textAlign='center';ctx.font='900 24px Arial';ctx.fillStyle=color;
+  ctx.fillText(hEvent.kind==='GOAL'?'⚽ GOAL!':hEvent.kind==='SHOT'?'SHOT ON GOAL':'BRILLIANT SAVE',w/2,51);
+  ctx.textAlign='left';
+ }
+ ctx.fillStyle='#0b1824d9';ctx.fillRect(lx+9,ly+8,186,28);
+ ctx.fillStyle='#e7d1a5';ctx.font='bold 13px Arial';ctx.textAlign='left';
+ ctx.fillText(finishedVisual?'FINAL / NO PLAY':playing?'LIVE · '+(match.minute||0)+'′':'PRE-MATCH STUDIO',lx+18,ly+27);
+ ctx.textAlign='left';ctx.fillStyle='#e6efefcc';ctx.font='bold 14px Arial';ctx.fillText('JPL / MATCH ENGINE',X+5,h-21);
+ ctx.textAlign='right';ctx.fillStyle='#d8bd83';ctx.fillText(match?.demo?'EXHIBITION  ·  NOT FOR BETTING':'JUNJA PREMIER LEAGUE',w-X-5,h-21);
+}
+function updateLiveClock(){
+ if(!status)return;
+ const f=displayMatch();if(!f)return;
+ if(!demo&&f.status==='LIVE'&&now()>=f.kickoff+MATCH_MS&&!loading){refresh(true);return}
+ if(f.status==='LIVE'||f.status==='SCHEDULED'&&now()>=f.kickoff||demo)renderBroadcast();
+}
+async function refresh(force=false){
+ if(loading||document.hidden&&!force)return;
+ loading=true;
+ try{
+  const response=await fetch('/api/jpl/status',{credentials:'same-origin',cache:'no-store'});
+  if(response.status===401||response.status===403){
+   $('#authNotice').hidden=false;throw Error('준자랜드에 로그인해 주세요.');
+  }
+  const d=await response.json();
+  if(!response.ok)throw Error(d.error||'경기 정보를 가져올 수 없어.');
+  if(status?.season.id!==d.season.id){allSchedule=null;selection.clear();watchId=null}
+  status=d;clubs=new Map(d.clubs.map(c=>[c.id,c]));serverOffset=d.serverNow-Date.now();
+  if(watchId&&!findFixture(watchId))watchId=null;
+  prunePicks();renderTop();renderLeagueOperations();renderFixtures();renderTable();renderTickets();renderSlip();renderBroadcast();
+  if(allSchedule)renderSchedule();
+ }catch(e){if(!status)$('#fixturesList').textContent=e.message||'연결 실패';if(e.message?.includes('로그인'))$('#authNotice').hidden=false;else if(force)toast('리그 연결 확인: '+e.message,true)}
+ finally{loading=false}
+}
+document.addEventListener('click',e=>{
+ const closeTeam=e.target.closest('[data-close-team]');if(closeTeam){$('#jplTeamDialog').close();return}
+ const teamButton=e.target.closest('[data-team-report]');if(teamButton){const [club,opponent]=teamButton.dataset.teamReport.split(':');openTeamReport(club,opponent);return}
+ const closeAnalysis=e.target.closest('[data-close-analysis]');if(closeAnalysis){$('#jplAnalysisDialog').close();return}
+ const analyze=e.target.closest('[data-analyze]');if(analyze){openAnalysis(analyze.dataset.analyze);return}
+ const view=e.target.closest('[data-ticket-receipt]');
+ if(view){
+  const [seasonId,receiptId]=view.dataset.ticketReceipt.split('|');
+  const ticket=status?.tickets?.find(t=>t.seasonId===seasonId&&t.id===receiptId);
+  if(ticket&&window.JPLReceipts)window.JPLReceipts.open(ticket,[...(status?.clubs||[]),...(status?.reserves||[])]);
+  return;
+ }
+ const pick=e.target.closest('[data-pick]');if(pick){const [matchId,market,result]=pick.dataset.pick.split(':');setPick(matchId,result,market);return}
+ const remove=e.target.closest('[data-remove]');if(remove){selection.delete(remove.dataset.remove);renderFixtures();renderSlip();return}
+ const watch=e.target.closest('[data-watch]');if(watch){selectWatch(watch.dataset.watch);return}
+ const tab=e.target.closest('[data-fixture-tab]');if(tab){fixtureTab=tab.dataset.fixtureTab;renderFixtures();return}
+ const nav=e.target.closest('[data-scroll]');if(nav){const dest=document.getElementById(nav.dataset.scroll);dest?.scrollIntoView({behavior:'smooth',block:'start'});$$('.section-nav button').forEach(b=>b.classList.toggle('nav-current',b===nav));return}
+ const quick=e.target.closest('[data-stake]');if(quick){$('#stake').value=quick.dataset.stake;renderSlip()}
+});
+$('#stake').addEventListener('input',()=>{const n=$('#stake');n.value=n.value.replace(/[^0-9]/g,'');renderSlip()});
+$('#clearSlip').addEventListener('click',()=>{selection.clear();renderFixtures();renderSlip()});
+$('#placeBet').addEventListener('click',placeBet);
+$('#scheduleLoad').addEventListener('click',loadSchedule);
+$('#scheduleDate').addEventListener('change',()=>{if(!allSchedule)loadSchedule();else renderSchedule()});
+$('#demoButton').addEventListener('click',()=>{
+ if(demo){demo=null;renderBroadcast();return}
+ if(status?.live?.length){toast('진행 중인 실제 경기를 시청해 줘!');return}
+ const f=chooseBroadcast();
+ if(!f){toast('먼저 경기를 선택해 줘.',true);return}
+ // Exhibition uses the exact selected fixture; its goals are never the actual match outcome.
+ const h=team(f.home),a=team(f.away);
+ demo={startedAt:now(),seed:Math.floor(Math.random()*2147483647),
+  source:{id:f.id,home:f.home,away:f.away,round:f.round,venue:h.stadium,odds:f.odds},
+  events:createDemoEvents(h,a)};
+ renderBroadcast();
+});
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)refresh(true)});
+window.addEventListener('focus',()=>refresh(false));
+setInterval(()=>refresh(),5000);
+setInterval(updateLiveClock,350);
+requestAnimationFrame(canvasDraw);
+refresh(true);
+})();

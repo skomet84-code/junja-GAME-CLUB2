@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 560" role="img" aria-label="JUNJA royal collectible"><defs>
+<radialGradient id="halo"><stop stop-color="#D9A95E" stop-opacity=".28"/><stop offset=".45" stop-color="#AE80E4" stop-opacity=".15"/><stop offset="1" stop-color="#241729" stop-opacity="0"/></radialGradient>
+<linearGradient id="gold" x1="0" y1="0" x2=".8" y2="1"><stop stop-color="#fff4c9"/><stop offset=".16" stop-color="#e1bc73"/><stop offset=".43" stop-color="#98602c"/><stop offset=".64" stop-color="#fff4ba"/><stop offset=".83" stop-color="#bb7e32"/><stop offset="1" stop-color="#ffda8c"/></linearGradient>
+<linearGradient id="violet" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#f0d6ff"/><stop offset=".32" stop-color="#955bc9"/><stop offset=".67" stop-color="#35114e"/><stop offset="1" stop-color="#bb7be7"/></linearGradient>
+<linearGradient id="ice" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#fff"/><stop offset=".38" stop-color="#d1b9ef"/><stop offset="1" stop-color="#784e9b"/></linearGradient>
+<filter id="light"><feGaussianBlur stdDeviation="14"/></filter>
+<filter id="shadow"><feDropShadow dx="0" dy="12" stdDeviation="16" flood-color="#080315" flood-opacity=".7"/></filter>
+</defs>
+<circle cx="320" cy="260" r="255" fill="url(#halo)"/>
+<ellipse cx="320" cy="466" rx="208" ry="20" fill="#d7aa58" opacity=".3" filter="url(#light)"/><g filter="url(#shadow)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+<path d="M172 406 C122 337 138 262 213 220 C279 175 362 201 394 283 C421 358 334 397 284 362 C237 330 287 281 331 296 C370 305 367 355 337 366 C270 399 208 391 212 342" stroke="#55317f" stroke-width="70" opacity=".55"/>
+<path d="M172 406 C122 337 138 262 213 220 C279 175 362 201 394 283 C421 358 334 397 284 362 C237 330 287 281 331 296 C370 305 367 355 337 366 C270 399 208 391 212 342" stroke="url(#gold)" stroke-width="43"/>
+<path d="M177 397 C145 334 166 280 223 249 C272 220 341 239 366 294" stroke="#fff0c4" stroke-width="8"/>
+<path d="M345 262 L397 165 L418 213 L481 192 L459 255 L507 293 L436 308 L416 359 L370 317Z" fill="url(#gold)" stroke="#ffedb9" stroke-width="7"/>
+<path d="M397 165 L411 120 L437 164L480 149L468 193" fill="#efce86" stroke="#fff0c4" stroke-width="6"/>
+<path d="M451 260l42 15-35 15" stroke="#ffeca7" stroke-width="9"/>
+<circle cx="432" cy="250" r="9" fill="#7c27be" stroke="#fff7df" stroke-width="4"/>
+<path d="M173 411L129 451 L197 440" stroke="#edd292" stroke-width="15"/>
+</g><g fill="#f2d896"><path d="M120 152v37m-18-18h37M520 382v33m-16-16h33"/></g></svg>

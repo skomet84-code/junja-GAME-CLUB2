@@ -1,0 +1,88 @@
+/* JUNJA ROYAL V10 — product-specific cinema focus in all shop/gallery contexts */
+#royalBoutiqueRoot .jrp-product-art,#view-gallery .jrp-product-art{
+ display:block;position:relative;isolation:isolate;width:100%;height:100%;min-height:60px;flex-shrink:0;
+ overflow:hidden;border-radius:12px;background-color:#0e0910;
+ background-image:linear-gradient(0deg,#07040b55,transparent 33%),var(--jrp-art-source);
+ background-repeat:no-repeat;background-size:100% 100%,var(--jrp-art-zoom) auto;
+ background-position:center,var(--jrp-art-x) var(--jrp-art-y);
+ border:1px solid #e1b8758f;box-shadow:inset 0 0 17px #08040870,0 7px 18px #0009
+}
+#royalBoutiqueRoot .jrp-product-art:before,#view-gallery .jrp-product-art:before{
+ content:"";position:absolute;inset:0;pointer-events:none;
+ background:linear-gradient(130deg,#fff2cb20,transparent 35%,transparent 66%,#e3bc6412);
+}
+#royalBoutiqueRoot .jrp-product-art:after,#view-gallery .jrp-product-art:after{
+ content:"JUNJA · PRIVATE COLLECTION";position:absolute;right:8px;bottom:6px;
+ color:#fff0c9;font:700 7px Georgia,serif;letter-spacing:.10em;
+ text-shadow:0 2px 7px #000,0 0 7px #000;pointer-events:none;
+}
+#royalBoutiqueRoot .jrp-tile-art.jrp-cinematic-tile-art>.jrp-product-art{
+ width:96%;height:97%;max-width:none;min-height:120px;margin:auto;
+ border-radius:9px;background-color:#100b13;box-shadow:0 8px 21px #000b
+}
+#royalBoutiqueRoot .jrp-featured-art .jrp-art-arch{display:grid;place-items:center;overflow:hidden}
+#royalBoutiqueRoot .jrp-featured-art .jrp-art-arch>.jrp-product-art{
+ z-index:2;width:94%;height:90%;max-height:100%;min-height:250px;border-radius:20px;
+ box-shadow:0 20px 45px #000b,0 0 20px #edc2794d
+}
+#royalBoutiqueRoot .jrp-collector-slot .jrp-product-art{width:95%;height:65px;min-height:52px;margin:0 auto}
+#royalBoutiqueRoot .jrp-editorial-items .jrp-product-art{height:118px;min-height:75px}
+#royalBoutiqueRoot .jrp-victory-art .jrp-product-art{max-width:390px;height:195px;margin:auto}
+#view-gallery .jrg-object>.jrp-product-art{
+ position:relative;z-index:2;width:94%;height:74%;min-height:0;margin:auto;
+ box-shadow:0 12px 20px #000c
+}
+#view-gallery .jrg-selected-image>.jrp-product-art{
+ width:83%;height:270px;min-height:160px;z-index:2;margin:auto
+}
+#view-gallery .jrg-vault-art>.jrp-product-art{width:94%;height:82%;min-height:115px;z-index:2;margin:auto}
+#view-gallery .jrg-cert-picture>.jrp-product-art{width:94%;height:88%;min-height:125px;margin:auto}
+#view-gallery .jrg-card-art>.jrp-product-art{height:90%;width:93%;min-height:80px;margin:auto}
+#royalBoutiqueRoot .jrp-hall-detail{
+ margin:18px 8px 32px;padding:15px;border:1px solid #d2a663;border-radius:18px;
+ background:linear-gradient(135deg,#1e101e,#08060c);box-shadow:0 13px 34px #0009
+}
+#royalBoutiqueRoot .jrp-hall-detail-head{position:relative;min-height:190px;display:flex;flex-direction:column;
+ justify-content:flex-end;padding:18px;border-radius:12px;overflow:hidden;
+ background-image:linear-gradient(0deg,#09050deb,transparent 74%),var(--jrp-hall-img);
+ background-size:cover;background-position:center
+}
+#royalBoutiqueRoot .jrp-hall-detail-head small{font:700 10px Georgia,serif;color:#ebcc99;letter-spacing:.17em}
+#royalBoutiqueRoot .jrp-hall-detail-head h2{font:700 clamp(22px,4vw,37px) Georgia,serif;color:#ffe8b7;margin:8px 0 5px;text-shadow:0 2px 8px #000}
+#royalBoutiqueRoot .jrp-hall-detail-head p{font:700 13px 'Noto Serif KR',serif;color:#fff0d1;margin:0}
+#royalBoutiqueRoot .jrp-hall-detail-head button{align-self:flex-start;background:#1b111bd9;color:#f6dba7;border:1px solid #dcac5a;border-radius:20px;margin-bottom:14px;padding:8px 13px}
+#royalBoutiqueRoot .jrp-hall-product-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:16px}
+#royalBoutiqueRoot .jrp-hall-product{min-width:0;border:1px solid #b58d59;border-radius:12px;background:#170f18;padding:9px;display:flex;flex-direction:column;gap:7px}
+#royalBoutiqueRoot .jrp-hall-product .jrp-product-art{height:150px}
+#royalBoutiqueRoot .jrp-hall-product strong{font-size:12px;line-height:1.5;color:#ffe7b6;min-height:34px}
+#royalBoutiqueRoot .jrp-hall-product small{font:700 10px Georgia,serif;color:#d0a4df}
+#royalBoutiqueRoot .jrp-hall-product b{font-size:15px;color:#fff2bb}
+#royalBoutiqueRoot .jrp-hall-product button{border:1px solid #ffe0a1;background:linear-gradient(100deg,#f8deb2,#cc984f);color:#20121c;border-radius:8px;padding:9px 7px;font-size:12px;font-weight:900}
+#royalBoutiqueRoot .jrp-hall-product button:disabled{opacity:.65}
+@media(max-width:700px){
+ #royalBoutiqueRoot .jrp-hall-product-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+ #royalBoutiqueRoot .jrp-hall-product .jrp-product-art{height:128px}
+ #royalBoutiqueRoot .jrp-hall-detail{margin:13px 1px 24px;padding:9px}
+ #royalBoutiqueRoot .jrp-hall-detail-head{min-height:180px}
+ #view-gallery .jrg-selected-image>.jrp-product-art{height:205px}
+ #royalBoutiqueRoot .jrp-featured-art .jrp-art-arch>.jrp-product-art{min-height:195px}
+}
+@media(max-width:390px){#royalBoutiqueRoot .jrp-hall-product .jrp-product-art{height:112px}}
+@media(prefers-reduced-motion:reduce){#royalBoutiqueRoot .jrp-product-art,#view-gallery .jrp-product-art{transition:none}}
+
+/* Each handbag owns its own individually illustrated royal-display artwork. */
+#royalBoutiqueRoot .jrp-product-bag,#view-gallery .jrp-product-bag{background-color:#0d0a0b;border-color:#d3ab69;background-size:100% 100%,var(--jrp-art-zoom) auto}
+#royalBoutiqueRoot .jrp-tile .jrp-product-bag{box-shadow:0 13px 33px #000c,inset 0 0 16px #f0c47a2b}
+#view-gallery .jrg-object .jrp-product-bag{border-color:#edcb85}
+
+/* V15: full-resolution square handbag photographs keep handles, buckles and
+   the marble collection plaque visible on mobile, in the auction and museum. */
+#royalBoutiqueRoot .jrp-product-bag,#view-gallery .jrp-product-bag{
+ background-color:#0a0708;
+ background-size:100% 100%,contain;
+ background-position:center center;
+ background-repeat:no-repeat;
+ border-color:#d8b16e;
+}
+#royalBoutiqueRoot .jrp-product-bag::before,#view-gallery .jrp-product-bag::before{background:none}
+#royalBoutiqueRoot .jrp-product-bag::after,#view-gallery .jrp-product-bag::after{content:none}

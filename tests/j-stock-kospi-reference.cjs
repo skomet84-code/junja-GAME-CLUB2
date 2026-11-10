@@ -1,0 +1,13 @@
+'use strict';
+const assert=require('node:assert/strict');
+const {parseQuoteResponse,isReferenceFresh,TICKERS}=require('../j-stock-kospi-reference');
+const when=Date.parse('2026-10-30T14:00:00+09:00');
+const datas=TICKERS.map(s=>({itemCode:s.code,stockExchangeType:{code:'KS'},fluctuationsRatioRaw:s.id==='A'?'-4.00':'+1.20',localTradedAt:'2026-10-30T13:00:00+09:00'}));
+const parsed=parseQuoteResponse({datas},when);
+assert.equal(parsed.stocks.A.changeBp,-400);
+assert.equal(parsed.stocks.B.changeBp,120);
+assert.equal(Object.keys(parsed.stocks).length,10);
+assert.equal(isReferenceFresh(parsed.stocks.A,when),true);
+assert.equal(isReferenceFresh(parsed.stocks.A,Date.parse('2026-10-31T14:00:00+09:00')),false);
+assert.throws(()=>parseQuoteResponse({datas:[]},when),/불충분/);
+console.log('KOSPI_REFERENCE_OK');

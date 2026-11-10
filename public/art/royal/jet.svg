@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 640" role="img" aria-label="로열 느와르 프라이빗 제트"><defs>
+<radialGradient id="halo"><stop stop-color="#B49EDB" stop-opacity=".46"/><stop offset=".62" stop-color="#7543A9" stop-opacity=".12"/><stop offset="1" stop-color="#100916" stop-opacity="0"/></radialGradient>
+<linearGradient id="pearl" x1="0" y1="0" x2=".65" y2="1"><stop stop-color="#fffbe8"/><stop offset=".25" stop-color="#f0dfcb"/><stop offset=".52" stop-color="#abaac6"/><stop offset=".72" stop-color="#635778"/><stop offset="1" stop-color="#25263a"/></linearGradient>
+<linearGradient id="gold" x1="0" y1="0" x2=".8" y2="1"><stop stop-color="#fff6cb"/><stop offset=".3" stop-color="#dbad68"/><stop offset=".55" stop-color="#855235"/><stop offset=".8" stop-color="#f3d496"/><stop offset="1" stop-color="#b17b3e"/></linearGradient>
+<linearGradient id="black" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#b8a3d1"/><stop offset=".24" stop-color="#463857"/><stop offset=".6" stop-color="#141327"/><stop offset="1" stop-color="#080c17"/></linearGradient>
+<linearGradient id="water" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#6A5594" stop-opacity=".5"/><stop offset="1" stop-color="#0B0A19" stop-opacity=".1"/></linearGradient>
+<filter id="d"><feDropShadow dx="0" dy="15" stdDeviation="12" flood-color="#080410" flood-opacity=".87"/></filter><filter id="b"><feGaussianBlur stdDeviation="18"/></filter></defs>
+<ellipse cx="482" cy="331" rx="430" ry="271" fill="url(#halo)"/>
+<ellipse cx="495" cy="505" rx="358" ry="21" fill="#070511" opacity=".65" filter="url(#b)"/><g filter="url(#d)" transform="rotate(-7 480 332)">
+ <!-- sweeping outer wings behind fuselage -->
+ <path d="M352 336 494 185Q519 173 557 173L630 192 534 342 727 421 723 452 491 396 369 396Z" fill="url(#pearl)" stroke="url(#gold)" stroke-width="10"/>
+ <path d="M306 344 422 228 453 240 402 360 475 435 449 449 317 394Z" fill="url(#black)" stroke="#daba81" stroke-width="8"/>
+ <!-- tapered fuselage -->
+ <path d="M86 375 148 344 665 303 812 260Q855 252 885 272L816 299 729 360 327 428 163 419Z" fill="url(#pearl)" stroke="#fff3d7" stroke-width="8"/>
+ <path d="M131 374 302 366 742 310 828 271" stroke="#BD935C" stroke-width="18" fill="none" opacity=".88"/>
+ <path d="M130 388 327 393 737 330" stroke="#fff4cd" stroke-width="7" fill="none" opacity=".75"/>
+ <path d="M197 353 238 349l10 16-45 3Zm63-6 41-4 9 17-42 3Zm62-6 40-5 10 16-43 6Zm62-7 40-6 10 16-40 6Zm63-8 42-6 9 16-43 7Z" fill="#141326" stroke="#e4cda1" stroke-width="3"/>
+ <path d="M811 264 872 202 886 211 863 271" fill="url(#black)" stroke="url(#gold)" stroke-width="10"/>
+ <path d="M305 395 372 452 407 458 360 390Z" fill="url(#gold)" stroke="#fff2bd" stroke-width="6"/>
+ <ellipse cx="494" cy="418" rx="42" ry="16" fill="#1b162a" stroke="#d5b785" stroke-width="8"/>
+ <path d="M790 286 844 265" stroke="#fff" stroke-width="5"/>
+ </g><g fill="#ffedbf"><path d="m197 185 7-20 7 20 20 7-20 7-7 20-7-20-20-7Zm541 51 8-25 8 25 25 8-25 8-8 25-8-25-25-8Z"/></g></svg>

@@ -78,3 +78,93 @@ body[data-game="hula"] .hula-assist.hidden{display:none!important}
 .hula-assist-actions button.active{background:#c5edac;border-color:#e2ffbc;color:#163525}
 .hula-assist-actions button:disabled{opacity:.45;cursor:default}
 @media(max-width:650px){body[data-game="hula"] .hula-assist{padding:9px 8px;gap:7px}.hula-assist-actions button{min-height:39px;flex:1}.hula-assist-actions{width:100%}}
+
+/* Compact Hula layout: all hands visible and registered groups collapsed by default. */
+body[data-game="hula"] .table-frame{min-height:215px!important;border-radius:30px!important}
+body[data-game="hula"] .table-center{min-height:140px!important;gap:4px;padding:3px}
+body[data-game="hula"] .opponents{padding:8px 5px 2px;gap:3px}
+body[data-game="hula"] .opponent{min-width:0;max-width:none;flex:1;padding:5px}
+body[data-game="hula"] .opponent .avatar{font-size:16px}
+body[data-game="hula"] .opponent strong{font-size:10px}
+body[data-game="hula"] .opponent small{font-size:9px}
+body[data-game="hula"] .table-badge{padding:4px 10px;font-size:11px}
+body[data-game="hula"] .table-decks{gap:12px}
+body[data-game="hula"] .table-decks .card,body[data-game="hula"] .card-back.deck{width:49px;height:70px}
+body[data-game="hula"] .melds{max-height:75px;overflow-y:auto;overscroll-behavior:contain;margin:0;padding:3px}
+body[data-game="hula"] .meld-row{padding:3px;gap:3px;min-height:26px}
+body[data-game="hula"] .meld-row span{font-size:12px;padding:2px}
+body[data-game="hula"] .bottom-board{padding:10px}
+body[data-game="hula"] .self-header{padding-bottom:8px}
+body[data-game="hula"] .hand{display:grid!important;grid-template-columns:repeat(8,minmax(0,1fr));gap:3px;min-height:0!important;padding:7px 0!important;overflow:visible}
+body[data-game="hula"] .hand .card{width:100%;min-width:0;height:82px;padding:3px}
+body[data-game="hula"] .hand .card .middle{font-size:clamp(17px,4.4vw,27px)}
+body[data-game="hula"] .hand .card .corner{font-size:9px}
+body[data-game="hula"] .hula-ledger:not([open]){padding:6px 10px}
+body[data-game="hula"] .hula-ledger summary{cursor:pointer;list-style:none;margin:0}
+body[data-game="hula"] .hula-ledger summary::-webkit-details-marker{display:none}
+body[data-game="hula"] .hula-ledger summary:after{content:'▾';color:#ffdb91;font-size:17px}
+body[data-game="hula"] .hula-ledger[open] summary:after{content:'▴'}
+body[data-game="hula"] .game-actions:has(#thankNow){position:fixed;z-index:90;bottom:max(8px,env(safe-area-inset-bottom));left:max(10px,calc(50% - 270px));right:max(10px,calc(50% - 270px));padding:10px;background:#101c2af7;border:2px solid #f1c481;border-radius:14px;box-shadow:0 8px 35px #000c}
+body[data-game="hula"] #thankNow{width:100%;min-height:64px;font-size:20px}
+
+body:not([data-game="hula"]) #hulaStakes{display:none}
+.hula-stakes{margin:14px 0 21px;padding:15px;border:1px solid #d1a9658a;border-radius:14px;background:#172732;color:#ffe3ac;display:grid;gap:9px}
+.hula-stakes label{font-size:14px;font-weight:800}
+.hula-stakes select{width:100%;padding:12px;border-radius:10px;border:1px solid #d4bd80;background:#1b2931;color:#fff2c6;font-size:15px;font-weight:800;min-height:48px}
+.hula-stakes small{font-size:11px;color:#d9d8c9;line-height:1.6}
+.casino-win{color:#ffb0ae}.casino-loss{color:#9bc8ff}
+
+/* Hula portrait: board, cards and primary actions stay in one glance.
+   The optional registration ledger opens as an overlay, never pushing the hand away. */
+@media(max-width:650px){
+ body.hula-active .shell{padding:2px 5px 8px}
+ body.hula-active .masthead,body.hula-active .game-switch,body.hula-active footer{display:none!important}
+ body.hula-active .match-top{margin:3px 3px 6px;gap:8px}
+ body.hula-active .match-top .micro,body.hula-active #matchSub{display:none}
+ body.hula-active .match-top h2{font-size:15px;margin:0}
+ body.hula-active .match-top #leaveBtn{min-height:35px;padding:5px 11px;font-size:12px}
+ body.hula-active .table-area{gap:6px}
+ body.hula-active .table-frame{min-height:0!important;border:4px solid #b48a48!important;border-radius:25px!important}
+ body.hula-active .opponents{padding:5px 6px 0;gap:3px}
+ body.hula-active .opponent{padding:3px 5px}
+ body.hula-active .opponent .avatar{font-size:13px}
+ body.hula-active .table-center{min-height:0!important;gap:3px!important;padding:1px 2px 5px}
+ body.hula-active .table-badge{font-size:10px;padding:3px 8px}
+ body.hula-active .turn-steps span{padding:3px 6px;font-size:9px}
+ body.hula-active .table-decks{gap:15px}
+ body.hula-active .table-decks .card,body.hula-active .card-back.deck{width:39px;height:53px}
+ body.hula-active .table-decks .card .corner{font-size:10px}
+ body.hula-active .table-decks .card .middle{font-size:21px}
+ body.hula-active .stock-caption,body.hula-active #discardCaption{font-size:9px}
+ body.hula-active .play-info{font-size:11px;margin:0}
+ body.hula-active .melds{max-height:53px;overflow:auto;padding:1px;margin:0}
+ body.hula-active .meld-row{min-height:22px;padding:2px 4px}
+ body.hula-active .bottom-board{padding:6px 7px;border-radius:15px}
+ body.hula-active .self-header{padding:1px 2px 5px}
+ body.hula-active .self-header strong{font-size:15px}
+ body.hula-active .self-header .micro{font-size:9px}
+ body.hula-active .hand-meta{gap:4px}
+ body.hula-active .hand-meta span{font-size:11px;padding:4px 8px}
+ body.hula-active .hand{grid-template-columns:repeat(8,minmax(0,1fr));gap:3px;min-height:0!important;padding:6px 0 14px!important}
+ body.hula-active .hand .card{height:69px;min-width:0}
+ body.hula-active .hand .card .middle{font-size:21px}
+ body.hula-active .hand .card .card-hint-label{font-size:7px;padding:2px 3px;bottom:-8px}
+ body.hula-active .hand .card.face.selected{transform:translateY(-5px)!important}
+ body.hula-active .hula-assist{margin:2px 0!important;padding:5px 7px!important;gap:5px!important}
+ body.hula-active .hula-assist-title strong{font-size:11px}
+ body.hula-active .hula-assist-actions{gap:5px}
+ body.hula-active .hula-assist-actions button{min-height:29px;padding:3px 7px}
+ body.hula-active .quick-take{min-height:37px;margin:0 0 5px;font-size:12px}
+ body.hula-active .hand-hints{gap:4px;min-height:0;margin:4px 0 5px;padding:5px 7px}
+ body.hula-active .hand-hints strong,body.hula-active .hand-hints span{font-size:10px}
+ body.hula-active .suggestion-list{flex-wrap:nowrap;overflow-x:auto;justify-content:flex-start;width:100%;padding:1px 0 3px}
+ body.hula-active .suggestion-btn{flex:0 0 auto;min-height:30px;padding:5px 7px;white-space:nowrap;font-size:10px}
+ body.hula-active .game-actions{gap:5px}
+ body.hula-active .game-actions button{min-height:39px;flex:1 1 42%;padding:6px;font-size:12px}
+ body.hula-active .game-actions .muted{font-size:10px}
+ body.hula-active .feedback{font-size:10px;margin-top:4px}
+ body.hula-active .hula-ledger{margin:5px 0 0!important;padding:5px 8px!important}
+ body.hula-active .hula-ledger:not([open]) .hula-ledger-head{margin:0}
+ body.hula-active .hula-ledger[open]{position:fixed;z-index:100;left:8px;right:8px;top:max(10px,env(safe-area-inset-top));bottom:max(10px,env(safe-area-inset-bottom));overflow-y:auto;overscroll-behavior:contain;box-shadow:0 0 0 100vmax #000b,0 10px 45px #000e}
+ body.hula-active .hula-ledger[open] .hula-ledger-head{position:sticky;top:0;background:#102b2c;padding:7px;border-radius:9px}
+}

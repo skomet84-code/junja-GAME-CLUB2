@@ -1,0 +1,48 @@
+name: Archive Royal Luxury Photo Assets
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: junja-royal-archive-${{ github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  archive-photographs:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 14
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Download and audit Creative Commons full-photo thumbnails
+        continue-on-error: true
+        run: node scripts/sync-royal-media.cjs
+      - name: Compress high-res car photos and remove camera EXIF
+        run: |
+          python -m pip install --quiet Pillow
+          python scripts/optimize-royal-photos.py
+      - name: Verify photo assets, publish cache to same feature branch
+        run: |
+          echo "ARCHIVED_PHOTO_FILES $(find public/art/royal/photos -type f -name '*.jpg' | wc -l)"
+          test "$(find public/art/royal/photos -type f -name '*.jpg' | wc -l)" -ge 3
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          # Another allowed edit may have advanced this branch while we compressed.
+          # Recompute from the latest remote state instead of rebasing generated
+          # manifest and JPEG files (which creates unnecessary merge conflicts).
+          git fetch origin main
+          git reset --hard origin/main
+          python scripts/optimize-royal-photos.py
+          git add public/art/royal/photos/
+          if ! git diff --staged --quiet; then
+            git commit -m 'assets(royal): compressed CC photos cached locally for iOS gallery'
+            git push origin HEAD:main
+          fi

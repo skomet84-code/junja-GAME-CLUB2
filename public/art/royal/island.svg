@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 640" role="img" aria-label="골든 프라이빗 아일랜드"><defs>
+ <radialGradient id="light"><stop stop-color="#b68fda" stop-opacity=".45"/><stop offset=".53" stop-color="#513274" stop-opacity=".12"/><stop offset="1" stop-color="#11091b" stop-opacity="0"/></radialGradient>
+ <linearGradient id="gold" x1="0" x2=".93" y1="0" y2="1"><stop stop-color="#fff5d4"/><stop offset=".2" stop-color="#e8c17b"/><stop offset=".48" stop-color="#946137"/><stop offset=".68" stop-color="#ffe7a6"/><stop offset="1" stop-color="#74452f"/></linearGradient>
+ <linearGradient id="purple" x1="0" x2=".9" y1="0" y2="1"><stop stop-color="#efcfff"/><stop offset=".29" stop-color="#9a64b9"/><stop offset=".54" stop-color="#4a276b"/><stop offset=".8" stop-color="#261336"/><stop offset="1" stop-color="#110c1f"/></linearGradient>
+ <linearGradient id="dark" x1="0" x2=".9" y1="0" y2="1"><stop stop-color="#8a789c"/><stop offset=".27" stop-color="#38263e"/><stop offset=".76" stop-color="#160d25"/><stop offset="1" stop-color="#080711"/></linearGradient>
+ <filter id="s"><feDropShadow dx="0" dy="13" stdDeviation="11" flood-color="#06030d" flood-opacity=".85"/></filter><filter id="b"><feGaussianBlur stdDeviation="19"/></filter></defs>
+ <ellipse cx="480" cy="322" rx="410" ry="282" fill="url(#light)"/>
+ <ellipse cx="483" cy="525" rx="266" ry="21" fill="#08060c" opacity=".55" filter="url(#b)"/><g filter="url(#s)">
+<path d="M117 450Q278 394 409 424T841 433L892 476Q774 522 535 527T127 483Z" fill="#4b4288" stroke="#bba7e0" stroke-width="9"/>
+<path d="M202 428Q307 360 435 375Q620 340 778 410L748 466Q480 505 221 459Z" fill="url(#gold)" stroke="#ffefbd" stroke-width="8"/>
+<path d="M306 377 361 306 442 308 480 376Z" fill="#c0b1d0" stroke="#f7dba2" stroke-width="8"/>
+<path d="M351 309v-79h113v80Z" fill="url(#purple)" stroke="#e9c27f" stroke-width="7"/>
+<path d="M337 236 404 177l78 57Z" fill="url(#gold)" stroke="#fff1c5" stroke-width="8"/>
+<rect x="382" y="261" width="49" height="47" rx="5" fill="#311936" stroke="#fce4b0" stroke-width="6"/>
+<path d="M512 393 610 320l29 74Z" fill="url(#purple)" stroke="#eacc9b" stroke-width="9"/>
+<path d="M604 329v-83" stroke="#75492a" stroke-width="13"/><path d="M604 249q-93-69-131 15 90 7 131-15Zm0 0q58-96 135-16-94 37-135 16Zm0 0q-25-113-79-116-25 70 79 116Z" fill="#c99e48" stroke="#fff2be" stroke-width="7"/>
+<path d="M668 443 786 480 846 480" stroke="#e8c78b" stroke-width="15" fill="none"/><path d="M157 491q150 21 281 7m80 18q150-2 268-21" stroke="#d2d7f7" stroke-width="5" fill="none" opacity=".65"/>
+</g><g fill="#fff5ca"><path d="m218 178 7-18 7 18 18 7-18 7-7 18-7-18-18-7Zm553 154 7-18 7 18 18 7-18 7-7 18-7-18-18-7Z"/></g></svg>

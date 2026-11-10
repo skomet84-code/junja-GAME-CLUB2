@@ -1,0 +1,48 @@
+name: Support and Refund Inquiry Readiness v9
+on:
+  pull_request:
+    paths:
+      - 'support-center-core.js'
+      - 'server.js'
+      - 'public/index.html'
+      - 'public/support-center-ui.js'
+      - 'public/support-center.css'
+      - 'tests/support-center*.cjs'
+      - 'tests/support-center-mobile.mjs'
+      - '.github/workflows/support-center-readiness.yml'
+  workflow_dispatch:
+jobs:
+  support-core:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install server dependencies
+        run: npm install --omit=dev --ignore-scripts --no-audit --no-fund
+      - name: Support workflow and safe front end
+        run: |
+          node --check support-center-core.js
+          node --check public/support-center-ui.js
+          node --check server.js
+          node tests/support-center-static.cjs
+          node tests/support-center.cjs
+          node tests/support-center-http.cjs
+  support-browser:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install browser QA
+        run: |
+          npm install --no-save --no-package-lock --ignore-scripts --no-audit --no-fund playwright
+          npx playwright install --with-deps chromium webkit
+      - name: Verify member and operator support screens in 8 browser configurations
+        run: node tests/support-center-mobile.mjs

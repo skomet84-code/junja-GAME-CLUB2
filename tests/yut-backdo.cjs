@@ -1,0 +1,54 @@
+'use strict';
+const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
+const source=fs.readFileSync('server.js','utf8');
+const ctx={now:()=>1,clampInt:(n,a,b)=>Math.max(a,Math.min(b,n)),orderedPlayers:r=>r.players};
+vm.createContext(ctx);
+vm.runInContext(source.slice(source.indexOf('const YUT_SIDE_COLORS='),source.indexOf('// ---------- Solo Hold'))+'\n'+source.slice(source.indexOf('function soloYutPhysicalPieces'),source.indexOf('function soloYutThrowFor')),ctx);
+const fresh=()=>ctx.yutNewPiece(),piece=(node,prev)=>({node,route:'outer',path:[{node:prev,route:'outer'}]});
+assert.match(source,/name:result\.name,move:result\.move,sticks:result\.sticks,backdo:!!result\.backdo,at:now\(\)/,'multiplayer forwards BACK DO to the displayed throw result');
+const back={move:-1,name:'빽도',backdo:true};
+for(const [node,prev,target] of [['O1','READY','START'],['O3','O2','O2'],['A4','CA','CB'],['B4','CB','CA'],['O16','O15','O15']]){
+ const own=[piece(node,prev),piece(node,prev),fresh(),fresh()],enemy=[piece(target,'O1'),piece(target,'O1'),fresh(),fresh()];
+ const s={pending:[back],awaitingThrow:false,captureBonus:0,sides:{user:own,bot:enemy},turn:'user',replay:[]};
+ ctx.soloYutMoveSide(s,'user',0);
+ assert.equal(s.last.captured.length,2);assert.equal(s.turn,'user');assert.equal(s.awaitingThrow,true);
+ assert.equal(s.sides.bot[0].node,'READY');assert.equal(s.sides.bot[1].node,'READY');
+ const r={players:[{userId:1},{userId:2}],yut:{phase:'playing',turnIndex:0,pending:[back],awaitingThrow:false,captureBonus:0,sides:[{id:'a',playerIds:[1],pieces:[piece(node,prev),fresh(),fresh(),fresh()]},{id:'b',playerIds:[2],pieces:[piece(target,'O1'),piece(target,'O1'),fresh(),fresh()]}]}};
+ ctx.yutMove(r,1,0);
+ assert.equal(r.yut.last.captured.length,2);assert.equal(r.yut.turnIndex,0);assert.equal(r.yut.awaitingThrow,true);
+}
+// Actual first-turn regressions: 도 from reserve, later 빽도 to HOME,
+// then one positive move finishes. Both multiplayer and solo must agree.
+for(const mode of ['solo','multi']){
+ const resultDo={move:1,name:'도',extra:false};
+ if(mode==='solo'){
+  const s={phase:'playing',pending:[resultDo],awaitingThrow:false,captureBonus:0,sides:{user:[fresh(),fresh(),fresh(),fresh()],bot:[fresh(),fresh(),fresh(),fresh()]},turn:'user',replay:[]};
+  ctx.soloYutMoveSide(s,'user',0);
+  assert.equal(s.sides.user[0].node,'O1','first 도 enters first square');
+  s.turn='user';s.pending=[back];s.awaitingThrow=false;
+  ctx.soloYutMoveSide(s,'user',0);
+  assert.equal(s.sides.user[0].node,'START','first 도 + 빽도 returns to HOME, not forward');
+  assert.match(s.last.message,/HOME/);
+  assert.equal(s.sides.user[0].node==='FINISH',false,'HOME itself does not finish yet');
+  s.turn='user';s.pending=[resultDo];s.awaitingThrow=false;
+  ctx.soloYutMoveSide(s,'user',0);
+  assert.equal(s.sides.user[0].node,'FINISH','positive move from lucky HOME finishes');
+ }else{
+  const r={players:[{userId:1},{userId:2}],yut:{phase:'playing',turnIndex:0,pending:[resultDo],awaitingThrow:false,captureBonus:0,sides:[{id:'a',playerIds:[1],pieces:[fresh(),fresh(),fresh(),fresh()]},{id:'b',playerIds:[2],pieces:[fresh(),fresh(),fresh(),fresh()]}]}};
+  ctx.yutMove(r,1,0);
+  assert.equal(r.yut.sides[0].pieces[0].node,'O1');
+  r.yut.turnIndex=0;r.yut.pending=[back];r.yut.awaitingThrow=false;
+  ctx.yutMove(r,1,0);
+  assert.equal(r.yut.sides[0].pieces[0].node,'START','multiplayer first 도+빽도 must reach HOME');
+  assert.match(r.yut.last.message,/HOME/);
+  r.yut.turnIndex=0;r.yut.pending=[resultDo];r.yut.awaitingThrow=false;
+  ctx.yutMove(r,1,0);
+  assert.equal(r.yut.sides[0].pieces[0].node,'FINISH','multiplayer HOME next move finishes');
+ }
+}
+assert.equal(ctx.yutAdvance({node:'O1',route:'outer',path:[]},-1).piece.node,'START','legacy first-step piece with missing history also returns HOME');
+const home=ctx.yutAdvance(piece('O1','READY'),-1).piece;
+assert.equal(home.node,'START');assert.equal(ctx.yutAdvance(home,-1).piece.node,'O20');
+assert.equal(ctx.yutAdvance(home,1).piece.node,'FINISH');
+assert.equal(ctx.yutAdvance(fresh(),-1).legal,false);
+console.log('YUT_BACKDO_OK: first DO -> BACKDO HOME -> next move FINISH in solo/multiplayer; legacy paths, stacks, captures, center');

@@ -1,6 +1,7 @@
 'use strict';
 // JUNJA ROYAL CARDS · authoritative multiplayer + bot game server.
-// Game money/accounts never manipulated; only optional win/loss statistics in game_state.
+// Friendly rounds remain free; multiplayer Hula may use virtual G stakes with durable escrow.
+const {createRoyalHulaCasino,stakeValue,quote}=require('./royal-hula-casino');
 const SUITS=['S','H','D','C'];
 const LABEL={S:'♠',H:'♥',D:'♦',C:'♣'};
 const isBot=p=>!!p.bot;
@@ -32,6 +33,12 @@ function meldKind(cards){
  if(orderedRun(cards))return 'run';
  return null;
 }
+// A 7 and the adjacent same-suit 6/8 may be registered together.
+function sevenNeighborMeld(cards){
+ if(!Array.isArray(cards)||cards.length<2||cards.length>3||!sameCards(cards))return false;
+ const seven=cards.find(c=>rank(c)===7);
+ return !!seven&&cards.every(c=>suit(c)===suit(seven)&&[6,7,8].includes(rank(c)));
+}
 function attachable(cards,card,kind){
  if(cards.includes(card)||suit(card)==='J')return false;
  if(kind==='set')return cards.length<4&&rank(card)===rank(cards[0])&&!cards.some(c=>suit(c)===suit(card));
@@ -41,17 +48,25 @@ function attachable(cards,card,kind){
 }
 function findThank(hand,discard){
  if(!discard)return null;
- if(rank(discard)===7)return [discard];
+ // Prefer full three-card melds; claim matching 7+6/8 together too.
  for(let a=0;a<hand.length;a++)for(let b=a+1;b<hand.length;b++){
   const pair=[discard,hand[a],hand[b]];
   if(meldKind(pair))return pair;
  }
- return null;
+ if([6,7,8].includes(rank(discard))){
+  const neighbor=hand.find(c=>suit(c)===suit(discard)&&
+   (rank(discard)===7?[6,8].includes(rank(c)):rank(c)===7));
+  if(neighbor)return [discard,neighbor];
+ }
+ return rank(discard)===7?[discard]:null;
 }
 function combinations(arr){
  const out=[],seen=new Set();
- const add=cs=>{const kind=meldKind(cs);if(!kind)return;const key=cs.slice().sort().join('|');if(seen.has(key))return;seen.add(key);out.push(kind==='run'?orderedRun(cs):cs);};
- for(let i=0;i<arr.length;i++)if(rank(arr[i])===7)add([arr[i]]);
+ const add=cs=>{const kind=meldKind(cs)||(sevenNeighborMeld(cs)?'run':null);if(!kind)return;const key=cs.slice().sort().join('|');if(seen.has(key))return;seen.add(key);out.push(kind==='run'?orderedRun(cs):cs);};
+ for(let i=0;i<arr.length;i++)if(rank(arr[i])===7){
+   add([arr[i]]);
+   for(const c of arr)if(c!==arr[i]&&suit(c)===suit(arr[i])&&[6,8].includes(rank(c)))add([arr[i],c]);
+  }
  for(let i=0;i<arr.length;i++)for(let j=i+1;j<arr.length;j++)for(let k=j+1;k<arr.length;k++)
   add([arr[i],arr[j],arr[k]]);
  // Four-of-a-kind is valid, and a run can contain more than three cards.
@@ -74,8 +89,9 @@ function combinations(arr){
 }
 const attackValue=c=>c==='JOKR'?7:c==='JOKB'?5:rank(c)===2?2:rank(c)===1?(suit(c)==='S'?5:3):0;
 const attackLevel=c=>c==='JOKR'?5:c==='JOKB'?4:rank(c)===1?3:rank(c)===2?2:0;
-module.exports=function createRoyalCards({db,crypto,requireAuth,readBody,json,rateLimit=()=>true,otherBusy=()=>false,notify=()=>{},now=Date.now,setTimer=setTimeout,clearTimer=clearTimeout}){
+module.exports=function createRoyalCards({db,crypto,requireAuth,readBody,json,rateLimit=()=>true,otherBusy=()=>false,notify=()=>{},exactWallet=null,casinoCollateral=null,now=Date.now,setTimer=setTimeout,clearTimer=clearTimeout}){
  const rooms=new Map(),timers=new Map();
+ const casino=exactWallet?createRoyalHulaCasino({db,exactWallet,now,collateral:casinoCollateral}):null;
  const shuffle=a=>{for(let i=a.length-1;i>0;i--){let j=crypto.randomInt(i+1);[a[i],a[j]]=[a[j],a[i]];}return a;};
  const player=(r,id)=>r.players.find(p=>String(p.id)===String(id));
  const current=r=>r.players[r.turn];
@@ -93,6 +109,7 @@ module.exports=function createRoyalCards({db,crypto,requireAuth,readBody,json,ra
  function clear(r){let t=timers.get(r.id);if(t)clearTimer(t);timers.delete(r.id);r.deadline=0;}
  function finish(r,p,why){
   if(r.phase==='done')return;
+  if(r.game==='hula'&&r.stake!=='0'){if(!casino)throw Error('훌라 카지노 연결 오류');casino.settle(r,p,why);}
   clear(r);r.phase='done';r.winner=p.id;r.reason=why;r.finishedAt=now();
   log(r,p.name+' 승리 · '+why);
   if(!r.recorded){r.recorded=true;for(const who of r.players)if(!who.bot)saveStat(who.id,r.game,who.id===p.id);}
@@ -131,6 +148,7 @@ module.exports=function createRoyalCards({db,crypto,requireAuth,readBody,json,ra
   const allowedMelds=r.game==='hula'&&r.phase==='playing'&&p.id===active.id&&r.drew?combinations(p.hand):[];
   const allowedAttachments=r.game==='hula'&&r.phase==='playing'&&p.id===active.id&&r.drew&&p.registered?p.hand.flatMap(card=>r.melds.flatMap((m,index)=>attachable(m.cards,card,m.kind)?[{card,index}]:[])):[];
   return {id:r.id,name:r.name,game:r.game,mode:r.mode,round:r.round,phase:r.phase,version:r.version,selfId:id,hostId:r.hostId,
+   stake:r.stake||'0',casino:r.game==='hula'?quote(r.stake||'0'):null,finalPayouts:r.phase==='done'?r.finalPayouts||null:null,
    players:r.players.map(x=>({id:x.id,name:x.name,bot:x.bot||false,ready:x.ready,cardCount:x.hand.length,score:r.game==='hula'?null:undefined})),
    max:r.max,turnId:active?.id,direction:r.direction,deadline:r.deadline,serverNow:now(),
    hand:p.hand.slice(),deckCount:r.deck.length,discard:last,suit:r.suit,pending:r.pending,attackRank:r.attackRank,
@@ -171,7 +189,7 @@ module.exports=function createRoyalCards({db,crypto,requireAuth,readBody,json,ra
  }
  function hulaMeld(r,p,cards,logIt=true){
   if(!Array.isArray(cards)||!cards.length||!sameCards(cards)||cards.some(c=>!p.hand.includes(c)))throw Error('내 손패에서 등록할 카드를 선택해줘.');
-  const kind=meldKind(cards);
+  const kind=meldKind(cards)||(sevenNeighborMeld(cards)?'run':null);
   if(!kind)throw Error('등록은 동일 숫자 3장, 같은 무늬 연속 3장, 또는 7 한 장만 가능해.');
   const priorRegistration=p.registered;
   cards.forEach(c=>p.hand.splice(p.hand.indexOf(c),1));
@@ -199,10 +217,10 @@ module.exports=function createRoyalCards({db,crypto,requireAuth,readBody,json,ra
  function startThank(r,p){
   const possible=r.players.filter(x=>x!==p&&findThank(x.hand,r.discard.at(-1)));
   if(!possible.length){advance(r);return;}
-  clear(r);r.phase='thank';r.thankWindow={eligible:possible.map(x=>x.id),until:now()+6200,discardedBy:p.id};
-  log(r,'땡큐! 마지막 버림패로 등록할 수 있는 참가자에게 6초 기회');publish(r);
+  clear(r);r.phase='thank';r.thankWindow={eligible:possible.map(x=>x.id),until:now()+15000,discardedBy:p.id};
+  log(r,'땡큐! 마지막 버림패로 등록할 수 있는 참가자에게 15초 기회');publish(r);
   const stamp=r.version;
-  const bot=possible.find(x=>x.bot),human=possible.some(x=>!x.bot),delay=bot?(human?5900:1100):6200;
+  const bot=possible.find(x=>x.bot),human=possible.some(x=>!x.bot),delay=bot?(human?14000:1100):15000;
   const timer=setTimer(()=>{
    if(rooms.get(r.id)!==r||r.phase!=='thank'||r.version!==stamp)return;
    if(bot){try{thank(r,bot);}catch(e){console.warn('[CARDS] bot thank:',e.message);resumeThank(r);}}
@@ -281,14 +299,16 @@ module.exports=function createRoyalCards({db,crypto,requireAuth,readBody,json,ra
   })[0];
   if(preferred)hulaDiscard(r,p,preferred);
  }
- function create(game,host,mode,max,name){
+ function create(game,host,mode,max,name,stake){
   const r={id:'RC'+crypto.randomBytes(7).toString('hex'),game,mode,hostId:host.id,name:String(name|| (game==='onecard'?'로얄 원카드':'로얄 훌라')).trim().slice(0,36)||'ROYAL CARDS',
-   phase:'waiting',version:0,round:0,max,players:[{id:host.id,name:host.nickname,ready:false,hand:[],registered:false,meldBefore:false}],direction:1,turn:0,
+   stake:game==='hula'?stakeValue(stake):'0',phase:'waiting',version:0,round:0,max,players:[{id:host.id,name:host.nickname,ready:false,hand:[],registered:false,meldBefore:false}],direction:1,turn:0,
    updated:now(),events:[],deck:[],discard:[],melds:[],deadline:0};
   if(mode==='ai'){r.players.push({id:'ai:'+r.id,name:game==='onecard'?'J-BOT · 에이스':'J-BOT · 타짜',bot:true,ready:true,hand:[],registered:false});}
+  if(mode==='ai'&&r.stake!=='0'){if(!casino)throw Error('훌라 카지노 지갑 연결 오류');casino.reserve(r);}
   rooms.set(r.id,r);if(mode==='ai')fresh(r);else publish(r);return r;
  }
  function newRound(r){
+  if(r.stake!=='0'){if(!casino)throw Error('훌라 카지노 지갑 연결 오류');casino.reserve(r);}
   r.players.forEach(p=>{p.registered=false;p.meldBefore=false;});
   fresh(r);
  }
@@ -302,12 +322,12 @@ module.exports=function createRoyalCards({db,crypto,requireAuth,readBody,json,ra
    const b=req.method==='POST'?await readBody(req):{};
    if(url.pathname==='/api/royalcards'&&req.method==='GET'){
     const game=url.searchParams.get('game')==='hula'?'hula':'onecard',m=mine(u.id);
-    return reply(200,{room:m?view(m,u.id):null,rooms:[...rooms.values()].filter(r=>r.game===game&&r.mode==='multi'&&r.phase==='waiting'&&r.players.length<r.max).map(r=>({id:r.id,name:r.name,players:r.players.length,max:r.max,host:r.players[0]?.name})),stats:publicStats(u.id,game)});
+    return reply(200,{room:m?view(m,u.id):null,rooms:[...rooms.values()].filter(r=>r.game===game&&r.mode==='multi'&&r.phase==='waiting'&&r.players.length<r.max).map(r=>({id:r.id,name:r.name,players:r.players.length,max:r.max,host:r.players[0]?.name,stake:r.stake||'0'})),stats:publicStats(u.id,game)});
    }
    if(url.pathname==='/api/royalcards/create'&&req.method==='POST'){
     if(mine(u.id)||otherBusy(u.id))throw Error('다른 게임을 종료하고 다시 입장해줘.');
     const game=b.game==='hula'?'hula':'onecard',mode=b.mode==='ai'?'ai':'multi';
-    const r=create(game,u,mode,Math.max(2,Math.min(4,Math.trunc(Number(b.max)||4))),b.name);return reply(201,{room:view(r,u.id)});
+    const r=create(game,u,mode,Math.max(2,Math.min(4,Math.trunc(Number(b.max)||4))),b.name,b.stake);return reply(201,{room:view(r,u.id)});
    }
    const m=url.pathname.match(/^\/api\/royalcards\/(RC[a-f0-9]{14})(?:\/(join|ready|start|play|draw|take|meld|attach|discard|thank|stop|rematch|leave))?$/);
    if(!m)return reply(404,{error:'존재하지 않는 카드 게임 요청이야.'});
@@ -327,11 +347,11 @@ module.exports=function createRoyalCards({db,crypto,requireAuth,readBody,json,ra
    if(req.method!=='POST')return reply(405,{error:'허용되지 않은 요청이야.'});
    if(op==='leave'){
     const idx=r.players.indexOf(exists);
-    if(r.phase==='playing'){
+    // THANK YOU is part of the live round: settle casino escrow before exit.
+    if(r.phase==='playing'||r.phase==='thank'){
      const remaining=r.players.filter(p=>p!==exists);
-     if(remaining.length){finish(r,remaining[0],exists.name+' 퇴장');}
+     if(remaining.length)finish(r,remaining[0],exists.name+' 퇴장');
     }
-    if(r.phase==='thank'&&r.thankWindow){r.thankWindow.eligible=r.thankWindow.eligible.filter(id=>id!==exists.id);if(!r.thankWindow.eligible.length)resumeThank(r);}
     r.players.splice(idx,1);
     if(!r.players.length||r.mode==='ai'){clear(r);rooms.delete(r.id);}
     else {if(r.hostId===u.id)r.hostId=r.players[0].id;publish(r);}
@@ -372,4 +392,4 @@ module.exports=function createRoyalCards({db,crypto,requireAuth,readBody,json,ra
  }
  return {handle,hasUser:id=>!!mine(id),findUserRoom:id=>{const r=mine(id);return r?{id:r.id,game:r.game,name:r.name}:null;},roomCount:()=>rooms.size,helpers:{meldKind,attachable,findThank,cardDeck,combinations}};
 };
-module.exports._test={meldKind,attachable,findThank,cardDeck,attackValue,attackLevel,combinations};
+module.exports._test={meldKind,sevenNeighborMeld,attachable,findThank,cardDeck,attackValue,attackLevel,combinations};

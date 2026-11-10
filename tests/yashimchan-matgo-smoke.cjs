@@ -6,6 +6,7 @@ const { chromium } = require('playwright');
   const context=await browser.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true,deviceScaleFactor:2});
   const page=await context.newPage(),errors=[];
   page.on('pageerror',e=>errors.push(String(e)));
+  page.on('dialog',dialog=>dialog.accept());
   await page.goto(base,{waitUntil:'domcontentloaded'});
   const username=`matgo${Date.now().toString().slice(-8)}`;
   const registration=await page.evaluate(async username=>{const r=await fetch('/api/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username,nickname:'야심찬테스터',password:'test1234'})});return {ok:r.ok,text:await r.text()};},username);
@@ -14,7 +15,7 @@ const { chromium } = require('playwright');
   await page.waitForSelector('#mainApp:not(.hidden)');
   await page.click('[data-go="gostop"]');
   await page.waitForSelector('#view-gostop.active');
-  await page.fill('#gostopBet','10000');
+  await page.fill('#gostopBet','5000');
   await page.click('#startGostop');
   await page.waitForSelector('.yashimchan-table');
   for(let turn=0;turn<4;turn++){

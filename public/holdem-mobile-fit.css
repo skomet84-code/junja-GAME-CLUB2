@@ -1,0 +1,233 @@
+/* Mobile Texas Hold'em play surface. Applied only while a room is open. */
+/* Keeps desktop and pre-game lobbies unchanged. */
+@media (max-width:700px) {
+  body:has(#view-holdem.active :is(#holdemRoom,#holdemSoloRoom):not(.hidden)) .topbar {
+    height:46px!important;
+    min-height:46px;
+    padding:calc(3px + var(--safe-top,0px)) 8px 3px!important;
+    gap:6px!important;
+    flex-wrap:nowrap!important;
+    overflow:hidden;
+  }
+  body:has(#view-holdem.active :is(#holdemRoom,#holdemSoloRoom):not(.hidden)) .topbar :is(#helpBtn,#shopBtn,#friendsBtn,#jBankBtn,#adminBtn,#jstockHeaderProfit) {
+    display:none!important;
+  }
+  body:has(#view-holdem.active :is(#holdemRoom,#holdemSoloRoom):not(.hidden)) .topbar .brand-inline {
+    flex:0 0 auto; min-width:0;
+  }
+  body:has(#view-holdem.active :is(#holdemRoom,#holdemSoloRoom):not(.hidden)) .topbar .mini-mark {
+    width:32px;height:32px;border-radius:10px;font-size:16px;
+  }
+  body:has(#view-holdem.active :is(#holdemRoom,#holdemSoloRoom):not(.hidden)) .topbar .wallet-pill {
+    margin-left:auto; min-width:0; max-width:calc(100vw - 105px);
+    padding:5px 8px; flex:0 1 auto;
+  }
+  body:has(#view-holdem.active :is(#holdemRoom,#holdemSoloRoom):not(.hidden)) .topbar .wallet-pill span {
+    display:none;
+  }
+  body:has(#view-holdem.active :is(#holdemRoom,#holdemSoloRoom):not(.hidden)) .topbar .wallet-pill b {
+    display:block;font-size:clamp(11px,3.2vw,14px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  }
+  body:has(#view-holdem.active :is(#holdemRoom,#holdemSoloRoom):not(.hidden)) .topbar .profile-pill {
+    padding:2px!important; min-width:30px; flex:0 0 30px; overflow:hidden;
+  }
+  body:has(#view-holdem.active :is(#holdemRoom,#holdemSoloRoom):not(.hidden)) .topbar .profile-pill>span:last-child {display:none!important;}
+
+  #view-holdem.active:has(:is(#holdemRoom,#holdemSoloRoom):not(.hidden)) {
+    padding-bottom:calc(12px + var(--safe-bottom,0px));
+  }
+  #view-holdem.active:has(:is(#holdemRoom,#holdemSoloRoom):not(.hidden)) .view-head {
+    margin-bottom:4px;gap:6px;min-height:30px;
+  }
+  #view-holdem.active:has(:is(#holdemRoom,#holdemSoloRoom):not(.hidden)) .view-head .back {
+    width:30px;height:30px;min-width:30px;border-radius:9px;padding:0;font-size:18px;
+  }
+  #view-holdem.active:has(:is(#holdemRoom,#holdemSoloRoom):not(.hidden)) .view-head small {
+    display:none;
+  }
+  #view-holdem.active:has(:is(#holdemRoom,#holdemSoloRoom):not(.hidden)) .view-head h2 {
+    font-size:17px;line-height:1.1;margin:0;
+  }
+  #view-holdem.active:has(:is(#holdemRoom,#holdemSoloRoom):not(.hidden)) .view-head .view-guide {
+    margin-left:auto;font-size:10px;padding:5px 7px;min-height:28px;
+  }
+  /* Switching between AI and multiplayer while seated would discard the current table. */
+  #view-holdem.active:has(:is(#holdemRoom,#holdemSoloRoom):not(.hidden)) .mode-switch {
+    display:none!important;
+  }
+  #view-holdem.active:has(:is(#holdemRoom,#holdemSoloRoom):not(.hidden)) .table-wrap {
+    display:grid!important;grid-template-columns:minmax(0,1fr)!important;gap:4px!important;
+  }
+  #view-holdem.active:has(:is(#holdemRoom,#holdemSoloRoom):not(.hidden)) .poker-panel {
+    padding:3px!important;min-width:0;overflow:hidden;
+  }
+  #view-holdem.active:has(:is(#holdemRoom,#holdemSoloRoom):not(.hidden)) .poker-table {
+    width:100%;max-width:100%;min-height:280px!important;height:clamp(280px,36dvh,360px);
+    margin:2px auto 4px!important;border-width:6px!important;border-radius:34% / 39%!important;
+  }
+  #view-holdem.active:has(:is(#holdemRoom,#holdemSoloRoom):not(.hidden)) .board-cards {
+    gap:3px!important;top:44%!important;
+  }
+  #view-holdem.active:has(:is(#holdemRoom,#holdemSoloRoom):not(.hidden)) .board-cards .card {
+    width:clamp(28px,8.2vw,38px)!important;height:clamp(40px,11.5vw,52px)!important;
+    padding:3px!important;font-size:10px!important;border-radius:6px;
+  }
+  #view-holdem.active:has(:is(#holdemRoom,#holdemSoloRoom):not(.hidden)) .board-cards .card .suit {
+    font-size:15px!important;
+  }
+  #view-holdem.active:has(:is(#holdemRoom,#holdemSoloRoom):not(.hidden)) .hole .card.small {
+    width:30px!important;height:40px!important;padding:3px!important;font-size:10px!important;
+  }
+  #view-holdem.active:has(:is(#holdemRoom,#holdemSoloRoom):not(.hidden)) .hole .card.small .suit {
+    font-size:14px!important;
+  }
+  #view-holdem.active:has(:is(#holdemRoom,#holdemSoloRoom):not(.hidden)) .seat {
+    width:clamp(100px,31vw,128px)!important;
+  }
+  #view-holdem.active:has(:is(#holdemRoom,#holdemSoloRoom):not(.hidden)) .seat .player-box {
+    grid-template-columns:26px minmax(0,1fr);gap:4px;padding:3px 5px!important;border-radius:11px;
+  }
+  #view-holdem.active:has(:is(#holdemRoom,#holdemSoloRoom):not(.hidden)) .seat .poker-face {
+    width:26px;height:26px;border-radius:8px;
+  }
+  #view-holdem.active:has(:is(#holdemRoom,#holdemSoloRoom):not(.hidden)) .player-meta {
+    min-width:0;overflow:hidden;
+  }
+  #view-holdem.active:has(:is(#holdemRoom,#holdemSoloRoom):not(.hidden)) :is(.player-name,.player-stack,.player-bet) {
+    display:block;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;line-height:1.3;
+  }
+  #view-holdem.active:has(:is(#holdemRoom,#holdemSoloRoom):not(.hidden)) .dealer-shoe {
+    width:22px;height:29px;right:4%;top:47%;font-size:14px;
+  }
+  #view-holdem.active:has(:is(#holdemRoom,#holdemSoloRoom):not(.hidden)) .pot-label {
+    top:61%!important;max-width:94%;padding:4px 7px;font-size:10px;line-height:1.1;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  }
+  #view-holdem.active:has(:is(#holdemRoom,#holdemSoloRoom):not(.hidden)) .poker-result-overlay {
+    max-height:88%;overflow-y:auto;padding:9px 12px;font-size:11px;
+  }
+
+  #holdemSoloRoom:not(.hidden) .solo-toolbar {
+    margin-bottom:3px;padding:4px 7px;gap:5px;border-radius:10px;min-height:34px;
+  }
+  #holdemSoloRoom:not(.hidden) .solo-toolbar small {display:none;}
+  #holdemSoloRoom:not(.hidden) .solo-toolbar h3 {
+    font-size:11px;line-height:1;gap:3px;flex-wrap:nowrap;margin:0;
+  }
+  #holdemSoloRoom:not(.hidden) .solo-toolbar h3 .poker-face {
+    width:22px;height:22px;border-radius:7px;
+  }
+  #holdemSoloRoom:not(.hidden) .solo-toolbar h3 span {font-size:11px;max-width:55px;overflow:hidden;text-overflow:ellipsis;}
+  #holdemSoloRoom:not(.hidden) .solo-toolbar .solo-cashout {
+    font-size:10px;padding:6px;min-height:28px;flex:0 0 auto;
+  }
+  #holdemSoloRoom:not(.hidden) .solo-poker-table {
+    min-height:252px!important;height:clamp(252px,32dvh,290px)!important;
+  }
+  /* In heads-up, put the bot at the top rather than wasting the left side. */
+  #holdemSoloRoom:not(.hidden) .solo-poker-table .seat.s0 {left:50%!important;top:85%!important;}
+  #holdemSoloRoom:not(.hidden) .solo-poker-table .seat.s1 {left:50%!important;top:21%!important;}
+  #holdemSoloRoom:not(.hidden) .solo-poker-table .board-cards {top:46%!important;}
+
+  #view-holdem.active:has(:is(#holdemRoom,#holdemSoloRoom):not(.hidden)) .holdem-funds {
+    grid-template-columns:repeat(2,minmax(0,1fr));gap:4px;margin:3px 0 4px;padding:4px;border-radius:9px;
+  }
+  #view-holdem.active:has(:is(#holdemRoom,#holdemSoloRoom):not(.hidden)) .holdem-funds>div {
+    min-width:0;grid-column:auto!important;padding:4px 6px;gap:1px;display:flex;flex-direction:column;align-items:flex-start;
+  }
+  #view-holdem.active:has(:is(#holdemRoom,#holdemSoloRoom):not(.hidden)) .holdem-funds>div:nth-of-type(3),
+  #view-holdem.active:has(:is(#holdemRoom,#holdemSoloRoom):not(.hidden)) .holdem-funds>p {
+    display:none!important;
+  }
+  #view-holdem.active:has(:is(#holdemRoom,#holdemSoloRoom):not(.hidden)) .holdem-funds small {
+    font-size:9px;line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;
+  }
+  #view-holdem.active:has(:is(#holdemRoom,#holdemSoloRoom):not(.hidden)) .holdem-funds strong {
+    font-size:11px;line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;
+  }
+  #holdemRoom:not(.hidden) .room-toolbar {
+    margin-bottom:3px;padding:5px 7px;gap:4px;border-radius:10px;
+  }
+  #holdemRoom:not(.hidden) .room-title h3 {font-size:13px;}
+  #holdemRoom:not(.hidden) .room-title small {display:none;}
+  #holdemRoom:not(.hidden) .toolbar-actions {
+    display:flex;gap:4px;width:auto;margin-left:auto;
+  }
+  #holdemRoom:not(.hidden) .toolbar-actions button {width:auto;font-size:10px;padding:5px 7px;min-height:28px;}
+  #holdemRoom:not(.hidden) .holdem-countdown {
+    margin:3px 0;padding:4px 6px;font-size:10px;
+  }
+  #holdemRoom:not(.hidden) .holdem-countdown b {font-size:14px;}
+
+  #view-holdem.active:has(:is(#holdemRoom,#holdemSoloRoom):not(.hidden)) .solo-turn-banner {
+    margin:3px auto 0;padding:5px;border-radius:8px;font-size:11px;
+  }
+  #view-holdem.active:has(:is(#holdemRoom,#holdemSoloRoom):not(.hidden)) .action-bar {
+    padding:4px 1px 2px!important;gap:5px;
+  }
+  #view-holdem.active:has(:is(#holdemRoom,#holdemSoloRoom):not(.hidden)) .action-bar.poker-actions {
+    display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-items:stretch;
+  }
+  #view-holdem.active:has(:is(#holdemRoom,#holdemSoloRoom):not(.hidden)) .poker-actions>button {
+    min-width:0!important;height:35px;padding:6px;font-size:12px;
+  }
+  #view-holdem.active:has(:is(#holdemRoom,#holdemSoloRoom):not(.hidden)) .raise-box {
+    display:grid;grid-column:1/-1;gap:4px;width:100%;min-width:0;
+  }
+  #view-holdem.active:has(:is(#holdemRoom,#holdemSoloRoom):not(.hidden)) .raise-presets {
+    grid-template-columns:repeat(2,minmax(0,1fr));gap:4px;
+  }
+  #view-holdem.active:has(:is(#holdemRoom,#holdemSoloRoom):not(.hidden)) .raise-presets button {
+    padding:3px 5px!important;min-width:0!important;min-height:27px;font-size:11px;
+  }
+  #view-holdem.active:has(:is(#holdemRoom,#holdemSoloRoom):not(.hidden)) .raise-presets small {
+    display:inline;font-size:9px;overflow:hidden;text-overflow:ellipsis;
+  }
+  #view-holdem.active:has(:is(#holdemRoom,#holdemSoloRoom):not(.hidden)) .raise-input-row {
+    grid-template-columns:minmax(0,1fr) 78px;gap:4px;
+  }
+  #view-holdem.active:has(:is(#holdemRoom,#holdemSoloRoom):not(.hidden)) .raise-input-row input {
+    width:100%;height:38px;padding:5px 9px;font-size:16px;min-width:0;
+  }
+  #view-holdem.active:has(:is(#holdemRoom,#holdemSoloRoom):not(.hidden)) .raise-input-row button {
+    min-width:0;height:38px;padding:5px;font-size:12px;
+  }
+
+  #view-holdem.active:has(:is(#holdemRoom,#holdemSoloRoom):not(.hidden)) .side-panel {
+    display:block;min-width:0;
+  }
+  #view-holdem.active:has(:is(#holdemRoom,#holdemSoloRoom):not(.hidden)) :is(.side-panel .solo-help-mini,.side-panel .players-card,.side-panel .privacy-note) {
+    display:none;
+  }
+  #view-holdem.active:has(:is(#holdemRoom,#holdemSoloRoom):not(.hidden)) .poker-hand-panel {
+    padding:5px;border-radius:12px;overflow:hidden;
+  }
+  #view-holdem.active:has(:is(#holdemRoom,#holdemSoloRoom):not(.hidden)) .hand-now {
+    padding:5px 7px;border-radius:8px;display:grid;grid-template-columns:auto minmax(0,1fr);gap:2px 8px;align-items:center;
+  }
+  #view-holdem.active:has(:is(#holdemRoom,#holdemSoloRoom):not(.hidden)) .hand-now small {font-size:8px;}
+  #view-holdem.active:has(:is(#holdemRoom,#holdemSoloRoom):not(.hidden)) .poker-hand-panel .hand-now h3 {
+    font-size:16px!important;margin:0;
+  }
+  #view-holdem.active:has(:is(#holdemRoom,#holdemSoloRoom):not(.hidden)) .hand-now p {
+    grid-column:1/-1;font-size:9px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  }
+  #view-holdem.active:has(:is(#holdemRoom,#holdemSoloRoom):not(.hidden)) :is(.draw-tags,.hand-power,.hand-tip) {
+    display:none;
+  }
+  /* Full rank list remains available by horizontal swipe, not another tall panel. */
+  #view-holdem.active:has(:is(#holdemRoom,#holdemSoloRoom):not(.hidden)) .hand-rank-table {
+    display:flex;gap:4px;margin-top:4px;overflow-x:auto;overscroll-behavior-x:contain;
+    scrollbar-width:thin;-webkit-overflow-scrolling:touch;
+  }
+  #view-holdem.active:has(:is(#holdemRoom,#holdemSoloRoom):not(.hidden)) .hand-rank-table>b {display:none;}
+  #view-holdem.active:has(:is(#holdemRoom,#holdemSoloRoom):not(.hidden)) .hand-rank-table>div {
+    display:flex;flex:0 0 auto;gap:4px;font-size:9px;padding:3px 6px;white-space:nowrap;
+  }
+  #view-holdem.active:has(:is(#holdemRoom,#holdemSoloRoom):not(.hidden)) .hand-rank-table>div span {font-size:9px;}
+}
+@media (max-width:700px) and (max-height:740px) {
+  #holdemSoloRoom:not(.hidden) .solo-poker-table {height:252px!important;}
+  #holdemRoom:not(.hidden) .poker-table {height:280px!important;}
+  #view-holdem.active:has(:is(#holdemRoom,#holdemSoloRoom):not(.hidden)) .hand-rank-table {display:none;}
+}

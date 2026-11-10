@@ -1,0 +1,184 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import http from 'node:http';
+import path from 'node:path';
+import {fileURLToPath} from 'node:url';
+import {chromium,webkit} from 'playwright';
+import {createRequire} from 'node:module';
+const require=createRequire(import.meta.url);
+const {atelierImportMapCsp}=require('../premium-atelier-csp');
+const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../public');
+const mime={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.glb':'model/gltf-binary','.webp':'image/webp'};
+const server=http.createServer((req,res)=>{
+ const u=new URL(req.url,'http://127.0.0.1'),pathname=decodeURIComponent(u.pathname);
+ const file=path.resolve(root,'.'+pathname);
+ if(!file.startsWith(root+path.sep)||!fs.existsSync(file)||!fs.statSync(file).isFile()){res.statusCode=404;res.end('missing');return;}
+ res.setHeader('Content-Type',mime[path.extname(file)]||'application/octet-stream');
+ // Reproduce production's restrictive CSP, previously absent in all browser QA.
+ const baseCsp="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'; img-src 'self' data:; connect-src 'self'";
+ if(pathname==='/premium-sovereign-atelier.html'){
+  res.setHeader('Content-Security-Policy',atelierImportMapCsp(fs.readFileSync(file,'utf8'),baseCsp));
+ }else res.setHeader('Content-Security-Policy',baseCsp);
+ fs.createReadStream(file).pipe(res);
+});
+await new Promise(ok=>server.listen(0,'127.0.0.1',ok));
+const base='http://127.0.0.1:'+server.address().port;
+try{
+ for(const [name,engine] of [['chromium',chromium],['webkit',webkit]]){
+  const browser=await engine.launch(name==='chromium'?{args:['--enable-webgl','--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader']}:{});
+  try{
+   for(const width of [390,1280]){
+    const page=await browser.newPage({viewport:{width,height:860},deviceScaleFactor:1});
+    const errors=[];page.on('pageerror',e=>errors.push(String(e)));
+    const response=await page.goto(base+'/premium-sovereign-atelier.html',{waitUntil:'domcontentloaded'});
+    assert.equal(response?.status(),200);
+    await page.waitForFunction(()=>!!window.JunjaSovereignAtelier?.snapshot()?.ready||!!window.JunjaSovereignAtelier?.snapshot()?.failed,null,{timeout:30000});
+    const state=await page.evaluate(()=>window.JunjaSovereignAtelier.snapshot());
+    assert.equal(state.failed,false,'Pro GLB loader failed '+name+' '+width+': '+state.lastError);
+    assert.equal(state.ready,true);assert.equal(state.owned,false);assert.equal(state.paid,false);
+    assert(state.meshCount>80,'Expected detailed Khronos model mesh hierarchy');
+    assert(state.materialCount>20,'Expected advanced PBR variants');
+    assert(state.paintSurfaceCount>=5,'Actual imported metallic paint must have separately identified panels');
+    assert(state.wheelSurfaceCount>=4,'All actual imported wheel rims must expose metallic finish surfaces');
+    assert(state.headlightSurfaceCount>=1,'Actual headlamp lens material must receive physically controlled LED finish');
+    assert(state.frontGrilleCount>=1,'The genuine GLB front upper grille must be physically finished');
+    assert(state.brakeCaliperCount>=4,'All four source GLB brake-caliper surfaces must receive a finish');
+    assert.equal(state.wheelTargetResolved,true,'Wheel inspection needs actual source rim position instead of guessed coordinates');
+    assert.equal(state.clipCount,0,'Source has actual door pivots, not pre-exported animation clips');
+    assert.equal(state.hingeCount,0,'Exterior preview must not activate unused interior mechanics');
+    assert.equal(state.doorsOpen,false);
+    assert.equal(state.hoodOpen,false);
+    assert(await page.locator('#atelierDoor').isHidden(),'Hide unnecessary door interaction');
+    assert(await page.locator('#atelierHood').isHidden(),'Hide unnecessary hood interaction');
+    assert(state.modelSize?.length>state.modelSize?.height*2,'Z-up car must be leveled on Y-up showroom stage');
+    assert(state.modelSize?.height<2,'Car must not be displayed standing on its nose');
+    await page.waitForFunction(()=>document.getElementById('atelierInfo')?.textContent?.includes('GLB 외관 로딩 완료'),null,{timeout:10000});
+    assert(state.aeroWithinEnvelope,'Author-sculpted geometry must remain below the roof and within source bounds');
+    assert(state.aeroMeshCount>=12,'The actual source-anchored front and rear aero package must include physical meshes');
+    assert(state.aeroFrontDepth>0&&state.aeroFrontDepth<.35,'Front aero shape must change real silhouette without sticking out excessively');
+    assert(state.aeroRearDepth>0&&state.aeroRearDepth<.35,'Rear diffuser must change real silhouette without detached geometry');
+    assert.equal(state.aeroActive,true,'Show authored bodywork by default');
+    assert(await page.locator('#atelierAero').isEnabled(),'Original-model compare requires a working physical kit toggle');
+    if(width===390){
+     await page.locator('#atelierAero').click();
+     const original=await page.evaluate(()=>window.JunjaSovereignAtelier.snapshot());
+     assert.equal(original.aeroActive,false,'Original comparison must hide new 3D exterior pieces');
+     assert.equal(await page.locator('#atelierAero').getAttribute('aria-pressed'),'false');
+     assert(original.viewFitMargin<.95,'Original donor car must remain completely visible on a narrow screen');
+     await page.locator('#atelierAero').click();
+     const customized=await page.evaluate(()=>window.JunjaSovereignAtelier.snapshot());
+     assert.equal(customized.aeroActive,true,'Toggling must restore physical JUNJA aero pieces');
+     assert.equal(await page.locator('#atelierAero').getAttribute('aria-pressed'),'true');
+     assert(customized.viewFitMargin<.95,'Sculpted front and rear must remain visible on a narrow screen');
+     console.log('SOVEREIGN_V10_REAL_AERO_OK '+name+' 390px parts='+customized.aeroMeshCount);
+    }
+
+    assert((await page.locator('#atelierStatus').textContent()).includes('3D 모델 로딩 완료'),'Real GLB loader must complete before camera QA');
+    for(const mode of ['front','frontDetail','side','rear','wheel','hero']){
+     await page.locator('[data-at-view="'+mode+'"]').click();
+     const framed=await page.evaluate(()=>window.JunjaSovereignAtelier.snapshot());
+     assert.equal(framed.view,mode);
+     assert.equal(await page.locator('[data-at-view="'+mode+'"]').getAttribute('aria-pressed'),'true');
+     if(['hero','front','side','rear'].includes(mode)){
+      assert.equal(framed.autoFramed,true,'Entire car must fit in automatic exterior mode: '+mode);
+      assert(framed.viewFitMargin>0&&framed.viewFitMargin<.95,'Full car clipping risk '+name+' '+width+' '+mode+': '+framed.viewFitMargin);
+     }else assert.equal(framed.autoFramed,false,'Closeup should preserve intended detail framing: '+mode);
+    }
+    // The optional tour must orbit the REAL model (not a rotating image),
+    // fit each side on a phone, and stop on user input or reduced motion.
+    assert(await page.locator('#atelierTour').isEnabled(),'Manual 360 GLB tour control is unavailable');
+    if(width===390){
+     await page.locator('#atelierTour').click();
+     assert.equal((await page.evaluate(()=>window.JunjaSovereignAtelier.snapshot())).tourActive,true,'Real car tour failed to start');
+     assert.equal(await page.locator('#atelierTour').getAttribute('aria-pressed'),'true');
+     await page.waitForFunction(()=>{const s=window.JunjaSovereignAtelier.snapshot();return s.tourProgress>0&&s.tourFrameCount>=2;},null,{timeout:12000});
+     const firstTour=await page.evaluate(()=>window.JunjaSovereignAtelier.snapshot());
+     assert(firstTour.autoFramed&&firstTour.viewFitMargin<.95,'Auto-rotating GLB must fit iPhone silhouette');
+     const firstFrames=firstTour.tourFrameCount;
+     await page.waitForTimeout(300);
+     const nextFrames=(await page.evaluate(()=>window.JunjaSovereignAtelier.snapshot())).tourFrameCount;
+     assert(nextFrames-firstFrames<=8,'Tour must throttle GPU renders to roughly 20fps instead of 60fps');
+     await page.locator('[data-at-view="front"]').click();
+     assert.equal((await page.evaluate(()=>window.JunjaSovereignAtelier.snapshot())).tourActive,false,'Direct view must stop orbit');
+     assert.equal(await page.locator('#atelierTour').getAttribute('aria-pressed'),'false');
+     await page.locator('#atelierTour').click();
+     assert.equal((await page.evaluate(()=>window.JunjaSovereignAtelier.snapshot())).tourActive,true);
+     await page.locator('#atelierCanvas').click({position:{x:32,y:40}});
+     assert.equal((await page.evaluate(()=>window.JunjaSovereignAtelier.snapshot())).tourActive,false,'Touching the car must stop tour');
+     await page.emulateMedia({reducedMotion:'reduce'});
+     await page.waitForFunction(()=>document.getElementById('atelierTour').disabled);
+     await page.emulateMedia({reducedMotion:'no-preference'});
+     await page.waitForFunction(()=>!document.getElementById('atelierTour').disabled);
+     console.log('SOVEREIGN_360_GLTF_TOUR_OK '+name+' 390px');
+    }
+    const frontBefore=await page.evaluate(()=>window.JunjaSovereignAtelier.snapshot().renderCount);
+    await page.locator('[data-at-view="frontDetail"]').click();
+    assert((await page.evaluate(()=>window.JunjaSovereignAtelier.snapshot())).renderCount>frontBefore,'Front detail action must immediately render a fresh 3D frame');
+    assert((await page.evaluate(()=>window.JunjaSovereignAtelier.snapshot())).cameraDistance<3.0,'Front fascia needs a true exterior close-up');
+    if(width===390&&name==='webkit'){
+     await page.waitForTimeout(850);
+     try{await page.screenshot({path:'/tmp/junja-atelier-front-'+name+'.png',animations:'disabled',timeout:8000});}
+     catch(err){console.log('FRONT_SCREENSHOT_SKIPPED '+name+' '+String(err.message||err).slice(0,100));}
+    }
+    await page.locator('#atelierPaint').selectOption('gold');
+    assert.equal((await page.evaluate(()=>window.JunjaSovereignAtelier.snapshot())).paint,'gold');
+    await page.locator('#atelierPaint').selectOption('burgundy');
+    assert.equal((await page.evaluate(()=>window.JunjaSovereignAtelier.snapshot())).paint,'burgundy');
+    assert(await page.locator('#atelierWheelFinish').isEnabled(),'Four real wheel rims must be individually finishable');
+    await page.locator('#atelierWheelFinish').selectOption('obsidian');
+    assert.equal((await page.evaluate(()=>window.JunjaSovereignAtelier.snapshot())).wheelFinish,'obsidian');
+    await page.locator('#atelierWheelFinish').selectOption('champagne');
+    assert.equal((await page.evaluate(()=>window.JunjaSovereignAtelier.snapshot())).wheelFinish,'champagne');
+    const previousRenderedFrames=await page.evaluate(()=>window.JunjaSovereignAtelier.snapshot().renderCount);
+    await page.locator('[data-at-view="wheel"]').click();
+    assert((await page.evaluate(()=>window.JunjaSovereignAtelier.snapshot())).cameraDistance<3.4,'Wheel camera must be a genuine close-up, not another hero photo');
+    if(width===390&&name==='webkit'){
+     await page.evaluate(()=>document.getElementById('atelierStage').scrollIntoView({block:'center',behavior:'instant'}));
+     await page.waitForFunction(before=>window.JunjaSovereignAtelier.snapshot().renderCount>before,previousRenderedFrames,{timeout:15000});
+     await page.waitForTimeout(850);
+     try{
+      await page.screenshot({path:'/tmp/junja-atelier-wheel-'+name+'.png',animations:'disabled',timeout:7000});
+     }catch(err){console.log('WHEEL_SCREENSHOT_SKIPPED '+name+' '+String(err.message||err).slice(0,100));}
+    }
+    await page.locator('#atelierPaint').selectOption('silver');
+    await page.locator('#atelierWheelFinish').selectOption('graphite');
+    // Software WebGL can queue PBR redraws after rapid paint/rim selection,
+    // making the next pointer action appear stalled despite a healthy UI.
+    // Wait for the bounded repaint window to settle; keep the real click test.
+    await page.waitForTimeout(1100);
+    await page.locator('#atelierLight').click({timeout:60000});
+    assert.equal((await page.evaluate(()=>window.JunjaSovereignAtelier.snapshot())).light,'night');
+    await page.locator('#atelierLight').click();
+    assert.equal((await page.evaluate(()=>window.JunjaSovereignAtelier.snapshot())).light,'studio');
+    await page.locator('#atelierReset').click();
+    assert.equal((await page.evaluate(()=>window.JunjaSovereignAtelier.snapshot())).view,'hero');
+    const layout=await page.evaluate(()=>({width:innerWidth,scroll:document.documentElement.scrollWidth}));
+    assert(layout.scroll<=layout.width+2,'Horizontal overflow '+name+' '+width+': '+JSON.stringify(layout));
+    await page.waitForTimeout(width===390&&name==='webkit'?850:250);
+    if(width===390&&name==='webkit'){
+     // Screenshots are supplementary QA evidence. GPU repaints in software
+     // Chromium can prevent Playwright's element-stability detector from settling.
+     try{
+      await page.evaluate(()=>document.getElementById('atelierStage').scrollIntoView({block:'center',behavior:'instant'}));
+      await page.screenshot({path:'/tmp/junja-atelier-'+name+'.png',animations:'disabled',timeout:7000});
+     }catch(err){console.log('SCREENSHOT_SKIPPED '+name+' '+String(err.message||err).slice(0,100));}
+    }
+    assert.deepEqual(errors,[],'Page script errors '+name+' '+width);
+    console.log('SOVEREIGN_ATELIER_BROWSER_OK '+name+' '+width+'px, mesh='+state.meshCount+' materials='+state.materialCount+' clips='+state.clipCount+' physical hinges='+state.hingeCount);
+    await page.close();
+   }
+   // Regression for the user's real failure: an imported module never loads.
+   // The classic watchdog must still show retry without relying on module JS.
+   if(name==='chromium'){
+    const broken=await browser.newPage({viewport:{width:390,height:840}});
+    await broken.route('**/vendor/three/build/three.module.js',route=>route.abort('failed'));
+    await broken.goto(base+'/premium-sovereign-atelier.html',{waitUntil:'domcontentloaded'});
+    await broken.locator('#atelierFallback:not([hidden])').waitFor({timeout:26000});
+    assert(await broken.locator('#atelierRetry').isVisible(),'Infinite spinner must recover to a visible retry button');
+    assert((await broken.locator('#atelierError').innerText()).length>10,'Recovery must explain the missing 3D engine');
+    console.log('SOVEREIGN_CSP_RECOVERY_OK: missing runtime yields a usable iPhone retry');
+    await broken.close();
+   }
+  }finally{await browser.close();}
+ }
+}finally{await new Promise(ok=>server.close(ok));}

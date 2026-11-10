@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#101017">
+<meta name="robots" content="noindex,nofollow">
+<title>SOVEREIGN GT · JUNJA PRIVATE MOTOR LAB</title>
+<link rel="stylesheet" href="/premium-sovereign.css?v=20261105-visual-v3">
+<script src="/premium-sovereign-mesh.js?v=20261105-cleanroof-v4" defer></script>
+<script src="/premium-sovereign-viewer.js?v=20261105-exterior-v4" defer></script>
+<script src="/premium-motor-studio.js?v=20261105-design-v1" defer></script>
+</head>
+<body>
+<div class="lab-notice" role="note">JUNJA PRIVATE COLLECTION · 3D 기술 미리보기 · 소유권·구매·게임머니 변경 없음</div>
+<header class="lab-nav">
+ <a class="lab-brand" href="/premium-preview.html" aria-label="프리미엄관으로 돌아가기"><span>J</span> JUNJA PRIVATE</a>
+ <nav aria-label="프리미엄 전시"><a href="/premium-preview.html">컬렉션 전체</a><a href="/">준자랜드 홈</a></nav>
+</header>
+<main>
+<section class="lab-intro" aria-labelledby="sovereignTitle">
+ <div><p class="overline">COLLECTION ENGINEERING · 01 / 12</p>
+ <h1 id="sovereignTitle">SOVEREIGN <i>GT.</i></h1>
+ <p class="intro-copy">차량의 전면·측면·후면과 휠을 관찰하는 기존 입체 디자인 시안입니다. 지붕을 뚫고 나오던 비현실적인 구조물은 제거했으며, 외관 완성도는 별도 고품질 GLB 전시실에서 우선 개선합니다.</p>
+ <div class="intro-chips"><span><i></i> REAL 3D GEOMETRY</span><span>INTERACTIVE DESIGN ALPHA</span><span>NOT FOR SALE</span></div></div>
+ <div class="intro-number" aria-hidden="true">01 <small>PRIVATE MOTOR DIVISION</small></div>
+ <a class="new-model-entry" href="/premium-sovereign-atelier.html">새로운 고품질 GLB 차량 모델 시험실 보기 <span>3D ASSET STUDY →</span></a>
+</section>
+<section class="studio" aria-label="소버린 GT 실시간 3D 전시실">
+ <div class="studio-exterior-gateway" role="note"><div><strong>현재 화면은 구형 3D 디자인 시안</strong><span>차량 외관 퀄리티를 우선 확인하려면 실제 고품질 GLB 전시실을 이용해 주세요.</span></div><a href="/premium-sovereign-atelier.html">고품질 3D 외관 바로 보기</a></div>
+ <div class="studio-top"><div><span class="overline">ROYAL MOTOR LOUNGE</span><h2>THE FIRST OBJECT.</h2></div><div class="gallery-id">ORIGINAL CONCEPT<br><strong>SPEC. J–001</strong></div></div>
+ <div id="sovereignScreen" class="studio-stage">
+  <div class="scene-spotlights" aria-hidden="true"></div>
+  <div class="scene-grain" aria-hidden="true"></div>
+  <div class="scene-label scene-label-left" aria-hidden="true">SCULPTED FORM<br><strong>SOVEREIGN</strong></div>
+  <div class="scene-label scene-label-right" aria-hidden="true">ART DIRECTION<br><strong>BLACK × GOLD</strong></div>
+  <canvas id="sovereignCanvas" width="1160" height="580" tabindex="0"
+   aria-label="소버린 GT 실제 3D 자동차. 손가락이나 마우스 드래그로 회전하고, 방향키로 시점을 변경할 수 있습니다."></canvas>
+  <div id="sovereignFallback" class="fallback" hidden><img src="/art/royal/cinematic/car-showroom.webp" alt="실시간 입체 렌더링 대신 표시되는 정적 자동차 전시 이미지"><span>정적 이미지 대체 화면 · 3D 조작 불가</span></div>
+  <div class="stage-watermark" aria-hidden="true">DESIGN LAB · NON-OWNED PREVIEW</div>
+ </div>
+ <div class="studio-quickviews" role="group" aria-label="차량 주요 감상 시점">
+  <button type="button" data-sov-preset="threeQuarter" aria-pressed="true">외관 3/4</button>
+  <button type="button" data-sov-preset="front" aria-pressed="false">정면</button>
+  <button type="button" data-sov-preset="side" aria-pressed="false">측면</button>
+  <button type="button" data-sov-preset="rear" aria-pressed="false">후면</button>
+  <button type="button" data-sov-preset="wheel" aria-pressed="false">휠 디테일</button>
+ </div>
+ <div class="stage-identity"><div><span class="identity-caption">OWNER</span><strong>PREVIEW / 미소유</strong></div><div><span class="identity-caption">PRODUCTION STATUS</span><strong>외관 검증용 구형 시안 · 고품질 GLB 전시실 별도 운영</strong></div><div><span class="identity-caption">SERIAL NUMBER</span><strong>미발급 · 시제품</strong></div></div>
+ <div id="sovereignControls" class="studio-controls" aria-label="소버린 GT 3D 조작">
+  <div class="controls-head"><h3>Explore the exterior</h3><p>회전: 드래그·방향키 · 확대: 핀치·휠·버튼 · 시점: 전면·측면·후면·휠 디테일</p></div>
+  <div class="controls-grid">
+   <button id="sovDoor" type="button" aria-pressed="false">도어 열기</button>
+   <button id="sovLight" type="button" aria-pressed="false">전조등 켜기</button>
+   <label>차체 색상
+    <select id="sovColor" aria-label="차체 페인트 선택">
+     <option value="platinum">PLATINUM SILVER</option>
+     <option value="onyx">ONYX NOIR</option>
+     <option value="champagne">CHAMPAGNE GOLD</option>
+    </select>
+   </label>
+   <button id="sovView" type="button">시점 · 사선</button>
+   <button id="sovZoomIn" type="button" aria-label="카메라 확대">＋ 확대</button>
+   <button id="sovZoomOut" type="button" aria-label="카메라 축소">− 축소</button>
+   <button id="sovReset" type="button" class="ghost">초기화</button>
+  </div>
+  <p class="control-status" id="sovereignStatus" role="status" aria-live="polite">3D 엔진을 준비 중입니다.</p>
+ </div>
+</section>
+<section class="motor-design" id="motorDesignPanel" aria-labelledby="motorDesignTitle">
+ <div class="motor-design-head"><div><p class="overline">MEMBER DESIGN STUDIO · NOT OWNED</p><h2 id="motorDesignTitle">내 디자인 시안 보관함</h2><p>차량 색상·카메라·도어·조명을 저장해 나중에 이어서 감상할 수 있어. 소유권이나 구매 기록이 아니라 <strong>무료 디자인 초안</strong>이야.</p></div><span class="motor-design-state">DRAFT · NO PURCHASE</span></div>
+ <div class="motor-design-body" id="motorDesignContent">
+  <p id="motorDesignStatus" role="status" aria-live="polite">회원의 저장 상태를 확인하고 있습니다.</p>
+  <div id="motorDesignMember" hidden>
+   <div class="motor-design-buttons">
+    <button type="button" id="motorDesignSave">현재 디자인 저장</button>
+    <button type="button" id="motorDesignPublish" class="motor-share-btn" aria-pressed="false">공개 링크 만들기</button>
+    <button type="button" id="motorDesignRotate" class="motor-ghost" hidden>공개 링크 재발급</button>
+   </div>
+   <div id="motorDesignShareBox" class="motor-share-link" hidden>
+    <label for="motorDesignShareUrl">내 공개 시안 주소 · 링크를 아는 사람이 방문할 수 있어</label>
+    <div><input id="motorDesignShareUrl" type="text" readonly aria-label="디자인 공유 링크"><button type="button" id="motorDesignCopy">링크 복사</button></div>
+   </div>
+   <p class="motor-design-warning">공개 기능은 선택 사항이며 기본은 비공개야. 공개 시에는 닉네임과 차량 디자인만 표시되고 계정 정보·게임 자산·소유권은 공개되지 않아.</p>
+  </div>
+  <div id="motorDesignVisitor" hidden><p id="motorDesignVisitorNote">공유 디자인 시안을 조회하고 있어.</p><a href="/premium-sovereign-lab.html">내 디자인 체험하기</a></div>
+  <div id="motorDesignLogin" hidden><p>로그인하면 차량 디자인을 무료로 보관할 수 있어. 저장하지 않아도 3D 체험은 계속 가능해.</p><a href="/">준자랜드 로그인</a></div>
+ </div>
+</section>
+<section class="lab-contents" aria-labelledby="labRoadmapTitle">
+ <div><p class="overline">WHAT IS REAL · WHAT COMES NEXT</p><h2 id="labRoadmapTitle">소장 가치로 가는 제작 과정</h2><p>지금 체험할 수 있는 기능과 아직 만들어야 할 요소를 구분합니다. 실제 판매 상품이라고 오해하지 않도록 구매·소유·희소성은 표시하지 않습니다.</p></div>
+ <div class="roadmap-grid">
+  <article><span class="roadmap-state">THIS BUILD</span><h3>실시간 입체 조작</h3><p>곡면 차체·카본 루프·스모크 글라스·휠하우스·터빈 휠을 갖춘 오리지널 GT 시제품으로 개선 중입니다. 금속과 유리에는 스튜디오 조명 반사와 GGX 기반 재질 셰이딩을 적용했고, 기존 도어·전조등·시점·핀치 확대도 유지합니다. 최종 고밀도 PBR/GLB 상용 차량 에셋은 아직 별도 제작해야 합니다.</p></article>
+  <article><span class="roadmap-state next">ASSET QUALITY GATE</span><h3>고급 3D 실물감</h3><p>상용 사용권이 확인된 오리지널 고밀도 PBR 모델, 유리·가죽·카본·금속 재질, 외장과 실내 디테일, 반사와 라이팅.</p></article>
+  <article><span class="roadmap-state next">ACCOUNT INTEGRATION</span><h3>진짜 내 소장품</h3><p>서버 승인 소유권, 선택한 전시 슬롯의 저장·공개, 회원 전시관 방문, 실제 인증 기록과 상품 철회 시 적용 해제.</p></article>
+ </div>
+</section>
+<section class="lab-policy" aria-label="상품 판매 제한 사항">
+ <strong>DESIGN ALPHA · NOT OWNED · NOT FOR SALE</strong>
+ <p>이 화면은 개발용 3D 체험으로 실제 명품 차량·자동차 제조사의 제품이나 상표와 관계없습니다. 작품은 완성된 상품이 아니며 구입·결제·송금·대출·게임머니·베팅에 연결되지 않습니다. 현금결제는 외부 법률·PG 승인 및 완성도 검증 전까지 비활성 상태입니다.</p>
+ <a href="/premium-preview.html">프리미엄 전체 컬렉션 보기</a>
+</section>
+</main>
+<footer>JUNJA PRIVATE COLLECTION · ORIGINAL CONCEPT SHOWROOM <a href="/">준자랜드로 돌아가기</a></footer>
+</body>
+</html>

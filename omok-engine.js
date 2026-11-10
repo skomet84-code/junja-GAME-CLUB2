@@ -1,5 +1,5 @@
 'use strict';
-// Server-authoritative 15x15 omok. Renju: black 3-3, 4-4 and overline are forbidden.
+// JUNJA LAND symmetric house rules: black and white both forbid 3-3, 4-4 and overline; exact five wins.
 const SIZE=15,DIRS=[[1,0],[0,1],[1,1],[1,-1]];
 const inside=(x,y)=>Number.isInteger(x)&&Number.isInteger(y)&&x>=0&&x<SIZE&&y>=0&&y<SIZE;
 const fresh=()=>Array.from({length:SIZE},()=>Array(SIZE).fill(0));
@@ -15,7 +15,7 @@ const overline=(b,x,y)=>DIRS.some(([dx,dy])=>segment(b,x,y,dx,dy,1).length>5);
 function winningLine(b,x,y,color){
   for(const [dx,dy] of DIRS){
     const line=segment(b,x,y,dx,dy,color);
-    if(color===1?line.length===5:line.length>=5)return line;
+    if(line.length===5)return line;
   }return null;
 }
 function winningEndpoint(b,x,y){
@@ -58,7 +58,7 @@ function openThreeGroups(b,x,y){
   }
   return groups.size;
 }
-// JUNJA LAND house rule: even semi-open and split-three crossings are forbidden for black.
+// JUNJA LAND house rule: even semi-open and split-three crossings are forbidden for both colors.
 // The classic open-three detector above is retained for full Renju validation.
 function threeThreatDirections(b,x,y){
   let count=0;
@@ -80,18 +80,42 @@ function threeThreatDirections(b,x,y){
   }
   return count;
 }
+// Preserve strict house 3-3 for attacks, but permit a defensive block
+// of an opponent's adjacent line of three or more unless true Renju 3-3.
+function blocksWhiteRun(b,x,y){
+  for(const [dx,dy] of DIRS)for(const sign of [-1,1]){
+    let n=0;
+    while(cell(b,x+(n+1)*dx*sign,y+(n+1)*dy*sign)===2)n++;
+    if(n>=3)return true;
+  }
+  // Split three/four defence: a legal block can fill the missing stone in an opponent threat.
+  for(const [dx,dy] of DIRS)for(let offset=-4;offset<=0;offset++){
+    const cells=Array.from({length:5},(_,i)=>[x+(offset+i)*dx,y+(offset+i)*dy]);
+    if(!cells.some(([xx,yy])=>xx===x&&yy===y))continue;
+    let enemies=0,blocked=false;
+    for(const [xx,yy] of cells){
+      const c=xx===x&&yy===y?0:cell(b,xx,yy);
+      if(c===2)enemies++;else if(c!==0)blocked=true;
+    }
+    if(!blocked&&enemies>=3)return true;
+  }
+  return false;
+}
 function place(b,x,y,color){
   if(!inside(x,y)||![1,2].includes(color))return {ok:false,error:'착수 위치가 올바르지 않습니다.'};
   if(b[y][x]!==0)return {ok:false,error:'이미 돌이 놓인 자리입니다.'};
   b[y][x]=color;
-  // RIF Renju rule 9.2: a simultaneous exact-five claim takes precedence.
+  // Exact five wins immediately, regardless of whether the player is human or AI.
   const line=winningLine(b,x,y,color);
   if(line)return {ok:true,win:true,line};
-  if(color===1&&overline(b,x,y)){b[y][x]=0;return {ok:false,error:'흑돌 장목(6목 이상)은 금수입니다.'};}
-  if(color===1){
-    if(fourGroups(b,x,y)>=2){b[y][x]=0;return {ok:false,error:'흑돌 4-4 금수입니다.'};}
-    if(openThreeGroups(b,x,y)>=2||threeThreatDirections(b,x,y)>=2){b[y][x]=0;return {ok:false,error:'흑돌 3-3 금수입니다.'};}
+  // Normalize color before applying the SAME forbidden-move checks to both sides.
+  const threeBoard=color===1?b:b.map(row=>row.map(v=>v===0?0:3-v));
+  const name=color===1?'흑돌':'백돌';
+  if(overline(threeBoard,x,y)){b[y][x]=0;return {ok:false,error:name+' 장목(6목 이상)은 금수입니다.'};}
+  if(fourGroups(threeBoard,x,y)>=2){b[y][x]=0;return {ok:false,error:name+' 4-4 금수입니다.'};}
+  if(openThreeGroups(threeBoard,x,y)>=2||(threeThreatDirections(threeBoard,x,y)>=2&&!blocksWhiteRun(threeBoard,x,y))){
+    b[y][x]=0;return {ok:false,error:(color===1?'흑돌':'백돌')+' 3-3 금수입니다.'};
   }
   return {ok:true,win:false,draw:b.every(row=>row.every(v=>v!==0))};
 }
-module.exports={SIZE,DIRS,inside,fresh,segment,winningLine,place,overline,fourGroups,openThreeGroups,threeThreatDirections};
+module.exports={SIZE,DIRS,inside,fresh,segment,winningLine,place,overline,fourGroups,openThreeGroups,threeThreatDirections,blocksWhiteRun};

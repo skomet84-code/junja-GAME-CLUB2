@@ -2,10 +2,15 @@
 (()=>{
 'use strict';
 const root=document.getElementById('omokRoot'),notice=document.getElementById('omokMessage');
-const state={room:null,home:null,busy:false,loading:false,offset:0,inviteChecked:false};
+const state={room:null,home:null,busy:false,loading:false,offset:0,inviteChecked:false,actionEpoch:0};
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const label=c=>c===1?'흑':c===2?'백':'없음';
-function message(t=''){notice.textContent=t;}
+const money=v=>BigInt(v||0).toLocaleString('ko-KR')+' G';
+function message(t=''){
+ notice.textContent=t;
+ const box=root.querySelector('.omk-status');
+ if(box&&t){box.textContent='⚠️ '+t;box.classList.add('omk-status-error');}
+}
 async function api(path,body){
  const ctrl=new AbortController(),timer=setTimeout(()=>ctrl.abort(),12000);
  try{
@@ -22,12 +27,15 @@ function accept(data){
  if(state.room)state.offset=state.room.serverNow-Date.now();
  render();
 }
-async function homeRefresh(){try{accept(await api(''));}catch(e){message(e.message);}}
+async function homeRefresh(){const epoch=state.actionEpoch;try{const d=await api('');if(epoch===state.actionEpoch)accept(d);}catch(e){if(epoch===state.actionEpoch)message(e.message);}}
 async function refresh(force=false){
  if(state.loading||state.busy||document.hidden)return;
  state.loading=true;
+ const epoch=state.actionEpoch;
  try{
   const old=state.room,ret=await api(old?'/'+old.id:'');
+  if(epoch!==state.actionEpoch)return;
+  if(old&&ret.room&&ret.room.id===old.id&&ret.room.version<old.version)return;
   if(!force&&old&&ret.room&&ret.room.version===old.version)return;
   accept(ret);
   if(!state.room&&!state.inviteChecked){
@@ -39,6 +47,7 @@ async function refresh(force=false){
    }
   }
  }catch(e){
+  if(epoch!==state.actionEpoch)return;
   if(e.status===404){state.room=null;await homeRefresh();}
   else if(e.status===401)root.innerHTML='<section class="omk-panel omk-loading">로그인이 필요합니다. <a class="omk-btn" href="/">준자랜드 로그인</a></section>';
   else message(e.message||'서버 연결이 원활하지 않습니다.');
@@ -46,12 +55,21 @@ async function refresh(force=false){
 }
 async function act(path,body={}){
  if(state.busy)return;
- state.busy=true;message('');
+ state.busy=true;state.actionEpoch++;message('');
  root.querySelectorAll('button[data-action]').forEach(b=>b.disabled=true);
  try{
-  const data=await api(path,body);accept(data);
-  if(!data.room)await homeRefresh();
- }catch(e){render();message(e.message||'요청에 실패했습니다.');}
+  const data=await api(path,body);
+  if(!data.room){
+   // Leaving a room must clear the busy flag BEFORE rendering the new home UI.
+   // Otherwise an immediate click on the AI challenge is silently discarded
+   // while the previous leave request is finishing (seen on WebKit mobile).
+   state.room=null;state.busy=false;
+   await homeRefresh();
+  }else accept(data);
+ }catch(e){
+   try{if(state.room){const latest=await api('/'+state.room.id);if(latest.room)accept(latest);}}catch{}
+   render();message(e.message||'요청에 실패했습니다.');
+  }
  finally{state.busy=false;}
 }
 function btn(action,text,variant='',extra=''){
@@ -61,13 +79,16 @@ function home(){
  const d=state.home||{rooms:[],stats:{},aiStats:{},leaders:[]},s=d.stats||{},ai=d.aiStats||{};
  root.innerHTML=`<div class="omk-home-grid">
   <section class="omk-panel omk-create"><span class="omk-badge">ROYAL MATCHMAKING</span><h2>친구를 초대하고<br>첫 수를 놓아보세요.</h2>
-  <p>1:1 공식 대국! 게임머니 소모 없이 승리와 패배가 전적에 남아요. 흑은 3-3·4-4·장목 금수가 적용됩니다.</p>
+  <p>1:1 공식 대국! 친구 대전은 무료이며 전적이 기록됩니다. 흑·백 모두 같은 금수 규칙을 적용합니다.</p>
   <form id="omkCreateForm" class="omk-form"><input name="name" maxlength="28" placeholder="대국방 이름 (선택)" aria-label="대국방 이름"><button type="submit" class="omk-btn">＋ 대국방 만들기</button></form>
   <div class="omk-rules"><strong>진행 순서</strong> · 방 생성 → 친구 입장 → 2명 모두 준비 → 방장 시작. 재대결할 때는 선후공이 바뀝니다.</div></section>
   <section class="omk-panel omk-ai-challenge"><span class="omk-badge">SOLO · EXTREME AI</span>
    <h2>♛ J-BOT 최강 AI 도전</h2><p>혼자서 최고 난도의 오목을 즐겨보세요.
    AI는 연속 공격·필승 위협·금수·상대 수를 분석하며 여러 수 앞까지 탐색합니다.
-   오목 전용 대전이라 게임머니는 소모되지 않고 대인전 랭킹에도 영향을 주지 않아요.</p>
+   AI와 동일한 규칙으로 겨루고, 승패에 따라 판돈이 정산됩니다. 대인전 랭킹에는 영향을 주지 않아요.</p>
+   <label class="omk-stake-label" for="omkAiStake">💎 AI 대전 판돈</label>
+   <select id="omkAiStake" class="omk-stake-select"><option value="0">친선전 · 무료</option><option value="1000000" selected>100만 G</option><option value="10000000">1,000만 G</option><option value="100000000">1억 G</option><option value="1000000000">10억 G</option><option value="10000000000">100억 G</option><option value="1000000000000">1조 G</option></select>
+   <p class="omk-stake-explain">승리 +판돈 · 패배 −판돈 · 무승부 환급 · 재대결 시 동일 판돈 재예치</p>
    <div class="omk-ai-stats"><span>AI 대전 <b>${Number(ai.games||0)}국</b></span><span>승리 <b>${Number(ai.wins||0)}</b></span><span>패배 <b>${Number(ai.losses||0)}</b></span></div>
    ${btn('create-ai','🔥 극한 AI와 즉시 대결')}</section>
   <section class="omk-panel"><h2>⚔️ 참가 가능한 방</h2><div class="omk-room-list">
@@ -87,7 +108,7 @@ function waiting(r){
  ${btn('ready',mine?.ready?'준비 취소':'✓ 대국 준비하기')}
  ${r.hostId===r.selfId?btn('start','⚔️ 대국 시작','',canStart?'':'disabled'):''}
  ${btn('leave','← 대국방 나가기','omk-ghost')}</div>
- <div class="omk-rules"><strong>정통 오목 규칙</strong> · 흑이 먼저 두고 정확히 5목을 완성해야 승리합니다. 흑의 3-3·4-4·장목은 금수입니다. 백은 5목 이상이면 승리합니다.</div></section>`;
+ <div class="omk-rules"><strong>준자랜드 오목 규칙</strong> · 흑·백 모두 정확히 5목 승리. 양쪽 동일하게 3-3·4-4·6목 이상이 금수입니다.</div></section>`;
 }
 function playerRow(r,color){
  const p=r.players.find(p=>p.color===color),turn=r.phase==='playing'&&r.turn===color;
@@ -101,27 +122,28 @@ function board(r){
   const star=[3,7,11].includes(x)&&[3,7,11].includes(y);
   return `<button role="gridcell" type="button" class="omk-point ${star?'star':''} ${x===lx&&y===ly?'last':''} ${wins.has(y*15+x)?'winning':''}"
    data-action="move" data-x="${x}" data-y="${y}" aria-label="${x+1}열 ${y+1}행 ${value?label(value)+'돌':'빈 자리'}"
-   ${!r.myTurn||r.phase!=='playing'||value||(r.moves===0&&(x!==7||y!==7))?'disabled':''}>${value?`<span class="omk-stone ${value===1?'black':'white'}"></span>`:''}</button>`;
+   ${r.phase!=='playing'||value||(r.moves===0&&(x!==7||y!==7))?'disabled':''}>${value?`<span class="omk-stone ${value===1?'black':'white'}"></span>`:''}</button>`;
  }).join('')).join('');
  return `<div class="omk-board-wrap"><div class="omk-board" role="grid" aria-label="15줄 오목판">${cells}</div>
-  <div class="omk-board-caption"><span>15 × 15 · 렌주룰</span><span>${r.moves}수 진행 · ${r.round}국</span></div></div>`;
+  <div class="omk-board-caption"><span>15 × 15 · 흑·백 3-3 금지</span><span>${r.moves}수 진행 · ${r.round}국</span></div></div>`;
 }
 function status(r){
  if(r.phase!=='complete')return r.myTurn?(r.moves===0?'🎯 첫 수는 중앙(8열 8행)에 놓아주세요.':'🎯 내 차례! 교차점에 돌을 놓아주세요.'):r.aiMode?'🤖 극한 AI가 수를 계산하고 있습니다…':'⏳ 상대방이 착수 중입니다.';
- if(r.winner==null)return '🤝 무승부 · 다음 대국에서 승부를 가려보세요.';
+ if(r.winner==null)return '🤝 무승부 · '+(r.settlement?'판돈 전액 환급 · ':'')+'다음 대국에서 승부를 가려보세요.';
  const p=r.players.find(x=>x.id===r.winner);
- return (r.winner===r.selfId?'🏆 승리!':'상대 승리 ·')+' '+esc(p?.nickname||'')+' · '+esc(r.reason);
+ return (r.winner===r.selfId?'🏆 승리!':'상대 승리 ·')+' '+esc(p?.nickname||'')+' · '+esc(r.reason)+(r.settlement?' · '+(BigInt(r.settlement.net)>0n?'+':'')+money(r.settlement.net):'');
 }
 function match(r){
  const end=r.phase==='complete',mine=r.players.find(p=>p.id===r.selfId);
- root.innerHTML=`<div class="omk-room-top"><div><b>⚔️ ${esc(r.name)}</b><small>ROUND ${r.round} · ${r.moves}수 진행 · ${r.id}</small></div>${r.aiMode?'<span class="omk-ai-pill">🤖 EXTREME AI</span>':btn('invite','초대 링크','omk-ghost')}</div>
+ const stakeLabel=r.aiMode?' · '+(BigInt(r.stake||'0')>0n?'판돈 '+money(r.stake):'무료 친선전'):'';
+ root.innerHTML=`<div class="omk-room-top"><div><b>⚔️ ${esc(r.name)}</b><small>ROUND ${r.round} · ${r.moves}수 진행 · ${r.id}${stakeLabel}</small></div>${r.aiMode?'<span class="omk-ai-pill">🤖 EXTREME AI</span>':btn('invite','초대 링크','omk-ghost')}</div>
  <div class="omk-room-layout">${board(r)}
  <div class="omk-side"><div class="omk-panel">${playerRow(r,1)}<div style="height:10px"></div>${playerRow(r,2)}</div>
  <div class="omk-clock" id="omkClockBox"><small>${end?'MATCH COMPLETE':r.aiThinking?'AI IS THINKING':'TURN CLOCK'}</small><b id="omkClock">${end?'종료':r.aiThinking?'🤖 분석 중':'90초'}</b></div>
  <div class="omk-status" role="status">${status(r)}</div><div class="omk-controls">
  ${end?(r.aiMode?btn('rematch','↻ AI와 다시 대결'):r.players.length===2?btn('rematch',mine?.rematch?'상대의 재대결 신청 기다리는 중':'↻ 재대결 신청','',mine?.rematch?'disabled':''):'<small>상대방이 나갔습니다.</small>'):btn('resign','기권하기','omk-danger')}
  ${btn('leave',end?'대국방 나가기':'나가기 (기권)','omk-ghost')}</div>
- <div class="omk-guide"><strong>렌주 금수 규칙</strong><br>⚫ 흑: 정확히 5목 승리, 3-3·4-4·6목 이상 금지<br>⚪ 백: 5목 이상 승리 · 금수 없음<br>첫 수는 중앙 화점 · 사람 턴당 90초 · 서버에서 착수를 검증합니다.<br>${r.aiMode?'극한 AI · 흑백 교대 · 대인전 전적과 별도 관리':'새로고침해도 같은 대국에 복귀합니다.'}</div></div></div>`;
+ <div class="omk-guide"><strong>준자랜드 공정 금수 규칙</strong><br>⚫ 흑 · ⚪ 백 모두 동일: 정확히 5목 승리, 3-3·4-4·6목 이상 금지<br>첫 수는 중앙 화점 · 사람 턴당 90초 · 서버에서 착수를 검증합니다.<br>${r.aiMode?'극한 AI · 흑백 교대 · 대인전 전적과 별도 관리':'새로고침해도 같은 대국에 복귀합니다.'}</div></div></div>`;
  tick();
 }
 function render(){if(state.room){state.room.phase==='waiting'?waiting(state.room):match(state.room);}else home();}
@@ -138,10 +160,15 @@ root.addEventListener('submit',e=>{
 });
 root.addEventListener('click',e=>{
  const b=e.target.closest('button[data-action]');
- if(!b||b.disabled||state.busy)return;
+ if(!b||b.disabled)return;
+ if(state.busy){if(b.dataset.action==='move')message('착수 처리 중입니다. 잠깐만 확인해 주세요.');return;}
  const action=b.dataset.action,r=state.room;
  if(action==='refresh'){refresh(true);return;}
- if(action==='create-ai'){act('/create-ai');return;}
+ if(action==='create-ai'){
+  const stake=root.querySelector('#omkAiStake')?.value||'0';
+  if(BigInt(stake)>0n&&!window.confirm('오목 AI 대전 판돈 '+money(stake)+'를 예치합니다. 승리하면 +'+money(stake)+', 패배하면 -'+money(stake)+'입니다. 시작할까요?'))return;
+  act('/create-ai',{stake});return;
+ }
  if(action==='join'){act('/'+b.dataset.id+'/join');return;}
  if(action==='invite'){
   const link=location.origin+'/omok/index.html?join='+encodeURIComponent(r.id);
@@ -152,10 +179,18 @@ root.addEventListener('click',e=>{
  if(!r)return;
  if(action==='ready'){const p=r.players.find(p=>p.id===r.selfId);act('/'+r.id+'/ready',{ready:!p.ready});}
  else if(action==='start')act('/'+r.id+'/start');
- else if(action==='move')act('/'+r.id+'/move',{x:Number(b.dataset.x),y:Number(b.dataset.y)});
+ else if(action==='move'){
+   const x=Number(b.dataset.x),y=Number(b.dataset.y);
+   if(!Number.isInteger(x)||!Number.isInteger(y)||x<0||y<0||x>=15||y>=15){message('올바르지 않은 교차점입니다.');return;}
+   if(r.phase!=='playing'){message('대국 진행 중이 아닙니다.');return;}
+   if(r.board[y][x]!==0){message('이미 돌이 놓인 자리입니다.');return;}
+   // Do not block a legal defence on a stale cached client turn flag.
+   // The server is authoritative and reports any real rejection reason.
+   act('/'+r.id+'/move',{x,y});
+ }
  else if(action==='rematch')act('/'+r.id+'/rematch');
- else if(action==='resign'){if(window.confirm(r.aiMode?'극한 AI에게 기권패로 기록할까요?':'기권하면 패배로 기록됩니다. 기권할까요?'))act('/'+r.id+'/resign');}
- else if(action==='leave'){if(r.phase==='playing'&&!window.confirm('지금 나가면 기권패로 기록됩니다. 나갈까요?'))return;act('/'+r.id+'/leave');}
+ else if(action==='resign'){if(window.confirm(r.aiMode?'AI 기권패로 기록되고 판돈이 차감됩니다. 기권할까요?':'기권하면 패배로 기록됩니다. 기권할까요?'))act('/'+r.id+'/resign');}
+ else if(action==='leave'){if(r.phase==='playing'&&!window.confirm('지금 나가면 기권패로 기록되며 AI 판돈도 차감됩니다. 나갈까요?'))return;act('/'+r.id+'/leave');}
 });
 if(typeof EventSource==='function'){
  const events=new EventSource('/api/events');
@@ -164,6 +199,17 @@ if(typeof EventSource==='function'){
  });
  window.addEventListener('pagehide',()=>events.close(),{once:true});
 }
+const lobbyLink=document.querySelector('.omk-back');
+lobbyLink?.addEventListener('click',async e=>{
+ if(!state.room)return;
+ e.preventDefault();
+ if(state.busy)return;
+ if(state.room.phase==='playing'&&!window.confirm('대국 중에 로비로 나가면 기권패로 기록됩니다. 나갈까요?'))return;
+ const id=state.room.id;state.busy=true;state.actionEpoch++;
+ try{await api('/'+id+'/leave',{});state.room=null;location.assign('/');}
+ catch(error){message('퇴장 실패: '+error.message);}
+ finally{state.busy=false;}
+});
 setInterval(tick,250);
 setInterval(()=>{if(!document.hidden)refresh();},5000);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)refresh(true);});

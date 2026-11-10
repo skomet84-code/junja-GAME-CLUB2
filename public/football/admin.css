@@ -1,0 +1,55 @@
+/* JPL operator-only dashboard. Server enforces access; hiding a tab is not security. */
+.jpl-admin-panel{border-color:rgba(228,193,123,.38);background:linear-gradient(160deg,#192338,#101926 65%)}
+.jpl-admin-panel[hidden],#adminNav[hidden]{display:none!important}
+.jpl-admin-panel .panel-heading{border-bottom:1px solid #d8c28a28}
+.jpl-admin-panel .panel-heading h2{line-height:1.16}
+.jpl-admin-toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:end;padding:18px 23px 8px}
+.jpl-admin-toolbar label{display:flex;flex-direction:column;gap:7px;color:#b9c6d7;font-size:11px;font-weight:800;flex:1 1 125px}
+.jpl-admin-toolbar input,.jpl-admin-toolbar select{min-height:41px;min-width:0;width:100%;border:1px solid #d5c18d4d;border-radius:7px;background:#0b1524;color:#fff;padding:9px 11px;font:600 13px 'Noto Sans KR',sans-serif}
+.jpl-admin-toolbar button{min-height:41px;border:1px solid #f0c87d;background:linear-gradient(125deg,#e8cc94,#b28a4c);color:#172130;border-radius:7px;padding:0 20px;font-weight:900}
+.jpl-admin-note{font-size:11px;color:#9eacbd;padding:5px 23px 10px;margin:0;line-height:1.8}
+.jpl-admin-metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;padding:10px 23px 19px}
+.jpl-admin-metric{border:1px solid #e7d0a327;background:#0a1423;border-radius:9px;padding:12px;min-width:0}
+.jpl-admin-metric span{display:block;color:#aab8c8;font-size:10px;white-space:nowrap}
+.jpl-admin-metric strong{display:block;overflow-wrap:anywhere;color:#f0d59c;font:800 17px/1.5 'Noto Sans KR',sans-serif;margin-top:5px;font-variant-numeric:tabular-nums}
+.jpl-admin-section{padding:6px 23px 17px}
+.jpl-admin-section h3{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 11px;font-size:14px;font-weight:900;color:#faf2d9}
+.jpl-admin-section h3 small{color:#899cb2;font-size:10px;font-weight:500}
+.jpl-admin-scroll{max-height:495px;overflow:auto;scrollbar-color:#725f3e #131b29;display:grid;gap:9px}
+.jpl-admin-match,.jpl-admin-ticket{border:1px solid #e8d8b42d;border-radius:9px;background:#0d1828;overflow:hidden}
+.jpl-admin-match{padding:12px}
+.jpl-admin-match header{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:5px;color:#ecf0f8;font-size:12px;font-weight:800}
+.jpl-admin-match header small{color:#a3b3c7;font-size:10px;font-weight:500}
+.jpl-admin-choices{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin-top:10px}
+.jpl-admin-choice{background:#1c2a3e;border:1px solid #ffffff14;border-radius:7px;padding:8px;min-width:0}
+.jpl-admin-choice b{display:block;color:#e7cf9d;font-size:11px}
+.jpl-admin-choice span{display:block;color:#d8e0ed;font-size:10px}
+.jpl-admin-choice strong{display:block;margin-top:3px;overflow-wrap:anywhere;font-size:12px}
+.jpl-admin-ticket summary{cursor:pointer;display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;padding:12px;list-style:none}
+.jpl-admin-ticket summary::-webkit-details-marker{display:none}
+.jpl-admin-ticket summary:before{content:'+';color:#e6d097;font-size:16px;font-weight:900}
+.jpl-admin-ticket[open] summary:before{content:'−'}
+.jpl-admin-ticket summary b{color:#f4e0aa;font-size:12px}
+.jpl-admin-ticket summary span{font-size:11px;color:#cad4df}
+.jpl-admin-ticket summary .right{margin-left:auto}
+.jpl-admin-ticket .detail{padding:10px 13px 13px;border-top:1px solid #ffffff14;color:#bfccdd;font-size:11px;line-height:1.85}
+.jpl-admin-ticket .leg{display:flex;gap:12px;justify-content:space-between;padding:5px 0;border-bottom:1px dashed #ffffff1b}
+.jpl-admin-ticket .leg:last-child{border:0}
+.jpl-admin-status{border:1px solid #b7bdc642;color:#bac5d6;border-radius:5px;padding:3px 7px;white-space:nowrap}
+.jpl-admin-status.WIN{color:#99efc0;border-color:#55ce8f66}
+.jpl-admin-status.LOSE,.jpl-admin-status.FORFEITED{color:#ffa6a6;border-color:#f18e8e55}
+.jpl-admin-pager{display:flex;align-items:center;justify-content:center;gap:15px;padding:6px 23px 20px}
+.jpl-admin-pager button{background:#1b293e;color:#e7d09d;border:1px solid #d7bb8155;border-radius:6px;padding:7px 15px;font-weight:800}
+.jpl-admin-pager button:disabled{opacity:.35}
+.jpl-admin-empty{padding:21px;text-align:center;color:#a1aec1;border:1px dashed #d0b87838;border-radius:7px;font-size:12px}
+@media(max-width:950px){.jpl-admin-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:600px){
+.jpl-admin-panel .panel-heading,.jpl-admin-toolbar,.jpl-admin-section{padding-left:13px;padding-right:13px}
+.jpl-admin-metrics{padding:9px 13px 15px;gap:6px}
+.jpl-admin-metric{padding:9px}.jpl-admin-metric strong{font-size:14px}
+.jpl-admin-note{padding-left:13px;padding-right:13px}
+.jpl-admin-choices{gap:4px}.jpl-admin-choice{padding:7px 5px}
+.jpl-admin-choice strong{font-size:11px}.jpl-admin-choice span{font-size:9px}
+.jpl-admin-match{padding:10px}
+.jpl-admin-ticket summary{gap:5px 8px}.jpl-admin-ticket summary .right{margin-left:0}
+}

@@ -41,6 +41,7 @@ const posts=[];
 async function fetch(url,opts){
  if(opts&&opts.method==='POST'){
   posts.push({url,body:JSON.parse(opts.body)});
+  if(url.endsWith('/leave'))room=null;
   if(url.endsWith('/take')){
    assert.equal(posts[posts.length-1].body.source,'stock');
    room={...room,version:room.version+1,drew:true,deckCount:room.deckCount-1,
@@ -50,7 +51,7 @@ async function fetch(url,opts){
  return {ok:true,json:async()=>({room,stats:{wins:0,games:0,streak:0,bestStreak:0}})};
 }
 const sandbox={console,document,location:{search:'?game=hula',origin:'https://example.invalid'},
- URLSearchParams,fetch,navigator:{},Date,Math,
+ URLSearchParams,fetch,navigator:{},confirm:()=>true,Date,Math,
  setInterval:()=>0,clearInterval:()=>{},setTimeout:()=>0,clearTimeout:()=>{}};
 vm.createContext(sandbox);vm.runInContext(source,sandbox);
 const run=s=>vm.runInContext(s,sandbox);
@@ -76,5 +77,9 @@ async function settle(){for(let i=0;i<12;i++)await Promise.resolve()}
   assert.match(el('#actions').innerHTML,/추천 조합 바로 등록/,'one-tap suggested meld appears');
  assert.equal(typeof el('#discardBtn').onclick,'function');
  assert.ok(html.includes('premium-table.css'));
- console.log('ROYAL_CARDS_UI_OK: stock draw buttons and legal Hula selection UI');
+ el('#leaveBtn').onclick();await settle();
+ assert.ok(posts.some(x=>x.url.endsWith('/leave')),'leave button must reach server');
+ assert.equal(el('#landing').classList.contains('hidden'),false,'server-confirmed leave returns to lobby immediately');
+ assert.equal(run('room'),null,'leave must clear stale client-side room');
+ console.log('ROYAL_CARDS_UI_OK: draw, legal Hula selection, and return to lobby after leave');
 })().catch(e=>{console.error(e);process.exitCode=1});
